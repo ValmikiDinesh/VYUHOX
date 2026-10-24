@@ -50,7 +50,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
   const [billingCycle, setBillingCycle] = useState('monthly');
 
   // Scanner state
-  const [scanUrl, setScanUrl] = useState('https://hedgex.io');
+  const [scanUrl, setScanUrl] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
 
@@ -525,7 +525,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
               type="text"
               value={scanUrl}
               onChange={(e) => setScanUrl(e.target.value)}
-              placeholder="e.g. https://hedgex.io or yoursite.com"
+              placeholder="Enter your website URL (e.g. https://yourcompany.com)"
               className="input"
               style={{
                 flex: 1,

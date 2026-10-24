@@ -25,8 +25,11 @@ import {
   Globe,
   Lock,
   Key,
+  Palette,
+  Presentation,
 } from 'lucide-react';
 import { api } from '../services/api';
+import VisualCreativeStudio from '../components/VisualCreativeStudio';
 
 export default function SuperAdminDashboard({
   workspaces = [],
@@ -185,7 +188,7 @@ export default function SuperAdminDashboard({
     }
   };
 
-  // Save Platform Config (Utility Rates or Integrations)
+  // Save Platform Config (Utility Rates, Integrations & Visual Tools)
   const handleSavePlatformConfig = async () => {
     if (!platformConfig) return;
     try {
@@ -193,10 +196,16 @@ export default function SuperAdminDashboard({
       const res = await api.updatePlatformConfig({
         usageRates: platformConfig.usageRates,
         integrations: platformConfig.integrations,
+        canvaConnect: platformConfig.canvaConnect,
+        googleFlowWorkspace: platformConfig.googleFlowWorkspace,
+        pollinationsVisualAi: platformConfig.pollinationsVisualAi,
+        dalleVisualAi: platformConfig.dalleVisualAi,
+        shortVideoEngine: platformConfig.shortVideoEngine,
+        visualToolsGovernance: platformConfig.visualToolsGovernance,
       });
       if (res.success) {
         setPlatformConfig(res.config);
-        showToast('Platform rates & integrations saved successfully!');
+        showToast('Platform rates, carrier integrations & visual AI tools saved successfully!');
       }
     } catch (err) {
       console.error('Failed to save platform config:', err);
@@ -348,6 +357,7 @@ export default function SuperAdminDashboard({
           { id: 'plans', label: 'Subscription Plans & Country Targeting', icon: DollarSign },
           { id: 'rates', label: 'Utility Rates (Calling, WhatsApp, Email, SMS)', icon: Zap },
           { id: 'integrations', label: 'Master Carrier & Tool Integrations (Twilio, AiSensy, etc.)', icon: Radio },
+          { id: 'visualTools', label: '🎨 Visual AI & PowerPoint Presentation Tools', icon: Presentation },
           { id: 'tenants', label: 'Active Business Workspaces & Actual Features', icon: Building2 },
         ].map((tab) => {
           const active = activeTab === tab.id;
@@ -1424,6 +1434,483 @@ export default function SuperAdminDashboard({
                     })}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: VISUAL AI, CANVA & GOOGLE FLOW TOOLS (SUPER ADMIN CONTROL) */}
+      {/* ========================================================================= */}
+      {activeTab === 'visualTools' && platformConfig && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          {/* Header Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+            <div>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: '800', margin: '0 0 4px', color: '#F8FAFC' }}>
+                🎨 Master Visual AI, Canva Connect & Google Flow Tools
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.825rem', color: '#94A3B8' }}>
+                Super Admin Master Control: Test live connections, manage API credentials, open provider login consoles, and use the unified creative studio on the spot.
+              </p>
+            </div>
+
+            <button
+              onClick={handleSavePlatformConfig}
+              disabled={savingConfig}
+              className="btn-emerald"
+              style={{ padding: '9px 22px', fontWeight: '700', fontSize: '0.825rem' }}
+            >
+              {savingConfig ? 'Saving Settings...' : 'Save Visual Tool Settings'}
+            </button>
+          </div>
+
+          {/* Section 1: Live Interactive Creative Studio (Admin Generator) */}
+          <div className="card" style={{ padding: '24px', background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={18} color="#06B6D4" />
+                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
+                  Live Creative Studio Sandbox (Direct Use & Generation)
+                </h3>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#94A3B8' }}>
+                Generate Pitch Decks, AI Ad Creatives, Canva Designs, and GTM Pipeline Flowcharts directly in the Super Admin dashboard.
+              </p>
+            </div>
+
+            <VisualCreativeStudio isSuperAdmin={true} />
+          </div>
+
+          {/* Section 2: Visual Providers Credentials & Quick Login Hub */}
+          <div>
+            <div style={{ marginBottom: '16px' }}>
+              <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800', margin: '0 0 4px', color: '#F8FAFC' }}>
+                🛠️ Visual Toolchain Configurations & Direct Provider Login Links
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#94A3B8' }}>
+                Configure credentials, verify live connectivity, and access developer portals for each visual representation tool.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+              {/* Tool 1: Pollinations FLUX.1 (Free AI Images) */}
+              <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={18} color="#06B6D4" />
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Pollinations FLUX.1 Visual AI</h4>
+                  </div>
+                  <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Free &amp; Unlimited</span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
+                  Open-source FLUX.1 high-resolution image engine. Zero-cost, zero API key required, commercial rights included.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Default Image Model</label>
+                    <select
+                      value={platformConfig.pollinationsVisualAi?.defaultModel || 'flux'}
+                      onChange={(e) => setPlatformConfig({
+                        ...platformConfig,
+                        pollinationsVisualAi: { ...platformConfig.pollinationsVisualAi, defaultModel: e.target.value },
+                      })}
+                      className="input-glass"
+                      style={{ height: '34px', fontSize: '0.78rem' }}
+                    >
+                      <option value="flux">FLUX.1 Schnell (Fast &amp; High Detail)</option>
+                      <option value="flux-realism">FLUX Photorealism (Ad Creatives)</option>
+                      <option value="turbo">SDXL Turbo (Ultra-Fast)</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    <input
+                      type="checkbox"
+                      id="enableHd"
+                      checked={platformConfig.pollinationsVisualAi?.enableHd !== false}
+                      onChange={(e) => setPlatformConfig({
+                        ...platformConfig,
+                        pollinationsVisualAi: { ...platformConfig.pollinationsVisualAi, enableHd: e.target.checked },
+                      })}
+                    />
+                    <label htmlFor="enableHd" style={{ fontSize: '0.75rem', color: '#CBD5E1', cursor: 'pointer' }}>
+                      Enable 8K HD Upscaling on all prompts
+                    </label>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                  <a
+                    href="https://pollinations.ai"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary"
+                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', textDecoration: 'none' }}
+                  >
+                    <span>Pollinations Docs</span>
+                    <ExternalLink size={12} />
+                  </a>
+                  <button
+                    onClick={() => handleTestPing('pollinationsVisualAi')}
+                    className="btn-secondary"
+                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem' }}
+                  >
+                    {pingStatus.pollinationsVisualAi?.loading ? 'Testing...' : 'Ping Test'}
+                  </button>
+                </div>
+                {pingStatus.pollinationsVisualAi?.message && (
+                  <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '8px' }}>{pingStatus.pollinationsVisualAi.message}</div>
+                )}
+              </div>
+
+              {/* Tool 2: Autonomous PowerPoint (.PPTX) Presentation Engine */}
+              <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Presentation size={18} color="#06B6D4" />
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>PowerPoint (.PPTX) Engine</h4>
+                  </div>
+                  <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>Active / Built-in</span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
+                  Autonomous Microsoft PowerPoint compiler. Synthesizes crawled strategy, ICP matrix, value prop, channels, and 30-day roadmap into 16:9 executive pitch decks.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '700' }}>SLIDE COMPILER ENGINE</div>
+                    <div style={{ fontSize: '0.8rem', color: '#CBD5E1', marginTop: '2px' }}>pptxgenjs • 16:9 Widescreen • Dark Obsidian Layout</div>
+                  </div>
+                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '700' }}>OUTPUT FORMATS</div>
+                    <div style={{ fontSize: '0.8rem', color: '#CBD5E1', marginTop: '2px' }}>Direct .pptx File Download, In-Dashboard Presenter, .HTML Deck</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                  <button
+                    onClick={() => handleTestPing('pptxEngine')}
+                    className="btn-secondary"
+                    style={{ width: '100%', padding: '7px', fontSize: '0.75rem' }}
+                  >
+                    {pingStatus.pptxEngine?.loading ? 'Verifying Compiler...' : 'Ping Test PPTX Engine'}
+                  </button>
+                </div>
+                {pingStatus.pptxEngine?.message && (
+                  <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '8px' }}>{pingStatus.pptxEngine.message}</div>
+                )}
+              </div>
+
+              {/* Tool 3: Google Flow AI & Google Slides Workspace */}
+              <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Layers size={18} color="#FBBF24" />
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Google Flow AI &amp; Slides</h4>
+                  </div>
+                  <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>Workspace Cloud</span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
+                  Google Slides presentation automation &amp; strategy flowchart sync for enterprise decks.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                  <input
+                    type="text"
+                    placeholder="OAuth Client ID (.apps.googleusercontent.com)"
+                    value={platformConfig.googleFlowWorkspace?.clientId || ''}
+                    onChange={(e) => setPlatformConfig({
+                      ...platformConfig,
+                      googleFlowWorkspace: { ...platformConfig.googleFlowWorkspace, clientId: e.target.value },
+                    })}
+                    className="input-glass"
+                    style={{ height: '34px', fontSize: '0.78rem' }}
+                  />
+                  <input
+                    type="password"
+                    placeholder="Google Cloud API Key"
+                    value={platformConfig.googleFlowWorkspace?.apiKey || ''}
+                    onChange={(e) => setPlatformConfig({
+                      ...platformConfig,
+                      googleFlowWorkspace: { ...platformConfig.googleFlowWorkspace, apiKey: e.target.value },
+                    })}
+                    className="input-glass"
+                    style={{ height: '34px', fontSize: '0.78rem' }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Default Google Slides Master Template ID (optional)"
+                    value={platformConfig.googleFlowWorkspace?.defaultTemplateId || ''}
+                    onChange={(e) => setPlatformConfig({
+                      ...platformConfig,
+                      googleFlowWorkspace: { ...platformConfig.googleFlowWorkspace, defaultTemplateId: e.target.value },
+                    })}
+                    className="input-glass"
+                    style={{ height: '34px', fontSize: '0.78rem' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                  <a
+                    href="https://console.cloud.google.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary"
+                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', textDecoration: 'none' }}
+                  >
+                    <span>Google Cloud</span>
+                    <ExternalLink size={12} />
+                  </a>
+                  <a
+                    href="https://slides.google.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary"
+                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', textDecoration: 'none' }}
+                  >
+                    <span>Google Slides</span>
+                    <ExternalLink size={12} />
+                  </a>
+                  <button
+                    onClick={() => handleTestPing('googleFlowWorkspace')}
+                    className="btn-secondary"
+                    style={{ padding: '7px 12px', fontSize: '0.75rem' }}
+                  >
+                    {pingStatus.googleFlowWorkspace?.loading ? '...' : 'Ping'}
+                  </button>
+                </div>
+                {pingStatus.googleFlowWorkspace?.message && (
+                  <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '8px' }}>{pingStatus.googleFlowWorkspace.message}</div>
+                )}
+              </div>
+
+              {/* Tool 4: OpenAI DALL-E 3 Visual Engine */}
+              <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Cpu size={18} color="#A78BFA" />
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>OpenAI DALL-E 3 Engine</h4>
+                  </div>
+                  <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>Photorealistic</span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
+                  Secondary high-precision visual engine for hyper-targeted product mockups and advertising.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                  <input
+                    type="password"
+                    placeholder="OpenAI API Key (sk-...)"
+                    value={platformConfig.dalleVisualAi?.apiKey || ''}
+                    onChange={(e) => setPlatformConfig({
+                      ...platformConfig,
+                      dalleVisualAi: { ...platformConfig.dalleVisualAi, apiKey: e.target.value },
+                    })}
+                    className="input-glass"
+                    style={{ height: '34px', fontSize: '0.78rem' }}
+                  />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Model</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="dall-e-3"
+                        className="input-glass"
+                        style={{ height: '34px', fontSize: '0.78rem', opacity: 0.8 }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Quality</label>
+                      <select
+                        value={platformConfig.dalleVisualAi?.quality || 'standard'}
+                        onChange={(e) => setPlatformConfig({
+                          ...platformConfig,
+                          dalleVisualAi: { ...platformConfig.dalleVisualAi, quality: e.target.value },
+                        })}
+                        className="input-glass"
+                        style={{ height: '34px', fontSize: '0.78rem' }}
+                      >
+                        <option value="standard">Standard Quality</option>
+                        <option value="hd">HD Ultra Definition</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                  <a
+                    href="https://platform.openai.com/api-keys"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary"
+                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', textDecoration: 'none' }}
+                  >
+                    <span>OpenAI Keys</span>
+                    <ExternalLink size={12} />
+                  </a>
+                  <button
+                    onClick={() => handleTestPing('dalleVisualAi')}
+                    className="btn-secondary"
+                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem' }}
+                  >
+                    {pingStatus.dalleVisualAi?.loading ? 'Testing...' : 'Ping Test'}
+                  </button>
+                </div>
+                {pingStatus.dalleVisualAi?.message && (
+                  <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '8px' }}>{pingStatus.dalleVisualAi.message}</div>
+                )}
+              </div>
+
+              {/* Tool 5: Vertical Short Video Reel Engine */}
+              <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Radio size={18} color="#EC4899" />
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Vertical Video Reel Engine</h4>
+                  </div>
+                  <span className="badge badge-pink" style={{ fontSize: '0.65rem' }}>9:16 Shorts/Reels</span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
+                  Programmatic short video engine powering Ava Vance CMO social reels and TikTok/IG marketing.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Default B-Roll Preset</label>
+                    <select
+                      value={platformConfig.shortVideoEngine?.defaultPreset || 'modern_fintech'}
+                      onChange={(e) => setPlatformConfig({
+                        ...platformConfig,
+                        shortVideoEngine: { ...platformConfig.shortVideoEngine, defaultPreset: e.target.value },
+                      })}
+                      className="input-glass"
+                      style={{ height: '34px', fontSize: '0.78rem' }}
+                    >
+                      <option value="modern_fintech">Modern Fintech &amp; Web3 Cyber</option>
+                      <option value="saas_dark">SaaS Dark Obsidian Minimal</option>
+                      <option value="neon_agency">Neon Agency Kinetic Flow</option>
+                      <option value="minimal_clean">Clean Corporate &amp; Healthcare</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    <input
+                      type="checkbox"
+                      id="videoWatermark"
+                      checked={platformConfig.shortVideoEngine?.includeWatermark !== false}
+                      onChange={(e) => setPlatformConfig({
+                        ...platformConfig,
+                        shortVideoEngine: { ...platformConfig.shortVideoEngine, includeWatermark: e.target.checked },
+                      })}
+                    />
+                    <label htmlFor="videoWatermark" style={{ fontSize: '0.75rem', color: '#CBD5E1', cursor: 'pointer' }}>
+                      Include VYUHOX Branding watermark on free tier
+                    </label>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                  <button
+                    onClick={() => handleTestPing('shortVideoEngine')}
+                    className="btn-secondary"
+                    style={{ width: '100%', padding: '7px', fontSize: '0.75rem' }}
+                  >
+                    {pingStatus.shortVideoEngine?.loading ? 'Pinging Reel Engine...' : 'Ping Test Connection'}
+                  </button>
+                </div>
+                {pingStatus.shortVideoEngine?.message && (
+                  <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '8px' }}>{pingStatus.shortVideoEngine.message}</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Client Workspace Feature Governance & Access Controls */}
+          <div className="card" style={{ padding: '24px', background: '#0D1527', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldCheck size={18} color="#10B981" />
+                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
+                  🛡️ Client Access Governance &amp; Usage Limits
+                </h3>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#94A3B8' }}>
+                Specify which visual generation tools are available to client workspaces and configure monthly AI creation limits.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={platformConfig.visualToolsGovernance?.enableAiImageGen !== false}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    visualToolsGovernance: { ...platformConfig.visualToolsGovernance, enableAiImageGen: e.target.checked },
+                  })}
+                />
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>AI Image Generator</div>
+                  <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Allow clients to create FLUX.1 images</div>
+                </div>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={platformConfig.visualToolsGovernance?.enablePptxForClients !== false}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    visualToolsGovernance: { ...platformConfig.visualToolsGovernance, enablePptxForClients: e.target.checked },
+                  })}
+                />
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>PowerPoint (.PPTX) Download</div>
+                  <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Allow clients to download full Microsoft PowerPoint presentations</div>
+                </div>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={platformConfig.visualToolsGovernance?.enablePitchDecksForClients !== false}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    visualToolsGovernance: { ...platformConfig.visualToolsGovernance, enablePitchDecksForClients: e.target.checked },
+                  })}
+                />
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>GTM Pitch Decks</div>
+                  <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Generate 6-slide executive PPT decks</div>
+                </div>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={platformConfig.visualToolsGovernance?.enableVideoReelsForClients !== false}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    visualToolsGovernance: { ...platformConfig.visualToolsGovernance, enableVideoReelsForClients: e.target.checked },
+                  })}
+                />
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>Short Video Reels</div>
+                  <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Render 9:16 vertical reels for social ads</div>
+                </div>
+              </label>
+            </div>
+
+            <div style={{ marginTop: '16px', maxWidth: '320px' }}>
+              <label style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>
+                Monthly AI Image Generations Quota per Workspace
+              </label>
+              <input
+                type="number"
+                value={platformConfig.visualToolsGovernance?.maxAiImagesPerWorkspaceMonthly || 250}
+                onChange={(e) => setPlatformConfig({
+                  ...platformConfig,
+                  visualToolsGovernance: { ...platformConfig.visualToolsGovernance, maxAiImagesPerWorkspaceMonthly: parseInt(e.target.value, 10) || 0 },
+                })}
+                className="input-glass"
+                style={{ height: '36px', fontSize: '0.825rem' }}
+              />
             </div>
           </div>
         </div>

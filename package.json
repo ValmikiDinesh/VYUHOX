@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev:server": "node --watch server.js",
+    "dev:server": "node --watch-path=server.js --watch-path=src server.js",
     "dev:client": "npm --prefix client run dev",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "seed": "node src/seed.js"
@@ -20,6 +20,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.0",
     "multer": "^2.5.0",
+    "pptxgenjs": "^4.0.1",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {

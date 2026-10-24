@@ -10,10 +10,11 @@ router.post('/start', authMiddleware, async (req, res) => {
     const {
       workspaceId: bodyWsId,
       searchType = 'directory',
-      query = 'SaaS Founders',
+      query = '',
       location = 'United States',
-      targetPersona = 'Founder & CEO',
+      targetPersona = '',
       limit = 6,
+      companyTier = 'Enterprise',
     } = req.body;
 
     const workspaceId = bodyWsId || req.workspaceId;
@@ -33,6 +34,7 @@ router.post('/start', authMiddleware, async (req, res) => {
       location,
       targetPersona,
       limit: parseInt(limit) || 6,
+      companyTier,
       io,
     }).catch((err) => console.error(`[Scraper Job ${jobId} failed]:`, err.message));
 

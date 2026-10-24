@@ -48,13 +48,6 @@ export default function ClientDashboardView({
   const [scanStatus, setScanStatus] = useState('');
   const [activeStrategy, setActiveStrategy] = useState(null);
 
-  // Quick Presets
-  const samplePresets = [
-    { label: 'Fintech (HedgeX)', url: 'https://hedgex.io' },
-    { label: 'B2B SaaS (Linear)', url: 'https://linear.app' },
-    { label: 'Payments (Stripe)', url: 'https://stripe.com' },
-  ];
-
   // Load active strategy on mount or workspace change
   useEffect(() => {
     if (!activeWorkspace?._id) return;
@@ -337,7 +330,7 @@ export default function ClientDashboardView({
             <Globe size={18} color="#06B6D4" />
             <input
               type="url"
-              placeholder="https://yourcompany.com or https://hedgex.io"
+              placeholder="https://yourcompany.com"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               onKeyDown={(e) => {
@@ -402,42 +395,37 @@ export default function ClientDashboardView({
           </div>
         )}
 
-        {/* Quick Presets & Status */}
+        {/* Workspace Domain Helper & Status */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginTop: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '600' }}>
-              Quick Try:
-            </span>
-            {samplePresets.map((preset) => (
+            {activeWorkspace?.domain && (
               <button
-                key={preset.url}
                 onClick={() => {
-                  setUrlInput(preset.url);
-                  handleStartCrawl(preset.url);
+                  const target = activeWorkspace.domain.startsWith('http')
+                    ? activeWorkspace.domain
+                    : `https://${activeWorkspace.domain}`;
+                  setUrlInput(target);
+                  handleStartCrawl(target);
                 }}
                 disabled={isScanning}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'rgba(6, 182, 212, 0.08)',
+                  border: '1px solid rgba(6, 182, 212, 0.25)',
                   borderRadius: '6px',
                   padding: '4px 10px',
                   fontSize: '0.725rem',
-                  color: '#CBD5E1',
+                  color: '#38BDF8',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
                   transition: 'all 0.15s',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#06B6D4';
-                  e.currentTarget.style.color = '#38BDF8';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                  e.currentTarget.style.color = '#CBD5E1';
-                }}
               >
-                ⚡ {preset.label}
+                <Globe size={12} />
+                <span>Crawl {activeWorkspace.name} ({activeWorkspace.domain})</span>
               </button>
-            ))}
+            )}
           </div>
 
           {activeStrategy && (

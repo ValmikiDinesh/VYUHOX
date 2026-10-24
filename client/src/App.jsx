@@ -751,6 +751,7 @@ export default function App() {
           <StrategyPlanner
             activeWorkspace={activeWorkspace}
             socket={socket}
+            onNavigateTab={setActiveTab}
           />
         )}
 

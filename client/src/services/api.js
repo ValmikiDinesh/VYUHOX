@@ -866,6 +866,30 @@ export const api = {
     });
     return res.json();
   },
+  updateStrategy: async (strategyId, data) => {
+    const token = localStorage.getItem('vyuhox_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/strategy/${strategyId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  updateStepStatus: async (strategyId, phaseIndex, status) => {
+    const token = localStorage.getItem('vyuhox_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/strategy/${strategyId}/step`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ phaseIndex, status }),
+    });
+    return res.json();
+  },
   toggleChannel: async (strategyId, channelName, enabled) => {
     const token = localStorage.getItem('vyuhox_token');
     const headers = { 'Content-Type': 'application/json' };
@@ -876,6 +900,55 @@ export const api = {
       headers,
       body: JSON.stringify({ channelName, enabled }),
     });
+    return res.json();
+  },
+
+  // Visual Representation & Autonomous Pitch Deck Generator
+  generateVisualImage: async (data) => {
+    const res = await fetch(`${API_BASE}/visual/generate-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  generatePitchDeck: async (data) => {
+    const res = await fetch(`${API_BASE}/visual/generate-deck`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  downloadPptxFile: async (strategy) => {
+    const res = await fetch(`${API_BASE}/visual/download-pptx`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strategy }),
+    });
+    if (!res.ok) throw new Error('Failed to generate PPTX');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cleanName = (strategy?.businessName || 'Business').replace(/[^a-zA-Z0-9_-]/g, '_');
+    a.download = `${cleanName}_GTM_Strategy_Pitch_Deck.pptx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    return { success: true };
+  },
+  getFunnelFlow: async (data) => {
+    const res = await fetch(`${API_BASE}/visual/funnel-flow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  getVisualToolsStatus: async () => {
+    const res = await fetch(`${API_BASE}/visual/tools-status`);
     return res.json();
   },
 };

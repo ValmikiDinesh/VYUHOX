@@ -2,6 +2,7 @@ import express from 'express';
 import { GtmStrategy } from '../models/GtmStrategy.js';
 import { Workspace } from '../models/Workspace.js';
 import { ScannerService } from '../services/ScannerService.js';
+import { VisualAiService } from '../services/visual/VisualAiService.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -19,7 +20,7 @@ const emitProgress = (req, workspaceId, step, message, progressPercent) => {
   }
 };
 
-// POST /api/strategy/scan - Scan website & generate AI GTM Strategy
+// POST /api/strategy/scan - Deep Crawl Website & Generate Complete GTM Intelligence
 router.post('/scan', authMiddleware, async (req, res) => {
   try {
     const { url, workspaceId: bodyWsId } = req.body;
@@ -38,28 +39,20 @@ router.post('/scan', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Workspace not found' });
     }
 
-    // Progress 1: Initiating Crawl
-    emitProgress(req, workspaceId, 'CRAWL_INIT', `Connecting to ${url}...`, 15);
+    // 1. Deep Multi-Page Crawl
+    emitProgress(req, workspaceId, 'CRAWL_INIT', `Initiating deep end-to-end crawl for ${url}...`, 10);
 
-    // Run Scanner Service
-    const extractedData = await ScannerService.scanWebsite(url);
+    const extractedData = await ScannerService.scanWebsite(url, (percent, msg) => {
+      emitProgress(req, workspaceId, 'CRAWLING', msg, percent);
+    });
 
-    // Progress 2: Metadata Extracted
-    emitProgress(
-      req,
-      workspaceId,
-      'METADATA_PARSED',
-      `Parsed DOM, extracted ${extractedData.h1List.length + extractedData.h2List.length} headings & value propositions`,
-      45
-    );
-
-    // Progress 3: Synthesizing GTM Personas & Value Props
+    // 2. Synthesizing Bespoke Strategy & Business Plan
     emitProgress(
       req,
       workspaceId,
       'AI_SYNTHESIS',
-      `Synthesizing buyer personas, acquisition switchboard & ad hooks...`,
-      75
+      `Synthesizing executive business plan, tailored ICP, AI agent team & 30-day launch roadmap...`,
+      80
     );
 
     const strategyData = await ScannerService.synthesizeStrategy(extractedData, {
@@ -67,14 +60,34 @@ router.post('/scan', authMiddleware, async (req, res) => {
       industry: workspace.industry,
     });
 
-    // Save to Database
+    // 2.5 Generate visual cover image and executive presentation deck
+    const businessName = strategyData.businessName || workspace.name;
+    const category = strategyData.category || 'B2B Enterprise SaaS';
+    const visualCoverUrl = VisualAiService.generateBusinessCoverImage(businessName, category, strategyData.positioning?.coreValueProp);
+    strategyData.visualCoverUrl = visualCoverUrl;
+
+    const presentationDeck = VisualAiService.generatePitchDeck({
+      businessName,
+      category,
+      targetUrl: extractedData.url,
+      analysisResult: strategyData,
+      businessPlanDocument: strategyData.businessPlanDocument,
+      stepByStepRoadmap: strategyData.stepByStepRoadmap,
+    });
+
+    // 3. Save to Database with full document and presentation deck
     const gtmStrategy = await GtmStrategy.create({
       workspaceId,
       targetUrl: extractedData.url,
-      businessName: strategyData.businessName || workspace.name,
-      category: strategyData.category,
+      businessName,
+      category,
       rawExtractedData: extractedData,
       analysisResult: strategyData,
+      businessPlanDocument: strategyData.businessPlanDocument,
+      presentationDeck,
+      visualCoverUrl,
+      stepByStepRoadmap: strategyData.stepByStepRoadmap,
+      clientNotes: '',
       status: 'ACTIVE',
     });
 
@@ -85,20 +98,23 @@ router.post('/scan', authMiddleware, async (req, res) => {
     }
     await workspace.save();
 
-    // Progress 4: Completed
+    // 4. Broadcast Completion
+    emitProgress(req, workspaceId, 'COMPLETE', 'GTM Strategy & Business Plan synthesized!', 100);
+
     const io = req.app.get('io');
     if (io) {
       io.to(workspaceId.toString()).emit('scan:complete', {
         strategyId: gtmStrategy._id,
         businessName: gtmStrategy.businessName,
         category: gtmStrategy.category,
+        strategy: gtmStrategy,
       });
     }
 
     return res.status(201).json({
       success: true,
       strategy: gtmStrategy,
-      message: 'GTM Strategy generated successfully',
+      message: 'GTM Strategy & Business Plan Document created successfully',
     });
   } catch (error) {
     console.error('[Strategy Scan Error]:', error);
@@ -106,19 +122,18 @@ router.post('/scan', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/strategy/:workspaceId - Retrieve active GTM strategy
+// GET /api/strategy/:workspaceId - Retrieve active GTM strategy & business plan document
 router.get('/:workspaceId', authMiddleware, async (req, res) => {
   try {
     const workspaceId = req.params.workspaceId;
     let strategy = await GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).sort({ createdAt: -1 });
 
     if (!strategy) {
-      // Auto-generate initial strategy for workspace if none exists
       const workspace = await Workspace.findById(workspaceId);
       if (workspace) {
-        const targetDomain = workspace.domain || `${workspace.slug}.com`;
-        const extracted = ScannerService.generateFallbackExtraction(`https://${targetDomain}`, targetDomain);
-        const synthesized = ScannerService.generateHeuristicStrategy(extracted, {
+        const targetDomain = workspace.domain || `${workspace.slug || 'company'}.com`;
+        const extracted = ScannerService.generateResilientDomainIntelligence(`https://${targetDomain}`, targetDomain);
+        const synthesized = await ScannerService.synthesizeStrategy(extracted, {
           workspaceName: workspace.name,
           industry: workspace.industry,
         });
@@ -130,6 +145,8 @@ router.get('/:workspaceId', authMiddleware, async (req, res) => {
           category: synthesized.category,
           rawExtractedData: extracted,
           analysisResult: synthesized,
+          businessPlanDocument: synthesized.businessPlanDocument,
+          stepByStepRoadmap: synthesized.stepByStepRoadmap,
           status: 'ACTIVE',
         });
 
@@ -139,6 +156,97 @@ router.get('/:workspaceId', authMiddleware, async (req, res) => {
     }
 
     return res.json({ success: true, strategy });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// PUT /api/strategy/:strategyId - Edit and update Strategy, Business Plan, ICP, or Notes
+router.put('/:strategyId', authMiddleware, async (req, res) => {
+  try {
+    const { strategyId } = req.params;
+    const {
+      businessName,
+      category,
+      analysisResult,
+      businessPlanDocument,
+      stepByStepRoadmap,
+      clientNotes,
+    } = req.body;
+
+    const strategy = await GtmStrategy.findById(strategyId);
+    if (!strategy) {
+      return res.status(404).json({ success: false, message: 'Strategy not found' });
+    }
+
+    if (businessName) strategy.businessName = businessName;
+    if (category) strategy.category = category;
+    if (analysisResult) {
+      strategy.analysisResult = { ...strategy.analysisResult, ...analysisResult };
+      strategy.markModified('analysisResult');
+    }
+    if (businessPlanDocument) {
+      strategy.businessPlanDocument = { ...strategy.businessPlanDocument, ...businessPlanDocument };
+      strategy.markModified('businessPlanDocument');
+    }
+    if (stepByStepRoadmap) {
+      strategy.stepByStepRoadmap = stepByStepRoadmap;
+      strategy.markModified('stepByStepRoadmap');
+    }
+    if (clientNotes !== undefined) {
+      strategy.clientNotes = clientNotes;
+    }
+
+    await strategy.save();
+
+    // Broadcast update to workspace
+    const io = req.app.get('io');
+    if (io && strategy.workspaceId) {
+      io.to(strategy.workspaceId.toString()).emit('strategy:updated', {
+        strategyId: strategy._id,
+        businessName: strategy.businessName,
+      });
+    }
+
+    return res.json({
+      success: true,
+      strategy,
+      message: 'Business Plan & GTM Strategy saved successfully',
+    });
+  } catch (error) {
+    console.error('[Strategy Update Error]:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// PATCH /api/strategy/:strategyId/step - Update status of a launch roadmap phase
+router.patch('/:strategyId/step', authMiddleware, async (req, res) => {
+  try {
+    const { strategyId } = req.params;
+    const { phaseIndex, status } = req.body;
+
+    const strategy = await GtmStrategy.findById(strategyId);
+    if (!strategy) {
+      return res.status(404).json({ success: false, message: 'Strategy not found' });
+    }
+
+    if (strategy.stepByStepRoadmap && strategy.stepByStepRoadmap[phaseIndex]) {
+      strategy.stepByStepRoadmap[phaseIndex].status = status || 'COMPLETED';
+      strategy.markModified('stepByStepRoadmap');
+
+      // Sync into businessPlanDocument if present
+      if (strategy.businessPlanDocument?.stepByStepLaunchRoadmap?.[phaseIndex]) {
+        strategy.businessPlanDocument.stepByStepLaunchRoadmap[phaseIndex].status = status || 'COMPLETED';
+        strategy.markModified('businessPlanDocument');
+      }
+
+      await strategy.save();
+    }
+
+    return res.json({
+      success: true,
+      stepByStepRoadmap: strategy.stepByStepRoadmap,
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -163,6 +271,12 @@ router.put('/:strategyId/channels', authMiddleware, async (req, res) => {
         return ch;
       });
       strategy.markModified('analysisResult');
+
+      if (strategy.businessPlanDocument?.acquisitionStrategy?.channels) {
+        strategy.businessPlanDocument.acquisitionStrategy.channels = strategy.analysisResult.recommendedChannels;
+        strategy.markModified('businessPlanDocument');
+      }
+
       await strategy.save();
     }
 
@@ -175,7 +289,7 @@ router.put('/:strategyId/channels', authMiddleware, async (req, res) => {
   }
 });
 
-// POST /api/strategy/scan-public - Instant live web scan without auth for landing page demo
+// POST /api/strategy/scan-public - Instant live deep scan for public landing page
 router.post('/scan-public', async (req, res) => {
   try {
     const { url } = req.body;
@@ -185,15 +299,15 @@ router.post('/scan-public', async (req, res) => {
 
     const extractedData = await ScannerService.scanWebsite(url);
     const strategyData = await ScannerService.synthesizeStrategy(extractedData, {
-      workspaceName: extractedData.domainName || 'Discovered Enterprise',
+      workspaceName: extractedData.businessName || 'Discovered Enterprise',
       industry: 'B2B',
     });
 
     const recommendedTeam = [
-      { role: 'CMO', name: 'Sophia Sterling', monthlyFee: 49, purpose: 'Scrapes targeted agency/B2B directories and runs automated ad creative iteration.' },
-      { role: 'SDR', name: 'Marcus Cole', monthlyFee: 39, purpose: 'Dispatches personalized multi-channel cold emails and WhatsApp introductions.' },
-      { role: 'VOICE_CLOSER', name: 'Maya Vance', monthlyFee: 49, purpose: 'Dials inbound leads in under 30 seconds with sub-800ms Bland.ai voice bridge.' },
-      { role: 'CFO', name: 'Julian Vance', monthlyFee: 39, purpose: 'Tracks CAC/LTV, prevents ad burn, and manages Stripe Connect re-billing margins.' },
+      { role: 'CMO', name: 'Sophia Sterling', monthlyFee: 49, purpose: 'Iterates high-performing Meta/Google hooks and optimizes ROAS 24/7.' },
+      { role: 'SDR', name: 'Sarah Cole', monthlyFee: 39, purpose: 'Dispatches personalized multi-channel cold emails and WhatsApp introductions.' },
+      { role: 'VOICE_CLOSER', name: 'Maya Vance', monthlyFee: 49, purpose: 'Dials inbound leads in under 45 seconds with sub-800ms speech synthesis.' },
+      { role: 'CFO', name: 'Julian Vance', monthlyFee: 39, purpose: 'Tracks CAC/LTV unit economics and prevents budget leakage.' },
     ];
 
     return res.json({
@@ -202,6 +316,8 @@ router.post('/scan-public', async (req, res) => {
       domainName: extractedData.domainName,
       extractedData,
       strategy: strategyData,
+      businessPlanDocument: strategyData.businessPlanDocument,
+      stepByStepRoadmap: strategyData.stepByStepRoadmap,
       recommendedTeam,
       projectedRoiMultiple: '7.8x',
     });

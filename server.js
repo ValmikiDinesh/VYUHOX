@@ -23,6 +23,7 @@ import complianceRoutes from './src/routes/complianceRoutes.js';
 import aiCompanyRoutes from './src/routes/aiCompanyRoutes.js';
 import billingRoutes from './src/routes/billingRoutes.js';
 import flywheelRoutes from './src/routes/flywheelRoutes.js';
+import visualRoutes from './src/routes/visualRoutes.js';
 import { agentEventBus } from './src/services/agents/AgentEventBus.js';
 import { initSocialPublisher } from './src/cron/socialPublisher.js';
 import { initAdOptimizerCron } from './src/cron/adOptimizer.js';
@@ -111,6 +112,7 @@ app.use('/api/compliance', complianceRoutes);
 app.use('/api/ai-company', aiCompanyRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/flywheel', flywheelRoutes);
+app.use('/api/visual', visualRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

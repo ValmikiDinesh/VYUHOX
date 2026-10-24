@@ -20,25 +20,57 @@ import {
   Radio,
   ExternalLink,
   ChevronRight,
+  FileText,
+  Edit3,
+  Save,
+  X,
+  Printer,
+  Calendar,
+  CheckSquare,
+  Square,
+  Clock,
+  Compass,
+  DollarSign,
+  Briefcase,
+  Users,
+  Award,
+  BookOpen,
+  Palette,
+  Presentation,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { api } from '../services/api';
+import VisualCreativeStudio from '../components/VisualCreativeStudio';
 
-export default function StrategyPlanner({ activeWorkspace, socket }) {
+export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab }) {
   const [urlInput, setUrlInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState({ step: '', message: '', percent: 0 });
   const [strategy, setStrategy] = useState(null);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const [copiedDoc, setCopiedDoc] = useState(false);
   const [exportNotice, setExportNotice] = useState(false);
+  const [saveNotice, setSaveNotice] = useState(false);
+  const [showCrawledAssets, setShowCrawledAssets] = useState(true);
 
-  // Quick-try presets
-  const samplePresets = [
-    { label: 'Fintech / Web3 (HedgeX)', url: 'https://hedgex.io' },
-    { label: 'B2B SaaS (Linear)', url: 'https://linear.app' },
-    { label: 'Global Payments (Stripe)', url: 'https://stripe.com' },
-    { label: 'D2C Apparel (Gymshark)', url: 'https://gymshark.com' },
-  ];
+  // Active view tab: 'blueprint' | 'document' | 'roadmap'
+  const [viewTab, setViewTab] = useState('blueprint');
+
+  // Edit Mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    businessName: '',
+    category: '',
+    coreValueProp: '',
+    unfairAdvantage: '',
+    primaryPersona: '',
+    decisionMakers: '',
+    painPoints: '',
+    budgetTier: '',
+    clientNotes: '',
+  });
 
   // 1. Fetch current strategy for active workspace
   useEffect(() => {
@@ -50,6 +82,7 @@ export default function StrategyPlanner({ activeWorkspace, socket }) {
         if (res.success && res.strategy) {
           setStrategy(res.strategy);
           setUrlInput(res.strategy.targetUrl || '');
+          initEditForm(res.strategy);
         }
       } catch (err) {
         console.error('Failed to load strategy:', err);
@@ -59,6 +92,23 @@ export default function StrategyPlanner({ activeWorkspace, socket }) {
     };
     fetchStrategy();
   }, [activeWorkspace]);
+
+  // Populate edit form from strategy
+  const initEditForm = (strat) => {
+    const a = strat?.analysisResult || {};
+    const d = strat?.businessPlanDocument || {};
+    setEditForm({
+      businessName: strat?.businessName || a.businessName || '',
+      category: strat?.category || a.category || '',
+      coreValueProp: a.positioning?.coreValueProp || a.summary || '',
+      unfairAdvantage: a.positioning?.unfairAdvantage || '',
+      primaryPersona: a.targetAudience?.primaryPersona || '',
+      decisionMakers: (a.targetAudience?.decisionMakers || []).join(', '),
+      painPoints: (a.targetAudience?.painPoints || []).join('\n'),
+      budgetTier: a.targetAudience?.estimatedBudgetTier || '',
+      clientNotes: strat?.clientNotes || d.clientEditableNotes || '',
+    });
+  };
 
   // 2. Listen to Socket live scanning events
   useEffect(() => {
@@ -74,7 +124,11 @@ export default function StrategyPlanner({ activeWorkspace, socket }) {
 
     const handleComplete = (data) => {
       setIsScanning(false);
-      setScanProgress({ step: 'COMPLETE', message: 'Strategy generated!', percent: 100 });
+      setScanProgress({ step: 'COMPLETE', message: 'Strategy & Business Plan ready!', percent: 100 });
+      if (data.strategy) {
+        setStrategy(data.strategy);
+        initEditForm(data.strategy);
+      }
     };
 
     socket.on('scan:progress', handleProgress);
@@ -92,12 +146,13 @@ export default function StrategyPlanner({ activeWorkspace, socket }) {
     if (!finalUrl || !activeWorkspace) return;
 
     setIsScanning(true);
-    setScanProgress({ step: 'INIT', message: `Initializing scanner for ${finalUrl}...`, percent: 10 });
+    setScanProgress({ step: 'INIT', message: `Connecting to ${finalUrl}...`, percent: 10 });
 
     try {
       const res = await api.scanWebsite(activeWorkspace._id, finalUrl);
       if (res.success && res.strategy) {
         setStrategy(res.strategy);
+        initEditForm(res.strategy);
       }
     } catch (err) {
       console.error('Scan failed:', err);
@@ -107,13 +162,93 @@ export default function StrategyPlanner({ activeWorkspace, socket }) {
     }
   };
 
-  // 4. Toggle channel state
+  // 4. Save Edited Strategy & Document
+  const handleSaveEdits = async () => {
+    if (!strategy) return;
+    try {
+      const updatedAnalysis = {
+        ...strategy.analysisResult,
+        businessName: editForm.businessName,
+        category: editForm.category,
+        summary: editForm.coreValueProp,
+        positioning: {
+          ...strategy.analysisResult?.positioning,
+          coreValueProp: editForm.coreValueProp,
+          unfairAdvantage: editForm.unfairAdvantage,
+        },
+        targetAudience: {
+          ...strategy.analysisResult?.targetAudience,
+          primaryPersona: editForm.primaryPersona,
+          decisionMakers: editForm.decisionMakers.split(',').map((s) => s.trim()).filter(Boolean),
+          painPoints: editForm.painPoints.split('\n').map((s) => s.trim()).filter(Boolean),
+          estimatedBudgetTier: editForm.budgetTier,
+        },
+      };
+
+      const updatedDoc = {
+        ...strategy.businessPlanDocument,
+        executiveSummary: {
+          ...strategy.businessPlanDocument?.executiveSummary,
+          companyName: editForm.businessName,
+          industryVertical: editForm.category,
+          coreMission: editForm.coreValueProp,
+        },
+        idealCustomerProfile: {
+          ...strategy.businessPlanDocument?.idealCustomerProfile,
+          primaryPersona: editForm.primaryPersona,
+          decisionMakers: editForm.decisionMakers.split(',').map((s) => s.trim()).filter(Boolean),
+          criticalPainPoints: editForm.painPoints.split('\n').map((s) => s.trim()).filter(Boolean),
+          estimatedBudgetTier: editForm.budgetTier,
+        },
+        clientEditableNotes: editForm.clientNotes,
+      };
+
+      const payload = {
+        businessName: editForm.businessName,
+        category: editForm.category,
+        analysisResult: updatedAnalysis,
+        businessPlanDocument: updatedDoc,
+        clientNotes: editForm.clientNotes,
+      };
+
+      const res = await api.updateStrategy(strategy._id, payload);
+      if (res.success && res.strategy) {
+        setStrategy(res.strategy);
+        setIsEditing(false);
+        setSaveNotice(true);
+        setTimeout(() => setSaveNotice(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to update strategy:', err);
+      alert('Failed to save changes: ' + err.message);
+    }
+  };
+
+  // 5. Toggle Roadmap Step Status
+  const handleToggleStepStatus = async (phaseIndex, currentStatus) => {
+    if (!strategy) return;
+    const newStatus = currentStatus === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
+
+    // Optimistic UI update
+    const updatedRoadmap = [...(strategy.stepByStepRoadmap || [])];
+    if (updatedRoadmap[phaseIndex]) {
+      updatedRoadmap[phaseIndex] = { ...updatedRoadmap[phaseIndex], status: newStatus };
+      setStrategy({ ...strategy, stepByStepRoadmap: updatedRoadmap });
+    }
+
+    try {
+      await api.updateStepStatus(strategy._id, phaseIndex, newStatus);
+    } catch (err) {
+      console.error('Failed to update step status:', err);
+    }
+  };
+
+  // 6. Toggle acquisition channels
   const handleToggleChannel = async (channelName, currentEnabled) => {
     if (!strategy) return;
     const newEnabled = !currentEnabled;
 
-    // Optimistic UI update
-    const updatedChannels = strategy.analysisResult.recommendedChannels.map((ch) =>
+    const updatedChannels = strategy.analysisResult?.recommendedChannels?.map((ch) =>
       ch.channel === channelName ? { ...ch, enabled: newEnabled } : ch
     );
     setStrategy({
@@ -131,119 +266,232 @@ export default function StrategyPlanner({ activeWorkspace, socket }) {
     }
   };
 
-  // 5. Copy Hook to Clipboard
+  // 7. Copy Hook to Clipboard
   const handleCopyHook = (text, index) => {
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  // 6. Export Strategy Markdown
+  // 8. Copy Full Plan Document to Clipboard
+  const handleCopyFullPlan = () => {
+    if (!strategy) return;
+    const fullText = generateMarkdownReport(strategy);
+    navigator.clipboard.writeText(fullText);
+    setCopiedDoc(true);
+    setTimeout(() => setCopiedDoc(false), 2500);
+  };
+
+  // 9. Export Markdown File
   const handleExportMarkdown = () => {
-    if (!strategy || !strategy.analysisResult) return;
-    const a = strategy.analysisResult;
-
-    const mdContent = `# VYUHOX AI GTM STRATEGY REPORT
-Generated: ${new Date().toLocaleDateString()}
-Platform: VYUHOX Autonomous GTM SaaS
-
-## Target Business: ${a.businessName}
-- **Website**: ${a.websiteUrl}
-- **Category**: ${a.category}
-- **Summary**: ${a.summary}
-
----
-
-## 🎯 Target Audience & ICP Matrix
-- **Primary Persona**: ${a.targetAudience?.primaryPersona}
-- **Decision Makers**: ${a.targetAudience?.decisionMakers?.join(', ')}
-- **Estimated Budget Tier**: ${a.targetAudience?.estimatedBudgetTier}
-- **Core Pain Points**:
-${a.targetAudience?.painPoints?.map((p) => `  - ${p}`).join('\n')}
-
----
-
-## ⚡ Positioning & Value Proposition
-- **Core Value Proposition**: ${a.positioning?.coreValueProp}
-- **Unfair Advantage**: ${a.positioning?.unfairAdvantage}
-- **Key Differentiators**:
-${a.positioning?.keyDifferentiators?.map((d) => `  - ${d}`).join('\n')}
-
----
-
-## 🎛️ Recommended Acquisition Switchboard
-${a.recommendedChannels?.map((ch) => `- **${ch.channel}** (Fit: ${ch.fitScore}%, Priority: ${ch.priority}) - ${ch.enabled ? '[ENABLED]' : '[DISABLED]'}\n  ${ch.rationale}`).join('\n\n')}
-
----
-
-## 💡 High-Converting Ad Hooks
-${a.adAngles?.map((hook, i) => `${i + 1}. "${hook.hook}"\n   - Angle: ${hook.angle}\n   - Target Pain Point: ${hook.targetPainPoint}`).join('\n\n')}
-
----
-
-## 🤖 Recommended Multi-Agent Autonomous Team
-- **Roles**: ${a.recommendedAITeam?.roles?.join(', ')}
-- **Projected ROI**: ${a.recommendedAITeam?.estimatedMonthlyROI}
-- **Deployment Mode**: ${a.recommendedAITeam?.recommendedPlan}
-`;
-
+    if (!strategy) return;
+    const mdContent = generateMarkdownReport(strategy);
     const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${a.businessName.toLowerCase().replace(/\s+/g, '_')}_gtm_strategy.md`;
+    const filename = `${(strategy.businessName || 'company').toLowerCase().replace(/\s+/g, '_')}_business_plan.md`;
+    link.download = filename;
     link.click();
-
     setExportNotice(true);
     setTimeout(() => setExportNotice(false), 3000);
   };
 
+  // 10. Print / Save as PDF
+  const handlePrintDocument = () => {
+    window.print();
+  };
+
+  // Helper: Markdown Generator
+  const generateMarkdownReport = (strat) => {
+    const a = strat?.analysisResult || {};
+    const d = strat?.businessPlanDocument || {};
+    const roadmap = strat?.stepByStepRoadmap || d.stepByStepLaunchRoadmap || [];
+
+    return `# ${d.documentTitle || `VYUHOX Autonomous Go-To-Market & Business Plan: ${strat.businessName}`}
+Generated: ${d.generatedDate || new Date().toLocaleDateString()}
+Platform: VYUHOX Autonomous GTM SaaS
+Target URL: ${strat.targetUrl}
+Industry: ${strat.category || a.category}
+
+================================================================================
+1. EXECUTIVE SUMMARY
+================================================================================
+Company: ${strat.businessName}
+Industry Vertical: ${strat.category || a.category}
+Core Value Proposition: ${a.positioning?.coreValueProp || a.summary}
+
+Summary of Intelligence:
+${d.executiveSummary?.keyFindings || a.summary}
+
+================================================================================
+2. TARGET AUDIENCE & IDEAL CUSTOMER PROFILE (ICP)
+================================================================================
+- Primary Persona: ${a.targetAudience?.primaryPersona}
+- Key Decision Makers: ${(a.targetAudience?.decisionMakers || []).join(', ')}
+- Estimated Budget Tier: ${a.targetAudience?.estimatedBudgetTier}
+- Estimated Deal Size (ACV): ${a.targetAudience?.estimatedACV || 'N/A'}
+- Discovered Pricing Model: ${a.targetAudience?.pricingSummary || 'Subscription / Enterprise'}
+
+Critical Buyer Pain Points:
+${(a.targetAudience?.painPoints || []).map((p) => `  * ${p}`).join('\n')}
+
+Buying Triggers:
+${(a.targetAudience?.buyingTriggers || []).map((t) => `  * ${t}`).join('\n')}
+
+================================================================================
+3. STRATEGIC POSITIONING & DIFFERENTIATION
+================================================================================
+Core Value Prop: "${a.positioning?.coreValueProp}"
+Unfair Advantage: ${a.positioning?.unfairAdvantage}
+
+Key Differentiators:
+${(a.positioning?.keyDifferentiators || []).map((diff) => `  * ${diff}`).join('\n')}
+
+================================================================================
+4. MULTI-TOUCH ACQUISITION SWITCHBOARD
+================================================================================
+${(a.recommendedChannels || []).map((ch) => `* ${ch.channel} [${ch.enabled ? 'ACTIVE' : 'DISABLED'}] (Fit: ${ch.fitScore}%, Priority: ${ch.priority})\n  Rationale: ${ch.rationale}`).join('\n\n')}
+
+================================================================================
+5. HIGH-CONVERTING AD & OUTREACH ANGLES
+================================================================================
+${(a.adAngles || []).map((hook, i) => `${i + 1}. "${hook.hook}"\n   Angle: ${hook.angle}\n   Target Pain Point: ${hook.targetPainPoint}`).join('\n\n')}
+
+================================================================================
+6. RECOMMENDED MULTI-AGENT AUTONOMOUS TEAM
+================================================================================
+Deployment Mode: ${a.recommendedAITeam?.recommendedPlan || 'Autonomous Mode'}
+Projected Monthly ROI: ${a.recommendedAITeam?.estimatedMonthlyROI}
+Roster:
+${(a.recommendedAITeam?.roles || []).map((r) => `  * ${r}`).join('\n')}
+
+================================================================================
+7. 30-DAY VYUHOX STEP-BY-STEP LAUNCH ROADMAP
+================================================================================
+${roadmap.map((phase, idx) => `[${phase.status || 'PENDING'}] ${phase.phase} (${phase.days})
+Tools: ${(phase.tools || []).join(', ')}
+Objectives:
+${(phase.objectives || []).map((o) => `  * ${o}`).join('\n')}`).join('\n\n')}
+
+================================================================================
+8. FINANCIAL & PIPELINE PROJECTIONS
+================================================================================
+- Projected Monthly Qualified Accounts: ${d.financialAndPipelineProjections?.projectedMonthlyQualifiedLeads || '65 – 140 Accounts'}
+- Projected Demo Show Rate: ${d.financialAndPipelineProjections?.projectedDemoShowRate || '82%'}
+- Target CAC Reduction: ${d.financialAndPipelineProjections?.targetCustomerAcquisitionCost || '45% reduction'}
+- Estimated Gross ROI: ${d.financialAndPipelineProjections?.estimatedGrossROI || a.recommendedAITeam?.estimatedMonthlyROI}
+
+================================================================================
+9. CLIENT STRATEGIC NOTES & DIRECTIVES
+================================================================================
+${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use Edit Plan in VYUHOX to customize.'}
+`;
+  };
+
   const analysis = strategy?.analysisResult;
+  const doc = strategy?.businessPlanDocument;
+  const roadmap = strategy?.stepByStepRoadmap || doc?.stepByStepLaunchRoadmap || [];
+  const rawData = strategy?.rawExtractedData || {};
 
   return (
-    <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '26px' }}>
-      {/* Header Banner */}
+    <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Top Header Banner */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
             <span className="badge badge-cyan">
               <Sparkles size={13} />
-              AI GTM STRATEGIST & REAL-TIME SCANNER
+              AUTONOMOUS GTM STRATEGIST & MULTI-PAGE CRAWLER
             </span>
+            {strategy?.rawExtractedData?.isLiveCrawl !== undefined && (
+              <span className={`badge ${strategy.rawExtractedData.isLiveCrawl ? 'badge-emerald' : 'badge-amber'}`}>
+                {strategy.rawExtractedData.isLiveCrawl ? '✓ Live Multi-Page Crawl' : '⚡ Domain Reconstructed'}
+              </span>
+            )}
             <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-              Phase 2 Operational
+              Step 1 of 5
             </span>
           </div>
+
           <h2 style={{
             fontFamily: 'Outfit, sans-serif',
-            fontSize: '1.65rem',
+            fontSize: '1.75rem',
             fontWeight: '800',
             letterSpacing: '-0.02em',
           }}>
-            Autonomous Business Scanner & ICP Synthesizer
+            Website Crawler & Business Strategy Architect
           </h2>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-            Deep-crawls target landing pages, extracts value propositions, and architects 24/7 autonomous multi-channel execution plans.
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Deep-crawls company DOM, pricing models & offerings, synthesizes bespoke ICPs, and structures 30-day autonomous execution blueprints.
           </p>
         </div>
 
         {analysis && (
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={handleExportMarkdown} className="btn-secondary" style={{ padding: '8px 16px' }}>
-              <Download size={15} /> Export Strategy (.md)
-            </button>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
-              onClick={() => handleStartScan(urlInput)}
-              disabled={isScanning}
-              className="btn-primary"
-              style={{ padding: '8px 16px' }}
+              onClick={handleCopyFullPlan}
+              className="btn-secondary"
+              style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+              title="Copy complete markdown business plan to clipboard"
             >
-              <Zap size={15} /> {isScanning ? 'Scanning...' : 'Re-Scan Website'}
+              {copiedDoc ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
+              {copiedDoc ? 'Copied Full Document!' : 'Copy Plan'}
+            </button>
+
+            <button
+              onClick={handleExportMarkdown}
+              className="btn-secondary"
+              style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+              title="Export formatted Markdown document"
+            >
+              <Download size={14} /> Export .MD
+            </button>
+
+            <button
+              onClick={handlePrintDocument}
+              className="btn-secondary"
+              style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+              title="Print or Save as PDF"
+            >
+              <Printer size={14} /> Print / PDF
+            </button>
+
+            <button
+              onClick={() => setViewTab('visuals')}
+              className="btn-secondary"
+              style={{
+                padding: '8px 14px',
+                fontSize: '0.8rem',
+                background: viewTab === 'visuals' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(6, 182, 212, 0.08)',
+                border: '1px solid rgba(6, 182, 212, 0.3)',
+                color: '#38BDF8',
+              }}
+              title="Open Autonomous PowerPoint (.PPTX) Presentation Deck & AI Visual Creatives"
+            >
+              <Presentation size={14} /> 🖥️ PowerPoint &amp; Visuals
+            </button>
+
+            <button
+              onClick={() => {
+                if (isEditing) {
+                  handleSaveEdits();
+                } else {
+                  setIsEditing(true);
+                  setViewTab('document');
+                }
+              }}
+              className="btn-primary"
+              style={{ padding: '8px 18px', fontSize: '0.8rem', background: isEditing ? '#10B981' : undefined }}
+            >
+              {isEditing ? <Save size={15} /> : <Edit3 size={15} />}
+              {isEditing ? 'Save All Changes' : 'Edit Plan Document'}
             </button>
           </div>
         )}
       </div>
 
+      {/* Notifications */}
       {exportNotice && (
         <div style={{
           padding: '10px 16px',
@@ -256,11 +504,27 @@ ${a.adAngles?.map((hook, i) => `${i + 1}. "${hook.hook}"\n   - Angle: ${hook.ang
           alignItems: 'center',
           gap: '8px',
         }}>
-          <CheckCircle2 size={16} /> Markdown GTM Strategy Report downloaded successfully!
+          <CheckCircle2 size={16} /> Business Plan & GTM Report exported successfully as Markdown!
         </div>
       )}
 
-      {/* URL Input & Scanner Bar */}
+      {saveNotice && (
+        <div style={{
+          padding: '10px 16px',
+          borderRadius: '8px',
+          background: 'rgba(16, 185, 129, 0.15)',
+          border: '1px solid rgba(16, 185, 129, 0.3)',
+          color: '#34D399',
+          fontSize: '0.8rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          <CheckCircle2 size={16} /> All customizations saved to database. Your AI Agent team is aligned with this plan!
+        </div>
+      )}
+
+      {/* URL Input & Deep Scanner Bar */}
       <div className="glass-panel" style={{ padding: '22px' }}>
         <form
           onSubmit={(e) => {
@@ -276,7 +540,7 @@ ${a.adAngles?.map((hook, i) => `${i + 1}. "${hook.hook}"\n   - Angle: ${hook.ang
               required
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              placeholder="Enter target company URL (e.g. https://stripe.com, https://linear.app, or your business)"
+              placeholder="Enter your website URL (e.g. https://yourbusiness.com)"
               className="input-glass"
               style={{ paddingLeft: '44px', height: '44px', fontSize: '0.9rem' }}
             />
@@ -290,35 +554,37 @@ ${a.adAngles?.map((hook, i) => `${i + 1}. "${hook.hook}"\n   - Angle: ${hook.ang
           >
             {isScanning ? (
               <>
-                <span className="live-dot" style={{ background: '#04101A' }} /> Scanning DOM...
+                <span className="live-dot" style={{ background: '#04101A' }} /> Deep Crawling DOM...
               </>
             ) : (
               <>
-                <Search size={16} /> Scan & Architect GTM
+                <Search size={16} /> Crawl & Build Strategy
               </>
             )}
           </button>
         </form>
 
-        {/* Quick-try presets chips */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.725rem', color: 'var(--text-dim)', fontWeight: '600', textTransform: 'uppercase' }}>
-            Quick-Try Presets:
-          </span>
-          {samplePresets.map((preset, idx) => (
+        {/* Workspace Domain Helper (Shows ONLY current workspace domain if present) */}
+        {activeWorkspace?.domain && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.725rem', color: 'var(--text-dim)', fontWeight: '600' }}>
+              Your Workspace Domain:
+            </span>
             <button
-              key={idx}
               type="button"
               onClick={() => {
-                setUrlInput(preset.url);
-                handleStartScan(preset.url);
+                const target = activeWorkspace.domain.startsWith('http')
+                  ? activeWorkspace.domain
+                  : `https://${activeWorkspace.domain}`;
+                setUrlInput(target);
+                handleStartScan(target);
               }}
               style={{
-                padding: '5px 12px',
+                padding: '4px 12px',
                 borderRadius: '999px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: '#CBD5E1',
+                background: 'rgba(6, 182, 212, 0.08)',
+                border: '1px solid rgba(6, 182, 212, 0.25)',
+                color: '#38BDF8',
                 fontSize: '0.75rem',
                 cursor: 'pointer',
                 display: 'flex',
@@ -326,20 +592,12 @@ ${a.adAngles?.map((hook, i) => `${i + 1}. "${hook.hook}"\n   - Angle: ${hook.ang
                 gap: '6px',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.4)';
-                e.currentTarget.style.color = '#38BDF8';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                e.currentTarget.style.color = '#CBD5E1';
-              }}
             >
-              <span>{preset.label}</span>
-              <ChevronRight size={12} color="#64748B" />
+              <Globe size={13} />
+              <span>Crawl {activeWorkspace.name} ({activeWorkspace.domain})</span>
             </button>
-          ))}
-        </div>
+          </div>
+        )}
 
         {/* Scanning Animated Radar / Progress Bar */}
         {isScanning && (
@@ -354,7 +612,7 @@ ${a.adAngles?.map((hook, i) => `${i + 1}. "${hook.hook}"\n   - Angle: ${hook.ang
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="live-dot" style={{ background: '#06B6D4' }} />
                 <span style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#38BDF8' }}>
-                  {scanProgress.message || 'Analyzing DOM and extracting positioning hooks...'}
+                  {scanProgress.message || 'Connecting to target website and discovering internal pages...'}
                 </span>
               </div>
               <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#06B6D4' }}>
@@ -373,7 +631,92 @@ ${a.adAngles?.map((hook, i) => `${i + 1}. "${hook.hook}"\n   - Angle: ${hook.ang
         )}
       </div>
 
-      {/* Main Executive Strategy View */}
+      {/* Main View Mode Selector Tabs */}
+      {analysis && (
+        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
+          <button
+            onClick={() => setViewTab('blueprint')}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '8px',
+              background: viewTab === 'blueprint' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+              border: viewTab === 'blueprint' ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid transparent',
+              color: viewTab === 'blueprint' ? '#38BDF8' : '#94A3B8',
+              fontSize: '0.875rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <Compass size={16} /> GTM Command Blueprint
+          </button>
+
+          <button
+            onClick={() => setViewTab('document')}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '8px',
+              background: viewTab === 'document' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+              border: viewTab === 'document' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
+              color: viewTab === 'document' ? '#34D399' : '#94A3B8',
+              fontSize: '0.875rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <FileText size={16} /> Complete Business Plan Document {isEditing && <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>Editing</span>}
+          </button>
+
+          <button
+            onClick={() => setViewTab('roadmap')}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '8px',
+              background: viewTab === 'roadmap' ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
+              border: viewTab === 'roadmap' ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid transparent',
+              color: viewTab === 'roadmap' ? '#A78BFA' : '#94A3B8',
+              fontSize: '0.875rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <Calendar size={16} /> 30-Day VYUHOX Launch Roadmap ({roadmap.filter((r) => r.status === 'COMPLETED').length}/{roadmap.length} Done)
+          </button>
+
+          <button
+            onClick={() => setViewTab('visuals')}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '8px',
+              background: viewTab === 'visuals' ? 'rgba(236, 72, 153, 0.15)' : 'transparent',
+              border: viewTab === 'visuals' ? '1px solid rgba(236, 72, 153, 0.4)' : '1px solid transparent',
+              color: viewTab === 'visuals' ? '#F472B6' : '#94A3B8',
+              fontSize: '0.875rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <Presentation size={16} /> 🖥️ PowerPoint Presentation &amp; Visuals
+          </button>
+        </div>
+      )}
+
+      {/* Main Content Area */}
       {loadingInitial ? (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
           <span className="live-dot" style={{ background: '#06B6D4', width: '12px', height: '12px' }} />
@@ -386,379 +729,1051 @@ ${a.adAngles?.map((hook, i) => `${i + 1}. "${hook.hook}"\n   - Angle: ${hook.ang
             No Active GTM Strategy Found
           </h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '460px', margin: '8px auto 20px' }}>
-            Enter any target company URL above or pick a sample preset to run the real-time business scanner.
+            Enter your business website URL above to initiate the end-to-end multi-page crawler and generate your customized business plan.
           </p>
-          <button onClick={() => handleStartScan('https://linear.app')} className="btn-primary">
-            <Zap size={16} /> Scan Sample Platform (Linear.app)
-          </button>
+          {activeWorkspace?.domain ? (
+            <button
+              onClick={() => {
+                const target = activeWorkspace.domain.startsWith('http')
+                  ? activeWorkspace.domain
+                  : `https://${activeWorkspace.domain}`;
+                setUrlInput(target);
+                handleStartScan(target);
+              }}
+              className="btn-primary"
+            >
+              <Zap size={16} /> Scan {activeWorkspace.name} ({activeWorkspace.domain})
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                const inputEl = document.querySelector('input[placeholder*="website URL"]');
+                if (inputEl) inputEl.focus();
+              }}
+              className="btn-primary"
+            >
+              <Zap size={16} /> Enter Website URL to Begin
+            </button>
+          )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Business Overview Header Card */}
-          <div className="glass-panel" style={{
-            padding: '24px 28px',
-            background: 'linear-gradient(135deg, rgba(11, 17, 32, 0.95) 0%, rgba(15, 23, 42, 0.85) 60%, rgba(6, 182, 212, 0.08) 100%)',
-            border: '1px solid rgba(6, 182, 212, 0.25)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                  <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.6rem', fontWeight: '800' }}>
-                    {analysis.businessName}
-                  </h3>
-                  <span className="badge badge-cyan">{analysis.category}</span>
-                  <a
-                    href={analysis.websiteUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
-                  >
-                    <ExternalLink size={14} /> Visit Site
-                  </a>
-                </div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', maxWidth: '800px', lineHeight: '1.5' }}>
-                  {analysis.summary}
-                </p>
-              </div>
-
-              {/* Multi-Agent Sizing Widget */}
-              <div style={{
-                background: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                borderRadius: '12px',
-                padding: '14px 18px',
-                textAlign: 'right',
+        <>
+          {/* TAB 1: GTM COMMAND BLUEPRINT */}
+          {viewTab === 'blueprint' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Business Overview Header Card */}
+              <div className="glass-panel" style={{
+                padding: '24px 28px',
+                background: 'linear-gradient(135deg, rgba(11, 17, 32, 0.95) 0%, rgba(15, 23, 42, 0.85) 60%, rgba(6, 182, 212, 0.08) 100%)',
+                border: '1px solid rgba(6, 182, 212, 0.25)',
               }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '600' }}>
-                  Projected GTM Return
-                </div>
-                <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', color: '#10B981' }}>
-                  {analysis.recommendedAITeam?.estimatedMonthlyROI || '5.2x Projected ROI'}
-                </div>
-                <div style={{ fontSize: '0.725rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', marginTop: '2px' }}>
-                  <Bot size={12} /> {analysis.recommendedAITeam?.recommendedPlan || 'AI Company Mode'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Grid 1: ICP & Buyer Persona Matrix + Positioning & Value Prop */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '24px' }}>
-            {/* 🎯 ICP & Buyer Persona Matrix */}
-            <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Target size={18} color="#06B6D4" />
-                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', fontWeight: '700' }}>
-                  Target Audience & ICP Persona Matrix
-                </h3>
-              </div>
-
-              <div style={{
-                padding: '14px 16px',
-                borderRadius: '10px',
-                background: 'rgba(6, 182, 212, 0.08)',
-                border: '1px solid rgba(6, 182, 212, 0.2)',
-              }}>
-                <div style={{ fontSize: '0.7rem', color: '#38BDF8', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>
-                  Primary Target Persona
-                </div>
-                <div style={{ fontSize: '1rem', fontWeight: '700', color: '#F8FAFC', marginTop: '2px' }}>
-                  {analysis.targetAudience?.primaryPersona}
-                </div>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>
-                  Critical Buyer Pain Points
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-                  {analysis.targetAudience?.painPoints?.map((pain, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '8px',
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        background: 'rgba(255, 255, 255, 0.02)',
-                        border: '1px solid rgba(255, 255, 255, 0.05)',
-                        fontSize: '0.8rem',
-                        color: '#E2E8F0',
-                      }}
-                    >
-                      <AlertCircle size={15} color="#F59E0B" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <span>{pain}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '4px' }}>
-                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '600' }}>
-                    Target Decision Makers
-                  </div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#F8FAFC', marginTop: '4px' }}>
-                    {analysis.targetAudience?.decisionMakers?.join(', ') || 'C-Suite & Founders'}
-                  </div>
-                </div>
-
-                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '600' }}>
-                    Estimated Budget Tier
-                  </div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#10B981', marginTop: '4px' }}>
-                    {analysis.targetAudience?.estimatedBudgetTier || '$5K - $25K / month'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ⚡ Positioning & Value Proposition */}
-            <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Zap size={18} color="#10B981" />
-                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', fontWeight: '700' }}>
-                  Positioning & Strategic Edge
-                </h3>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>
-                  Core Value Proposition
-                </span>
-                <div style={{
-                  marginTop: '6px',
-                  padding: '14px 16px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
-                  border: '1px solid rgba(16, 185, 129, 0.25)',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  color: '#F8FAFC',
-                  lineHeight: '1.45',
-                }}>
-                  "{analysis.positioning?.coreValueProp}"
-                </div>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>
-                  Unfair Competitive Advantage
-                </span>
-                <div style={{
-                  marginTop: '6px',
-                  padding: '12px 14px',
-                  borderRadius: '8px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(6, 182, 212, 0.2)',
-                  fontSize: '0.825rem',
-                  color: '#38BDF8',
-                  lineHeight: '1.4',
-                }}>
-                  {analysis.positioning?.unfairAdvantage}
-                </div>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>
-                  Key Strategic Differentiators
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
-                  {analysis.positioning?.keyDifferentiators?.map((diff, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#CBD5E1' }}>
-                      <CheckCircle2 size={15} color="#10B981" style={{ flexShrink: 0 }} />
-                      <span>{diff}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 🎛️ Recommended Acquisition Switchboard */}
-          <div className="glass-panel" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-              <div>
-                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '700' }}>
-                  Recommended Acquisition Switchboard
-                </h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                  Interactive channel toggles for multi-touch GTM routing. Toggle to enable or disable in live campaigns.
-                </p>
-              </div>
-              <span className="badge badge-emerald">
-                {analysis.recommendedChannels?.filter((c) => c.enabled).length} of {analysis.recommendedChannels?.length} Channels Active
-              </span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-              {analysis.recommendedChannels?.map((ch, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    padding: '16px',
-                    borderRadius: '12px',
-                    background: ch.enabled ? 'rgba(6, 182, 212, 0.06)' : 'rgba(255, 255, 255, 0.02)',
-                    border: ch.enabled ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '0.875rem', fontWeight: '700', color: ch.enabled ? '#F8FAFC' : '#94A3B8' }}>
-                        {ch.channel}
-                      </span>
-                      {/* Toggle switch button */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleChannel(ch.channel, ch.enabled)}
-                        style={{
-                          width: '42px',
-                          height: '22px',
-                          borderRadius: '999px',
-                          background: ch.enabled ? '#10B981' : 'rgba(255, 255, 255, 0.15)',
-                          border: 'none',
-                          cursor: 'pointer',
-                          position: 'relative',
-                          transition: 'background 0.2s ease',
-                        }}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+                  <div style={{ flex: 1, minWidth: '300px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                      <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.65rem', fontWeight: '800' }}>
+                        {strategy.businessName}
+                      </h3>
+                      <span className="badge badge-cyan">{strategy.category || analysis.category}</span>
+                      <a
+                        href={strategy.targetUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
                       >
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: '2px',
-                            left: ch.enabled ? '22px' : '2px',
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            background: '#FFFFFF',
-                            transition: 'left 0.2s ease',
-                          }}
-                        />
-                      </button>
+                        <ExternalLink size={14} /> Visit Site
+                      </a>
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                      <div style={{ width: '60px', height: '5px', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.1)', overflow: 'hidden' }}>
-                        <div style={{ width: `${ch.fitScore}%`, height: '100%', background: '#06B6D4' }} />
-                      </div>
-                      <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#06B6D4' }}>
-                        {ch.fitScore}% Fit Score
-                      </span>
-                    </div>
-
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                      {ch.rationale}
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', maxWidth: '820px', lineHeight: '1.5' }}>
+                      {analysis.summary}
                     </p>
+
+                    {/* Multi-page Crawl Signals Pill */}
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '14px', flexWrap: 'wrap' }}>
+                      {rawData.pagesCrawled && rawData.pagesCrawled.length > 0 && (
+                        <span style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <CheckCircle2 size={13} color="#10B981" /> {rawData.pagesCrawled.length} Pages Crawled
+                        </span>
+                      )}
+                      {rawData.featuresCount > 0 && (
+                        <span style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <Cpu size={13} color="#06B6D4" /> {rawData.featuresCount} Features Extracted
+                        </span>
+                      )}
+                      {rawData.detectedTech && rawData.detectedTech.length > 0 && (
+                        <span style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <Layers size={13} color="#A78BFA" /> Tech: {rawData.detectedTech.join(', ')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Multi-Agent Sizing Widget */}
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    borderRadius: '12px',
+                    padding: '16px 20px',
+                    textAlign: 'right',
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '600' }}>
+                      Projected Pipeline Impact
+                    </div>
+                    <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', fontWeight: '800', color: '#10B981', marginTop: '2px' }}>
+                      {analysis.recommendedAITeam?.estimatedMonthlyROI || '6.2x Pipeline ROI'}
+                    </div>
+                    <div style={{ fontSize: '0.725rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                      <Bot size={13} /> {analysis.recommendedAITeam?.recommendedPlan || 'AI Company Mode'}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 💡 5 High-Converting Ad Copy Angles */}
-          <div className="glass-panel" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div>
-                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '700' }}>
-                  5 High-Converting Ad & Outreach Angles
-                </h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                  Synthesized psychological hooks ready to copy directly into Meta Ads, Cold Email, or WhatsApp scripts.
-                </p>
               </div>
-              <span className="badge badge-amber">Ready for Meta & Google CAPI</span>
-            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {analysis.adAngles?.map((ad, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '14px 18px',
-                    borderRadius: '10px',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    gap: '16px',
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span className="badge badge-violet" style={{ fontSize: '0.675rem' }}>
-                        {ad.angle}
-                      </span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-                        Target: {ad.targetPainPoint}
-                      </span>
+              {/* Crawled Website Intelligence & Asset Inventory (Tabs, Pages, Images, Products, Copy) */}
+              <div className="glass-panel" style={{
+                padding: '20px 24px',
+                background: 'rgba(15, 23, 42, 0.75)',
+                border: '1px solid rgba(6, 182, 212, 0.25)',
+                borderRadius: '12px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '8px',
+                      background: 'rgba(6, 182, 212, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#06B6D4',
+                    }}>
+                      <Globe size={18} />
                     </div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#F8FAFC' }}>
-                      "{ad.hook}"
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>
+                          Live Crawled Intelligence &amp; Website Inventory
+                        </h4>
+                        {rawData.isSpa && (
+                          <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                            ⚡ SPA Client-Side Rendered (React/Vite)
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+                        Detailed audit of all navigation tabs, subpages, product offerings, images, and text strings crawled across this website.
+                      </p>
                     </div>
                   </div>
 
                   <button
-                    type="button"
-                    onClick={() => handleCopyHook(ad.hook, i)}
+                    onClick={() => setShowCrawledAssets(!showCrawledAssets)}
                     className="btn-secondary"
-                    style={{ padding: '7px 12px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                    style={{ padding: '6px 14px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
-                    {copiedIndex === i ? (
-                      <>
-                        <Check size={14} color="#10B981" /> Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={14} /> Copy Hook
-                      </>
-                    )}
+                    {showCrawledAssets ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {showCrawledAssets ? 'Hide Extracted Inventory' : 'View Extracted Inventory'}
                   </button>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* 🤖 Recommended Autonomous AI Team Sizing Card */}
-          <div className="glass-panel" style={{
-            padding: '24px',
-            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <Bot size={18} color="#10B981" />
-                  <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '700' }}>
-                    Recommended Multi-Agent C-Suite Deployment
-                  </h3>
-                </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Based on {analysis.businessName}'s business model and target audience complexity, we recommend deploying:
-                </p>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
-                  {analysis.recommendedAITeam?.roles?.map((role, idx) => (
-                    <span key={idx} className="badge badge-emerald" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
-                      <CheckCircle2 size={13} /> {role}
+                {/* Quick Metric Pills */}
+                <div style={{ display: 'flex', gap: '10px', marginTop: '14px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.725rem', padding: '4px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    📑 <strong>{rawData.scannedTabs?.length || 0}</strong> Navigation Tabs
+                  </span>
+                  <span style={{ fontSize: '0.725rem', padding: '4px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    🔗 <strong>{rawData.scannedLinks?.length || 0}</strong> Discovered Routes &amp; Links
+                  </span>
+                  <span style={{ fontSize: '0.725rem', padding: '4px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    🛡️ <strong>{strategy.analysisResult?.positioning?.keyDifferentiators?.length || rawData.featuresCount || 0}</strong> Extracted Capabilities
+                  </span>
+                  {rawData.scannedImages?.length > 0 && (
+                    <span style={{ fontSize: '0.725rem', padding: '4px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      🖼️ <strong>{rawData.scannedImages.length}</strong> Images &amp; Visuals
                     </span>
+                  )}
+                  {rawData.pricingSignals?.length > 0 && (
+                    <span style={{ fontSize: '0.725rem', padding: '4px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      💰 <strong>{rawData.pricingSignals.length}</strong> Pricing Signals
+                    </span>
+                  )}
+                </div>
+
+                {/* Collapsible Details */}
+                {showCrawledAssets && (
+                  <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+                    {/* Col 1: Tabs & Pages */}
+                    <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#38BDF8', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        📑 Website Navigation Tabs &amp; Header Items ({rawData.scannedTabs?.length || 0})
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {rawData.scannedTabs && rawData.scannedTabs.length > 0 ? (
+                          rawData.scannedTabs.map((tab, i) => (
+                            <span key={i} style={{ fontSize: '0.725rem', background: 'rgba(6, 182, 212, 0.12)', border: '1px solid rgba(6, 182, 212, 0.25)', color: '#7DD3FC', padding: '3px 8px', borderRadius: '5px' }}>
+                              {tab}
+                            </span>
+                          ))
+                        ) : (
+                          <span style={{ fontSize: '0.725rem', color: '#64748B' }}>Primary landing page header audited</span>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#A78BFA', textTransform: 'uppercase', marginTop: '14px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        🔗 Discovered Subpages &amp; Routes ({rawData.scannedLinks?.length || 0})
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '110px', overflowY: 'auto' }}>
+                        {rawData.scannedLinks && rawData.scannedLinks.length > 0 ? (
+                          rawData.scannedLinks.map((link, i) => (
+                            <span key={i} style={{ fontSize: '0.7rem', background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.25)', color: '#C4B5FD', padding: '2px 7px', borderRadius: '4px', fontFamily: 'monospace' }}>
+                              {link}
+                            </span>
+                          ))
+                        ) : (
+                          <span style={{ fontSize: '0.725rem', color: '#64748B' }}>Primary landing page scanned</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Col 2: Extracted Features & Evidence */}
+                    <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#34D399', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        🛡️ Crawled Feature Capabilities &amp; Domain Copy ({analysis.positioning?.keyDifferentiators?.length || 0})
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
+                        {analysis.positioning?.keyDifferentiators && analysis.positioning.keyDifferentiators.length > 0 ? (
+                          analysis.positioning.keyDifferentiators.map((diff, i) => (
+                            <div key={i} style={{ fontSize: '0.75rem', color: '#E2E8F0', display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.4' }}>
+                              <CheckCircle2 size={13} color="#10B981" style={{ flexShrink: 0, marginTop: '2px' }} />
+                              <span>{diff}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <span style={{ fontSize: '0.725rem', color: '#64748B' }}>Features extracted directly from page DOM</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Grid 1: ICP & Buyer Persona Matrix + Positioning & Value Prop */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '24px' }}>
+                {/* 🎯 ICP & Buyer Persona Matrix */}
+                <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Target size={18} color="#06B6D4" />
+                      <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', fontWeight: '700' }}>
+                        Target Audience & ICP Persona Matrix
+                      </h3>
+                    </div>
+                    <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>Step 2 Ready</span>
+                  </div>
+
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    background: 'rgba(6, 182, 212, 0.08)',
+                    border: '1px solid rgba(6, 182, 212, 0.2)',
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: '#38BDF8', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>
+                      Primary Target Buyer Persona
+                    </div>
+                    <div style={{ fontSize: '1rem', fontWeight: '700', color: '#F8FAFC', marginTop: '2px' }}>
+                      {analysis.targetAudience?.primaryPersona}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>
+                      Critical Buyer Pain Points
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                      {analysis.targetAudience?.painPoints?.map((pain, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '8px',
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px solid rgba(255, 255, 255, 0.05)',
+                            fontSize: '0.8rem',
+                            color: '#E2E8F0',
+                          }}
+                        >
+                          <AlertCircle size={15} color="#F59E0B" style={{ flexShrink: 0, marginTop: '2px' }} />
+                          <span>{pain}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '4px' }}>
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '600' }}>
+                        Decision Makers
+                      </div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#F8FAFC', marginTop: '4px' }}>
+                        {analysis.targetAudience?.decisionMakers?.join(', ') || 'C-Suite & Founders'}
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '600' }}>
+                        Budget / Deal Size
+                      </div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#10B981', marginTop: '4px' }}>
+                        {analysis.targetAudience?.estimatedBudgetTier || '$5K - $25K / mo'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {onNavigateTab && (
+                    <button
+                      onClick={() => onNavigateTab('leads')}
+                      className="btn-secondary"
+                      style={{ marginTop: '8px', width: '100%', justifyContent: 'center', fontSize: '0.8rem' }}
+                    >
+                      <Users size={14} /> Search This ICP in VYUHOX Lead Finder <ArrowRight size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* ⚡ Positioning & Value Proposition */}
+                <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Zap size={18} color="#10B981" />
+                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', fontWeight: '700' }}>
+                      Positioning & Strategic Edge
+                    </h3>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>
+                      Core Value Proposition
+                    </span>
+                    <div style={{
+                      marginTop: '6px',
+                      padding: '14px 16px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
+                      border: '1px solid rgba(16, 185, 129, 0.25)',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      color: '#F8FAFC',
+                      lineHeight: '1.45',
+                    }}>
+                      "{analysis.positioning?.coreValueProp}"
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>
+                      Unfair Competitive Advantage
+                    </span>
+                    <div style={{
+                      marginTop: '6px',
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(6, 182, 212, 0.2)',
+                      fontSize: '0.825rem',
+                      color: '#38BDF8',
+                      lineHeight: '1.4',
+                    }}>
+                      {analysis.positioning?.unfairAdvantage}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>
+                      Key Strategic Differentiators
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                      {analysis.positioning?.keyDifferentiators?.map((diff, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#CBD5E1' }}>
+                          <CheckCircle2 size={15} color="#10B981" style={{ flexShrink: 0 }} />
+                          <span>{diff}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 🎛️ Recommended Acquisition Switchboard */}
+              <div className="glass-panel" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '700' }}>
+                      Recommended Acquisition Switchboard
+                    </h3>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                      Interactive channel toggles for multi-touch GTM routing. Enabled channels run in live campaigns.
+                    </p>
+                  </div>
+                  <span className="badge badge-emerald">
+                    {analysis.recommendedChannels?.filter((c) => c.enabled).length} of {analysis.recommendedChannels?.length} Channels Active
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                  {analysis.recommendedChannels?.map((ch, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '16px',
+                        borderRadius: '12px',
+                        background: ch.enabled ? 'rgba(6, 182, 212, 0.06)' : 'rgba(255, 255, 255, 0.02)',
+                        border: ch.enabled ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '0.875rem', fontWeight: '700', color: ch.enabled ? '#F8FAFC' : '#94A3B8' }}>
+                            {ch.channel}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleChannel(ch.channel, ch.enabled)}
+                            style={{
+                              width: '42px',
+                              height: '22px',
+                              borderRadius: '999px',
+                              background: ch.enabled ? '#10B981' : 'rgba(255, 255, 255, 0.15)',
+                              border: 'none',
+                              cursor: 'pointer',
+                              position: 'relative',
+                              transition: 'background 0.2s ease',
+                            }}
+                          >
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: '2px',
+                                left: ch.enabled ? '22px' : '2px',
+                                width: '18px',
+                                height: '18px',
+                                borderRadius: '50%',
+                                background: '#FFFFFF',
+                                transition: 'left 0.2s ease',
+                              }}
+                            />
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                          <div style={{ width: '60px', height: '5px', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.1)', overflow: 'hidden' }}>
+                            <div style={{ width: `${ch.fitScore}%`, height: '100%', background: '#06B6D4' }} />
+                          </div>
+                          <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#06B6D4' }}>
+                            {ch.fitScore}% Fit Score
+                          </span>
+                        </div>
+
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                          {ch.rationale}
+                        </p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <span className="badge badge-cyan" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
-                  Phase 9 Multi-Agent C-Suite Ready
-                </span>
+              {/* 💡 5 High-Converting Ad Copy Angles */}
+              <div className="glass-panel" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <div>
+                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '700' }}>
+                      5 High-Converting Ad & Outreach Angles
+                    </h3>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                      Synthesized psychological hooks tailored to {strategy.businessName}'s actual features and ICP objections.
+                    </p>
+                  </div>
+                  <span className="badge badge-amber">Ready for Cold Email, WhatsApp & Meta CAPI</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {analysis.adAngles?.map((ad, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '14px 18px',
+                        borderRadius: '10px',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        gap: '16px',
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span className="badge badge-violet" style={{ fontSize: '0.675rem' }}>
+                            {ad.angle}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                            Target: {ad.targetPainPoint}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#F8FAFC' }}>
+                          "{ad.hook}"
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleCopyHook(ad.hook, i)}
+                        className="btn-secondary"
+                        style={{ padding: '7px 12px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                      >
+                        {copiedIndex === i ? (
+                          <>
+                            <Check size={14} color="#10B981" /> Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} /> Copy Hook
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 🤖 Recommended Autonomous AI Team Sizing Card */}
+              <div className="glass-panel" style={{
+                padding: '24px',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <Bot size={18} color="#10B981" />
+                      <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '700' }}>
+                        Recommended Multi-Agent C-Suite Deployment
+                      </h3>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Tailored specifically to {strategy.businessName}'s sales motion and deal velocity:
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
+                      {analysis.recommendedAITeam?.roles?.map((role, idx) => (
+                        <span key={idx} className="badge badge-emerald" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                          <CheckCircle2 size={13} /> {role}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <button
+                      onClick={() => setViewTab('roadmap')}
+                      className="btn-primary"
+                      style={{ padding: '8px 16px', fontSize: '0.8rem' }}
+                    >
+                      View 30-Day Launch Roadmap <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
+
+          {/* TAB 2: COMPLETE BUSINESS PLAN DOCUMENT (MCKINSEY / BCG GRADE) */}
+          {viewTab === 'document' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Document Banner & Edit Controls */}
+              <div className="glass-panel" style={{
+                padding: '20px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                background: 'rgba(15, 23, 42, 0.8)',
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: '#06B6D4', textTransform: 'uppercase', fontWeight: '700' }}>
+                    OFFICIAL GTM DOSSIER
+                  </div>
+                  <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', fontWeight: '800' }}>
+                    {isEditing ? 'Editing Business Plan Document' : (doc?.documentTitle || `Autonomous GTM Business Plan: ${strategy.businessName}`)}
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                    Version 2.4 Production • Generated for {strategy.businessName} • Fully Editable by Client
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {isEditing ? (
+                    <>
+                      <button
+                        onClick={() => setIsEditing(false)}
+                        className="btn-secondary"
+                        style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+                      >
+                        <X size={14} /> Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveEdits}
+                        className="btn-primary"
+                        style={{ padding: '8px 18px', fontSize: '0.8rem', background: '#10B981' }}
+                      >
+                        <Save size={14} /> Save Changes
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="btn-primary"
+                      style={{ padding: '8px 16px', fontSize: '0.8rem' }}
+                    >
+                      <Edit3 size={14} /> Edit Document
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Printable Document Sheet */}
+              <div
+                className="glass-panel"
+                style={{
+                  padding: '36px 44px',
+                  background: 'rgba(11, 17, 32, 0.95)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '32px',
+                  lineHeight: '1.6',
+                }}
+              >
+                {/* Section 1: Executive Summary */}
+                <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>Section 1</span>
+                    <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800' }}>
+                      Executive Summary & Mission
+                    </h4>
+                  </div>
+
+                  {isEditing ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Business / Brand Name</label>
+                        <input
+                          type="text"
+                          value={editForm.businessName}
+                          onChange={(e) => setEditForm({ ...editForm, businessName: e.target.value })}
+                          className="input-glass"
+                          style={{ marginTop: '4px' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Industry / Vertical Classification</label>
+                        <input
+                          type="text"
+                          value={editForm.category}
+                          onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                          className="input-glass"
+                          style={{ marginTop: '4px' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Core Value Proposition & Mission</label>
+                        <textarea
+                          rows={3}
+                          value={editForm.coreValueProp}
+                          onChange={(e) => setEditForm({ ...editForm, coreValueProp: e.target.value })}
+                          className="input-glass"
+                          style={{ marginTop: '4px', resize: 'vertical' }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <p style={{ fontSize: '0.9rem', color: '#F1F5F9', marginBottom: '10px' }}>
+                        <strong>{strategy.businessName}</strong> operates in the <strong>{strategy.category}</strong> vertical. {doc?.executiveSummary?.coreMission || analysis.summary}
+                      </p>
+                      <p style={{ fontSize: '0.85rem', color: '#94A3B8' }}>
+                        {doc?.executiveSummary?.keyFindings || `Deep DOM inspection discovered clear value propositions and strong fit for autonomous multi-channel outbound execution.`}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 2: Ideal Customer Profile (ICP) Deep Dive */}
+                <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>Section 2</span>
+                    <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800' }}>
+                      Target Audience & Ideal Customer Profile (ICP)
+                    </h4>
+                  </div>
+
+                  {isEditing ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Primary Buyer Persona</label>
+                        <input
+                          type="text"
+                          value={editForm.primaryPersona}
+                          onChange={(e) => setEditForm({ ...editForm, primaryPersona: e.target.value })}
+                          className="input-glass"
+                          style={{ marginTop: '4px' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Target Decision Makers (comma-separated)</label>
+                        <input
+                          type="text"
+                          value={editForm.decisionMakers}
+                          onChange={(e) => setEditForm({ ...editForm, decisionMakers: e.target.value })}
+                          className="input-glass"
+                          style={{ marginTop: '4px' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Critical Buyer Pain Points (one per line)</label>
+                        <textarea
+                          rows={4}
+                          value={editForm.painPoints}
+                          onChange={(e) => setEditForm({ ...editForm, painPoints: e.target.value })}
+                          className="input-glass"
+                          style={{ marginTop: '4px', resize: 'vertical' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Estimated Budget Tier / Contract Value</label>
+                        <input
+                          type="text"
+                          value={editForm.budgetTier}
+                          onChange={(e) => setEditForm({ ...editForm, budgetTier: e.target.value })}
+                          className="input-glass"
+                          style={{ marginTop: '4px' }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '700', textTransform: 'uppercase' }}>Primary Persona</span>
+                          <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#F8FAFC', marginTop: '2px' }}>
+                            {analysis.targetAudience?.primaryPersona}
+                          </div>
+                        </div>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '700', textTransform: 'uppercase' }}>Target Decision Makers</span>
+                          <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#F8FAFC', marginTop: '2px' }}>
+                            {analysis.targetAudience?.decisionMakers?.join(', ')}
+                          </div>
+                        </div>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#F59E0B', fontWeight: '700', textTransform: 'uppercase' }}>Budget / Deal Tier</span>
+                          <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#F8FAFC', marginTop: '2px' }}>
+                            {analysis.targetAudience?.estimatedBudgetTier}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: '8px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: '700', textTransform: 'uppercase' }}>
+                          Core Pain Points Solved
+                        </span>
+                        <ul style={{ paddingLeft: '20px', marginTop: '6px', color: '#CBD5E1', fontSize: '0.85rem' }}>
+                          {analysis.targetAudience?.painPoints?.map((p, i) => (
+                            <li key={i} style={{ marginBottom: '4px' }}>{p}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 3: Strategic Differentiation & Market Positioning */}
+                <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span className="badge badge-amber" style={{ fontSize: '0.7rem' }}>Section 3</span>
+                    <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800' }}>
+                      Market Positioning & Unfair Advantage
+                    </h4>
+                  </div>
+
+                  {isEditing ? (
+                    <div>
+                      <label style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Unfair Competitive Advantage</label>
+                      <textarea
+                        rows={3}
+                        value={editForm.unfairAdvantage}
+                        onChange={(e) => setEditForm({ ...editForm, unfairAdvantage: e.target.value })}
+                        className="input-glass"
+                        style={{ marginTop: '4px', resize: 'vertical' }}
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <p style={{ fontSize: '0.875rem', color: '#E2E8F0', marginBottom: '10px' }}>
+                        <strong>Unfair Advantage:</strong> {analysis.positioning?.unfairAdvantage}
+                      </p>
+                      <div style={{ marginTop: '8px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: '700', textTransform: 'uppercase' }}>
+                          Key Market Differentiators
+                        </span>
+                        <ul style={{ paddingLeft: '20px', marginTop: '6px', color: '#CBD5E1', fontSize: '0.85rem' }}>
+                          {analysis.positioning?.keyDifferentiators?.map((d, i) => (
+                            <li key={i} style={{ marginBottom: '4px' }}>{d}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 4: Multi-Agent AI Team Architecture */}
+                <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span className="badge badge-violet" style={{ fontSize: '0.7rem' }}>Section 4</span>
+                    <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800' }}>
+                      Dedicated AI Agent Team & Responsibilities
+                    </h4>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                    {(analysis.recommendedAITeam?.roles || []).map((roleStr, idx) => (
+                      <div key={idx} style={{ padding: '14px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10B981', fontWeight: '700', fontSize: '0.85rem' }}>
+                          <Bot size={15} /> {roleStr.split(':')[0]}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '4px' }}>
+                          {roleStr.split(':')[1] || roleStr}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section 5: Financial Targets & ROI Model */}
+                <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>Section 5</span>
+                    <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800' }}>
+                      Projected Unit Economics & Pipeline Returns
+                    </h4>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                    <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '700', textTransform: 'uppercase' }}>Projected ROI Multiple</span>
+                      <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#F8FAFC', marginTop: '2px' }}>
+                        {analysis.recommendedAITeam?.estimatedMonthlyROI || '6.4x ROI'}
+                      </div>
+                    </div>
+                    <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.06)', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#06B6D4', fontWeight: '700', textTransform: 'uppercase' }}>Demo Show Rate</span>
+                      <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#F8FAFC', marginTop: '2px' }}>
+                        82% Qualified
+                      </div>
+                    </div>
+                    <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.06)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#A78BFA', fontWeight: '700', textTransform: 'uppercase' }}>Target CAC Reduction</span>
+                      <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#F8FAFC', marginTop: '2px' }}>
+                        -45% vs Manual SDR
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 6: Client Custom Notes & Directives */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>Section 6</span>
+                    <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800' }}>
+                      Client Execution Directives & Custom Notes
+                    </h4>
+                  </div>
+
+                  {isEditing ? (
+                    <div>
+                      <label style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                        Add custom notes, constraints, target geos, or specialized pitch instructions:
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={editForm.clientNotes}
+                        onChange={(e) => setEditForm({ ...editForm, clientNotes: e.target.value })}
+                        placeholder="e.g. Focus outbound strictly on Series A-C US tech companies. Exclude existing customers. Emphasize SOC2 compliance in all voice scripts."
+                        className="input-glass"
+                        style={{ marginTop: '6px', resize: 'vertical' }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: '16px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px dashed rgba(255, 255, 255, 0.1)',
+                      color: strategy.clientNotes ? '#F8FAFC' : '#64748B',
+                      fontSize: '0.85rem',
+                      fontStyle: strategy.clientNotes ? 'normal' : 'italic',
+                    }}>
+                      {strategy.clientNotes || 'No custom client notes added yet. Click "Edit Document" above to insert specific directives, target geographies, or messaging rules.'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: 30-DAY VYUHOX STEP-BY-STEP LAUNCH ROADMAP */}
+          {viewTab === 'roadmap' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="glass-panel" style={{ padding: '20px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800' }}>
+                      30-Day Autonomous Launch Playbook: {strategy.businessName}
+                    </h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Follow this step-by-step roadmap to launch VYUHOX autonomous prospecting, dialers, and ad pipelines for your business.
+                    </p>
+                  </div>
+                  <span className="badge badge-emerald">
+                    {roadmap.filter((r) => r.status === 'COMPLETED').length} of {roadmap.length} Milestones Complete
+                  </span>
+                </div>
+              </div>
+
+              {/* Roadmap Phases List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {roadmap.map((phase, idx) => {
+                  const isDone = phase.status === 'COMPLETED';
+                  return (
+                    <div
+                      key={idx}
+                      className="glass-panel"
+                      style={{
+                        padding: '22px 26px',
+                        borderLeft: isDone ? '4px solid #10B981' : '4px solid #06B6D4',
+                        background: isDone ? 'rgba(16, 185, 129, 0.04)' : undefined,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStepStatus(idx, phase.status)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: 0,
+                            }}
+                            title={isDone ? 'Mark as pending' : 'Mark as completed'}
+                          >
+                            {isDone ? (
+                              <CheckCircle2 size={24} color="#10B981" />
+                            ) : (
+                              <div style={{
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '6px',
+                                border: '2px solid #64748B',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }} />
+                            )}
+                          </button>
+
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <h4 style={{
+                                fontFamily: 'Outfit, sans-serif',
+                                fontSize: '1.1rem',
+                                fontWeight: '700',
+                                textDecoration: isDone ? 'line-through' : 'none',
+                                color: isDone ? '#94A3B8' : '#F8FAFC',
+                              }}>
+                                {phase.phase}
+                              </h4>
+                              <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
+                                <Clock size={11} /> {phase.days}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.725rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                              Integrated Tools: {(phase.tools || []).join(' • ')}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action Link to direct VYUHOX tool */}
+                        {onNavigateTab && (
+                          <div>
+                            {idx === 0 && (
+                              <button onClick={() => onNavigateTab('voice')} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.75rem' }}>
+                                Open Voice Studio <ArrowRight size={13} />
+                              </button>
+                            )}
+                            {idx === 1 && (
+                              <button onClick={() => onNavigateTab('leads')} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.75rem' }}>
+                                Run Lead Finder <ArrowRight size={13} />
+                              </button>
+                            )}
+                            {idx === 2 && (
+                              <button onClick={() => onNavigateTab('inbox')} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.75rem' }}>
+                                View SDR Inbox <ArrowRight size={13} />
+                              </button>
+                            )}
+                            {idx === 3 && (
+                              <button onClick={() => onNavigateTab('voice')} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.75rem' }}>
+                                Configure Maya Voice AE <ArrowRight size={13} />
+                              </button>
+                            )}
+                            {idx === 4 && (
+                              <button onClick={() => onNavigateTab('ads')} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.75rem' }}>
+                                Launch Ad Optimizer <ArrowRight size={13} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Objectives Checklist */}
+                      <div style={{ paddingLeft: '34px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {(phase.objectives || []).map((obj, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.825rem', color: isDone ? '#64748B' : '#CBD5E1' }}>
+                            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: isDone ? '#10B981' : '#06B6D4' }} />
+                            <span>{obj}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: VISUAL PITCH DECK, CANVA & AD ASSETS */}
+          {viewTab === 'visuals' && (
+            <VisualCreativeStudio strategy={strategy} />
+          )}
+        </>
       )}
     </div>
   );

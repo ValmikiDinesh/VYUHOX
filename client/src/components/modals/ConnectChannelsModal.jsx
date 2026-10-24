@@ -29,7 +29,7 @@ export default function ConnectChannelsModal({ isOpen, onClose, activeWorkspace 
     whatsapp: { connected: true, identifier: '+1 (415) 890-2234', method: 'Cloud API & QR Bridge' },
     telegram: { connected: true, identifier: '@VyuhoxGtmBot', method: 'BotFather Webhook' },
     meta: { connected: false, identifier: '', method: 'Meta Graph API' },
-    linkedin: { connected: true, identifier: 'HedgeX Capital (Org ID: 88192)', method: 'LinkedIn OAuth 2.0' },
+    linkedin: { connected: true, identifier: `${activeWorkspace?.name || 'Workspace'} (Org ID: 88192)`, method: 'LinkedIn OAuth 2.0' },
     twitter: { connected: false, identifier: '', method: 'X API v2' },
     google: { connected: true, identifier: 'Google Ads (ID: 942-881-2290)', method: 'Conversions API' },
   });
@@ -426,7 +426,7 @@ export default function ConnectChannelsModal({ isOpen, onClose, activeWorkspace 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <CheckCircle size={18} color="#0A66C2" />
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#60A5FA' }}>Connected: HedgeX Capital</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#60A5FA' }}>Connected: {activeWorkspace?.name || 'Workspace'}</div>
                       <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Organization ID: 88192 • Auto-Publishing Enabled</div>
                     </div>
                   </div>

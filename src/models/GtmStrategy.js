@@ -20,7 +20,6 @@ const gtmStrategySchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ['B2B SaaS', 'D2C E-Commerce', 'Fintech / Web3', 'Local Service', 'Agency'],
       default: 'B2B SaaS',
     },
     rawExtractedData: {
@@ -31,9 +30,29 @@ const gtmStrategySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       required: true,
     },
+    businessPlanDocument: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    presentationDeck: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    visualCoverUrl: {
+      type: String,
+      default: '',
+    },
+    stepByStepRoadmap: {
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
+    },
+    clientNotes: {
+      type: String,
+      default: '',
+    },
     status: {
       type: String,
-      enum: ['DRAFT', 'ACTIVE'],
+      enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'],
       default: 'ACTIVE',
     },
   },

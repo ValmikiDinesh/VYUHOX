@@ -1405,10 +1405,10 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   fontWeight: '900',
                   color: '#FFFFFF',
                 }}>
-                  {activeWorkspace?.name?.charAt(0) || 'H'}
+                  {activeWorkspace?.name?.charAt(0) || 'W'}
                 </div>
                 <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#F8FAFC' }}>
-                  {activeWorkspace?.name || 'HedgeX Capital'}
+                  {activeWorkspace?.name || 'Workspace'}
                 </span>
                 <Check size={12} color="#FACC15" style={{ strokeWidth: 3 }} />
                 <span style={{
@@ -1625,7 +1625,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                 zIndex: 10,
               }}>
                 <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#F8FAFC', marginBottom: '3px' }}>
-                  @{activeWorkspace?.slug || 'hedgex_capital'}
+                  @{activeWorkspace?.slug || activeWorkspace?.name?.toLowerCase().replace(/\s+/g, '_') || 'workspace'}
                 </div>
                 <div style={{
                   fontSize: '0.68rem',
@@ -1948,7 +1948,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                 }}>
                   <img
                     src={selectedPost.mediaUrl?.startsWith('/media/') ? selectedPost.mediaUrl : '/media/hedgex_carousel.jpg'}
-                    alt="HedgeX 3D Liquidity Asset"
+                    alt="Brand Visual Asset"
                     style={{
                       width: '100%',
                       height: '100%',
@@ -1982,7 +1982,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                       }}>
                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 10px #10B981' }} />
                         <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#F8FAFC' }}>
-                          {activeWorkspace?.name?.toUpperCase() || 'HEDGEX'} • BRAND ASSET
+                          {activeWorkspace?.name?.toUpperCase() || 'WORKSPACE'} • BRAND ASSET
                         </span>
                       </div>
                       <span style={{ fontSize: '0.64rem', color: '#34D399', fontWeight: '800', background: 'rgba(16, 185, 129, 0.2)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
@@ -3140,10 +3140,10 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   🏢 Active Business Context Engine
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#F8FAFC', fontWeight: '600', marginTop: '2px' }}>
-                  {activeWorkspace?.name || 'HedgeX Algorithmic Capital'} • {activeWorkspace?.industry || 'Crypto / Quant Finance'}
+                  {activeWorkspace?.name || 'Active Workspace'} • {activeWorkspace?.industry || 'Enterprise Technology'}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: '2px' }}>
-                  ICP: Institutional Allocators, Fund Managers • Value Prop: Sub-millisecond execution &amp; zero slippage
+                  Domain: {activeWorkspace?.domain || 'Configured via Workspace'} • Autonomous multi-channel optimization
                 </div>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: '#10B981', cursor: 'pointer', fontWeight: '700' }}>

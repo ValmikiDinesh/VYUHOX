@@ -69,9 +69,9 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
   const [formHeadline, setFormHeadline] = useState('');
   const [formPrimaryText, setFormPrimaryText] = useState('');
   const [formCta, setFormCta] = useState('Book Strategy Call');
-  const [formKeywords, setFormKeywords] = useState('crypto execution, quant alpha, sub second latency');
-  const [formLocations, setFormLocations] = useState('United States, United Kingdom, Switzerland');
-  const [formMediaUrl, setFormMediaUrl] = useState('/media/hedgex_reel.jpg');
+  const [formKeywords, setFormKeywords] = useState('enterprise, automation, pipeline, growth');
+  const [formLocations, setFormLocations] = useState('United States, United Kingdom, Canada');
+  const [formMediaUrl, setFormMediaUrl] = useState('');
   const [isGeneratingAiCopy, setIsGeneratingAiCopy] = useState(false);
 
   // Show Toast
@@ -211,13 +211,14 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
     setIsGeneratingAiCopy(true);
     setTimeout(() => {
       const isGoogle = formPlatform === 'GOOGLE_ADS';
+      const bizName = activeWorkspace?.name || 'Company';
       if (isGoogle) {
-        setFormHeadline('Low-Latency Quant Routing API | Sub-Millisecond Execution');
-        setFormPrimaryText('Bridge Binance, OKX, and Bybit in sub-600ms. Slashes cross-exchange slippage by 18bps with institutional Fireblocks custody.');
-        setFormCta('Access Live Benchmark');
+        setFormHeadline(`${bizName} Enterprise Platform | Accelerated Pipeline`);
+        setFormPrimaryText(`Deploy ${bizName}'s automated infrastructure to drive qualified pipelines and reduce operational friction from day one.`);
+        setFormCta('Explore Platform');
       } else {
-        setFormHeadline('Sub-Millisecond Execution for Institutional Crypto Allocators');
-        setFormPrimaryText('Stop losing alpha to manual desk latency. HedgeX provides sub-600ms cross-exchange order routing with Fireblocks custody. Download verified execution audit.');
+        setFormHeadline(`Automate & Scale with ${bizName}`);
+        setFormPrimaryText(`Discover how leading organizations modernize operations with ${bizName}. Book an executive demo today.`);
         setFormCta('Book Strategy Call');
       }
       setIsGeneratingAiCopy(false);
@@ -246,9 +247,9 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
         },
         creative: {
           headline: formHeadline || formName,
-          primaryText: formPrimaryText || 'Execute block orders with verified sub-millisecond precision.',
+          primaryText: formPrimaryText || `Accelerate operations with ${activeWorkspace.name || 'enterprise automation'}.`,
           ctaText: formCta,
-          destinationUrl: `https://${activeWorkspace.domain || 'growth.hedgex.io'}/demo`,
+          destinationUrl: `https://${activeWorkspace.domain || 'company.com'}/demo`,
           mediaUrl: formMediaUrl,
           platformFormat: formPlatform === 'GOOGLE_ADS' ? 'GOOGLE_SEARCH_RESPONSIVE' : 'META_FEED',
         },
@@ -272,11 +273,11 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
 
   // Active creative for preview
   const activeCreative = selectedCampaignForPreview?.primaryCreative || selectedCampaignForPreview?.creatives?.[0] || {
-    headline: 'Sub-Millisecond Execution for Institutional Allocators',
-    primaryText: 'Stop losing alpha to manual desk latency. HedgeX provides sub-600ms cross-exchange order routing with Fireblocks custody. Download verified execution audit.',
+    headline: `Transform How You Scale with ${activeWorkspace?.name || 'Our Platform'}`,
+    primaryText: `Accelerate customer acquisition and scale modern operations autonomously with ${activeWorkspace?.name || 'our platform'}.`,
     ctaText: 'Book Strategy Call',
-    destinationUrl: 'https://growth.hedgex.io/demo',
-    mediaUrl: '/media/hedgex_reel.jpg',
+    destinationUrl: `https://${activeWorkspace?.domain || 'company.com'}/demo`,
+    mediaUrl: '',
   };
 
   return (
@@ -620,7 +621,7 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#F8FAFC' }}>
-                      {activeWorkspace?.name || 'HedgeX Algorithmic Capital'}
+                      {activeWorkspace?.name || 'Enterprise Workspace'}
                     </span>
                     <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.5rem', color: '#FFF' }}>✓</span>
                   </div>
@@ -657,7 +658,7 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
                 }}>
                   <div>
                     <div style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase' }}>
-                      {activeWorkspace?.domain || 'GROWTH.HEDGEX.IO'}
+                      {activeWorkspace?.domain || 'COMPANY.COM'}
                     </div>
                     <div style={{ fontSize: '0.84rem', fontWeight: '700', color: '#F8FAFC', marginTop: '2px' }}>
                       {activeCreative.headline}
@@ -695,7 +696,7 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
                 <span style={{ fontWeight: '800', color: '#F8FAFC', padding: '1px 6px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.1)' }}>
                   Sponsored
                 </span>
-                <span style={{ color: '#10B981' }}>https://{activeWorkspace?.domain || 'growth.hedgex.io'} › institutional › alpha</span>
+                <span style={{ color: '#10B981' }}>https://{activeWorkspace?.domain || 'company.com'} › demo</span>
               </div>
 
               {/* Blue Headline Hierarchy */}
@@ -1253,7 +1254,7 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Stop losing alpha to manual desk latency. HedgeX provides sub-600ms cross-exchange order routing with Fireblocks custody."
+                  placeholder="Enter high-converting primary ad text describing your product value proposition."
                   value={formPrimaryText}
                   onChange={(e) => setFormPrimaryText(e.target.value)}
                   style={{
