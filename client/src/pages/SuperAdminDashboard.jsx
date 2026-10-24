@@ -27,6 +27,8 @@ import {
   Key,
   Palette,
   Presentation,
+  Database,
+  Search,
 } from 'lucide-react';
 import { api } from '../services/api';
 import VisualCreativeStudio from '../components/VisualCreativeStudio';
@@ -855,6 +857,47 @@ export default function SuperAdminDashboard({
                 </div>
               </div>
             </div>
+
+            {/* Rate 5: AI Multi-Source Lead Scraping */}
+            <div className="card" style={{ padding: '22px', background: '#0D1527', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                <Database size={20} color="#06B6D4" />
+                <h3 style={{ fontSize: '1.05rem', fontWeight: '700', margin: 0, color: '#F8FAFC' }}>
+                  AI Lead Scraping Rate (per lead)
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#94A3B8', marginBottom: '14px' }}>
+                Multi-source genuine lead generation across DuckDuckGo, OpenStreetMap, GitHub APIs, and live DNS MX verification.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in USD ($/lead)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={platformConfig.usageRates?.scrapingPerLeadUSD ?? 0.15}
+                    onChange={(e) => setPlatformConfig({
+                      ...platformConfig,
+                      usageRates: { ...platformConfig.usageRates, scrapingPerLeadUSD: parseFloat(e.target.value) || 0 },
+                    })}
+                    className="input-glass"
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in INR (₹/lead)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={platformConfig.usageRates?.scrapingPerLeadINR ?? 12.5}
+                    onChange={(e) => setPlatformConfig({
+                      ...platformConfig,
+                      usageRates: { ...platformConfig.usageRates, scrapingPerLeadINR: parseFloat(e.target.value) || 0 },
+                    })}
+                    className="input-glass"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1202,11 +1245,29 @@ export default function SuperAdminDashboard({
             </div>
 
             <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-              <div style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase' }}>Total Leads Managed</div>
+              <div style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase' }}>Total Leads in CRM</div>
               <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#F8FAFC', marginTop: '4px' }}>
                 {workspaces.reduce((acc, w) => acc + (w.leadCount || 0), 0).toLocaleString()}
               </div>
               <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Active contacts across all CRMs</div>
+            </div>
+
+            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+              <div style={{ fontSize: '0.725rem', color: '#38BDF8', fontWeight: '600', textTransform: 'uppercase' }}>AI Leads Scraped</div>
+              <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#38BDF8', marginTop: '4px' }}>
+                {workspaces.reduce((acc, w) => acc + (w.scrapedLeadsCount || 0), 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Harvested by multi-source scraper</div>
+            </div>
+
+            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+              <div style={{ fontSize: '0.725rem', color: '#34D399', fontWeight: '600', textTransform: 'uppercase' }}>Platform Paid Revenue</div>
+              <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#34D399', marginTop: '4px' }}>
+                {isINR
+                  ? `₹${Math.round(workspaces.reduce((acc, w) => acc + (w.totalPaidUSD || 0), 0) * exchangeRate).toLocaleString('en-IN')}`
+                  : `$${workspaces.reduce((acc, w) => acc + (w.totalPaidUSD || 0), 0).toFixed(2)}`}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Total client wallet top-ups</div>
             </div>
           </div>
 
@@ -1277,8 +1338,8 @@ export default function SuperAdminDashboard({
                     <th style={{ padding: '12px 14px' }}>TYPE &amp; INDUSTRY</th>
                     <th style={{ padding: '12px 14px' }}>MODE &amp; SUBSCRIPTION PLAN</th>
                     <th style={{ padding: '12px 14px' }}>ACTIVE AI C-SUITE STAFF</th>
-                    <th style={{ padding: '12px 14px' }}>ACTUAL FEATURES</th>
-                    <th style={{ padding: '12px 14px' }}>LEADS &amp; WALLET</th>
+                    <th style={{ padding: '12px 14px' }}>SCRAPED / CRM LEADS</th>
+                    <th style={{ padding: '12px 14px' }}>FINANCIALS (PAID / SPENT / WALLET)</th>
                     <th style={{ padding: '12px 18px', textAlign: 'right' }}>ACTIONS</th>
                   </tr>
                 </thead>
@@ -1379,27 +1440,31 @@ export default function SuperAdminDashboard({
                             </div>
                           </td>
 
-                          {/* Actual Features */}
+                          {/* Scraped / CRM Leads */}
                           <td style={{ padding: '14px 14px' }}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '200px' }}>
-                              <span className="badge badge-cyan" style={{ fontSize: '0.625rem' }}>⚡ Speed-to-Lead</span>
-                              <span className="badge badge-emerald" style={{ fontSize: '0.625rem' }}>💬 WhatsApp Hub</span>
-                              <span className="badge badge-cyan" style={{ fontSize: '0.625rem' }}>📧 Cold Email</span>
-                              {isAi && <span className="badge badge-purple" style={{ fontSize: '0.625rem' }}>🤖 Ad Optimizer</span>}
-                              {isAi && <span className="badge badge-cyan" style={{ fontSize: '0.625rem' }}>📱 Social Reels</span>}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <span className="badge badge-cyan" style={{ fontSize: '0.675rem', padding: '2px 7px' }}>
+                                  🔍 {ws.scrapedLeadsCount || 0} scraped
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.725rem', color: '#94A3B8' }}>
+                                {(ws.leadCount || 0).toLocaleString()} in CRM
+                              </div>
                             </div>
                           </td>
 
-                          {/* Leads & Wallet */}
+                          {/* Financials (Paid / Spent / Wallet) */}
                           <td style={{ padding: '14px 14px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                              <div style={{ fontSize: '0.775rem', fontWeight: '700', color: '#F8FAFC' }}>
-                                {(ws.leadCount || 0).toLocaleString()} <span style={{ fontSize: '0.675rem', color: '#64748B', fontWeight: '400' }}>leads</span>
+                              <div style={{ fontSize: '0.725rem', color: '#10B981', fontWeight: '700' }}>
+                                Paid: {isINR ? `₹${Math.round((ws.totalPaidUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : `$${(ws.totalPaidUSD || 0).toFixed(2)}`}
                               </div>
-                              <div style={{ fontSize: '0.725rem', color: '#34D399', fontWeight: '600' }}>
-                                {isINR
-                                  ? `₹${Math.round((ws.walletBalanceUSD || 50) * exchangeRate).toLocaleString('en-IN')}`
-                                  : `$${(ws.walletBalanceUSD || 50).toFixed(2)}`}
+                              <div style={{ fontSize: '0.7rem', color: '#F59E0B', fontWeight: '600' }}>
+                                Spent: {isINR ? `₹${Math.round((ws.totalSpentUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : `$${(ws.totalSpentUSD || 0).toFixed(2)}`}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '600' }}>
+                                Bal: {isINR ? `₹${Math.round((ws.walletBalanceUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : `$${(ws.walletBalanceUSD || 0).toFixed(2)}`}
                               </div>
                             </div>
                           </td>
@@ -1943,6 +2008,56 @@ export default function SuperAdminDashboard({
                 ✕
               </button>
             </div>
+
+            {/* Financial & Scraped Leads Audit */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '10px',
+              padding: '12px 14px',
+              borderRadius: '10px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              marginBottom: '16px',
+            }}>
+              <div>
+                <span style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>Paid to Us</span>
+                <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#10B981', marginTop: '2px' }}>
+                  {isINR ? `₹${Math.round((managingWorkspace.totalPaidUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : `$${(managingWorkspace.totalPaidUSD || 0).toFixed(2)}`}
+                </div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>Platform Spent</span>
+                <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#F59E0B', marginTop: '2px' }}>
+                  {isINR ? `₹${Math.round((managingWorkspace.totalSpentUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : `$${(managingWorkspace.totalSpentUSD || 0).toFixed(2)}`}
+                </div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>Leads Scraped</span>
+                <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#38BDF8', marginTop: '2px' }}>
+                  {managingWorkspace.scrapedLeadsCount || 0}
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Scrape & Usage Deductions */}
+            {managingWorkspace.recentTransactions && managingWorkspace.recentTransactions.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <span style={{ fontSize: '0.72rem', color: '#CBD5E1', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                  Recent Transactions & Scrape Deductions
+                </span>
+                <div style={{ maxHeight: '110px', overflowY: 'auto', background: 'rgba(0,0,0,0.25)', borderRadius: '8px', padding: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  {managingWorkspace.recentTransactions.map((tx, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 8px', fontSize: '0.725rem', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <span style={{ color: '#E2E8F0' }}>{tx.description || tx.type}</span>
+                      <span style={{ color: tx.type === 'CREDIT' ? '#34D399' : '#F43F5E', fontWeight: '700' }}>
+                        {tx.type === 'CREDIT' ? '+' : '-'}${Math.abs(tx.amountUSD || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSaveManageWorkspace} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Operating Mode Selector */}

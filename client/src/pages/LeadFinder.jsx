@@ -36,19 +36,31 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 
-const POPULAR_LOCATION_SUGGESTIONS = [
-  'Dallas, Texas',
+const INDIAN_CITIES = [
+  'Bengaluru, Karnataka',
+  'Hyderabad, Telangana',
+  'Mumbai, Maharashtra',
+  'Delhi NCR / Gurgaon',
+  'Pune, Maharashtra',
+  'Chennai, Tamil Nadu',
+  'Noida, Uttar Pradesh',
+  'Kolkata, West Bengal',
+  'Ahmedabad, Gujarat',
+  'Jaipur, Rajasthan',
+];
+
+const GLOBAL_CITIES = [
   'Austin, Texas',
+  'Dallas, Texas',
   'San Francisco Bay Area, CA',
-  'New York City Metro Area, NY',
+  'New York City, NY',
+  'Seattle, Washington',
   'London & Greater London, UK',
-  'Bengaluru & Hyderabad, India',
-  'Mumbai & Pune, India',
   'Dubai & Abu Dhabi, UAE',
-  'Singapore & APAC Hub',
-  'Toronto & Waterloo, Canada',
+  'Singapore',
+  'Toronto, Canada',
   'Berlin & Frankfurt, Germany',
-  'Sydney & Melbourne, Australia',
+  'Sydney, Australia',
 ];
 
 export default function LeadFinder({
@@ -316,15 +328,27 @@ export default function LeadFinder({
   const walletBalanceUSD = wallet?.balanceUSD || 0;
   const walletBalanceINR = Math.round(walletBalanceUSD * exchangeRate);
 
+  // Detect client business home region to show relevant quick suggestions
+  const isIndiaWorkspace =
+    currency === 'INR' ||
+    (activeWorkspace?.name || '').toLowerCase().includes('quantum') ||
+    (activeWorkspace?.industry || '').toLowerCase().includes('india') ||
+    (activeWorkspace?.ownerEmail || '').endsWith('.in');
+
+  const locationSuggestions = isIndiaWorkspace ? INDIAN_CITIES : GLOBAL_CITIES;
+
   return (
     <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '22px' }}>
       {/* Top Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
             <span className="badge badge-emerald">
               <Sparkles size={13} />
               AI AUTONOMOUS MULTI-SOURCE SCRAPER
+            </span>
+            <span className="badge badge-cyan" style={{ fontSize: '0.725rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Users size={12} /> Total Leads: {leads.length} ({filteredLeads.length} matching)
             </span>
             <span style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <ShieldCheck size={13} /> Live DNS MX Mailserver Handshake
@@ -372,7 +396,7 @@ export default function LeadFinder({
         </div>
       )}
 
-      {/* 1. AI STRATEGY RESEARCH & TARGETING INTELLIGENCE CARD (NO MANUAL CLUMSY SELECTORS) */}
+      {/* 1. AI STRATEGY RESEARCH & TARGETING INTELLIGENCE CARD */}
       <div style={{
         padding: '20px 24px',
         borderRadius: '14px',
@@ -467,6 +491,26 @@ export default function LeadFinder({
             <Target size={13} color="#10B981" />
             <span>Target ICP Pain Point: <em>"{firstPainPoint}"</em></span>
           </div>
+
+          {/* Calibrated Buyer vs Competitor Notice */}
+          <div style={{
+            marginTop: '6px',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.765rem',
+            color: '#34D399',
+          }}>
+            <ShieldCheck size={18} color="#10B981" style={{ flexShrink: 0 }} />
+            <div>
+              <strong>Calibrated Buyer Targeting: </strong>
+              Hunting companies that <em>need and buy</em> {currentBusinessName}'s services (e.g. Software, Fintech, SaaS and Engineering teams that write code and need security bug scanning). Competing security firms offering the same service are excluded.
+            </div>
+          </div>
         </div>
       </div>
 
@@ -555,12 +599,12 @@ export default function LeadFinder({
           </button>
         </div>
 
-        {/* Popular Location Suggestion Chips */}
+        {/* Location Suggestion Chips (Tailored to Client Region) */}
         <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '600', textTransform: 'uppercase' }}>
-            Quick Suggestion Chips:
+            Quick Suggestion Chips ({isIndiaWorkspace ? 'India' : 'Global'}):
           </span>
-          {POPULAR_LOCATION_SUGGESTIONS.map((loc, idx) => (
+          {locationSuggestions.map((loc, idx) => (
             <button
               key={idx}
               type="button"
@@ -827,6 +871,7 @@ export default function LeadFinder({
                     style={{ cursor: 'pointer' }}
                   />
                 </th>
+                <th style={{ padding: '14px 8px', width: '36px', textAlign: 'center' }}>#</th>
                 <th style={{ padding: '14px 16px' }}>Contact & Executive Title</th>
                 <th style={{ padding: '14px 16px' }}>Company & Domain</th>
                 <th style={{ padding: '14px 16px' }}>Verified Email & MX Server</th>
@@ -840,7 +885,7 @@ export default function LeadFinder({
             <tbody>
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-dim)' }}>
+                  <td colSpan={10} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-dim)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <Building2 size={32} color="#64748B" />
                       <div style={{ fontSize: '0.875rem', color: '#E2E8F0', fontWeight: '600' }}>
@@ -853,7 +898,7 @@ export default function LeadFinder({
                   </td>
                 </tr>
               ) : (
-                filteredLeads.map((lead) => {
+                filteredLeads.map((lead, idx) => {
                   const isChecked = selectedLeadIds.includes(lead._id);
                   const isVerified = lead.verificationStatus === 'VERIFIED';
                   const isNotesExpanded = expandedNotesId === lead._id;
@@ -881,6 +926,11 @@ export default function LeadFinder({
                             onChange={() => handleToggleSelectLead(lead._id)}
                             style={{ cursor: 'pointer' }}
                           />
+                        </td>
+
+                        {/* Numbering */}
+                        <td style={{ padding: '14px 8px', textAlign: 'center', color: '#64748B', fontWeight: '700', fontSize: '0.75rem' }}>
+                          {idx + 1}
                         </td>
 
                         {/* Contact Info */}
@@ -1070,7 +1120,7 @@ export default function LeadFinder({
                       {/* Expanded Strategy Notes Row */}
                       {isNotesExpanded && (
                         <tr style={{ background: 'rgba(6, 182, 212, 0.04)', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                          <td colSpan={9} style={{ padding: '12px 20px' }}>
+                          <td colSpan={10} style={{ padding: '12px 20px' }}>
                             <div style={{
                               display: 'flex',
                               alignItems: 'flex-start',

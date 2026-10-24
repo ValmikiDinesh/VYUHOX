@@ -20,20 +20,36 @@ router.get('/', authMiddleware, async (req, res) => {
 
     const workspaces = await Promise.all(
       rawWorkspaces.map(async (ws) => {
-        const [leadCount, wallet, ownerUser] = await Promise.all([
+        const [leadCount, scrapedLeadsCount, wallet, ownerUser] = await Promise.all([
           Lead.countDocuments({ workspaceId: ws._id }),
+          Lead.countDocuments({ workspaceId: ws._id, source: 'Scraper' }),
           Wallet.findOne({ workspaceId: ws._id }).lean(),
           User.findOne({ workspaceId: ws._id }).lean(),
         ]);
 
         const hiredCount = ws.hiredAgents ? ws.hiredAgents.filter((a) => a.active).length : 0;
+        const txs = wallet?.transactions || [];
+
+        const totalPaidUSD = +txs
+          .filter((t) => t.type === 'CREDIT' || t.type === 'BONUS')
+          .reduce((acc, t) => acc + (t.amountUSD || 0), 0)
+          .toFixed(2);
+
+        const totalSpentUSD = +txs
+          .filter((t) => t.type === 'DEBIT')
+          .reduce((acc, t) => acc + (t.amountUSD || 0), 0)
+          .toFixed(2);
 
         return {
           ...ws,
           ownerEmail: ws.ownerEmail || ownerUser?.email || '',
           ownerName: ws.ownerName || ownerUser?.name || '',
           leadCount: leadCount || 0,
+          scrapedLeadsCount: scrapedLeadsCount || 0,
           walletBalanceUSD: wallet ? wallet.balanceUSD : 0,
+          totalPaidUSD,
+          totalSpentUSD,
+          recentTransactions: txs.slice(-5).reverse(),
           hiredAgentsCount: hiredCount,
           features: {
             speedToLeadVoice: true,
