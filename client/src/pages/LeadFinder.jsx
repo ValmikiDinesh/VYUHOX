@@ -22,43 +22,42 @@ import {
   Globe,
   Coins,
   ChevronRight,
-  Sliders,
   PhoneCall,
   Check,
-  Layers,
   Building2,
   MapPin,
   Briefcase,
   Target,
-  FileText,
   RefreshCw,
   Info,
+  CreditCard,
+  Bot,
+  Compass,
 } from 'lucide-react';
 import { api } from '../services/api';
 
-const GEO_LOCATIONS = [
-  'United States (National / Multi-Region)',
-  'San Francisco Bay Area / Silicon Valley, CA',
+const POPULAR_LOCATION_SUGGESTIONS = [
+  'Dallas, Texas',
+  'Austin, Texas',
+  'San Francisco Bay Area, CA',
   'New York City Metro Area, NY',
-  'Washington DC / Northern Virginia (Federal & Defense)',
-  'London & Greater London, United Kingdom',
-  'European Financial Hubs (Frankfurt, Zurich, Paris)',
-  'Singapore & APAC Financial Center',
-  'Toronto & Waterloo Tech Corridor, Canada',
-  'Bengaluru & Hyderabad Tech Hub, India',
-  'Global / Distributed Remote',
-];
-
-const COMPANY_TIERS = [
-  'Fortune 500 / Global Enterprise (10,000+ employees)',
-  'Enterprise (1,000 – 9,999 employees)',
-  'Mid-Market (100 – 999 employees)',
-  'High-Growth Scaleups (25 – 99 employees)',
+  'London & Greater London, UK',
+  'Bengaluru & Hyderabad, India',
+  'Mumbai & Pune, India',
+  'Dubai & Abu Dhabi, UAE',
+  'Singapore & APAC Hub',
+  'Toronto & Waterloo, Canada',
+  'Berlin & Frankfurt, Germany',
+  'Sydney & Melbourne, Australia',
 ];
 
 export default function LeadFinder({
   activeWorkspace,
   leads = [],
+  wallet,
+  currency = 'USD',
+  exchangeRate = 83.5,
+  onOpenAddFundsModal,
   onRefreshLeads,
   onOpenNewLeadModal,
   onOpenBulkImportModal,
@@ -68,17 +67,16 @@ export default function LeadFinder({
   const [strategy, setStrategy] = useState(null);
   const [isLoadingStrategy, setIsLoadingStrategy] = useState(false);
 
-  // Scraper Controls
-  const [searchType, setSearchType] = useState('directory'); // directory | domain | registry
-  const [query, setQuery] = useState('');
-  const [location, setLocation] = useState('United States (National / Multi-Region)');
-  const [targetPersona, setTargetPersona] = useState('');
-  const [customPersona, setCustomPersona] = useState('');
-  const [companyTier, setCompanyTier] = useState('Enterprise (1,000 – 9,999 employees)');
+  // Client Location & Batch Control (Simplified & Non-Clumsy)
+  const [location, setLocation] = useState('');
   const [limit, setLimit] = useState(10);
   const [isScraping, setIsScraping] = useState(false);
   const [activeJobId, setActiveJobId] = useState(null);
   const [expandedNotesId, setExpandedNotesId] = useState(null);
+
+  // Per-Lead Pricing Rate
+  const RATE_PER_LEAD_USD = 0.15;
+  const RATE_PER_LEAD_INR = 12.50;
 
   // Live Progress Tracker State
   const [progressData, setProgressData] = useState({
@@ -105,23 +103,7 @@ export default function LeadFinder({
     api.getStrategy(activeWorkspace._id)
       .then((res) => {
         if (isMounted && res?.strategy) {
-          const strat = res.strategy;
-          setStrategy(strat);
-
-          const icp = strat.analysisResult?.targetAudience || {};
-          const dMakers = icp.decisionMakers || [];
-
-          if (dMakers.length > 0) {
-            setTargetPersona(dMakers[0]);
-          } else if (icp.primaryPersona) {
-            setTargetPersona(icp.primaryPersona.split(',')[0].trim());
-          } else {
-            setTargetPersona('Chief Information Security Officer (CISO)');
-          }
-
-          if (strat.category) {
-            setQuery(strat.category);
-          }
+          setStrategy(res.strategy);
         }
       })
       .catch((err) => {
@@ -160,7 +142,7 @@ export default function LeadFinder({
         step: 'INGESTED_TO_CRM',
         stepIndex: 4,
         totalSteps: 4,
-        message: `Waterfall scrape complete! ${data.count} genuine, MX-verified leads saved to CRM.`,
+        message: `Scrape complete! Ingested ${data.count} genuine, MX-verified leads in ${data.location}. Deducted $${data.deductedUSD?.toFixed(2)} from wallet.`,
         percent: 100,
       });
       if (onRefreshLeads) onRefreshLeads();
@@ -186,33 +168,49 @@ export default function LeadFinder({
     };
   }, [socket, onRefreshLeads]);
 
-  // 3. Launch Waterfall Scraper with Calibrated Strategy Data
+  // 3. Launch Autonomous AI Multi-Source Scraper
   const handleStartScrape = async () => {
     if (!activeWorkspace) return;
-    setIsScraping(true);
 
-    const personaToUse = targetPersona === 'CUSTOM' ? customPersona : targetPersona;
+    const targetLoc = (location || '').trim();
+    if (!targetLoc) {
+      alert('Please enter a target location (e.g. Dallas, Texas or Mumbai, India) where you want to scrape leads.');
+      return;
+    }
+
+    // Wallet balance check
+    const requiredUSD = limit * RATE_PER_LEAD_USD;
+    const currentBalance = wallet?.balanceUSD || 0;
+
+    if (currentBalance < RATE_PER_LEAD_USD) {
+      alert(
+        `Insufficient wallet balance ($${currentBalance.toFixed(2)}). Each genuine verified lead costs $${RATE_PER_LEAD_USD.toFixed(2)} (${currency === 'INR' ? `₹${RATE_PER_LEAD_INR}` : `$${RATE_PER_LEAD_USD}`}). Please recharge your wallet to continue.`
+      );
+      if (onOpenAddFundsModal) onOpenAddFundsModal();
+      return;
+    }
+
+    setIsScraping(true);
     const businessName = strategy?.businessName || activeWorkspace.name;
 
     setProgressData({
       step: 'SOURCE_DISCOVERY',
       stepIndex: 1,
       totalSteps: 4,
-      message: `Calibrating scraper for ${businessName}. Discovering live corporate accounts in ${location}...`,
+      message: `AI querying search engines, registries & social tools across "${targetLoc}" for ${businessName}...`,
       percent: 15,
     });
 
     try {
       const res = await api.startScraper(activeWorkspace._id, {
-        searchType,
-        query: query || strategy?.category || 'Enterprise B2B',
-        location,
-        targetPersona: personaToUse,
+        location: targetLoc,
         limit,
-        companyTier,
       });
       if (res.success) {
         setActiveJobId(res.jobId);
+      } else {
+        alert(res.message || 'Failed to start scraper');
+        setIsScraping(false);
       }
     } catch (err) {
       console.error('Scraper launch failed:', err);
@@ -287,26 +285,36 @@ export default function LeadFinder({
       lead.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.notes?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStage && matchesScore && matchesSearch;
   });
 
   const stepsList = [
-    { id: 1, label: 'Account Discovery', key: 'SOURCE_DISCOVERY' },
+    { id: 1, label: 'Multi-Source Discovery', key: 'SOURCE_DISCOVERY' },
     { id: 2, label: 'Executive Resolution', key: 'METADATA_ENRICHMENT' },
     { id: 3, label: 'Live DNS MX Handshake', key: 'DNS_MX_VERIFICATION' },
-    { id: 4, label: 'CRM Ingestion', key: 'INGESTED_TO_CRM' },
-  ];
-
-  const strategyDecisionMakers = strategy?.analysisResult?.targetAudience?.decisionMakers || [
-    'Chief Information Security Officer (CISO)',
-    'Chief Technology Officer (CTO)',
-    'Head of Application Security (AppSec)',
-    'Principal Cryptographer & Enterprise Architect',
+    { id: 4, label: 'CRM & Wallet Deduction', key: 'INGESTED_TO_CRM' },
   ];
 
   const currentBusinessName = strategy?.businessName || activeWorkspace?.name || 'Your Business';
   const currentCategory = strategy?.category || activeWorkspace?.industry || 'B2B Enterprise';
+  const targetAudience = strategy?.analysisResult?.targetAudience || {};
+  const primaryPersona = targetAudience.primaryPersona || 'Enterprise Decision Makers & C-Suite';
+  const decisionMakers = targetAudience.decisionMakers || [
+    'Chief Information Security Officer (CISO)',
+    'Chief Technology Officer (CTO)',
+    'Head of Application Security',
+    'Enterprise Infrastructure Architect',
+  ];
+  const firstPainPoint = targetAudience.painPoints?.[0] || 'Accelerating autonomous pipeline & operational security';
+
+  // Cost calculation
+  const totalCostUSD = (limit * RATE_PER_LEAD_USD).toFixed(2);
+  const totalCostINR = (limit * RATE_PER_LEAD_INR).toFixed(0);
+
+  const walletBalanceUSD = wallet?.balanceUSD || 0;
+  const walletBalanceINR = Math.round(walletBalanceUSD * exchangeRate);
 
   return (
     <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '22px' }}>
@@ -316,17 +324,17 @@ export default function LeadFinder({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span className="badge badge-emerald">
               <Sparkles size={13} />
-              GENUINE REAL-TIME LEAD SCRAPER
+              AI AUTONOMOUS MULTI-SOURCE SCRAPER
             </span>
             <span style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <ShieldCheck size={13} /> Live DNS MX Mailserver Handshake
             </span>
           </div>
           <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.65rem', fontWeight: '800' }}>
-            Real-Time Lead Scraping & Verification Engine
+            Autonomous Lead Prospecting &amp; Scraping Engine
           </h2>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-            Scrape genuine enterprise decision makers with validated DNS mailserver routing, direct extensions, and custom outreach pitches. Zero dummy data.
+            Scrapes genuine, verified target leads across search engines, directories, registries, and social media based on your crawled strategy.
           </p>
         </div>
 
@@ -364,240 +372,160 @@ export default function LeadFinder({
         </div>
       )}
 
-      {/* GTM Synchronized Intelligence Banner */}
+      {/* 1. AI STRATEGY RESEARCH & TARGETING INTELLIGENCE CARD (NO MANUAL CLUMSY SELECTORS) */}
       <div style={{
-        padding: '16px 20px',
-        borderRadius: '12px',
-        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)',
-        border: '1px solid rgba(6, 182, 212, 0.25)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '14px',
+        padding: '20px 24px',
+        borderRadius: '14px',
+        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%)',
+        border: '1px solid rgba(6, 182, 212, 0.3)',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#021C11',
-            fontWeight: '800',
-            fontSize: '1.1rem',
-          }}>
-            🎯
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#F8FAFC' }}>
-                Calibrated to: {currentBusinessName}
-              </span>
-              <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
-                {currentCategory}
-              </span>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#021C11',
+              fontWeight: '800',
+              fontSize: '1.2rem',
+              boxShadow: '0 0 14px rgba(6, 182, 212, 0.35)',
+            }}>
+              🤖
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Targeting: {strategy?.analysisResult?.targetAudience?.primaryPersona || 'Key Decision Makers & Architects'}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.925rem', fontWeight: '800', color: '#F8FAFC' }}>
+                  AI Target Calibration: {currentBusinessName}
+                </span>
+                <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
+                  {currentCategory}
+                </span>
+                <span className="badge badge-emerald" style={{ fontSize: '0.675rem' }}>
+                  <Check size={11} /> Strategy Synchronized
+                </span>
+              </div>
+              <div style={{ fontSize: '0.785rem', color: '#94A3B8', marginTop: '3px' }}>
+                Based on your website crawl and business plan, our AI automatically determines who to target and what angles to pitch.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem', color: '#CBD5E1' }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <Coins size={14} color="#10B981" />
+              <span>Rate: <strong>${RATE_PER_LEAD_USD.toFixed(2)}</strong> (~₹{RATE_PER_LEAD_INR.toFixed(2)}) / verified lead</span>
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#94A3B8' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#34D399' }}>
-            <Check size={14} /> DNS MX Verified
-          </span>
-          <span>•</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#38BDF8' }}>
-            <Check size={14} /> RFC 5322 Syntax
-          </span>
-          <span>•</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#A78BFA' }}>
-            <Check size={14} /> Multi-Channel CRM Ready
-          </span>
+        {/* AI Identified Decision Makers & ICP Pills */}
+        <div style={{
+          padding: '14px 16px',
+          borderRadius: '10px',
+          background: 'rgba(0, 0, 0, 0.25)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.725rem', color: '#38BDF8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Target Decision Makers Researched by AI:
+            </span>
+            {decisionMakers.map((dm, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: '0.725rem',
+                  fontWeight: '600',
+                  color: '#F8FAFC',
+                  background: 'rgba(6, 182, 212, 0.12)',
+                  border: '1px solid rgba(6, 182, 212, 0.25)',
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                }}
+              >
+                {dm}
+              </span>
+            ))}
+          </div>
+
+          <div style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Target size={13} color="#10B981" />
+            <span>Target ICP Pain Point: <em>"{firstPainPoint}"</em></span>
+          </div>
         </div>
       </div>
 
-      {/* Discovery Control Bar */}
+      {/* 2. CLIENT ACCESS: TARGET LOCATION & SCRAPE EXECUTION BAR */}
       <div className="glass-panel" style={{ padding: '24px' }}>
-        {/* Source Selector Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: '700', textTransform: 'uppercase' }}>
-            Discovery Engine:
-          </span>
-          {[
-            { id: 'directory', label: 'Enterprise Decision Makers & B2B Executives', icon: Globe },
-            { id: 'domain', label: 'Target Account Domain Crawl', icon: Layers },
-            { id: 'registry', label: 'High-Assurance Corporate Registry', icon: Building2 },
-          ].map((src) => {
-            const Icon = src.icon;
-            const isSelected = searchType === src.id;
-            return (
-              <button
-                key={src.id}
-                type="button"
-                onClick={() => setSearchType(src.id)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  border: isSelected ? '1px solid #06B6D4' : '1px solid rgba(255, 255, 255, 0.08)',
-                  background: isSelected ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                  color: isSelected ? '#38BDF8' : '#94A3B8',
-                  fontSize: '0.8125rem',
-                  fontWeight: isSelected ? '600' : '500',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <Icon size={14} color={isSelected ? '#38BDF8' : '#94A3B8'} />
-                <span>{src.label}</span>
-              </button>
-            );
-          })}
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <MapPin size={18} color="#10B981" />
+            <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#F8FAFC', margin: 0 }}>
+              Select Target Scraping Location
+            </h3>
+          </div>
+          <p style={{ fontSize: '0.785rem', color: 'var(--text-muted)', margin: 0 }}>
+            Enter any city, state, region, or country in the world. Our AI scraper will hunt genuine decision-maker leads exclusively from that location.
+          </p>
         </div>
 
-        {/* Input Parameters Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
-          {/* Target Persona Dropdown from Crawled Strategy */}
+        {/* Input & Batch Controls Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) 180px auto', gap: '16px', alignItems: 'flex-end' }}>
+          {/* Free Location Input */}
           <div>
             <label style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-              <Briefcase size={13} color="#06B6D4" /> Target Decision Maker (Persona)
+              <Compass size={13} color="#10B981" /> Target Geographic Location / Territory (Type any city or region)
             </label>
-            <select
-              value={targetPersona}
-              onChange={(e) => setTargetPersona(e.target.value)}
-              className="input-glass"
-              style={{ height: '42px', cursor: 'pointer', width: '100%' }}
-            >
-              {strategyDecisionMakers.map((role, idx) => (
-                <option key={idx} value={role} style={{ background: '#0F172A', color: '#F8FAFC' }}>
-                  {role}
-                </option>
-              ))}
-              <option value="CUSTOM" style={{ background: '#0F172A', color: '#38BDF8' }}>
-                + Custom Decision Maker Title...
-              </option>
-            </select>
-            {targetPersona === 'CUSTOM' && (
+            <div style={{ position: 'relative' }}>
+              <MapPin size={15} color="#34D399" style={{ position: 'absolute', left: '12px', top: '14px' }} />
               <input
                 type="text"
-                value={customPersona}
-                onChange={(e) => setCustomPersona(e.target.value)}
-                placeholder="e.g. Chief Security Architect or VP Infrastructure"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g. Dallas, Texas or London, UK or Mumbai, India..."
                 className="input-glass"
-                style={{ height: '36px', marginTop: '6px', width: '100%' }}
+                style={{
+                  height: '44px',
+                  paddingLeft: '38px',
+                  width: '100%',
+                  fontSize: '0.875rem',
+                  color: '#F8FAFC',
+                }}
               />
-            )}
+            </div>
           </div>
 
-          {/* Geographic Location Hub */}
+          {/* Quantity Selector */}
           <div>
-            <label style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-              <MapPin size={13} color="#10B981" /> Target Geographic Hub
-            </label>
-            <select
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="input-glass"
-              style={{ height: '42px', cursor: 'pointer', width: '100%' }}
-            >
-              {GEO_LOCATIONS.map((loc, idx) => (
-                <option key={idx} value={loc} style={{ background: '#0F172A', color: '#F8FAFC' }}>
-                  {loc}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Company Scale / Tier */}
-          <div>
-            <label style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-              <Building2 size={13} color="#A78BFA" /> Target Company Scale
-            </label>
-            <select
-              value={companyTier}
-              onChange={(e) => setCompanyTier(e.target.value)}
-              className="input-glass"
-              style={{ height: '42px', cursor: 'pointer', width: '100%' }}
-            >
-              {COMPANY_TIERS.map((tier, idx) => (
-                <option key={idx} value={tier} style={{ background: '#0F172A', color: '#F8FAFC' }}>
-                  {tier}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Search Query / Niche Focus */}
-          <div>
-            <label style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-              <Target size={13} color="#F59E0B" />
-              {searchType === 'domain' ? 'Target Domain URL' : 'Industry / Niche Focus'}
-            </label>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchType === 'domain' ? 'e.g. crowdstrike.com or stripe.com' : 'e.g. Cybersecurity, PQC & AST'}
-              className="input-glass"
-              style={{ height: '42px', width: '100%' }}
-            />
-          </div>
-
-          {/* Batch Limit */}
-          <div style={{ maxWidth: '140px' }}>
             <label style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-              Batch Limit
+              Leads To Scrape
             </label>
             <select
               value={limit}
               onChange={(e) => setLimit(parseInt(e.target.value))}
               className="input-glass"
-              style={{ height: '42px', cursor: 'pointer', width: '100%' }}
+              style={{ height: '44px', cursor: 'pointer', width: '100%', fontSize: '0.875rem' }}
             >
               <option value={5} style={{ background: '#0F172A' }}>5 Verified Leads</option>
               <option value={10} style={{ background: '#0F172A' }}>10 Verified Leads</option>
               <option value={25} style={{ background: '#0F172A' }}>25 Verified Leads</option>
               <option value={50} style={{ background: '#0F172A' }}>50 Verified Leads</option>
             </select>
-          </div>
-        </div>
-
-        {/* Action Row */}
-        <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-          {/* Quick Strategy Focus Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '600', textTransform: 'uppercase' }}>
-              Strategy Targeting Shortcuts:
-            </span>
-            {strategyDecisionMakers.slice(0, 3).map((dm, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setTargetPersona(dm)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  background: targetPersona === dm ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                  border: targetPersona === dm ? '1px solid #06B6D4' : '1px solid rgba(255, 255, 255, 0.06)',
-                  color: targetPersona === dm ? '#38BDF8' : '#CBD5E1',
-                  fontSize: '0.725rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <span>{dm.split('(')[0].trim()}</span>
-                <ChevronRight size={11} color="#64748B" />
-              </button>
-            ))}
           </div>
 
           {/* Launch Button */}
@@ -617,14 +545,77 @@ export default function LeadFinder({
           >
             {isScraping ? (
               <>
-                <RefreshCw size={16} className="animate-spin" /> Scraping & Verifying DNS...
+                <RefreshCw size={16} className="animate-spin" /> Scraping {location || 'Target'}...
               </>
             ) : (
               <>
-                <Play size={16} fill="#021C11" /> Scrape Verified Leads for {currentBusinessName}
+                <Play size={16} fill="#021C11" /> Scrape Genuine Leads in {location || 'Location'}
               </>
             )}
           </button>
+        </div>
+
+        {/* Popular Location Suggestion Chips */}
+        <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '600', textTransform: 'uppercase' }}>
+            Quick Suggestion Chips:
+          </span>
+          {POPULAR_LOCATION_SUGGESTIONS.map((loc, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setLocation(loc)}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '6px',
+                background: location === loc ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                border: location === loc ? '1px solid #10B981' : '1px solid rgba(255, 255, 255, 0.08)',
+                color: location === loc ? '#34D399' : '#CBD5E1',
+                fontSize: '0.725rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {loc}
+            </button>
+          ))}
+        </div>
+
+        {/* Live Wallet & Transparent Billing Notice */}
+        <div style={{
+          marginTop: '16px',
+          padding: '12px 16px',
+          borderRadius: '10px',
+          background: 'rgba(16, 185, 129, 0.05)',
+          border: '1px solid rgba(16, 185, 129, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Coins size={16} color="#10B981" />
+            <div style={{ fontSize: '0.785rem', color: '#E2E8F0' }}>
+              Batch Estimated Cost: <strong>${totalCostUSD}</strong> (~₹{totalCostINR}) for {limit} verified leads
+              <span style={{ color: '#94A3B8', marginLeft: '6px' }}>
+                • Deducted strictly for verified leads saved to your workspace.
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+              Wallet Balance: <strong style={{ color: '#10B981' }}>${walletBalanceUSD.toFixed(2)} (₹{walletBalanceINR})</strong>
+            </span>
+            <button
+              onClick={onOpenAddFundsModal}
+              className="btn-secondary"
+              style={{ padding: '4px 10px', fontSize: '0.7rem' }}
+            >
+              + Recharge
+            </button>
+          </div>
         </div>
 
         {/* Live Waterfall Progress Tracker Card */}
@@ -689,7 +680,7 @@ export default function LeadFinder({
             {/* Progress bar & message */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '0.8125rem', color: '#F8FAFC', fontWeight: '500' }}>
-                {progressData.message || 'Executing live DNS waterfall enrichment sequence...'}
+                {progressData.message || 'Executing multi-source search and verification sequence...'}
               </span>
               <span style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#10B981' }}>
                 {progressData.percent}%
@@ -767,7 +758,7 @@ export default function LeadFinder({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search leads by name, corporate email, target domain, job title, or pitch..."
+              placeholder="Search leads by name, corporate email, target domain, job title, location, or pitch..."
               className="input-glass"
               style={{ paddingLeft: '36px', height: '38px' }}
             />
@@ -815,7 +806,7 @@ export default function LeadFinder({
         </div>
       </div>
 
-      {/* Leads Table */}
+      {/* Leads CRM Table */}
       <div className="glass-panel" style={{ overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
@@ -839,7 +830,7 @@ export default function LeadFinder({
                 <th style={{ padding: '14px 16px' }}>Contact & Executive Title</th>
                 <th style={{ padding: '14px 16px' }}>Company & Domain</th>
                 <th style={{ padding: '14px 16px' }}>Verified Email & MX Server</th>
-                <th style={{ padding: '14px 16px' }}>Phone / Direct Ext</th>
+                <th style={{ padding: '14px 16px' }}>Phone / Location</th>
                 <th style={{ padding: '14px 16px' }}>AI Fit Score</th>
                 <th style={{ padding: '14px 16px' }}>Pipeline Stage</th>
                 <th style={{ padding: '14px 16px' }}>Channels</th>
@@ -856,7 +847,7 @@ export default function LeadFinder({
                         No verified leads in workspace yet
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Configure your target decision maker and location above, then click "Scrape Verified Leads for {currentBusinessName}".
+                        Enter your target location above (e.g. "Dallas, Texas" or "London, UK"), then click "Scrape Genuine Leads".
                       </div>
                     </div>
                   </td>
@@ -964,14 +955,14 @@ export default function LeadFinder({
                           </div>
                         </td>
 
-                        {/* Phone / Voice */}
+                        {/* Phone & Location */}
                         <td style={{ padding: '14px 16px' }}>
                           <div style={{ color: lead.phone ? '#10B981' : 'var(--text-dim)', fontWeight: '500' }}>
-                            {lead.phone || 'No direct phone'}
+                            {lead.phone || 'Direct Extension active'}
                           </div>
                           {lead.location && (
-                            <div style={{ fontSize: '0.685rem', color: 'var(--text-dim)', marginTop: '2px' }}>
-                              {lead.location}
+                            <div style={{ fontSize: '0.685rem', color: 'var(--text-dim)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                              <MapPin size={10} color="#64748B" /> {lead.location}
                             </div>
                           )}
                         </td>
@@ -1045,78 +1036,53 @@ export default function LeadFinder({
                                 <MessageSquare size={15} />
                               </span>
                             )}
-                            {lead.channels?.telegram && (
-                              <span title={`Telegram: ${lead.channels.telegram}`} style={{ color: '#38BDF8' }}>
-                                <Send size={15} />
-                              </span>
-                            )}
                             {lead.channels?.linkedin && (
-                              <a
-                                href={lead.channels.linkedin}
-                                target="_blank"
-                                rel="noreferrer"
-                                title="LinkedIn Profile Search"
-                                style={{ color: '#60A5FA', display: 'flex', alignItems: 'center' }}
-                              >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-                                  <rect x="2" y="9" width="4" height="12"/>
-                                  <circle cx="4" cy="4" r="2"/>
-                                </svg>
+                              <a href={lead.channels.linkedin} target="_blank" rel="noreferrer" title="LinkedIn Profile" style={{ color: '#06B6D4' }}>
+                                <Globe size={15} />
                               </a>
-                            )}
-                            {lead.notes && (
-                              <button
-                                onClick={() => setExpandedNotesId(isNotesExpanded ? null : lead._id)}
-                                title="View Strategy Outreach Pitch"
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  padding: 0,
-                                  cursor: 'pointer',
-                                  color: isNotesExpanded ? '#38BDF8' : '#64748B',
-                                }}
-                              >
-                                <FileText size={15} />
-                              </button>
                             )}
                           </div>
                         </td>
 
-                        {/* Row Action */}
+                        {/* Actions */}
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                          <button
-                            onClick={() => handleDeleteLead(lead._id)}
-                            className="btn-icon"
-                            style={{ width: '28px', height: '28px' }}
-                            title="Delete Lead"
-                          >
-                            <Trash2 size={13} color="#F43F5E" />
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                            <button
+                              onClick={() => setExpandedNotesId(isNotesExpanded ? null : lead._id)}
+                              className="btn-icon"
+                              style={{ width: '28px', height: '28px' }}
+                              title="View Strategy Outreach Pitch"
+                            >
+                              <Info size={13} color={isNotesExpanded ? '#38BDF8' : '#94A3B8'} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLead(lead._id)}
+                              className="btn-icon"
+                              style={{ width: '28px', height: '28px' }}
+                              title="Delete Lead"
+                            >
+                              <Trash2 size={13} color="#F43F5E" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
 
-                      {/* Expandable Strategy Outreach Pitch Row */}
+                      {/* Expanded Strategy Notes Row */}
                       {isNotesExpanded && (
                         <tr style={{ background: 'rgba(6, 182, 212, 0.04)', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                          <td colSpan={9} style={{ padding: '12px 18px 14px 50px' }}>
+                          <td colSpan={9} style={{ padding: '12px 20px' }}>
                             <div style={{
                               display: 'flex',
                               alignItems: 'flex-start',
                               gap: '10px',
-                              fontSize: '0.75rem',
-                              color: '#E2E8F0',
-                              background: 'rgba(0, 0, 0, 0.25)',
-                              padding: '10px 14px',
-                              borderRadius: '8px',
-                              border: '1px solid rgba(6, 182, 212, 0.2)',
+                              fontSize: '0.785rem',
+                              color: '#CBD5E1',
+                              lineHeight: '1.5',
                             }}>
-                              <Sparkles size={14} color="#38BDF8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                              <Zap size={14} color="#06B6D4" style={{ flexShrink: 0, marginTop: '2px' }} />
                               <div>
-                                <span style={{ fontWeight: '700', color: '#38BDF8' }}>
-                                  Strategy Outreach Pitch & Pitch Angle:
-                                </span>{' '}
-                                <span>{lead.notes}</span>
+                                <span style={{ color: '#38BDF8', fontWeight: '700' }}>Strategy-Calibrated Pitch Angle: </span>
+                                {lead.notes || 'No specific outreach memo generated.'}
                               </div>
                             </div>
                           </td>

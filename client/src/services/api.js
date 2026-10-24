@@ -121,6 +121,30 @@ export const api = {
     });
     return res.json();
   },
+  executeBulkAction: async (workspaceId, leadIds, action, targetStage) => {
+    const res = await fetch(`${API_BASE}/leads/bulk-action`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', 'x-workspace-id': workspaceId }),
+      body: JSON.stringify({ leadIds, action, targetStage }),
+    });
+    return res.json();
+  },
+
+  // Real-time Lead Scraper
+  startScraper: async (workspaceId, params) => {
+    const res = await fetch(`${API_BASE}/scraper/start`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', 'x-workspace-id': workspaceId }),
+      body: JSON.stringify({ ...params, workspaceId }),
+    });
+    return res.json();
+  },
+  getScraperStatus: async (workspaceId, jobId) => {
+    const res = await fetch(`${API_BASE}/scraper/status/${jobId}`, {
+      headers: getAuthHeaders({ 'x-workspace-id': workspaceId }),
+    });
+    return res.json();
+  },
 
   // Wallet
   getWallet: async (workspaceId) => {

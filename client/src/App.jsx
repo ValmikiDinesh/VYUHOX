@@ -740,6 +740,10 @@ export default function App() {
           <LeadFinder
             activeWorkspace={activeWorkspace}
             leads={leads}
+            wallet={wallet}
+            currency={currency}
+            exchangeRate={exchangeRate}
+            onOpenAddFundsModal={() => setIsAddFundsModalOpen(true)}
             onRefreshLeads={refreshWorkspaceData}
             onOpenNewLeadModal={() => setIsNewLeadModalOpen(true)}
             onOpenBulkImportModal={() => setIsBulkImportModalOpen(true)}

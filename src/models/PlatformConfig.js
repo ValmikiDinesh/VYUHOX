@@ -19,6 +19,8 @@ const platformConfigSchema = new mongoose.Schema(
       emailPer1000INR: { type: Number, default: 65.0 },
       enrichmentPerLeadUSD: { type: Number, default: 0.02 },
       enrichmentPerLeadINR: { type: Number, default: 1.65 },
+      scrapingPerLeadUSD: { type: Number, default: 0.15 },
+      scrapingPerLeadINR: { type: Number, default: 12.50 },
     },
     // Master Provider Integrations
     integrations: {
