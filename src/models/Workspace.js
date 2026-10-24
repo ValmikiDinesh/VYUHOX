@@ -21,8 +21,28 @@ const workspaceSchema = new mongoose.Schema(
     },
     industry: {
       type: String,
-      enum: ['Crypto', 'Ecommerce', 'B2B', 'Local', 'D2C'],
+      trim: true,
       default: 'B2B',
+    },
+    businessCategory: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    businessModelDescription: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    ownerEmail: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    ownerName: {
+      type: String,
+      trim: true,
+      default: '',
     },
     operatingMode: {
       type: String,

@@ -2,6 +2,7 @@ import express from 'express';
 import { Workspace } from '../models/Workspace.js';
 import { Wallet } from '../models/Wallet.js';
 import { Lead } from '../models/Lead.js';
+import { User } from '../models/User.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -9,19 +10,28 @@ const router = express.Router();
 // GET /api/workspaces - List all workspaces enriched with metrics and actual features
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const rawWorkspaces = await Workspace.find().sort({ createdAt: -1 }).lean();
+    // Multi-tenant isolation: Superadmin can inspect all, client owners can only see their own workspace
+    let query = {};
+    if (req.user && req.user.role !== 'superadmin') {
+      query = { _id: req.user.workspaceId };
+    }
+
+    const rawWorkspaces = await Workspace.find(query).sort({ createdAt: -1 }).lean();
 
     const workspaces = await Promise.all(
       rawWorkspaces.map(async (ws) => {
-        const [leadCount, wallet] = await Promise.all([
+        const [leadCount, wallet, ownerUser] = await Promise.all([
           Lead.countDocuments({ workspaceId: ws._id }),
           Wallet.findOne({ workspaceId: ws._id }).lean(),
+          User.findOne({ workspaceId: ws._id }).lean(),
         ]);
 
         const hiredCount = ws.hiredAgents ? ws.hiredAgents.filter((a) => a.active).length : 0;
 
         return {
           ...ws,
+          ownerEmail: ws.ownerEmail || ownerUser?.email || '',
+          ownerName: ws.ownerName || ownerUser?.name || '',
           leadCount: leadCount || 0,
           walletBalanceUSD: wallet ? wallet.balanceUSD : 0,
           hiredAgentsCount: hiredCount,
@@ -51,8 +61,16 @@ router.get('/:id', authMiddleware, async (req, res) => {
     if (!workspace) {
       return res.status(404).json({ success: false, message: 'Workspace not found' });
     }
-    const wallet = await Wallet.findOne({ workspaceId: workspace._id });
-    return res.json({ success: true, workspace, wallet });
+    const [wallet, ownerUser] = await Promise.all([
+      Wallet.findOne({ workspaceId: workspace._id }),
+      User.findOne({ workspaceId: workspace._id }).lean(),
+    ]);
+    const enrichedWs = {
+      ...workspace.toObject(),
+      ownerEmail: workspace.ownerEmail || ownerUser?.email || '',
+      ownerName: workspace.ownerName || ownerUser?.name || '',
+    };
+    return res.json({ success: true, workspace: enrichedWs, wallet });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -61,7 +79,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // POST /api/workspaces - Create new workspace
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { name, industry, domain, operatingMode, branding } = req.body;
+    const { name, industry, domain, operatingMode, branding, businessCategory, businessModelDescription } = req.body;
     if (!name) {
       return res.status(400).json({ success: false, message: 'Workspace name is required' });
     }
@@ -74,7 +92,11 @@ router.post('/', authMiddleware, async (req, res) => {
       domain: domain || '',
       slug,
       industry: industry || 'B2B',
+      businessCategory: businessCategory || '',
+      businessModelDescription: businessModelDescription || '',
       operatingMode: operatingMode || 'TOOL',
+      ownerEmail: req.user ? req.user.email : '',
+      ownerName: req.user ? req.user.name : '',
       branding: branding || {
         primaryColor: '#06B6D4',
         secondaryColor: '#10B981',
@@ -105,12 +127,14 @@ router.post('/', authMiddleware, async (req, res) => {
 // PUT /api/workspaces/:id - Update workspace details
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { name, industry, domain, operatingMode, branding, logo } = req.body;
+    const { name, industry, domain, operatingMode, branding, logo, businessCategory, businessModelDescription } = req.body;
     const updateData = {};
 
     if (name) updateData.name = name;
     if (industry) updateData.industry = industry;
     if (domain !== undefined) updateData.domain = domain;
+    if (businessCategory !== undefined) updateData.businessCategory = businessCategory;
+    if (businessModelDescription !== undefined) updateData.businessModelDescription = businessModelDescription;
     if (operatingMode) updateData.operatingMode = operatingMode;
     if (logo !== undefined) updateData.logo = logo;
     if (branding) updateData.branding = branding;

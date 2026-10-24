@@ -39,6 +39,9 @@ export default function AdminAuthPage({
 
       if (res.success) {
         localStorage.setItem('vyuhox_token', res.token);
+        if (res.user) {
+          localStorage.setItem('vyuhox_user', JSON.stringify(res.user));
+        }
         if (onAuthSuccess) {
           onAuthSuccess(res.user, res.workspace, 'USD', 'superadmin');
         }

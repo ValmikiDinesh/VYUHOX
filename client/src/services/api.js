@@ -1,5 +1,14 @@
 const API_BASE = '/api';
 
+export const getAuthHeaders = (extra = {}) => {
+  const token = localStorage.getItem('vyuhox_token');
+  const headers = { ...extra };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 export const api = {
   // Auth
   login: async (credentials) => {
@@ -28,8 +37,10 @@ export const api = {
   },
 
   // Workspaces
-  getWorkspaces: async () => {
-    const res = await fetch(`${API_BASE}/workspaces`);
+  getWorkspaces: async (workspaceId) => {
+    const headers = getAuthHeaders();
+    if (workspaceId) headers['x-workspace-id'] = workspaceId;
+    const res = await fetch(`${API_BASE}/workspaces`, { headers });
     return res.json();
   },
   getWorkspaceStats: async (workspaceId) => {
@@ -41,7 +52,7 @@ export const api = {
   createWorkspace: async (data) => {
     const res = await fetch(`${API_BASE}/workspaces`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(data),
     });
     return res.json();
@@ -49,7 +60,7 @@ export const api = {
   updateWorkspace: async (id, data) => {
     const res = await fetch(`${API_BASE}/workspaces/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'x-workspace-id': id },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', 'x-workspace-id': id }),
       body: JSON.stringify(data),
     });
     return res.json();
@@ -136,8 +147,9 @@ export const api = {
   },
 
   // Auth / Me
-  getMe: async () => {
-    const res = await fetch(`${API_BASE}/auth/me`);
+  getMe: async (token) => {
+    const headers = getAuthHeaders(token ? { Authorization: `Bearer ${token}` } : {});
+    const res = await fetch(`${API_BASE}/auth/me`, { headers });
     return res.json();
   },
 

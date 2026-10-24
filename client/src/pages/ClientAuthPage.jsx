@@ -30,6 +30,8 @@ export default function ClientAuthPage({
     password: '',
     companyName: '',
     industry: 'B2B',
+    businessCategory: '',
+    businessModelDescription: '',
     currency: defaultCurrency,
   });
   const [loading, setLoading] = useState(false);
@@ -47,11 +49,16 @@ export default function ClientAuthPage({
           email: formData.email,
           password: formData.password,
           companyName: formData.companyName || `${formData.name.split(' ')[0]}'s Company`,
-          industry: formData.industry,
+          industry: formData.businessCategory ? formData.businessCategory : formData.industry,
+          businessCategory: formData.businessCategory,
+          businessModelDescription: formData.businessModelDescription,
         });
 
         if (res.success) {
           localStorage.setItem('vyuhox_token', res.token);
+          if (res.user) {
+            localStorage.setItem('vyuhox_user', JSON.stringify(res.user));
+          }
           if (onAuthSuccess) {
             onAuthSuccess(res.user, res.workspace, formData.currency, 'client_ai');
           }
@@ -67,6 +74,9 @@ export default function ClientAuthPage({
 
         if (res.success) {
           localStorage.setItem('vyuhox_token', res.token);
+          if (res.user) {
+            localStorage.setItem('vyuhox_user', JSON.stringify(res.user));
+          }
           // If a client logs in, route to client dashboard
           const persona = res.user.role === 'superadmin' ? 'superadmin' : 'client_ai';
           if (onAuthSuccess) {
@@ -410,19 +420,27 @@ export default function ClientAuthPage({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-                    Industry
+                    Industry Vertical
                   </label>
                   <select
-                    value={formData.industry}
-                    onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                    value={['B2B', 'Cybersecurity', 'Crypto', 'Fintech', 'Health', 'EdTech', 'Ecommerce', 'D2C', 'Local'].includes(formData.industry) ? formData.industry : 'Custom'}
+                    onChange={(e) => {
+                      if (e.target.value !== 'Custom') {
+                        setFormData({ ...formData, industry: e.target.value });
+                      }
+                    }}
                     className="input-glass"
                     style={{ width: '100%', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box', background: '#0F172A', color: '#F8FAFC' }}
                   >
                     <option value="B2B">B2B SaaS / Services</option>
+                    <option value="Cybersecurity">Cybersecurity & PQC</option>
                     <option value="Crypto">Crypto & Web3</option>
-                    <option value="D2C">E-Commerce & D2C</option>
                     <option value="Fintech">Fintech / Finance</option>
                     <option value="Health">Healthcare & Bio</option>
+                    <option value="EdTech">EdTech & Education</option>
+                    <option value="D2C">E-Commerce & D2C</option>
+                    <option value="Local">Local & Professional</option>
+                    <option value="Custom">Custom / Other Industry</option>
                   </select>
                 </div>
 
@@ -440,6 +458,34 @@ export default function ClientAuthPage({
                     <option value="USD">USD ($) - Global</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
+                  Custom Business Category & Niche
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Post-Quantum Security, AI Legaltech, Clean Energy SaaS"
+                  value={formData.businessCategory}
+                  onChange={(e) => setFormData({ ...formData, businessCategory: e.target.value })}
+                  className="input-glass"
+                  style={{ width: '100%', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
+                  About Your Business Model & Value Proposition (Optional)
+                </label>
+                <textarea
+                  placeholder="Tell us what you sell, who your target buyers are, and how you charge..."
+                  value={formData.businessModelDescription}
+                  onChange={(e) => setFormData({ ...formData, businessModelDescription: e.target.value })}
+                  className="input-glass"
+                  rows={2}
+                  style={{ width: '100%', fontSize: '0.85rem', boxSizing: 'border-box', resize: 'vertical', minHeight: '60px', fontFamily: 'inherit' }}
+                />
               </div>
             </>
           )}

@@ -376,9 +376,11 @@ export default function TopBar({
           >
             {currentUser?.name
               ? currentUser.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
+              : activeWorkspace?.ownerName
+              ? activeWorkspace.ownerName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
               : rolePersona === 'superadmin'
               ? 'SA'
-              : (activeWorkspace?.name ? activeWorkspace.name.substring(0, 2).toUpperCase() : 'CL')}
+              : (activeWorkspace?.name ? activeWorkspace.name.substring(0, 2).toUpperCase() : 'DV')}
           </button>
 
           {profileMenuOpen && (
@@ -398,10 +400,10 @@ export default function TopBar({
               {/* Profile Card Header */}
               <div style={{ padding: '8px 10px 12px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#F8FAFC' }}>
-                  {currentUser?.name || (rolePersona === 'superadmin' ? 'Nanda Sai (Platform Owner)' : activeWorkspace?.name || 'Client User')}
+                  {currentUser?.name || activeWorkspace?.ownerName || (rolePersona === 'superadmin' ? 'Nanda Sai (Platform Owner)' : activeWorkspace?.name || 'Dinesh Valmiki')}
                 </div>
                 <div style={{ fontSize: '0.725rem', color: '#94A3B8', marginTop: '2px', wordBreak: 'break-all' }}>
-                  {currentUser?.email || (rolePersona === 'superadmin' ? 'owner@vyuhox.ai' : 'client@vyuhox.com')}
+                  {currentUser?.email || activeWorkspace?.ownerEmail || (rolePersona === 'superadmin' ? 'founder@vyuhox.ai' : 'valmikidineshoffcl@gmail.com')}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
                   <span className={`badge ${rolePersona === 'superadmin' ? 'badge-purple' : 'badge-cyan'}`} style={{ fontSize: '0.625rem' }}>

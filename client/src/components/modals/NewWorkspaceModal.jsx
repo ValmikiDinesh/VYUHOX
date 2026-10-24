@@ -77,12 +77,44 @@ export default function NewWorkspaceModal({ isOpen, onClose, onSubmit }) {
               onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
               className="input-glass"
             >
+              <option value="B2B">B2B SaaS / Services</option>
+              <option value="Cybersecurity">Cybersecurity & PQC</option>
               <option value="Crypto">Crypto & Web3</option>
+              <option value="Fintech">Fintech & Finance</option>
+              <option value="Health">Healthcare & Biotech</option>
+              <option value="EdTech">EdTech & Education</option>
               <option value="Ecommerce">Ecommerce & Retail</option>
-              <option value="B2B">B2B Enterprise / Agency</option>
               <option value="D2C">D2C Consumer Brands</option>
               <option value="Local">Local Services / SMB</option>
+              <option value="Custom">Custom / Other</option>
             </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              Custom Business Category & Niche
+            </label>
+            <input
+              type="text"
+              value={formData.businessCategory || ''}
+              onChange={(e) => setFormData({ ...formData, businessCategory: e.target.value })}
+              placeholder="e.g. Post-Quantum Cryptography & Security Readiness"
+              className="input-glass"
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              Business Model & Offering Explanation
+            </label>
+            <textarea
+              value={formData.businessModelDescription || ''}
+              onChange={(e) => setFormData({ ...formData, businessModelDescription: e.target.value })}
+              placeholder="Explain what your business does, your revenue model, and target audience..."
+              className="input-glass"
+              rows={2}
+              style={{ width: '100%', resize: 'vertical', minHeight: '55px', fontFamily: 'inherit' }}
+            />
           </div>
 
           <div>
@@ -93,7 +125,7 @@ export default function NewWorkspaceModal({ isOpen, onClose, onSubmit }) {
               type="text"
               value={formData.domain}
               onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-              placeholder="e.g. apexventures.io"
+              placeholder="e.g. quantumshield.io"
               className="input-glass"
             />
           </div>

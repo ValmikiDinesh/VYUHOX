@@ -139,30 +139,73 @@ export default function App() {
   useEffect(() => {
     const initApp = async () => {
       try {
+        const token = localStorage.getItem('vyuhox_token');
+        if (token) {
+          const meRes = await api.getMe(token);
+          if (meRes.success && meRes.user) {
+            setCurrentUser(meRes.user);
+            localStorage.setItem('vyuhox_user', JSON.stringify(meRes.user));
+
+            const wsList = meRes.workspaces || [];
+            setWorkspaces(wsList);
+
+            let matchedWs = meRes.activeWorkspace;
+            if (!matchedWs && wsList.length > 0) {
+              matchedWs = wsList.find((w) => String(w._id) === String(meRes.user.workspaceId)) || wsList[0];
+            }
+            if (matchedWs) {
+              setActiveWorkspace(matchedWs);
+              setOperatingMode(matchedWs.operatingMode || 'TOOL');
+            }
+            if (meRes.user.role === 'superadmin') {
+              setRolePersona('superadmin');
+            } else {
+              setRolePersona('client_ai');
+            }
+            return;
+          }
+        }
+
+        // Fallback if no token or unauthenticated
         const res = await api.getWorkspaces();
         if (res.success && res.workspaces.length > 0) {
-          setWorkspaces(res.workspaces);
+          let availableWs = res.workspaces;
+          if (currentUser && currentUser.role !== 'superadmin' && currentUser.workspaceId) {
+            availableWs = res.workspaces.filter((w) => String(w._id) === String(currentUser.workspaceId));
+          }
+          setWorkspaces(availableWs);
 
           // Find workspace corresponding to current user
           let matchedWs = null;
           const savedUser = currentUser;
           if (savedUser && savedUser.workspaceId) {
-            matchedWs = res.workspaces.find(
+            matchedWs = availableWs.find(
               (w) => String(w._id) === String(savedUser.workspaceId)
             );
           }
           if (!matchedWs && savedUser && savedUser.email) {
-            // Find by matching email or name
-            matchedWs = res.workspaces.find(
+            matchedWs = availableWs.find(
               (w) =>
                 (savedUser.email.includes('dinesh') && w.name?.toLowerCase().includes('quantum')) ||
                 (savedUser.companyName && w.name?.toLowerCase() === savedUser.companyName.toLowerCase())
             );
           }
 
-          const defaultWs = matchedWs || res.workspaces.find((w) => w.name?.includes('Quantum')) || res.workspaces[0];
+          const defaultWs = matchedWs || availableWs[0];
           setActiveWorkspace(defaultWs);
-          setOperatingMode(defaultWs.operatingMode || 'TOOL');
+          if (defaultWs) {
+            setOperatingMode(defaultWs.operatingMode || 'TOOL');
+            if (!currentUser || !currentUser.email) {
+              const fallbackUserData = {
+                name: defaultWs.ownerName || 'Dinesh Valmiki',
+                email: defaultWs.ownerEmail || 'valmikidineshoffcl@gmail.com',
+                role: 'workspace_owner',
+                workspaceId: defaultWs._id,
+              };
+              setCurrentUser(fallbackUserData);
+              localStorage.setItem('vyuhox_user', JSON.stringify(fallbackUserData));
+            }
+          }
           if (savedUser?.role === 'superadmin') {
             setRolePersona('superadmin');
           } else {
@@ -427,12 +470,17 @@ export default function App() {
     if (user) {
       localStorage.setItem('vyuhox_user', JSON.stringify(user));
     }
+    if (workspace) {
+      setActiveWorkspace(workspace);
+      if (user?.role !== 'superadmin') {
+        setWorkspaces([workspace]);
+      }
+    }
     if (role === 'client_ai') {
       setOperatingMode('AI_COMPANY');
     } else {
       setOperatingMode(workspace?.operatingMode || 'TOOL');
     }
-    if (workspace) setActiveWorkspace(workspace);
     setActiveTab('dashboard');
     window.location.hash = '#app';
     setCurrentView('app');
@@ -534,6 +582,7 @@ export default function App() {
       <Sidebar
         workspaces={workspaces}
         activeWorkspace={activeWorkspace}
+        currentUser={currentUser}
         onSelectWorkspace={(ws) => {
           setActiveWorkspace(ws);
           setOperatingMode(ws.operatingMode || 'TOOL');

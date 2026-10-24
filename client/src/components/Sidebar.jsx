@@ -38,8 +38,21 @@ export default function Sidebar({
   currency = 'USD',
   exchangeRate = 83.5,
   onViewLanding,
+  currentUser,
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Multi-tenant defense: superadmin can switch workspaces, clients only see their own workspace
+  const isSuperadmin = rolePersona === 'superadmin' || currentUser?.role === 'superadmin';
+  const visibleWorkspaces = isSuperadmin
+    ? (workspaces || [])
+    : (workspaces || []).filter((w) =>
+        currentUser?.workspaceId
+          ? String(w._id) === String(currentUser.workspaceId)
+          : activeWorkspace
+          ? String(w._id) === String(activeWorkspace._id)
+          : true
+      );
 
   // Filter navigation items dynamically based on user role / package
   const allNavItems = [
@@ -215,7 +228,7 @@ export default function Sidebar({
               }}>
                 Active Workspaces
               </div>
-              {workspaces.map((ws) => (
+              {visibleWorkspaces.map((ws) => (
                 <div
                   key={ws._id}
                   onClick={() => {
@@ -254,29 +267,33 @@ export default function Sidebar({
                   </span>
                 </div>
               ))}
-              <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />
-              <button
-                onClick={() => {
-                  setDropdownOpen(false);
-                  onOpenNewWorkspaceModal();
-                }}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 10px',
-                  borderRadius: '8px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#10B981',
-                  cursor: 'pointer',
-                  fontSize: '0.8125rem',
-                  fontWeight: '600',
-                }}
-              >
-                <Plus size={16} /> Create Workspace
-              </button>
+              {isSuperadmin && (
+                <>
+                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      onOpenNewWorkspaceModal();
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#10B981',
+                      cursor: 'pointer',
+                      fontSize: '0.8125rem',
+                      fontWeight: '600',
+                    }}
+                  >
+                    <Plus size={16} /> Create Workspace
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -479,13 +496,13 @@ export default function Sidebar({
             fontWeight: '700',
             color: '#FFFFFF',
           }}>
-            {rolePersona.startsWith('client') ? 'CL' : 'NS'}
+            {currentUser?.name
+              ? currentUser.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
+              : (rolePersona.startsWith('client') ? 'CL' : 'NS')}
           </div>
           <div style={{ overflow: 'hidden' }}>
             <div style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#F8FAFC' }}>
-              {rolePersona.startsWith('client')
-                ? activeWorkspace?.name || 'Client User'
-                : 'Nanda Sai'}
+              {currentUser?.name || (rolePersona.startsWith('client') ? activeWorkspace?.name || 'Client User' : 'Nanda Sai')}
             </div>
             <div style={{
               fontSize: '0.675rem',

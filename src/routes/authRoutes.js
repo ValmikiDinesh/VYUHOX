@@ -19,7 +19,7 @@ const generateToken = (userId) => {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, companyName, industry } = req.body;
+    const { name, email, password, companyName, industry, businessCategory, businessModelDescription } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
@@ -42,7 +42,11 @@ router.post('/register', async (req, res) => {
       name: finalCompanyName,
       slug,
       industry: industry || 'B2B',
+      businessCategory: businessCategory || '',
+      businessModelDescription: businessModelDescription || '',
       operatingMode: 'TOOL',
+      ownerEmail: email.toLowerCase(),
+      ownerName: name,
       branding: {
         primaryColor: '#06B6D4',
         secondaryColor: '#10B981',
@@ -206,21 +210,33 @@ router.post('/admin-login', async (req, res) => {
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = req.user;
-    const workspaces = await Workspace.find().sort({ createdAt: -1 });
+    let query = {};
+    if (user && user.role !== 'superadmin') {
+      query = { _id: user.workspaceId };
+    }
+    const workspaces = await Workspace.find(query).sort({ createdAt: -1 });
     let activeWorkspace = null;
 
     if (req.workspaceId) {
       activeWorkspace = await Workspace.findById(req.workspaceId);
     }
-    if (!activeWorkspace && workspaces.length > 0) {
-      activeWorkspace = workspaces[0];
+    if (!activeWorkspace && user?.workspaceId) {
+      activeWorkspace = await Workspace.findById(user.workspaceId);
+    }
+    let enrichedActiveWs = null;
+    if (activeWorkspace) {
+      enrichedActiveWs = {
+        ...activeWorkspace.toObject ? activeWorkspace.toObject() : activeWorkspace,
+        ownerEmail: activeWorkspace.ownerEmail || user?.email || '',
+        ownerName: activeWorkspace.ownerName || user?.name || '',
+      };
     }
 
     return res.json({
       success: true,
       user,
       workspaces,
-      activeWorkspace,
+      activeWorkspace: enrichedActiveWs || activeWorkspace,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

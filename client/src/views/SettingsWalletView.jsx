@@ -22,10 +22,22 @@ export default function SettingsWalletView({
 }) {
   const [name, setName] = useState(activeWorkspace?.name || '');
   const [industry, setIndustry] = useState(activeWorkspace?.industry || 'B2B');
+  const [businessCategory, setBusinessCategory] = useState(activeWorkspace?.businessCategory || '');
+  const [businessModelDescription, setBusinessModelDescription] = useState(activeWorkspace?.businessModelDescription || '');
   const [domain, setDomain] = useState(activeWorkspace?.domain || '');
   const [depositAmount, setDepositAmount] = useState('100');
   const [isSavingWs, setIsSavingWs] = useState(false);
   const [wsSaveMessage, setWsSaveMessage] = useState('');
+
+  React.useEffect(() => {
+    if (activeWorkspace) {
+      setName(activeWorkspace.name || '');
+      setIndustry(activeWorkspace.industry || 'B2B');
+      setDomain(activeWorkspace.domain || '');
+      setBusinessCategory(activeWorkspace.businessCategory || '');
+      setBusinessModelDescription(activeWorkspace.businessModelDescription || '');
+    }
+  }, [activeWorkspace]);
 
   // Auto recharge state
   const [autoRecharge, setAutoRecharge] = useState(wallet?.autoRechargeEnabled || false);
@@ -39,6 +51,8 @@ export default function SettingsWalletView({
       name,
       industry,
       domain,
+      businessCategory,
+      businessModelDescription,
     });
     setIsSavingWs(false);
     setWsSaveMessage('Workspace settings updated successfully!');
@@ -110,17 +124,64 @@ export default function SettingsWalletView({
                 Industry Sector
               </label>
               <select
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
+                value={['B2B', 'Cybersecurity', 'Crypto', 'Fintech', 'Health', 'EdTech', 'Ecommerce', 'D2C', 'Local'].includes(industry) ? industry : 'Custom'}
+                onChange={(e) => {
+                  if (e.target.value !== 'Custom') {
+                    setIndustry(e.target.value);
+                  }
+                }}
                 className="input-glass"
                 style={{ cursor: 'pointer' }}
               >
-                <option value="Crypto">Crypto & Web3</option>
-                <option value="Ecommerce">Ecommerce & Retail</option>
                 <option value="B2B">B2B SaaS / Services</option>
+                <option value="Cybersecurity">Cybersecurity & PQC</option>
+                <option value="Crypto">Crypto & Web3</option>
+                <option value="Fintech">Fintech & Capital Markets</option>
+                <option value="Health">Healthcare & Biotech</option>
+                <option value="EdTech">EdTech & Education</option>
+                <option value="Ecommerce">Ecommerce & Retail</option>
                 <option value="D2C">D2C Brand</option>
                 <option value="Local">Local & Professional Services</option>
+                <option value="Custom">Custom / Other Industry (Specify below)</option>
               </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Custom Business Category & Niche
+              </label>
+              <input
+                type="text"
+                value={businessCategory}
+                onChange={(e) => {
+                  setBusinessCategory(e.target.value);
+                  if (industry === 'Custom' || !['B2B', 'Cybersecurity', 'Crypto', 'Fintech', 'Health', 'EdTech', 'Ecommerce', 'D2C', 'Local'].includes(industry)) {
+                    setIndustry(e.target.value || 'Custom');
+                  }
+                }}
+                placeholder="e.g. Post-Quantum Cryptography & Enterprise Risk Readiness"
+                className="input-glass"
+              />
+              <span style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '4px', display: 'block' }}>
+                Define your exact business niche so autonomous SDRs and Voice Agents tailor their pitch.
+              </span>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Business Model & Offering Explanation
+              </label>
+              <textarea
+                value={businessModelDescription}
+                onChange={(e) => setBusinessModelDescription(e.target.value)}
+                placeholder="Explain how your business operates, your revenue model (subscription, commission, retainer), who your target buyers are, and your primary value proposition..."
+                className="input-glass"
+                rows={3}
+                style={{ width: '100%', resize: 'vertical', minHeight: '75px', lineHeight: '1.4', fontFamily: 'inherit' }}
+              />
+              <span style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '4px', display: 'block' }}>
+                Used by Sophia CMO and Marcus SDR to formulate precision outbound hooks and objection handling.
+              </span>
             </div>
 
             <div>
@@ -131,7 +192,7 @@ export default function SettingsWalletView({
                 type="text"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
-                placeholder="e.g. hedgex.io"
+                placeholder="e.g. quantumshield.io or yourdomain.com"
                 className="input-glass"
               />
             </div>
