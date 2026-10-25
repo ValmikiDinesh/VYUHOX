@@ -36,6 +36,15 @@ import { initCalendarReminderCron } from './src/cron/calendarReminderCron.js';
 
 dotenv.config();
 
+// Global crash guards (prevents network ECONNRESET, HTTP2 stream drops, or socket hiccups from crashing server)
+process.on('uncaughtException', (err) => {
+  console.error('[CRASH GUARD] Intercepted uncaughtException:', err?.message || err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[CRASH GUARD] Intercepted unhandledRejection:', reason?.message || reason);
+});
+
 const app = express();
 const server = http.createServer(app);
 

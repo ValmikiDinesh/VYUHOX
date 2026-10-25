@@ -94,6 +94,7 @@ export class ScannerService {
           Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
           'Cache-Control': 'no-cache',
+          Connection: 'close',
         },
       });
       clearTimeout(timeoutId);
@@ -203,10 +204,12 @@ export class ScannerService {
           !src.includes('facebook') &&
           !src.includes('clarity')
         ) {
-          const absoluteScriptUrl = src.startsWith('http')
-            ? src
-            : `${new URL(pageUrl).origin}${src.startsWith('/') ? '' : '/'}${src}`;
-          scriptSources.push(absoluteScriptUrl);
+          try {
+            const absoluteScriptUrl = src.startsWith('http')
+              ? src
+              : new URL(src, pageUrl).href;
+            scriptSources.push(absoluteScriptUrl);
+          } catch (e) {}
         }
       });
 
@@ -304,7 +307,13 @@ export class ScannerService {
           try {
             const scriptCtrl = new AbortController();
             const sTimeout = setTimeout(() => scriptCtrl.abort(), 6000);
-            const scriptRes = await fetch(scriptUrl, { signal: scriptCtrl.signal });
+            const scriptRes = await fetch(scriptUrl, {
+              signal: scriptCtrl.signal,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; VYUHOX/2.0; +https://vyuhox.ai/bot)',
+                Connection: 'close',
+              },
+            });
             clearTimeout(sTimeout);
 
             if (scriptRes.ok) {
