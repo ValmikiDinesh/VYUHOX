@@ -12,6 +12,7 @@ import { DigitalPrAgent } from '../services/seo/DigitalPrAgent.js';
 import { AeoSchemaService } from '../services/seo/AeoSchemaService.js';
 import { JournalistPitch } from '../models/JournalistPitch.js';
 import { LlmGatewayService } from '../services/ai/LlmGatewayService.js';
+import { Workspace } from '../models/Workspace.js';
 
 const router = express.Router();
 
@@ -293,7 +294,12 @@ router.get('/master-schema', (req, res) => {
  */
 router.get('/digital-pr/pitches', async (req, res) => {
   try {
-    await DigitalPrAgent.syncOpportunities();
+    const { workspaceId } = req.query;
+    let ws = null;
+    if (workspaceId) {
+      ws = await Workspace.findById(workspaceId).lean();
+    }
+    await DigitalPrAgent.syncOpportunities(ws);
     const pitches = await JournalistPitch.find().sort({ createdAt: -1 });
     return res.json({ success: true, pitches });
   } catch (error) {
@@ -304,9 +310,13 @@ router.get('/digital-pr/pitches', async (req, res) => {
 
 router.post('/digital-pr/generate-pitch', async (req, res) => {
   try {
-    const { pitchId, founderInfo } = req.body;
+    const { pitchId, founderInfo, workspaceId } = req.body;
     if (!pitchId) return res.status(400).json({ success: false, message: 'pitchId required' });
-    const pitch = await DigitalPrAgent.generatePitchQuote(pitchId, founderInfo);
+    let ws = null;
+    if (workspaceId) {
+      ws = await Workspace.findById(workspaceId).lean();
+    }
+    const pitch = await DigitalPrAgent.generatePitchQuote(pitchId, founderInfo, ws);
     return res.json({ success: true, pitch });
   } catch (error) {
     console.error('[SeoTools] Generate pitch error:', error);

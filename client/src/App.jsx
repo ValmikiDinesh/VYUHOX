@@ -43,7 +43,7 @@ export default function App() {
   const [leads, setLeads] = useState([]);
   const [stats, setStats] = useState(null);
   const [wallet, setWallet] = useState(null);
-  const [operatingMode, setOperatingMode] = useState('TOOL');
+  const [operatingMode, setOperatingMode] = useState('AI_COMPANY');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [socket, setSocket] = useState(null);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -692,7 +692,7 @@ export default function App() {
           onToggleCurrency={(c) => setCurrency(c)}
           rolePersona={rolePersona}
           onChangeRolePersona={handleChangeRolePersona}
-          onOpenConnectChannels={() => setIsConnectChannelsModalOpen(true)}
+          onNavigateTab={(tab) => setActiveTab(tab)}
         />
 
         {/* Super Admin Inspection Mode Banner */}
@@ -971,12 +971,6 @@ export default function App() {
           setActiveTab('agent-store');
           setIsModeModalOpen(false);
         }}
-      />
-
-      <ConnectChannelsModal
-        isOpen={isConnectChannelsModalOpen}
-        onClose={() => setIsConnectChannelsModalOpen(false)}
-        activeWorkspace={activeWorkspace}
       />
     </div>
   );

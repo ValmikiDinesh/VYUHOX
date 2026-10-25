@@ -482,98 +482,114 @@ export default function AdsManager({
           </div>
         </div>
 
-        {/* Action Header Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={handleTestServerCapi}
-            disabled={capiDispatching}
-            style={{
-              padding: '9px 14px',
-              borderRadius: '9px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#38BDF8',
-              fontSize: '0.78rem',
-              fontWeight: '700',
-              cursor: capiDispatching ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-            title="Dispatches server-to-server conversion with SHA-256 PII hashing to bypass ad-blockers"
-          >
-            <ShieldAlert size={14} />
-            {capiDispatching ? 'Dispatching...' : 'Test Server CAPI'}
-          </button>
+        {/* Action Header Buttons: Streamlined Branded SaaS Action Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Secondary AI Automations Group */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '4px',
+            borderRadius: '10px',
+          }}>
+            <button
+              onClick={handleTriggerOptimizer}
+              disabled={optimizing}
+              style={{
+                padding: '7px 12px',
+                borderRadius: '7px',
+                background: optimizing ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+                border: 'none',
+                color: optimizing ? '#FBBF24' : '#CBD5E1',
+                fontSize: '0.74rem',
+                fontWeight: '600',
+                cursor: optimizing ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                transition: 'all 0.15s ease',
+              }}
+              title="Runs autonomous Kill (2x CPA), Scale (ROAS > 3.0x), and Fatigue rules"
+            >
+              <Zap size={13} color="#F59E0B" className={optimizing ? 'animate-spin' : ''} />
+              {optimizing ? 'Optimizing...' : 'Run 24/7 Optimizer'}
+            </button>
 
-          <button
-            onClick={handleSimulateSelfHeal}
-            disabled={selfHealing}
-            style={{
-              padding: '9px 15px',
-              borderRadius: '9px',
-              background: 'rgba(236, 72, 153, 0.15)',
-              border: '1px solid rgba(236, 72, 153, 0.4)',
-              color: '#F472B6',
-              fontSize: '0.78rem',
-              fontWeight: '700',
-              cursor: selfHealing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-            title="Simulates platform policy violation and triggers autonomous copy rewriting and resubmission"
-          >
-            <RotateCcw size={14} className={selfHealing ? 'animate-spin' : ''} />
-            {selfHealing ? 'Healing Creative...' : '🛡️ Test Self-Healing Loop'}
-          </button>
+            <button
+              onClick={handleSimulateSelfHeal}
+              disabled={selfHealing}
+              style={{
+                padding: '7px 12px',
+                borderRadius: '7px',
+                background: selfHealing ? 'rgba(236, 72, 153, 0.2)' : 'transparent',
+                border: 'none',
+                color: selfHealing ? '#F472B6' : '#CBD5E1',
+                fontSize: '0.74rem',
+                fontWeight: '600',
+                cursor: selfHealing ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                transition: 'all 0.15s ease',
+              }}
+              title="Autonomous rejection self-healing simulation"
+            >
+              <RotateCcw size={13} color="#EC4899" className={selfHealing ? 'animate-spin' : ''} />
+              {selfHealing ? 'Healing...' : 'Self-Healing Loop'}
+            </button>
 
-          <button
-            onClick={() => {
-              setStoreAuditUrl(activeWorkspace?.domain || 'vyuhox.com');
-              setIsStoreAuditModalOpen(true);
-            }}
-            style={{
-              padding: '9px 15px',
-              borderRadius: '9px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              color: '#10B981',
-              fontSize: '0.78rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-            title="Crawls store for required Google Shopping merchant policies and tax identifier"
-          >
-            <ShieldCheck size={14} />
-            🛍️ Google Shopping Store Audit
-          </button>
+            <button
+              onClick={() => {
+                setStoreAuditUrl(activeWorkspace?.domain || 'vyuhox.com');
+                setIsStoreAuditModalOpen(true);
+              }}
+              style={{
+                padding: '7px 12px',
+                borderRadius: '7px',
+                background: 'transparent',
+                border: 'none',
+                color: '#CBD5E1',
+                fontSize: '0.74rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                transition: 'all 0.15s ease',
+              }}
+              title="Audit store for Google Shopping compliance"
+            >
+              <ShoppingBag size={13} color="#10B981" />
+              Store Audit
+            </button>
 
-          <button
-            onClick={handleTriggerOptimizer}
-            disabled={optimizing}
-            style={{
-              padding: '9px 16px',
-              borderRadius: '9px',
-              background: 'rgba(245, 158, 11, 0.15)',
-              border: '1px solid rgba(245, 158, 11, 0.4)',
-              color: '#F59E0B',
-              fontSize: '0.78rem',
-              fontWeight: '700',
-              cursor: optimizing ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-            title="Evaluates Kill Rule (2x CPA), Scale Rule (ROAS > 3.0x), and Fatigue Rule (CTR < 1%)"
-          >
-            <Zap size={14} className={optimizing ? 'animate-spin' : ''} />
-            {optimizing ? 'Executing Optimizer...' : '⚡ Trigger AI Optimizer'}
-          </button>
+            <button
+              onClick={handleTestServerCapi}
+              disabled={capiDispatching}
+              style={{
+                padding: '7px 12px',
+                borderRadius: '7px',
+                background: capiDispatching ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                border: 'none',
+                color: capiDispatching ? '#38BDF8' : '#CBD5E1',
+                fontSize: '0.74rem',
+                fontWeight: '600',
+                cursor: capiDispatching ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                transition: 'all 0.15s ease',
+              }}
+              title="Test Server-Side Meta CAPI and Google Enhanced Conversions"
+            >
+              <ShieldAlert size={13} color="#38BDF8" />
+              {capiDispatching ? 'Pinging CAPI...' : 'Server CAPI'}
+            </button>
+          </div>
 
+          {/* Primary CTA Button */}
           <button
             onClick={() => setIsCreateModalOpen(true)}
             style={{
@@ -582,16 +598,17 @@ export default function AdsManager({
               background: 'linear-gradient(135deg, #1877F2 0%, #06B6D4 100%)',
               border: 'none',
               color: '#FFFFFF',
-              fontSize: '0.82rem',
+              fontSize: '0.8rem',
               fontWeight: '800',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 4px 16px rgba(24, 119, 242, 0.35)',
+              boxShadow: '0 4px 18px rgba(24, 119, 242, 0.35)',
+              letterSpacing: '0.01em',
             }}
           >
-            <Plus size={15} /> 🚀 1-Click Launch AI Campaign
+            <Plus size={15} /> Launch AI Campaign
           </button>
         </div>
       </div>
@@ -600,84 +617,93 @@ export default function AdsManager({
       {notification && (
         <div style={{
           marginBottom: '18px',
-          padding: '12px 18px',
+          padding: '11px 16px',
           borderRadius: '10px',
-          background: notification.isError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-          border: `1px solid ${notification.isError ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+          background: notification.isError ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+          border: `1px solid ${notification.isError ? 'rgba(239, 68, 68, 0.28)' : 'rgba(16, 185, 129, 0.28)'}`,
           color: notification.isError ? '#F87171' : '#34D399',
-          fontSize: '0.84rem',
+          fontSize: '0.825rem',
           fontWeight: '600',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
           animation: 'fadeIn 0.2s ease',
         }}>
-          {notification.isError ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+          {notification.isError ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
           {notification.text}
         </div>
       )}
 
-      {/* 1. FINANCIAL KPI RIBBON */}
+      {/* 1. FINANCIAL KPI RIBBON (Sleek SaaS Styling) */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-        gap: '16px',
-        marginBottom: '24px',
+        gap: '14px',
+        marginBottom: '22px',
       }}>
         {/* Total Spend */}
         <div style={{
-          background: 'rgba(15, 23, 42, 0.75)',
+          background: 'rgba(15, 23, 42, 0.65)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '14px',
-          padding: '18px 20px',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          backdropFilter: 'blur(10px)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94A3B8' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: '700', textTransform: 'uppercase' }}>Total Ad Spend</span>
-            <span style={{ fontSize: '1rem', fontWeight: '800', color: '#06B6D4' }}>{currencySymbol}</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Total Ad Spend
+            </span>
+            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#06B6D4' }}>{currencySymbol}</span>
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: '800', marginTop: '8px', color: '#F8FAFC' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '6px', color: '#F8FAFC' }}>
             {formatMoney(metrics.totalSpend)}
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#10B981', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <ArrowUpRight size={13} /> Blended Meta &amp; Google Spend
+          <div style={{ fontSize: '0.7rem', color: '#10B981', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <ArrowUpRight size={12} /> Blended Meta &amp; Google Spend
           </div>
         </div>
 
         {/* Attributed Revenue */}
         <div style={{
-          background: 'rgba(15, 23, 42, 0.75)',
+          background: 'rgba(15, 23, 42, 0.65)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '14px',
-          padding: '18px 20px',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          backdropFilter: 'blur(10px)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94A3B8' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: '700', textTransform: 'uppercase' }}>Attributed Revenue</span>
-            <Flame size={16} color="#10B981" />
+            <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Attributed Revenue
+            </span>
+            <Flame size={15} color="#10B981" />
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: '800', marginTop: '8px', color: '#10B981' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '6px', color: '#10B981' }}>
             {formatMoney(metrics.attributedRevenue)}
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '4px' }}>
-            Server-Side CAPI Verified Attribution
+          <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: '3px' }}>
+            Server CAPI Verified Attribution
           </div>
         </div>
 
         {/* Blended ROAS */}
         <div style={{
-          background: 'rgba(15, 23, 42, 0.75)',
+          background: 'rgba(15, 23, 42, 0.65)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '14px',
-          padding: '18px 20px',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          backdropFilter: 'blur(10px)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94A3B8' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: '700', textTransform: 'uppercase' }}>Blended ROAS</span>
-            <TrendingUp size={16} color="#F59E0B" />
+            <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Blended ROAS
+            </span>
+            <TrendingUp size={15} color="#F59E0B" />
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: '800', marginTop: '8px', color: '#F59E0B' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '6px', color: '#F59E0B' }}>
             {metrics.blendedRoas}x
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#10B981', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ padding: '1px 5px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', fontSize: '0.65rem', fontWeight: '800' }}>
+          <div style={{ fontSize: '0.7rem', color: '#10B981', marginTop: '3px' }}>
+            <span style={{ padding: '1px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', fontSize: '0.64rem', fontWeight: '800' }}>
               SCALE WINNER ACTIVE
             </span>
           </div>
@@ -685,38 +711,44 @@ export default function AdsManager({
 
         {/* Blended CPA */}
         <div style={{
-          background: 'rgba(15, 23, 42, 0.75)',
+          background: 'rgba(15, 23, 42, 0.65)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '14px',
-          padding: '18px 20px',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          backdropFilter: 'blur(10px)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94A3B8' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: '700', textTransform: 'uppercase' }}>Blended CPA</span>
-            <Users size={16} color="#A855F7" />
+            <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Blended CPA
+            </span>
+            <Users size={15} color="#A855F7" />
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: '800', marginTop: '8px', color: '#F8FAFC' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '6px', color: '#F8FAFC' }}>
             {formatMoney(metrics.blendedCpa, 1)}
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#A855F7', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.7rem', color: '#A855F7', marginTop: '3px' }}>
             Target: {formatMoney(35)} • {metrics.totalConversions} Conversions
           </div>
         </div>
 
         {/* Active Campaigns */}
         <div style={{
-          background: 'rgba(15, 23, 42, 0.75)',
+          background: 'rgba(15, 23, 42, 0.65)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '14px',
-          padding: '18px 20px',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          backdropFilter: 'blur(10px)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94A3B8' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: '700', textTransform: 'uppercase' }}>Active Campaigns</span>
-            <BarChart2 size={16} color="#38BDF8" />
+            <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Active Campaigns
+            </span>
+            <BarChart2 size={15} color="#38BDF8" />
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: '800', marginTop: '8px', color: '#F8FAFC' }}>
-            {metrics.activeCampaignsCount} <span style={{ fontSize: '0.9rem', color: '#64748B' }}>/ {campaigns.length}</span>
+          <div style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '6px', color: '#F8FAFC' }}>
+            {metrics.activeCampaignsCount} <span style={{ fontSize: '0.85rem', color: '#64748B' }}>/ {campaigns.length}</span>
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#38BDF8', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.7rem', color: '#38BDF8', marginTop: '3px' }}>
             CTR: {metrics.blendedCtr}% • Clicks: {metrics.totalClicks.toLocaleString()}
           </div>
         </div>
@@ -726,74 +758,143 @@ export default function AdsManager({
       <div style={{
         display: 'grid',
         gridTemplateColumns: '1.15fr 0.85fr',
-        gap: '24px',
-        marginBottom: '28px',
+        gap: '20px',
+        marginBottom: '26px',
       }}>
-        {/* Left Card: Live Ad Creative Previews (Facebook Feed vs Google Search) */}
+        {/* Left Card: Live Ad Creative Previews with 2-Tier Segmented Controller */}
         <div style={{
-          background: 'rgba(11, 17, 32, 0.85)',
+          background: 'rgba(15, 23, 42, 0.65)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '16px',
           padding: '20px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
+          gap: '14px',
+          backdropFilter: 'blur(10px)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
             <div>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: '800', margin: 0 }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
                 Live Ad Creative Preview Simulator
               </h2>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-                Preview how your creative renders in high-converting ad feeds
+              <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>
+                Real-time simulation across high-converting Meta and Google ad inventory
               </span>
             </div>
 
-            {/* Platform Toggle Tabs (Meta & Google Full Spectrum) */}
-            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255, 255, 255, 0.04)', padding: '4px', borderRadius: '10px', flexWrap: 'wrap', maxWidth: '620px' }}>
-              {[
-                { id: 'META_FEED', label: '📘 FB/IG Feed' },
-                { id: 'META_REELS', label: '📸 IG Reels 9:16' },
-                { id: 'META_LEAD_FORM', label: '📋 Meta Lead Form' },
-                { id: 'META_WHATSAPP', label: '💬 WhatsApp CTWA' },
-                { id: 'GOOGLE_SEARCH', label: '🔍 Google Search' },
-                { id: 'GOOGLE_SHOPPING', label: '🛍️ Shopping Feed' },
-                { id: 'GOOGLE_PMAX', label: '🚀 Performance Max' },
-                { id: 'GOOGLE_YOUTUBE', label: '▶️ YouTube Video' },
-              ].map((tab) => {
-                const isActive = previewPlatform === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setPreviewPlatform(tab.id)}
-                    style={{
-                      padding: '5px 10px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background: isActive
-                        ? tab.id.startsWith('META')
-                          ? '#1877F2'
-                          : tab.id === 'GOOGLE_SEARCH'
-                          ? '#06B6D4'
-                          : tab.id === 'GOOGLE_SHOPPING'
-                          ? '#10B981'
-                          : tab.id === 'GOOGLE_YOUTUBE'
-                          ? '#EF4444'
-                          : '#8B5CF6'
-                        : 'transparent',
-                      color: isActive ? '#FFFFFF' : '#94A3B8',
-                      fontSize: '0.71rem',
-                      fontWeight: isActive ? '700' : '500',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
+            {/* Platform Segment: Meta vs Google */}
+            <div style={{
+              display: 'flex',
+              background: 'rgba(0, 0, 0, 0.35)',
+              padding: '3px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+            }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!previewPlatform.startsWith('META')) setPreviewPlatform('META_FEED');
+                }}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: previewPlatform.startsWith('META') ? '#1877F2' : 'transparent',
+                  color: previewPlatform.startsWith('META') ? '#FFFFFF' : '#94A3B8',
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                Meta Ads Suite
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!previewPlatform.startsWith('GOOGLE')) setPreviewPlatform('GOOGLE_SEARCH');
+                }}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: previewPlatform.startsWith('GOOGLE') ? '#06B6D4' : 'transparent',
+                  color: previewPlatform.startsWith('GOOGLE') ? '#FFFFFF' : '#94A3B8',
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                Google Ads Suite
+              </button>
             </div>
+          </div>
+
+          {/* Sub-format Pills (Clean and un-crowded) */}
+          <div style={{
+            display: 'flex',
+            gap: '6px',
+            overflowX: 'auto',
+            paddingBottom: '2px',
+          }}>
+            {previewPlatform.startsWith('META') ? (
+              [
+                { id: 'META_FEED', label: '📱 Feed & Carousel' },
+                { id: 'META_REELS', label: '🎬 Reels & Stories (9:16)' },
+                { id: 'META_LEAD_FORM', label: '📋 Instant Lead Form' },
+                { id: 'META_WHATSAPP', label: '💬 WhatsApp CTWA' },
+              ].map((fmt) => (
+                <button
+                  key={fmt.id}
+                  onClick={() => setPreviewPlatform(fmt.id)}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: '7px',
+                    border: previewPlatform === fmt.id ? '1px solid rgba(24, 119, 242, 0.4)' : '1px solid rgba(255, 255, 255, 0.06)',
+                    background: previewPlatform === fmt.id ? 'rgba(24, 119, 242, 0.2)' : 'rgba(255, 255, 255, 0.02)',
+                    color: previewPlatform === fmt.id ? '#60A5FA' : '#94A3B8',
+                    fontSize: '0.72rem',
+                    fontWeight: previewPlatform === fmt.id ? '700' : '500',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {fmt.label}
+                </button>
+              ))
+            ) : (
+              [
+                { id: 'GOOGLE_SEARCH', label: '🔍 Search Snippet' },
+                { id: 'GOOGLE_SHOPPING', label: '🛍️ Shopping Feed' },
+                { id: 'GOOGLE_PMAX', label: '⚡ Performance Max' },
+                { id: 'GOOGLE_YOUTUBE', label: '▶️ YouTube In-Stream' },
+              ].map((fmt) => (
+                <button
+                  key={fmt.id}
+                  onClick={() => setPreviewPlatform(fmt.id)}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: '7px',
+                    border: previewPlatform === fmt.id ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid rgba(255, 255, 255, 0.06)',
+                    background: previewPlatform === fmt.id ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.02)',
+                    color: previewPlatform === fmt.id ? '#38BDF8' : '#94A3B8',
+                    fontSize: '0.72rem',
+                    fontWeight: previewPlatform === fmt.id ? '700' : '500',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {fmt.label}
+                </button>
+              ))
+            )}
           </div>
 
           {/* Render Active Creative Simulated Mockup */}

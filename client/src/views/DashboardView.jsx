@@ -152,26 +152,18 @@ export default function DashboardView({
               )}
             </h2>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', maxWidth: '640px' }}>
-              {isAiMode
-                ? 'Your AI CMO, SDR, Closer, and CFO agents are autonomously prospecting, running sub-second voice qualification, and optimizing ad spend.'
-                : 'You are currently in Tool Mode. All scrapers, sequences, and dialers require manual dispatch. Switch to AI Company for hands-free autonomous growth.'}
+              Your AI CMO, SDR, Closer, and CFO agents are autonomously prospecting, running sub-second voice qualification, and optimizing ad spend.
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
-              onClick={onToggleOperatingMode}
-              className={isAiMode ? 'btn-secondary' : 'btn-emerald'}
-              style={{ padding: '10px 20px', fontSize: '0.875rem' }}
-            >
-              {isAiMode ? 'Switch to Tool Mode' : '🚀 Activate AI Company'}
-            </button>
-            <button
               onClick={onNavigateToLeads}
-              className="btn-primary"
-              style={{ padding: '10px 20px', fontSize: '0.875rem' }}
+              className="btn-emerald"
+              style={{ padding: '10px 20px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              View Leads Pipeline <ArrowUpRight size={16} />
+              <span>⚡ View Leads Pipeline</span>
+              <ArrowUpRight size={16} />
             </button>
           </div>
         </div>

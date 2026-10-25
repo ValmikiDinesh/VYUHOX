@@ -1149,15 +1149,16 @@ export const api = {
     const res = await fetch(`${API_BASE}/seo-tools/master-schema`);
     return res.json();
   },
-  getDigitalPrPitches: async () => {
-    const res = await fetch(`${API_BASE}/seo-tools/digital-pr/pitches`);
+  getDigitalPrPitches: async (workspaceId = null) => {
+    const url = workspaceId ? `${API_BASE}/seo-tools/digital-pr/pitches?workspaceId=${workspaceId}` : `${API_BASE}/seo-tools/digital-pr/pitches`;
+    const res = await fetch(url);
     return res.json();
   },
-  generateDigitalPrPitch: async (pitchId, founderInfo = null) => {
+  generateDigitalPrPitch: async (pitchId, founderInfo = null, workspaceId = null) => {
     const res = await fetch(`${API_BASE}/seo-tools/digital-pr/generate-pitch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pitchId, founderInfo }),
+      body: JSON.stringify({ pitchId, founderInfo, workspaceId }),
     });
     return res.json();
   },

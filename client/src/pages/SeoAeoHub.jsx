@@ -58,7 +58,7 @@ export default function SeoAeoHub({ activeWorkspace, socket, onNavigateTab }) {
   const fetchPitches = async () => {
     setLoadingPitches(true);
     try {
-      const res = await api.getDigitalPrPitches();
+      const res = await api.getDigitalPrPitches(activeWorkspace?._id);
       if (res.success && res.pitches) {
         setPitches(res.pitches);
       }
@@ -73,19 +73,23 @@ export default function SeoAeoHub({ activeWorkspace, socket, onNavigateTab }) {
     if (activeTab === 'digital_pr') {
       fetchPitches();
     }
-  }, [activeTab]);
+  }, [activeTab, activeWorkspace?._id]);
 
   // Generate quote for a pitch
   const handleGenerateQuote = async (pitchId) => {
     setGeneratingPitchId(pitchId);
     try {
-      const res = await api.generateDigitalPrPitch(pitchId);
+      const founderInfo = {
+        name: activeWorkspace?.ownerName || 'Valmiki Dinesh',
+        title: `Founder & CEO, ${activeWorkspace?.name || 'Enterprise'}`,
+        websiteUrl: activeWorkspace?.domain ? `https://${activeWorkspace.domain}` : 'https://vyuhox.com',
+      };
+      const res = await api.generateDigitalPrPitch(pitchId, founderInfo, activeWorkspace?._id);
       if (res.success && res.pitch) {
         setPitches((prev) => prev.map((p) => (p._id === pitchId ? res.pitch : p)));
       }
     } catch (err) {
       console.error('Failed to generate pitch quote:', err);
-      alert('Error generating quote: ' + err.message);
     } finally {
       setGeneratingPitchId(null);
     }
@@ -438,26 +442,18 @@ export default function SeoAeoHub({ activeWorkspace, socket, onNavigateTab }) {
                       Attribution: {pitch.attributedFounder?.name || 'Valmiki Dinesh'} • {pitch.attributedFounder?.websiteUrl || 'https://vyuhox.com'}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {!pitch.draftedQuote && (
-                        <button
-                          type="button"
-                          disabled={generatingPitchId === pitch._id}
-                          onClick={() => handleGenerateQuote(pitch._id)}
-                          className="btn-primary"
-                          style={{ padding: '6px 14px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          {generatingPitchId === pitch._id ? (
-                            <>
-                              <RefreshCw size={13} className="animate-spin" /> Drafting Quote...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles size={13} /> Generate AI Expert Quote
-                            </>
-                          )}
-                        </button>
-                      )}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        disabled={generatingPitchId === pitch._id}
+                        onClick={() => handleGenerateQuote(pitch._id)}
+                        className="btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+                        title="Re-synthesize authoritative founder quote tailored specifically to this journalist topic"
+                      >
+                        <Sparkles size={12} className={generatingPitchId === pitch._id ? 'animate-spin' : ''} color="#EC4899" />
+                        <span>{generatingPitchId === pitch._id ? 'Synthesizing...' : pitch.draftedQuote ? 'Re-Generate with AI' : 'Generate AI Quote'}</span>
+                      </button>
 
                       {pitch.draftedQuote && pitch.status === 'DRAFTED' && (
                         <button

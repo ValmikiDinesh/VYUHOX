@@ -34,6 +34,7 @@ export default function TopBar({
   rolePersona = 'superadmin',
   onChangeRolePersona,
   onOpenConnectChannels,
+  onNavigateTab,
 }) {
   const isAiMode = operatingMode === 'AI_COMPANY';
   const isINR = currency === 'INR';
@@ -291,7 +292,10 @@ export default function TopBar({
               </div>
 
               <div
-                onClick={() => { onOpenConnectChannels(); setActionMenuOpen(false); }}
+                onClick={() => {
+                  if (onNavigateTab) onNavigateTab('integrations');
+                  setActionMenuOpen(false);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -306,11 +310,14 @@ export default function TopBar({
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 <Share2 size={14} color="#25D366" />
-                <span>Connect Channels (WA/TG)</span>
+                <span>Channel Integrations (WA/TG/Ads)</span>
               </div>
 
               <div
-                onClick={() => { onToggleOperatingMode(); setActionMenuOpen(false); }}
+                onClick={() => {
+                  if (onNavigateTab) onNavigateTab('ai-company');
+                  setActionMenuOpen(false);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -319,13 +326,14 @@ export default function TopBar({
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontSize: '0.78rem',
-                  color: '#F8FAFC',
+                  color: '#10B981',
+                  fontWeight: '600',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 <Sparkles size={14} color="#10B981" />
-                <span>{isAiMode ? 'Switch to Tool Mode' : 'Upgrade to AI Company'}</span>
+                <span>AI Company HQ (24/7 Multi-Agent)</span>
               </div>
 
               <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />

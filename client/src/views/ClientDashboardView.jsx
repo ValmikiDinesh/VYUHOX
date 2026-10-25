@@ -237,7 +237,7 @@ export default function ClientDashboardView({
               Autonomous Revenue Engine Active
             </span>
             <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
-              {isAiMode ? 'Autonomous AI Company' : 'Self-Serve Tool Mode'}
+              Autonomous AI Company (24/7 Multi-Agent)
             </span>
             {activeWorkspace?.name && (
               <span className="badge badge-emerald" style={{ fontSize: '0.675rem' }}>
