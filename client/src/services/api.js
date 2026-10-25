@@ -1086,6 +1086,68 @@ export const api = {
     });
     return res.json();
   },
+
+  // Phase 8: Autonomous SEO, AEO & Domain Authority Backlink Engine
+  checkEmailSpam: async (emailText, subject = '') => {
+    const res = await fetch(`${API_BASE}/seo-tools/spam-checker`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emailText, subject }),
+    });
+    return res.json();
+  },
+  calculateIcp: async (industry, productDescription = '') => {
+    const res = await fetch(`${API_BASE}/seo-tools/icp-calculator`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ industry, productDescription }),
+    });
+    return res.json();
+  },
+  testDomainDns: async (domain) => {
+    const res = await fetch(`${API_BASE}/seo-tools/dns-lookup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain }),
+    });
+    return res.json();
+  },
+  getAeoPack: async (workspaceId) => {
+    const res = await fetch(`${API_BASE}/seo-tools/aeo-pack/${workspaceId}`);
+    return res.json();
+  },
+  getMasterVyuhoxSchema: async () => {
+    const res = await fetch(`${API_BASE}/seo-tools/master-schema`);
+    return res.json();
+  },
+  getDigitalPrPitches: async () => {
+    const res = await fetch(`${API_BASE}/seo-tools/digital-pr/pitches`);
+    return res.json();
+  },
+  generateDigitalPrPitch: async (pitchId, founderInfo = null) => {
+    const res = await fetch(`${API_BASE}/seo-tools/digital-pr/generate-pitch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pitchId, founderInfo }),
+    });
+    return res.json();
+  },
+  submitDigitalPrPitch: async (pitchId) => {
+    const res = await fetch(`${API_BASE}/seo-tools/digital-pr/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pitchId }),
+    });
+    return res.json();
+  },
+  markAcceptedDigitalPrPitch: async (pitchId, backlinkUrl = '') => {
+    const res = await fetch(`${API_BASE}/seo-tools/digital-pr/mark-accepted`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pitchId, backlinkUrl }),
+    });
+    return res.json();
+  },
 };
 
 

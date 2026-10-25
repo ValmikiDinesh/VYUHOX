@@ -28,6 +28,7 @@ import integrationRoutes from './src/routes/integrationRoutes.js';
 import briefingRoutes from './src/routes/briefingRoutes.js';
 import publicRoutes from './src/routes/publicRoutes.js';
 import microSiteRoutes from './src/routes/microSiteRoutes.js';
+import seoToolsRoutes from './src/routes/seoToolsRoutes.js';
 import { agentEventBus } from './src/services/agents/AgentEventBus.js';
 import { initSocialPublisher } from './src/cron/socialPublisher.js';
 import { initAdOptimizerCron } from './src/cron/adOptimizer.js';
@@ -121,6 +122,7 @@ app.use('/api/integrations', integrationRoutes);
 app.use('/api/briefings', briefingRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/microsite', microSiteRoutes);
+app.use('/api/seo-tools', seoToolsRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

@@ -67,6 +67,7 @@ export default function Sidebar({
     { id: 'ads', label: 'Ads Manager', icon: TrendingUp, count: 'Live' },
     { id: 'integrations', label: 'Channel Integrations', icon: Link2, count: 'Multi-Tenant' },
     { id: 'compliance', label: 'Deliverability & DNC', icon: Shield, count: '10DLC' },
+    { id: 'seo-aeo', label: 'SEO & AEO Authority', icon: Sparkles, count: 'DR 50+' },
     { id: 'ai-company', label: 'AI Company HQ', icon: Bot, count: rolePersona === 'client_tool' ? 'Locked' : 'Live' },
     { id: 'agent-store', label: 'AI Employee Store', icon: ShoppingBag, count: 'New' },
     { id: 'admin-plans', label: 'Plans & Pricing Admin', icon: Shield, count: 'Admin', superadminOnly: true },

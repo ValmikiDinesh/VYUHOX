@@ -23,6 +23,10 @@ import FlywheelHub from './pages/FlywheelHub';
 import LandingPage from './pages/LandingPage';
 import ClientAuthPage from './pages/ClientAuthPage';
 import AdminAuthPage from './pages/AdminAuthPage';
+import SeoAeoHub from './pages/SeoAeoHub';
+import SpamChecker from './pages/FreeTools/SpamChecker';
+import IcpCalculator from './pages/FreeTools/IcpCalculator';
+import DnsTester from './pages/FreeTools/DnsTester';
 
 import ModeSwitchModal from './components/ModeSwitchModal';
 import NewLeadModal from './components/modals/NewLeadModal';
@@ -79,6 +83,15 @@ export default function App() {
     ) {
       return 'client_signup';
     }
+    if (hash === '#tools/spam-checker' || path === '/tools/spam-checker') {
+      return 'tool_spam_checker';
+    }
+    if (hash === '#tools/icp-calculator' || path === '/tools/icp-calculator') {
+      return 'tool_icp_calculator';
+    }
+    if (hash === '#tools/dns-tester' || hash === '#tools/dns-lookup' || path === '/tools/dns-lookup') {
+      return 'tool_dns_tester';
+    }
     if (hash === '#app' || path === '/app') {
       return 'app';
     }
@@ -86,6 +99,12 @@ export default function App() {
   };
 
   const [currentView, setCurrentView] = useState(getViewFromLocation);
+
+  useEffect(() => {
+    const handleHash = () => setCurrentView(getViewFromLocation());
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   // Global Currency State (USD $ vs INR ₹) with standard conversion rate
   const [currency, setCurrency] = useState('INR');
@@ -553,6 +572,42 @@ export default function App() {
     );
   }
 
+  // 5. Free Link Magnet: Cold Email Spam Checker
+  if (currentView === 'tool_spam_checker') {
+    return (
+      <SpamChecker
+        onNavigateHome={() => {
+          window.location.hash = '';
+          setCurrentView('landing');
+        }}
+      />
+    );
+  }
+
+  // 6. Free Link Magnet: B2B ICP Persona Calculator
+  if (currentView === 'tool_icp_calculator') {
+    return (
+      <IcpCalculator
+        onNavigateHome={() => {
+          window.location.hash = '';
+          setCurrentView('landing');
+        }}
+      />
+    );
+  }
+
+  // 7. Free Link Magnet: Domain MX, SPF & DMARC Deliverability Tester
+  if (currentView === 'tool_dns_tester') {
+    return (
+      <DnsTester
+        onNavigateHome={() => {
+          window.location.hash = '';
+          setCurrentView('landing');
+        }}
+      />
+    );
+  }
+
   // Handle Role Persona Simulation Switching
   const handleChangeRolePersona = (roleId) => {
     setIsAdminInspectionMode(false);
@@ -822,6 +877,14 @@ export default function App() {
           <ComplianceSettings
             activeWorkspace={activeWorkspace}
             socket={socket}
+          />
+        )}
+
+        {activeTab === 'seo-aeo' && (
+          <SeoAeoHub
+            activeWorkspace={activeWorkspace}
+            socket={socket}
+            onNavigateTab={(tab) => setActiveTab(tab)}
           />
         )}
 
