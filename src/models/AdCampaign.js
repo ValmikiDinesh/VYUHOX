@@ -10,7 +10,7 @@ const adCampaignSchema = new mongoose.Schema(
     },
     platform: {
       type: String,
-      enum: ['META', 'GOOGLE_ADS', 'META_FACEBOOK', 'INSTAGRAM_REELS', 'GOOGLE_SEARCH'],
+      enum: ['META', 'GOOGLE_ADS', 'META_FACEBOOK', 'INSTAGRAM_REELS', 'GOOGLE_SEARCH', 'GOOGLE_SHOPPING'],
       default: 'META',
       index: true,
     },
@@ -21,12 +21,12 @@ const adCampaignSchema = new mongoose.Schema(
     },
     objective: {
       type: String,
-      enum: ['LEAD_GENERATION', 'CONVERSIONS', 'TRAFFIC', 'VIDEO_VIEWS'],
+      enum: ['LEAD_GENERATION', 'CONVERSIONS', 'TRAFFIC', 'VIDEO_VIEWS', 'CATALOG_SALES', 'SHOPPING'],
       default: 'LEAD_GENERATION',
     },
     status: {
       type: String,
-      enum: ['ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'],
+      enum: ['ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED', 'DISAPPROVED', 'HEALING'],
       default: 'ACTIVE',
       index: true,
     },

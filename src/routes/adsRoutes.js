@@ -15,6 +15,7 @@ import { MetaMarketingService } from '../services/ads/MetaMarketingService.js';
 import { GoogleAdsService } from '../services/ads/GoogleAdsService.js';
 import { ConversionTrackingService } from '../services/ads/ConversionTrackingService.js';
 import { AdOptimizerEngine } from '../cron/adOptimizer.js';
+import { AdSelfHealingService } from '../services/ads/AdSelfHealingService.js';
 
 const router = express.Router();
 
@@ -306,7 +307,15 @@ router.post('/campaigns', async (req, res) => {
 
     // 1. Dispatch through corresponding platform API connector
     let connectorResult = null;
-    if (platform === 'GOOGLE_ADS' || platform === 'GOOGLE_SEARCH') {
+    if (platform === 'GOOGLE_SHOPPING') {
+      connectorResult = await GoogleAdsService.createShoppingCampaign({
+        workspaceId,
+        campaignName,
+        dailyBudget,
+        products: req.body.products || [],
+        storeUrl: creative.destinationUrl || 'https://vyuhox.com',
+      });
+    } else if (platform === 'GOOGLE_ADS' || platform === 'GOOGLE_SEARCH') {
       connectorResult = await GoogleAdsService.createCampaign({
         workspaceId,
         campaignName,
@@ -329,7 +338,7 @@ router.post('/campaigns', async (req, res) => {
     // 2. Persist AdCampaign record
     const campaign = await AdCampaign.create({
       workspaceId,
-      platform: platform === 'GOOGLE_ADS' || platform === 'GOOGLE_SEARCH' ? 'GOOGLE_ADS' : 'META',
+      platform: platform === 'GOOGLE_SHOPPING' ? 'GOOGLE_SHOPPING' : (platform === 'GOOGLE_ADS' || platform === 'GOOGLE_SEARCH' ? 'GOOGLE_ADS' : 'META'),
       campaignName,
       objective,
       status: 'ACTIVE',
@@ -363,9 +372,10 @@ router.post('/campaigns', async (req, res) => {
       ctaText: creative.ctaText || 'Book Strategy Call',
       destinationUrl: creative.destinationUrl || 'https://growth.hedgex.io',
       mediaUrl: creative.mediaUrl || '/media/hedgex_reel.jpg',
-      platformFormat: platform === 'GOOGLE_ADS' ? 'GOOGLE_SEARCH_RESPONSIVE' : (creative.platformFormat || 'META_FEED'),
+      platformFormat: platform === 'GOOGLE_SHOPPING' ? 'GOOGLE_SHOPPING' : (platform === 'GOOGLE_ADS' ? 'GOOGLE_SEARCH_RESPONSIVE' : (creative.platformFormat || 'META_FEED')),
       ctrScore: 3.4,
       isFatigued: false,
+      complianceStatus: 'APPROVED',
     });
 
     const io = req.app.get('io');
@@ -632,5 +642,147 @@ router.post('/boost-post', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/ads/self-heal/trigger
+ * Manually or programmatically triggers self-healing on an ad creative
+ */
+router.post('/self-heal/trigger', async (req, res) => {
+  try {
+    const { creativeId, rejectionCode = 'MISLEADING_CONTENT', policyDetails } = req.body;
+    if (!creativeId) {
+      return res.status(400).json({ success: false, message: 'creativeId is required' });
+    }
+
+    const io = req.app.get('io');
+    const result = await AdSelfHealingService.healRejectedAd({
+      creativeId,
+      rejectionCode,
+      policyDetails,
+      io,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Creative successfully auto-corrected and resubmitted!',
+      result,
+    });
+  } catch (error) {
+    console.error('[AdsRoutes] Self-heal trigger error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/ads/self-heal/simulate
+ * Simulates a platform ad rejection and verifies the complete self-healing loop
+ */
+router.post('/self-heal/simulate', async (req, res) => {
+  try {
+    const { workspaceId } = req.body;
+    const io = req.app.get('io');
+    const result = await AdSelfHealingService.simulateRejectionAndHeal(workspaceId, io);
+
+    return res.json({
+      success: true,
+      message: 'Ad rejection simulated and auto-healed successfully!',
+      result,
+    });
+  } catch (error) {
+    console.error('[AdsRoutes] Simulate rejection error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/ads/google/audit-store
+ * Crawls client store URL for mandatory Google Shopping policies & tax IDs (GSTIN/EIN)
+ */
+router.post('/google/audit-store', async (req, res) => {
+  try {
+    const { storeUrl } = req.body;
+    if (!storeUrl) {
+      return res.status(400).json({ success: false, message: 'storeUrl is required' });
+    }
+
+    const auditResult = await GoogleAdsService.auditStoreForGoogleShopping(storeUrl);
+    return res.json(auditResult);
+  } catch (error) {
+    console.error('[AdsRoutes] Store audit error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/ads/webhooks/rejection
+ * Ingests external webhooks from Meta Graph API or Google Ads API when an ad is disapproved
+ */
+router.post('/webhooks/rejection', async (req, res) => {
+  try {
+    const { externalAdId, creativeId, rejectionCode, policyDetails, platform = 'META' } = req.body;
+    console.log(`[AdsWebhook] Received ${platform} rejection webhook for Ad: ${externalAdId || creativeId}`);
+
+    // Find creative by creativeId or look for active creative
+    let targetCreativeId = creativeId;
+    if (!targetCreativeId && externalAdId) {
+      const creative = await AdCreative.findOne().sort({ updatedAt: -1 });
+      targetCreativeId = creative?._id;
+    }
+
+    if (targetCreativeId) {
+      const io = req.app.get('io');
+      // Fire-and-forget autonomous heal
+      AdSelfHealingService.healRejectedAd({
+        creativeId: targetCreativeId,
+        rejectionCode: rejectionCode || 'MISLEADING_CONTENT',
+        policyDetails,
+        io,
+      }).catch((e) => console.error('[AdsWebhook] Async heal error:', e.message));
+    }
+
+    return res.status(200).json({
+      received: true,
+      message: 'Rejection captured. Autonomous self-healing loop initiated.',
+      action: 'HEALING_TRIGGERED'
+    });
+  } catch (error) {
+    console.error('[AdsWebhook] Ingestion error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/ads/google/merchant-feed.xml
+ * Returns valid Google Merchant Center Product Feed in RSS 2.0 XML
+ */
+router.get('/google/merchant-feed.xml', async (req, res) => {
+  try {
+    res.set('Content-Type', 'text/xml');
+    const xml = `<?xml version="1.0"?>
+<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
+  <channel>
+    <title>VYUHOX Autonomous Growth Engine</title>
+    <link>https://vyuhox.com</link>
+    <description>Verified B2B autonomous outbound acquisition licenses</description>
+    <item>
+      <g:id>VYUHOX-ENT-001</g:id>
+      <g:title>VYUHOX Autonomous AI Company License</g:title>
+      <g:description>Full multi-agent GTM automation with high-volume telephone verification and multi-LLM failover.</g:description>
+      <g:link>https://vyuhox.com/pricing</g:link>
+      <g:image_link>https://vyuhox.com/media/vyuhox_banner.jpg</g:image_link>
+      <g:condition>new</g:condition>
+      <g:availability>in_stock</g:availability>
+      <g:price>499.00 USD</g:price>
+      <g:brand>VYUHOX</g:brand>
+      <g:google_product_category>Software &gt; Business &amp; Productivity Software</g:google_product_category>
+    </item>
+  </channel>
+</rss>`;
+    return res.send(xml);
+  } catch (error) {
+    return res.status(500).send('<error>Failed to generate feed</error>');
+  }
+});
+
 export const adsRoutes = router;
 export default adsRoutes;
+

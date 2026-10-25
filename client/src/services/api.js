@@ -516,6 +516,30 @@ export const api = {
     });
     return res.json();
   },
+  triggerSelfHeal: async (creativeId, rejectionCode, policyDetails) => {
+    const res = await fetch(`${API_BASE}/ads/self-heal/trigger`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ creativeId, rejectionCode, policyDetails }),
+    });
+    return res.json();
+  },
+  simulateSelfHeal: async (workspaceId) => {
+    const res = await fetch(`${API_BASE}/ads/self-heal/simulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId }),
+    });
+    return res.json();
+  },
+  auditStoreForShopping: async (storeUrl) => {
+    const res = await fetch(`${API_BASE}/ads/google/audit-store`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storeUrl }),
+    });
+    return res.json();
+  },
   syncMetaLeads: async (workspaceId, campaignId) => {
     const res = await fetch(`${API_BASE}/ads/sync-leads`, {
       method: 'POST',

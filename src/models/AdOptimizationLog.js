@@ -16,7 +16,7 @@ const adOptimizationLogSchema = new mongoose.Schema(
     },
     ruleTriggered: {
       type: String,
-      enum: ['KILL_UNDERPERFORMER', 'SCALE_WINNER', 'SWAP_FATIGUED_CREATIVE'],
+      enum: ['KILL_UNDERPERFORMER', 'SCALE_WINNER', 'SWAP_FATIGUED_CREATIVE', 'AUTO_HEAL_REJECTION', 'STORE_COMPLIANCE_AUDIT'],
       required: true,
       index: true,
     },

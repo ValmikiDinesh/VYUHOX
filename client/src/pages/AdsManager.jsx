@@ -55,12 +55,22 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
 
   // Modals & Action State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isStoreAuditModalOpen, setIsStoreAuditModalOpen] = useState(false);
+  const [storeAuditUrl, setStoreAuditUrl] = useState('');
+  const [storeAuditResult, setStoreAuditResult] = useState(null);
+  const [auditingStore, setAuditingStore] = useState(false);
+
   const [creating, setCreating] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
+  const [selfHealing, setSelfHealing] = useState(false);
   const [capiDispatching, setCapiDispatching] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  // Launch AI Campaign Modal Form State
+  // Show Toast
+  const showToast = (msg, isError = false) => {
+    setNotification({ text: msg, isError });
+    setTimeout(() => setNotification(null), 5000);
+  };
   const [formName, setFormName] = useState('');
   const [formPlatform, setFormPlatform] = useState('META');
   const [formObjective, setFormObjective] = useState('LEAD_GENERATION');
@@ -73,12 +83,6 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
   const [formLocations, setFormLocations] = useState('United States, United Kingdom, Canada');
   const [formMediaUrl, setFormMediaUrl] = useState('');
   const [isGeneratingAiCopy, setIsGeneratingAiCopy] = useState(false);
-
-  // Show Toast
-  const showToast = (msg, isError = false) => {
-    setNotification({ text: msg, isError });
-    setTimeout(() => setNotification(null), 5000);
-  };
 
   // Fetch Campaigns, Metrics & Autonomous Logs
   const loadAdsData = async () => {
@@ -132,16 +136,62 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
       loadAdsData();
     };
 
+    const handleSelfHealed = (data) => {
+      showToast(data.message || '🛡️ Autonomous Self-Healing Engine auto-corrected rejected ad!');
+      loadAdsData();
+    };
+
     socket.on('ad:optimization_applied', handleOptimizationApplied);
     socket.on('ad:campaign_updated', handleCampaignUpdated);
     socket.on('ad:conversion_tracked', handleConversionTracked);
+    socket.on('ad:self_healed', handleSelfHealed);
 
     return () => {
       socket.off('ad:optimization_applied', handleOptimizationApplied);
       socket.off('ad:campaign_updated', handleCampaignUpdated);
       socket.off('ad:conversion_tracked', handleConversionTracked);
+      socket.off('ad:self_healed', handleSelfHealed);
     };
   }, [socket, activeWorkspace]);
+
+  // Autonomous Self-Healing Simulation
+  const handleSimulateSelfHeal = async () => {
+    if (!activeWorkspace) return;
+    try {
+      setSelfHealing(true);
+      showToast('🛡️ Simulating platform policy disapproval & auto-healing rewrite...');
+      const res = await api.simulateSelfHeal(activeWorkspace._id);
+      if (res.success) {
+        showToast(`✅ ${res.message || 'Ad successfully auto-healed and resubmitted!'}`);
+        await loadAdsData();
+      }
+    } catch (err) {
+      console.error('Self-healing error:', err);
+      showToast('Self-healing simulation failed', true);
+    } finally {
+      setSelfHealing(false);
+    }
+  };
+
+  // Google Shopping Store Policy & Tax ID Audit
+  const handleRunStoreAudit = async () => {
+    const url = storeAuditUrl || activeWorkspace?.domain || 'vyuhox.com';
+    try {
+      setAuditingStore(true);
+      const res = await api.auditStoreForShopping(url);
+      setStoreAuditResult(res);
+      if (res.isCompliant) {
+        showToast('✅ Store passed all Google Shopping merchant policy checks!');
+      } else {
+        showToast('⚠️ Action required: Store missing mandatory merchant requirements', true);
+      }
+    } catch (err) {
+      console.error('Store audit error:', err);
+      showToast('Failed to crawl store for merchant compliance', true);
+    } finally {
+      setAuditingStore(false);
+    }
+  };
 
   // Toggle Campaign Status
   const handleToggleCampaign = async (id) => {
@@ -352,6 +402,52 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
           >
             <ShieldAlert size={14} />
             {capiDispatching ? 'Dispatching...' : 'Test Server CAPI'}
+          </button>
+
+          <button
+            onClick={handleSimulateSelfHeal}
+            disabled={selfHealing}
+            style={{
+              padding: '9px 15px',
+              borderRadius: '9px',
+              background: 'rgba(236, 72, 153, 0.15)',
+              border: '1px solid rgba(236, 72, 153, 0.4)',
+              color: '#F472B6',
+              fontSize: '0.78rem',
+              fontWeight: '700',
+              cursor: selfHealing ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            title="Simulates platform policy violation and triggers autonomous copy rewriting and resubmission"
+          >
+            <RotateCcw size={14} className={selfHealing ? 'animate-spin' : ''} />
+            {selfHealing ? 'Healing Creative...' : '🛡️ Test Self-Healing Loop'}
+          </button>
+
+          <button
+            onClick={() => {
+              setStoreAuditUrl(activeWorkspace?.domain || 'vyuhox.com');
+              setIsStoreAuditModalOpen(true);
+            }}
+            style={{
+              padding: '9px 15px',
+              borderRadius: '9px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              color: '#10B981',
+              fontSize: '0.78rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            title="Crawls store for required Google Shopping merchant policies and tax identifier"
+          >
+            <ShieldCheck size={14} />
+            🛍️ Google Shopping Store Audit
           </button>
 
           <button
@@ -589,6 +685,24 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
               >
                 Google Search Snippet
               </button>
+              <button
+                onClick={() => setPreviewPlatform('GOOGLE_SHOPPING')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: previewPlatform === 'GOOGLE_SHOPPING' ? '#10B981' : 'transparent',
+                  color: previewPlatform === 'GOOGLE_SHOPPING' ? '#040710' : '#CBD5E1',
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                🛍️ Google Shopping
+              </button>
             </div>
           </div>
 
@@ -679,7 +793,7 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : previewPlatform === 'GOOGLE_SEARCH' ? (
             /* GOOGLE SEARCH SPONSORED SNIPPET */
             <div style={{
               background: '#0B1120',
@@ -733,6 +847,62 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
                 </div>
               </div>
             </div>
+          ) : (
+            /* GOOGLE SHOPPING FEED MOCKUP */
+            <div style={{
+              background: '#0B1120',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '12px',
+              padding: '18px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem' }}>
+                  <span style={{ fontWeight: '800', color: '#10B981', padding: '1px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)' }}>
+                    Google Merchant Verified
+                  </span>
+                  <span style={{ color: '#94A3B8' }}>Shopping Feed • In Stock</span>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: '#38BDF8', fontWeight: '700' }}>
+                  Tax ID: GSTIN/EIN Verified
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '16px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px', borderRadius: '8px' }}>
+                <img
+                  src={activeCreative.mediaUrl || '/media/vyuhox_banner.jpg'}
+                  alt="Product"
+                  style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.08)' }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.92rem', color: '#F8FAFC', fontWeight: '700' }}>
+                      {activeCreative.headline || 'Autonomous Outbound Growth License'}
+                    </h4>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#94A3B8', lineHeight: '1.4' }}>
+                      {activeCreative.primaryText || 'High-volume buyer prospecting and verified DNS deliverability.'}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#10B981' }}>
+                      $499.00 <span style={{ fontSize: '0.7rem', color: '#64748B' }}>USD / mo</span>
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: '#CBD5E1', padding: '3px 8px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.06)' }}>
+                      Free Delivery
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px' }}>
+                <span>Brand: VYUHOX</span>
+                <span>Feed URL: /api/ads/google/merchant-feed.xml</span>
+                <span style={{ color: '#10B981' }}>● RSS 2.0 Live</span>
+              </div>
+            </div>
           )}
         </div>
 
@@ -777,10 +947,36 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
                 const isKill = log.ruleTriggered === 'KILL_UNDERPERFORMER';
                 const isScale = log.ruleTriggered === 'SCALE_WINNER';
                 const isFatigue = log.ruleTriggered === 'SWAP_FATIGUED_CREATIVE';
+                const isHeal = log.ruleTriggered === 'AUTO_HEAL_REJECTION';
+                const isAudit = log.ruleTriggered === 'STORE_COMPLIANCE_AUDIT';
 
-                const badgeBg = isKill ? 'rgba(239, 68, 68, 0.15)' : isScale ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)';
-                const badgeColor = isKill ? '#EF4444' : isScale ? '#10B981' : '#F59E0B';
-                const badgeBorder = isKill ? 'rgba(239, 68, 68, 0.3)' : isScale ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)';
+                const badgeBg = isHeal
+                  ? 'rgba(236, 72, 153, 0.2)'
+                  : isAudit
+                  ? 'rgba(6, 182, 212, 0.2)'
+                  : isKill
+                  ? 'rgba(239, 68, 68, 0.15)'
+                  : isScale
+                  ? 'rgba(16, 185, 129, 0.15)'
+                  : 'rgba(245, 158, 11, 0.15)';
+                const badgeColor = isHeal
+                  ? '#F472B6'
+                  : isAudit
+                  ? '#38BDF8'
+                  : isKill
+                  ? '#EF4444'
+                  : isScale
+                  ? '#10B981'
+                  : '#F59E0B';
+                const badgeBorder = isHeal
+                  ? 'rgba(236, 72, 153, 0.4)'
+                  : isAudit
+                  ? 'rgba(6, 182, 212, 0.4)'
+                  : isKill
+                  ? 'rgba(239, 68, 68, 0.3)'
+                  : isScale
+                  ? 'rgba(16, 185, 129, 0.3)'
+                  : 'rgba(245, 158, 11, 0.3)';
 
                 return (
                   <div
@@ -1088,6 +1284,7 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
                   >
                     <option value="META">Meta (Facebook &amp; Instagram Feeds/Reels)</option>
                     <option value="GOOGLE_ADS">Google Ads (Responsive Search Network)</option>
+                    <option value="GOOGLE_SHOPPING">🛍️ Google Shopping (Smart PMax &amp; Merchant Center Feed)</option>
                   </select>
                 </div>
 
@@ -1304,6 +1501,187 @@ export default function AdsManager({ activeWorkspace, socket, wallet }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. GOOGLE SHOPPING STORE COMPLIANCE & TAX ID AUDIT MODAL */}
+      {isStoreAuditModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(3, 7, 18, 0.88)',
+          backdropFilter: 'blur(12px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+        }}>
+          <div style={{
+            background: '#0B1120',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '620px',
+            padding: '28px',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            boxShadow: '0 24px 80px rgba(0, 0, 0, 0.95), 0 0 50px rgba(16, 185, 129, 0.25)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ShieldCheck size={24} color="#10B981" />
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
+                    Google Shopping Merchant Audit
+                  </h3>
+                  <span style={{ fontSize: '0.74rem', color: '#94A3B8' }}>
+                    Mandatory Policy Pages &amp; Tax ID (GSTIN / EIN) Inspector
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsStoreAuditModalOpen(false);
+                  setStoreAuditResult(null);
+                }}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '1.25rem', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                  Store / Website URL to Audit
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={storeAuditUrl}
+                    onChange={(e) => setStoreAuditUrl(e.target.value)}
+                    placeholder="https://vyuhox.com"
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#F8FAFC',
+                      fontSize: '0.85rem',
+                    }}
+                  />
+                  <button
+                    onClick={handleRunStoreAudit}
+                    disabled={auditingStore}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: '8px',
+                      background: '#10B981',
+                      border: 'none',
+                      color: '#040710',
+                      fontWeight: '800',
+                      cursor: auditingStore ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Search size={14} />
+                    {auditingStore ? 'Crawling...' : 'Crawl Store'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Audit Results Card */}
+              {storeAuditResult && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: `1px solid ${storeAuditResult.isCompliant ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                  borderRadius: '12px',
+                  padding: '18px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span style={{
+                      fontWeight: '800',
+                      fontSize: '0.8rem',
+                      color: storeAuditResult.isCompliant ? '#10B981' : '#EF4444',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}>
+                      {storeAuditResult.isCompliant ? '✅ COMPLIANT WITH GOOGLE SHOPPING' : '⚠️ SUSPENSION RISK: REQUIREMENTS MISSING'}
+                    </span>
+                    {storeAuditResult.taxIdFound && (
+                      <span style={{ fontSize: '0.72rem', color: '#38BDF8', fontWeight: '700' }}>
+                        Tax ID: {storeAuditResult.taxIdFound}
+                      </span>
+                    )}
+                  </div>
+
+                  {storeAuditResult.missingRequirements?.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <span style={{ fontSize: '0.74rem', color: '#CBD5E1', fontWeight: '700' }}>
+                        Missing mandatory Google Merchant requirements:
+                      </span>
+                      {storeAuditResult.missingRequirements.map((req, idx) => (
+                        <div key={idx} style={{
+                          fontSize: '0.74rem',
+                          color: '#EF4444',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}>
+                          <AlertTriangle size={12} />
+                          {req}
+                        </div>
+                      ))}
+
+                      {storeAuditResult.actionRequiredPrompt && (
+                        <div style={{
+                          marginTop: '8px',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          background: 'rgba(245, 158, 11, 0.15)',
+                          border: '1px solid rgba(245, 158, 11, 0.3)',
+                          color: '#F59E0B',
+                          fontSize: '0.75rem',
+                          lineHeight: '1.4',
+                        }}>
+                          <strong>Action Required:</strong> {storeAuditResult.actionRequiredPrompt}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.78rem', color: '#10B981', lineHeight: '1.4' }}>
+                      All mandatory pages (Refund &amp; Return Policy, Privacy Policy, Terms of Service, Contact Info, and Legal Tax Identifier) were detected and verified on your store. Google Merchant Center feeds will be approved without policy suspension.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                <button
+                  onClick={() => setIsStoreAuditModalOpen(false)}
+                  style={{
+                    padding: '8px 20px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: 'none',
+                    color: '#FFF',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

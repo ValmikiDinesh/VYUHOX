@@ -37,7 +37,7 @@ const adCreativeSchema = new mongoose.Schema(
     },
     platformFormat: {
       type: String,
-      enum: ['META_FEED', 'META_STORY', 'GOOGLE_SEARCH_RESPONSIVE'],
+      enum: ['META_FEED', 'META_STORY', 'GOOGLE_SEARCH_RESPONSIVE', 'GOOGLE_SHOPPING'],
       default: 'META_FEED',
       index: true,
     },
@@ -49,6 +49,30 @@ const adCreativeSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    complianceStatus: {
+      type: String,
+      enum: ['PENDING_REVIEW', 'APPROVED', 'DISAPPROVED', 'HEALING', 'HEALED'],
+      default: 'APPROVED',
+      index: true,
+    },
+    rejectionReason: {
+      code: { type: String, default: null },
+      details: { type: String, default: null },
+      policyTopic: { type: String, default: null },
+      flaggedAt: { type: Date, default: null },
+    },
+    healingHistory: [
+      {
+        attempt: { type: Number, default: 1 },
+        previousHeadline: { type: String },
+        previousPrimaryText: { type: String },
+        healedHeadline: { type: String },
+        healedPrimaryText: { type: String },
+        policyAddressed: { type: String },
+        appliedAt: { type: Date, default: Date.now },
+        status: { type: String, enum: ['RESUBMITTED', 'REAPPROVED', 'FAILED'], default: 'RESUBMITTED' },
+      },
+    ],
   },
   { timestamps: true }
 );
