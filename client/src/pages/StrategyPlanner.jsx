@@ -39,6 +39,12 @@ import {
   Presentation,
   ChevronDown,
   ChevronUp,
+  MapPin,
+  Camera,
+  Mic,
+  Factory,
+  Ship,
+  PhoneCall,
 } from 'lucide-react';
 import { api } from '../services/api';
 import VisualCreativeStudio from '../components/VisualCreativeStudio';
@@ -57,6 +63,13 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
 
   // Active view tab: 'blueprint' | 'document' | 'roadmap'
   const [viewTab, setViewTab] = useState('blueprint');
+
+  // Phase 7: Two-Sided Trade Engine & No-Website Onboarding State
+  const [onboardingSource, setOnboardingSource] = useState('WEBSITE'); // 'WEBSITE' | 'GOOGLE_MAPS' | 'INSTAGRAM' | 'VOICE_PROMPT'
+  const [noWebInput, setNoWebInput] = useState('');
+  const [tradeMode, setTradeMode] = useState('STANDARD'); // 'STANDARD' | 'TWO_SIDED_TRADE'
+  const [hsCodesInput, setHsCodesInput] = useState('');
+  const [isNoWebOnboarding, setIsNoWebOnboarding] = useState(false);
 
   // Edit Mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -159,6 +172,37 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
       alert('Scanning error: ' + (err.message || 'Unable to analyze website'));
     } finally {
       setIsScanning(false);
+    }
+  };
+
+  // Phase 7: Handle No-Website Onboarding
+  const handleNoWebsiteOnboard = async () => {
+    if (!noWebInput.trim() || !activeWorkspace) return;
+    try {
+      setIsNoWebOnboarding(true);
+      const hsList = hsCodesInput.split(',').map((s) => s.trim()).filter(Boolean);
+      const res = await api.onboardWithoutWebsite({
+        workspaceId: activeWorkspace._id,
+        sourceType: onboardingSource,
+        sourceInput: noWebInput.trim(),
+        tradeMode,
+        hsCodes: hsList,
+      });
+
+      if (res.success) {
+        // Refresh strategy
+        const stratRes = await api.getStrategy(activeWorkspace._id);
+        if (stratRes.success && stratRes.strategy) {
+          setStrategy(stratRes.strategy);
+          initEditForm(stratRes.strategy);
+        }
+        alert(`🚀 Success! AI Booking Micro-Site published live at: ${res.microSiteUrl}`);
+      }
+    } catch (err) {
+      console.error('No-website onboarding error:', err);
+      alert('Onboarding error: ' + err.message);
+    } finally {
+      setIsNoWebOnboarding(false);
     }
   };
 
@@ -524,78 +568,310 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
         </div>
       )}
 
-      {/* URL Input & Deep Scanner Bar */}
+      {/* Onboarding Mode & Deep Scanner Bar */}
       <div className="glass-panel" style={{ padding: '22px' }}>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleStartScan();
-          }}
-          style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}
-        >
-          <div style={{ position: 'relative', flex: 1, minWidth: '320px' }}>
-            <Globe size={18} color="#06B6D4" style={{ position: 'absolute', left: '14px', top: '13px' }} />
-            <input
-              type="text"
-              required
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              placeholder="Enter your website URL (e.g. https://yourbusiness.com)"
-              className="input-glass"
-              style={{ paddingLeft: '44px', height: '44px', fontSize: '0.9rem' }}
-            />
-          </div>
+        {/* Source Mode Selector Tabs */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '12px' }}>
+          {[
+            { id: 'WEBSITE', label: 'Website URL', icon: Globe, desc: 'DOM & Multi-page Crawler' },
+            { id: 'GOOGLE_MAPS', label: 'Google Maps / Place CID', icon: MapPin, desc: 'Local Business & Reviews' },
+            { id: 'INSTAGRAM', label: 'Instagram Profile', icon: Camera, desc: 'Social Bio & Catalog' },
+            { id: 'VOICE_PROMPT', label: '60s Voice Brief', icon: Mic, desc: 'Audio Transcript / Dictation' },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const active = onboardingSource === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setOnboardingSource(tab.id)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  background: active ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  border: active ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid rgba(255, 255, 255, 0.06)',
+                  color: active ? '#38BDF8' : '#94A3B8',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '0.8rem',
+                  fontWeight: active ? '700' : '500',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Icon size={14} color={active ? '#06B6D4' : '#64748B'} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-          <button
-            type="submit"
-            disabled={isScanning}
-            className="btn-primary"
-            style={{ height: '44px', padding: '0 24px', fontSize: '0.875rem' }}
-          >
-            {isScanning ? (
-              <>
-                <span className="live-dot" style={{ background: '#04101A' }} /> Deep Crawling DOM...
-              </>
-            ) : (
-              <>
-                <Search size={16} /> Crawl & Build Strategy
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Workspace Domain Helper (Shows ONLY current workspace domain if present) */}
-        {activeWorkspace?.domain && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.725rem', color: 'var(--text-dim)', fontWeight: '600' }}>
-              Your Workspace Domain:
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                const target = activeWorkspace.domain.startsWith('http')
-                  ? activeWorkspace.domain
-                  : `https://${activeWorkspace.domain}`;
-                setUrlInput(target);
-                handleStartScan(target);
+        {onboardingSource === 'WEBSITE' ? (
+          <>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleStartScan();
               }}
-              style={{
-                padding: '4px 12px',
-                borderRadius: '999px',
-                background: 'rgba(6, 182, 212, 0.08)',
-                border: '1px solid rgba(6, 182, 212, 0.25)',
-                color: '#38BDF8',
-                fontSize: '0.75rem',
-                cursor: 'pointer',
+              style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}
+            >
+              <div style={{ position: 'relative', flex: 1, minWidth: '320px' }}>
+                <Globe size={18} color="#06B6D4" style={{ position: 'absolute', left: '14px', top: '13px' }} />
+                <input
+                  type="text"
+                  required
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="Enter your website URL (e.g. https://yourbusiness.com)"
+                  className="input-glass"
+                  style={{ paddingLeft: '44px', height: '44px', fontSize: '0.9rem' }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isScanning}
+                className="btn-primary"
+                style={{ height: '44px', padding: '0 24px', fontSize: '0.875rem' }}
+              >
+                {isScanning ? (
+                  <>
+                    <span className="live-dot" style={{ background: '#04101A' }} /> Deep Crawling DOM...
+                  </>
+                ) : (
+                  <>
+                    <Search size={16} /> Crawl & Build Strategy
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Workspace Domain Helper */}
+            {activeWorkspace?.domain && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.725rem', color: 'var(--text-dim)', fontWeight: '600' }}>
+                  Your Workspace Domain:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = activeWorkspace.domain.startsWith('http')
+                      ? activeWorkspace.domain
+                      : `https://${activeWorkspace.domain}`;
+                    setUrlInput(target);
+                    handleStartScan(target);
+                  }}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: '999px',
+                    background: 'rgba(6, 182, 212, 0.08)',
+                    border: '1px solid rgba(6, 182, 212, 0.25)',
+                    color: '#38BDF8',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Globe size={13} />
+                  <span>Crawl {activeWorkspace.name} ({activeWorkspace.domain})</span>
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          /* No-Website Onboarding Form (Google Maps, Instagram, Voice Prompt) */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+              <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
+                🚀 NO-WEBSITE CLIENT ONBOARDING &amp; INSTANT MICRO-SITE GENERATOR
+              </span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                Synthesizes brand identity and auto-compiles an ultra-fast 1-page mobile booking site with 15s speed-to-lead voice dispatch.
+              </span>
+            </div>
+
+            {onboardingSource === 'VOICE_PROMPT' ? (
+              <div style={{ position: 'relative' }}>
+                <textarea
+                  rows={4}
+                  required
+                  value={noWebInput}
+                  onChange={(e) => setNoWebInput(e.target.value)}
+                  placeholder="Paste your 60-second voice dictation transcript or spoken business brief (e.g. 'We are an OEM manufacturer of precision brass valves and fittings located in Jamnagar. We have 35 CNC machines and export to Saudi Arabia and UAE. Looking for industrial distributor inquiries and bulk contract buyers...')"
+                  className="input-glass"
+                  style={{ padding: '12px 16px', fontSize: '0.85rem', lineHeight: '1.5' }}
+                />
+              </div>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                {onboardingSource === 'GOOGLE_MAPS' ? (
+                  <MapPin size={18} color="#06B6D4" style={{ position: 'absolute', left: '14px', top: '13px' }} />
+                ) : (
+                  <Camera size={18} color="#EC4899" style={{ position: 'absolute', left: '14px', top: '13px' }} />
+                )}
+                <input
+                  type="text"
+                  required
+                  value={noWebInput}
+                  onChange={(e) => setNoWebInput(e.target.value)}
+                  placeholder={
+                    onboardingSource === 'GOOGLE_MAPS'
+                      ? 'Paste Google Maps URL, Place CID, or Business Name & City (e.g. https://maps.app.goo.gl/... or Apex Textiles Tirupur)'
+                      : 'Enter Instagram Handle or Profile Link (e.g. @apextextiles_india or https://instagram.com/apex...)'
+                  }
+                  className="input-glass"
+                  style={{ paddingLeft: '44px', height: '44px', fontSize: '0.9rem' }}
+                />
+              </div>
+            )}
+
+            {/* Trade Mode Selector & HS Codes Configuration */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#CBD5E1', textTransform: 'uppercase' }}>
+                  Execution Engine:
+                </span>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setTradeMode('STANDARD')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: tradeMode === 'STANDARD' ? '700' : '500',
+                      background: tradeMode === 'STANDARD' ? 'rgba(6, 182, 212, 0.2)' : 'transparent',
+                      border: tradeMode === 'STANDARD' ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid rgba(255,255,255,0.1)',
+                      color: tradeMode === 'STANDARD' ? '#38BDF8' : '#94A3B8',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Standard Single Pipeline
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTradeMode('TWO_SIDED_TRADE')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: tradeMode === 'TWO_SIDED_TRADE' ? '700' : '500',
+                      background: tradeMode === 'TWO_SIDED_TRADE' ? 'rgba(139, 92, 246, 0.25)' : 'transparent',
+                      border: tradeMode === 'TWO_SIDED_TRADE' ? '1px solid rgba(139, 92, 246, 0.45)' : '1px solid rgba(255,255,255,0.1)',
+                      color: tradeMode === 'TWO_SIDED_TRADE' ? '#C4B5FD' : '#94A3B8',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    <span>🌐 Two-Sided Trade Engine (Factories + Importers)</span>
+                  </button>
+                </div>
+              </div>
+
+              {tradeMode === 'TWO_SIDED_TRADE' && (
+                <div style={{ flex: 1, minWidth: '260px' }}>
+                  <input
+                    type="text"
+                    value={hsCodesInput}
+                    onChange={(e) => setHsCodesInput(e.target.value)}
+                    placeholder="Target HS Codes (e.g. 7412.20, 8481.80, 5208.11)"
+                    className="input-glass"
+                    style={{ height: '36px', fontSize: '0.8rem', padding: '0 12px' }}
+                  />
+                </div>
+              )}
+
+              <button
+                type="button"
+                disabled={isNoWebOnboarding || !noWebInput.trim()}
+                onClick={handleNoWebsiteOnboard}
+                className="btn-primary"
+                style={{ height: '40px', padding: '0 20px', fontSize: '0.85rem' }}
+              >
+                {isNoWebOnboarding ? (
+                  <>
+                    <span className="live-dot" style={{ background: '#04101A' }} /> Synthesizing Brand &amp; Micro-Site...
+                  </>
+                ) : (
+                  <>
+                    <Zap size={15} /> Launch Instant AI Micro-Site
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Live Micro-Site Active Status Banner */}
+        {strategy?.microSite?.slug && (
+          <div style={{
+            marginTop: '16px',
+            padding: '16px 20px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(16, 185, 129, 0.08) 100%)',
+            border: '1px solid rgba(6, 182, 212, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'rgba(6, 182, 212, 0.2)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <Globe size={13} />
-              <span>Crawl {activeWorkspace.name} ({activeWorkspace.domain})</span>
-            </button>
+                justifyContent: 'center',
+                color: '#38BDF8',
+              }}>
+                <Zap size={22} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    Autonomous AI 1-Page Booking Micro-Site Active
+                  </span>
+                  <span className="badge badge-emerald">● Live on Web</span>
+                  <span className="badge badge-cyan">⚡ 15s Speed-to-Lead</span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '2px' }}>
+                  Inbound inquiries route directly into Maya Vance's voice queue for instant AI phone callback within 15 seconds.
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.8rem', color: '#CBD5E1', padding: '6px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)' }}>
+                📊 <strong>{strategy.microSite.visitorBookingsCount || 0}</strong> Bookings Captured
+              </span>
+              <a
+                href={`http://localhost:5000/api/microsite/${strategy.microSite.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary"
+                style={{ padding: '8px 16px', fontSize: '0.8rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <ExternalLink size={14} /> Open Live Micro-Site
+              </a>
+            </div>
           </div>
         )}
 
@@ -1104,6 +1380,166 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
                   </div>
                 </div>
               </div>
+
+              {/* Phase 7: 🌐 Two-Sided Trade Engine: Sourcing & Distribution Hub */}
+              {(strategy.tradeMode === 'TWO_SIDED_TRADE' || strategy.twoSidedTradeConfig?.supplierPipeline?.enabled) && (
+                <div className="glass-panel" style={{
+                  padding: '24px',
+                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(88, 28, 135, 0.12) 50%, rgba(6, 182, 212, 0.08) 100%)',
+                  border: '1px solid rgba(139, 92, 246, 0.35)',
+                  borderRadius: '12px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '10px',
+                        background: 'rgba(139, 92, 246, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#C4B5FD',
+                      }}>
+                        <Ship size={20} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800', color: '#F8FAFC' }}>
+                            Two-Sided Trade Engine: Sourcing &amp; Export Distribution
+                          </h3>
+                          <span className="badge badge-purple">● Dual-Sided Active</span>
+                          <span className="badge badge-cyan">HS Code Intelligence</span>
+                        </div>
+                        <p style={{ fontSize: '0.775rem', color: '#94A3B8' }}>
+                          Simultaneously sources verified manufacturing factories upstream and qualifies cross-border importers/distributors downstream.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {onNavigateTab && (
+                        <button
+                          type="button"
+                          onClick={() => onNavigateTab('leads')}
+                          className="btn-secondary"
+                          style={{ padding: '6px 14px', fontSize: '0.75rem' }}
+                        >
+                          View Trade Leads
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+                    {/* Column 1: Supplier & Factory Sourcing */}
+                    <div style={{
+                      padding: '18px',
+                      borderRadius: '10px',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      border: '1px solid rgba(6, 182, 212, 0.25)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Factory size={16} color="#06B6D4" />
+                          <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#38BDF8', textTransform: 'uppercase' }}>
+                            Supplier &amp; Factory Pipeline
+                          </span>
+                        </div>
+                        <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                          Quota: {strategy.twoSidedTradeConfig?.supplierPipeline?.leadQuota || 20}/cycle
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748B', textTransform: 'uppercase', fontWeight: '600' }}>
+                            Target HS Codes
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                            {(strategy.twoSidedTradeConfig?.supplierPipeline?.targetHsCodes || ['7412.20', '8481.80']).map((hs, i) => (
+                              <span key={i} style={{ fontSize: '0.725rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(6, 182, 212, 0.12)', border: '1px solid rgba(6, 182, 212, 0.3)', color: '#7DD3FC', fontFamily: 'monospace' }}>
+                                HS {hs}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748B', textTransform: 'uppercase', fontWeight: '600' }}>
+                            Sourcing Regions
+                          </div>
+                          <div style={{ fontSize: '0.775rem', color: '#CBD5E1', marginTop: '2px' }}>
+                            {(strategy.twoSidedTradeConfig?.supplierPipeline?.targetRegions || ['India', 'Southeast Asia', 'Turkey']).join(', ')}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748B', textTransform: 'uppercase', fontWeight: '600' }}>
+                            Autonomous Waterfall Query
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontFamily: 'monospace', background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '4px' }}>
+                            {strategy.twoSidedTradeConfig?.supplierPipeline?.searchQuery || `${strategy.businessName} manufacturing factories exporters supplier`}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Column 2: Buyer & Importer Distribution */}
+                    <div style={{
+                      padding: '18px',
+                      borderRadius: '10px',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      border: '1px solid rgba(139, 92, 246, 0.25)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Ship size={16} color="#A78BFA" />
+                          <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C4B5FD', textTransform: 'uppercase' }}>
+                            Buyer &amp; Importer Pipeline
+                          </span>
+                        </div>
+                        <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>
+                          Quota: {strategy.twoSidedTradeConfig?.buyerPipeline?.leadQuota || 20}/cycle
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748B', textTransform: 'uppercase', fontWeight: '600' }}>
+                            Target HS Codes
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                            {(strategy.twoSidedTradeConfig?.buyerPipeline?.targetHsCodes || ['7412.20', '8481.80']).map((hs, i) => (
+                              <span key={i} style={{ fontSize: '0.725rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(139, 92, 246, 0.12)', border: '1px solid rgba(139, 92, 246, 0.3)', color: '#DDD6FE', fontFamily: 'monospace' }}>
+                                HS {hs}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748B', textTransform: 'uppercase', fontWeight: '600' }}>
+                            Target Buyer Geographies
+                          </div>
+                          <div style={{ fontSize: '0.775rem', color: '#CBD5E1', marginTop: '2px' }}>
+                            {(strategy.twoSidedTradeConfig?.buyerPipeline?.targetRegions || ['UAE', 'Saudi Arabia', 'USA', 'Germany', 'Singapore']).join(', ')}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748B', textTransform: 'uppercase', fontWeight: '600' }}>
+                            Autonomous Waterfall Query
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontFamily: 'monospace', background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '4px' }}>
+                            {strategy.twoSidedTradeConfig?.buyerPipeline?.searchQuery || `${strategy.businessName} wholesale importers distributors procurement`}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 🎛️ Recommended Acquisition Switchboard */}
               <div className="glass-panel" style={{ padding: '24px' }}>

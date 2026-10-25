@@ -67,7 +67,7 @@ const leadSchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      enum: ['Scraper', 'Form', 'Ad', 'Inbound'],
+      enum: ['Scraper', 'Form', 'Ad', 'Inbound', 'INSTANT_AI_MICROSITE'],
       default: 'Scraper',
     },
     entityRole: {
@@ -113,3 +113,4 @@ const leadSchema = new mongoose.Schema(
 );
 
 export const Lead = mongoose.model('Lead', leadSchema);
+export default Lead;

@@ -1072,6 +1072,20 @@ export const api = {
     const res = await fetch(`${API_BASE}/public/personalization?${query}`);
     return res.json();
   },
+
+  // Phase 7: Two-Sided Trade Engine & "No-Website" Onboarding System
+  onboardWithoutWebsite: async (data) => {
+    const token = localStorage.getItem('vyuhox_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/strategy/onboard-no-website`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
 };
 
 

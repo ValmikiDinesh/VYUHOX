@@ -55,8 +55,46 @@ const gtmStrategySchema = new mongoose.Schema(
       enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'],
       default: 'ACTIVE',
     },
+    // Phase 7: Two-Sided Trade Engine & Dual Pipelines
+    tradeMode: {
+      type: String,
+      enum: ['STANDARD', 'TWO_SIDED_TRADE', 'SUPPLIER_SOURCING', 'BUYER_DISTRIBUTION'],
+      default: 'STANDARD',
+    },
+    twoSidedTradeConfig: {
+      isTwoSided: { type: Boolean, default: false },
+      supplierPipeline: {
+        hsCodes: { type: [String], default: [] },
+        targetCountries: { type: [String], default: [] },
+        leadQuota: { type: Number, default: 50 },
+        activeSourcingQuery: { type: String, default: '' },
+      },
+      buyerPipeline: {
+        hsCodes: { type: [String], default: [] },
+        targetCountries: { type: [String], default: [] },
+        leadQuota: { type: Number, default: 50 },
+        activeDistributionQuery: { type: String, default: '' },
+      },
+    },
+    // Instant AI Micro-Site Generated for No-Website clients
+    microSite: {
+      slug: { type: String, unique: true, sparse: true, index: true },
+      isPublished: { type: Boolean, default: false },
+      headline: { type: String, default: '' },
+      subheadline: { type: String, default: '' },
+      offers: { type: [String], default: [] },
+      ctaPhone: { type: String, default: '' },
+      ctaWhatsApp: { type: String, default: '' },
+      generatedFrom: {
+        type: String,
+        enum: ['WEBSITE', 'GOOGLE_MAPS', 'INSTAGRAM_BIO', 'VOICE_PROMPT'],
+        default: 'WEBSITE',
+      },
+      visitorBookingsCount: { type: Number, default: 0 },
+    },
   },
   { timestamps: true }
 );
 
 export const GtmStrategy = mongoose.model('GtmStrategy', gtmStrategySchema);
+export default GtmStrategy;

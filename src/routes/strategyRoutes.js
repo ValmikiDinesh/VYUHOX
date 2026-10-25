@@ -312,16 +312,47 @@ router.post('/scan-public', async (req, res) => {
 
     return res.json({
       success: true,
-      url: extractedData.url,
-      domainName: extractedData.domainName,
-      extractedData,
-      strategy: strategyData,
-      businessPlanDocument: strategyData.businessPlanDocument,
-      stepByStepRoadmap: strategyData.stepByStepRoadmap,
+      businessName: extractedData.businessName,
+      category: extractedData.category,
+      analysis: strategyData,
       recommendedTeam,
-      projectedRoiMultiple: '7.8x',
+      rawExtractedData: extractedData,
     });
   } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/strategy/onboard-no-website - Onboard via Google Maps, Instagram, or 60s Voice Prompt
+router.post('/onboard-no-website', authMiddleware, async (req, res) => {
+  try {
+    const { sourceType, sourceInput, tradeMode = 'STANDARD', hsCodes = [], workspaceId: bodyWsId } = req.body;
+    const workspaceId = bodyWsId || req.workspaceId;
+
+    if (!sourceType || !sourceInput) {
+      return res.status(400).json({ success: false, message: 'sourceType and sourceInput are required' });
+    }
+
+    const { NoWebsiteOnboardingService } = await import('../services/NoWebsiteOnboardingService.js');
+    const result = await NoWebsiteOnboardingService.onboardWithoutWebsite({
+      workspaceId,
+      sourceType,
+      sourceInput,
+      tradeMode,
+      hsCodes,
+    });
+
+    const io = req.app.get('io');
+    if (io && workspaceId) {
+      io.to(workspaceId.toString()).emit('strategy:created', {
+        strategy: result,
+        message: `🚀 Micro-Site & ${tradeMode === 'TWO_SIDED_TRADE' ? 'Two-Sided Trade Engine' : 'GTM Strategy'} initialized from ${sourceType}!`,
+      });
+    }
+
+    return res.json(result);
+  } catch (error) {
+    console.error('[StrategyRoutes] No-website onboarding error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });
