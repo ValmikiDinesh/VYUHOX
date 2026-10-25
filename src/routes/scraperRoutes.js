@@ -85,15 +85,8 @@ router.post('/start', authMiddleware, async (req, res) => {
     if (!wallet) {
       wallet = await Wallet.create({
         workspaceId,
-        balanceUSD: 50.0,
-        transactions: [
-          {
-            type: 'BONUS',
-            amountUSD: 50.0,
-            description: 'Complimentary Starter Credit',
-            referenceId: `START_${Date.now()}`,
-          },
-        ],
+        balanceUSD: 0.0,
+        transactions: [],
       });
     }
 

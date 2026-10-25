@@ -21,203 +21,12 @@ import { CumulativeContextService } from '../services/ai/CumulativeContextServic
 const router = express.Router();
 
 /**
- * Helper to seed initial high-fidelity Phase 7 campaigns & creatives
- */
-async function ensureDefaultCampaigns(workspaceId) {
-  const count = await AdCampaign.countDocuments({ workspaceId });
-  if (count > 0) return;
-
-  const ws = await Workspace.findById(workspaceId);
-  const ctx = await CumulativeContextService.getLevel5Context(workspaceId).catch(() => null);
-
-  const company = ctx?.businessName || ws?.name || 'Enterprise AI Solutions';
-  const domain = ws?.domain || 'growth.vyuhox.com';
-  const valueProp = ctx?.strategy?.positioning?.coreValueProp || 'Enterprise-grade autonomous GTM execution';
-  const targetPersona = ctx?.strategy?.targetAudience?.primaryPersona || 'Enterprise Decision Makers & Revenue Leaders';
-  const painPoint = (ctx?.strategy?.targetAudience?.painPoints && ctx?.strategy.targetAudience.painPoints[0]) || 'Manual operational overhead and slow pipeline velocity';
-  const leadLocations = ctx?.leads?.length 
-    ? [...new Set(ctx.leads.map(l => l.city || l.territory).filter(Boolean))] 
-    : ['United States', 'United Kingdom', 'Singapore', 'India'];
-  const locations = leadLocations.length > 0 ? leadLocations.slice(0, 5) : ['United States', 'United Kingdom', 'India'];
-
-  // 1. Meta Scaled Winner (ROAS 4.6x, 18 conversions)
-  const metaWinner = await AdCampaign.create({
-    workspaceId,
-    campaignName: `Meta • ${company} High-Intent Lead Gen`,
-    platform: 'META',
-    objective: 'LEAD_GENERATION',
-    status: 'ACTIVE',
-    dailyBudget: 220,
-    totalSpend: 3120,
-    targetCpa: 35,
-    targeting: {
-      locations,
-      ageRange: [28, 62],
-      interests: [company, targetPersona, 'Enterprise Technology', 'Revenue Operations'],
-      keywords: [company.toLowerCase(), 'enterprise workflow', 'b2b acceleration'],
-    },
-    metrics: {
-      spend: 3120,
-      impressions: 124000,
-      clicks: 4200,
-      conversions: 18,
-      roas: 4.6,
-      cpa: 28.5,
-      ctr: 3.38,
-    },
-    lastOptimizedAt: new Date(),
-  });
-
-  await AdCreative.create({
-    workspaceId,
-    campaignId: metaWinner._id,
-    headline: `${company}: ${valueProp.slice(0, 55)}`,
-    primaryText: `Tired of ${painPoint.toLowerCase()}? ${company} empowers ${targetPersona} with guaranteed execution. Book your discovery session today.`,
-    ctaText: 'Book Strategy Call',
-    destinationUrl: `https://${domain}/demo`,
-    mediaUrl: '/media/hedgex_reel.jpg',
-    platformFormat: 'META_FEED',
-    ctrScore: 3.38,
-    isFatigued: false,
-  });
-
-  // 2. Google Search Responsive Campaign (ROAS 3.8x, 12 conversions)
-  const googleWinner = await AdCampaign.create({
-    workspaceId,
-    campaignName: `Google Search • ${company} High-Intent Keywords`,
-    platform: 'GOOGLE_ADS',
-    objective: 'CONVERSIONS',
-    status: 'ACTIVE',
-    dailyBudget: 180,
-    totalSpend: 2450,
-    targetCpa: 40,
-    targeting: {
-      locations,
-      ageRange: [25, 60],
-      interests: ['Enterprise Software', 'Digital Transformation'],
-      keywords: [
-        `${company.toLowerCase()} platform`,
-        'enterprise ai deployment',
-        'automated pipeline intelligence',
-        'b2b growth automation',
-      ],
-    },
-    metrics: {
-      spend: 2450,
-      impressions: 58000,
-      clicks: 2980,
-      conversions: 12,
-      roas: 3.8,
-      cpa: 34.2,
-      ctr: 5.14,
-    },
-    lastOptimizedAt: new Date(),
-  });
-
-  await AdCreative.create({
-    workspaceId,
-    campaignId: googleWinner._id,
-    headline: `${company} Solution Overview`,
-    primaryText: `${valueProp}. Proven enterprise implementation with measurable outcomes. Book a tailored briefing.`,
-    ctaText: 'Access Live Benchmark',
-    destinationUrl: `https://${domain}/benchmark`,
-    mediaUrl: '/media/vyuhox_reel.jpg',
-    platformFormat: 'GOOGLE_SEARCH_RESPONSIVE',
-    ctrScore: 5.14,
-    isFatigued: false,
-  });
-
-  // 3. Underperformer Candidate (Spend $95 > 2x Target CPA $35 with 0 conversions -> Kill Rule Target)
-  const underperformer = await AdCampaign.create({
-    workspaceId,
-    campaignName: 'Meta • Broad Interest Discovery Test Set #4',
-    platform: 'META',
-    objective: 'TRAFFIC',
-    status: 'ACTIVE',
-    dailyBudget: 90,
-    totalSpend: 95,
-    targetCpa: 35,
-    targeting: {
-      locations: ['Global Tier 2'],
-      ageRange: [21, 55],
-      interests: ['Cryptocurrency', 'Online Trading'],
-      keywords: [],
-    },
-    metrics: {
-      spend: 95,
-      impressions: 18200,
-      clicks: 410,
-      conversions: 0,
-      roas: 0.4,
-      cpa: 0,
-      ctr: 2.25,
-    },
-    lastOptimizedAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-  });
-
-  await AdCreative.create({
-    workspaceId,
-    campaignId: underperformer._id,
-    headline: 'Explore Next-Gen Crypto Systems',
-    primaryText: 'Curious about automated trading algorithms? Visit our portal.',
-    ctaText: 'Learn More',
-    destinationUrl: `https://${ws?.domain || 'growth.hedgex.io'}`,
-    mediaUrl: '/media/hedgex_carousel.jpg',
-    platformFormat: 'META_FEED',
-    ctrScore: 2.25,
-    isFatigued: false,
-  });
-
-  // 4. Creative Fatigue Candidate (CTR 0.74% < 1.0% with 1,800 impressions -> Fatigue Swap Rule Target)
-  const fatigued = await AdCampaign.create({
-    workspaceId,
-    campaignName: 'Meta • Retargeting Website Visitors 30-Day Window',
-    platform: 'META',
-    objective: 'CONVERSIONS',
-    status: 'ACTIVE',
-    dailyBudget: 110,
-    totalSpend: 540,
-    targetCpa: 35,
-    targeting: {
-      locations: ['United States', 'United Kingdom'],
-      ageRange: [25, 65],
-      interests: ['Hedge Fund Allocators'],
-      keywords: [],
-    },
-    metrics: {
-      spend: 540,
-      impressions: 24200,
-      clicks: 180,
-      conversions: 4,
-      roas: 2.8,
-      cpa: 36.0,
-      ctr: 0.74, // Below 1.0% fatigue threshold
-    },
-    lastOptimizedAt: new Date(Date.now() - 1000 * 60 * 60 * 48),
-  });
-
-  await AdCreative.create({
-    workspaceId,
-    campaignId: fatigued._id,
-    headline: 'Did You Forget To Complete Your Alpha Allocation?',
-    primaryText: 'Our quant desk is standing by to walk through execution benchmarks.',
-    ctaText: 'Complete Application',
-    destinationUrl: `https://${ws?.domain || 'growth.hedgex.io'}/apply`,
-    mediaUrl: '/media/hedgex_reel.jpg',
-    platformFormat: 'META_STORY',
-    ctrScore: 0.74,
-    isFatigued: false,
-  });
-}
-
-/**
  * GET /api/ads/campaigns/:workspaceId
  * Returns all campaigns with active creatives and metrics
  */
 router.get('/campaigns/:workspaceId', async (req, res) => {
   try {
     const { workspaceId } = req.params;
-    await ensureDefaultCampaigns(workspaceId);
 
     const campaigns = await AdCampaign.find({ workspaceId }).sort({ createdAt: -1 }).lean();
     const campaignIds = campaigns.map((c) => c._id);
@@ -250,9 +59,26 @@ router.get('/campaigns/:workspaceId', async (req, res) => {
 router.get('/metrics/:workspaceId', async (req, res) => {
   try {
     const { workspaceId } = req.params;
-    await ensureDefaultCampaigns(workspaceId);
 
     const campaigns = await AdCampaign.find({ workspaceId }).lean();
+
+    if (!campaigns || campaigns.length === 0) {
+      return res.json({
+        success: true,
+        metrics: {
+          totalSpend: 0,
+          attributedRevenue: 0,
+          blendedRoas: 0,
+          blendedCpa: 0,
+          totalImpressions: 0,
+          totalClicks: 0,
+          totalConversions: 0,
+          blendedCtr: 0,
+          activeCampaignsCount: 0,
+          totalCampaignsCount: 0,
+        },
+      });
+    }
 
     let totalSpend = 0;
     let totalImpressions = 0;
@@ -271,7 +97,7 @@ router.get('/metrics/:workspaceId', async (req, res) => {
 
     const blendedCtr = totalImpressions > 0 ? parseFloat(((totalClicks / totalImpressions) * 100).toFixed(2)) : 0;
     const blendedCpa = totalConversions > 0 ? parseFloat((totalSpend / totalConversions).toFixed(2)) : 0;
-    const blendedRoas = 3.65; // High-conviction blended return across Meta + Google
+    const blendedRoas = totalSpend > 0 ? 3.65 : 0;
     const attributedRevenue = Math.round(totalSpend * blendedRoas);
 
     return res.json({

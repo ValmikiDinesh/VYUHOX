@@ -12,6 +12,7 @@ import {
   Server,
 } from 'lucide-react';
 import { api } from '../services/api';
+import { authStorage } from '../services/authStorage';
 
 export default function AdminAuthPage({
   onAuthSuccess,
@@ -38,10 +39,7 @@ export default function AdminAuthPage({
       });
 
       if (res.success) {
-        localStorage.setItem('vyuhox_token', res.token);
-        if (res.user) {
-          localStorage.setItem('vyuhox_user', JSON.stringify(res.user));
-        }
+        authStorage.setSession(res.token, res.user, res.workspace);
         const detectedCurrency = (() => {
           try {
             const saved = localStorage.getItem('vyuhox_currency');

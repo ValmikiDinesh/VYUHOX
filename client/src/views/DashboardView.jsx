@@ -60,7 +60,7 @@ export default function DashboardView({
     {
       label: 'Autonomous AI Actions',
       value: isAiMode ? '2,840' : '142',
-      change: isAiMode ? 'C-Suite Multi-Agent Live' : 'Tool Mode (Manual)',
+      change: 'Autonomous Multi-Agent AI Active',
       isPositive: isAiMode,
       icon: Zap,
       color: '#F59E0B',
@@ -130,9 +130,9 @@ export default function DashboardView({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span className={`badge ${isAiMode ? 'badge-emerald' : 'badge-cyan'}`}>
+              <span className="badge badge-emerald">
                 <Sparkles size={12} />
-                {isAiMode ? 'AUTONOMOUS AI COMPANY ENGINE ACTIVE' : 'TOOL MODE ACTIVE'}
+                AUTONOMOUS AI GTM MULTI-AGENT ENGINE ACTIVE
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
                 Targeting: {activeWorkspace?.industry || 'B2B'} Ecosystem

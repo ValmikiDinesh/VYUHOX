@@ -4,9 +4,9 @@ import { X, Building2, Sparkles } from 'lucide-react';
 export default function NewWorkspaceModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
     name: '',
-    industry: 'B2B',
+    industry: 'AI_AUTO_DETECT',
     domain: '',
-    operatingMode: 'TOOL',
+    operatingMode: 'AI_COMPANY',
   });
   const [loading, setLoading] = useState(false);
 
@@ -15,7 +15,10 @@ export default function NewWorkspaceModal({ isOpen, onClose, onSubmit }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await onSubmit(formData);
+    await onSubmit({
+      ...formData,
+      industry: formData.industry === 'AI_AUTO_DETECT' ? 'AI Auto-Detecting...' : formData.industry,
+    });
     setLoading(false);
     onClose();
   };
@@ -77,6 +80,7 @@ export default function NewWorkspaceModal({ isOpen, onClose, onSubmit }) {
               onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
               className="input-glass"
             >
+              <option value="AI_AUTO_DETECT">✨ Auto-Detect by AI LLM (Recommended)</option>
               <option value="B2B">B2B SaaS / Services</option>
               <option value="Cybersecurity">Cybersecurity & PQC</option>
               <option value="Crypto">Crypto & Web3</option>
@@ -88,6 +92,9 @@ export default function NewWorkspaceModal({ isOpen, onClose, onSubmit }) {
               <option value="Local">Local Services / SMB</option>
               <option value="Custom">Custom / Other</option>
             </select>
+            <span style={{ fontSize: '0.7rem', color: '#38BDF8', display: 'block', marginTop: '4px' }}>
+              AI LLM automatically discovers and categorizes your vertical upon crawling your link.
+            </span>
           </div>
 
           <div>
@@ -130,19 +137,6 @@ export default function NewWorkspaceModal({ isOpen, onClose, onSubmit }) {
             />
           </div>
 
-          <div>
-            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              Initial Operating Mode
-            </label>
-            <select
-              value={formData.operatingMode}
-              onChange={(e) => setFormData({ ...formData, operatingMode: e.target.value })}
-              className="input-glass"
-            >
-              <option value="TOOL">Tool Mode (Manual Operator)</option>
-              <option value="AI_COMPANY">Autonomous AI Company (24/7 Multi-Agent)</option>
-            </select>
-          </div>
 
           <div style={{
             padding: '12px',

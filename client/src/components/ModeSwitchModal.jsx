@@ -130,17 +130,17 @@ export default function ModeSwitchModal({
               </div>
 
               <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC', marginTop: '12px' }}>
-                Mode A: Self-Serve Tool Mode
+                Mode A: AI Starter Engine
               </h3>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px', lineHeight: '1.4' }}>
-                You control the tools directly. Full access to Lead Scraper, in-browser WebRTC dialer, omnichannel sequences, and ad manager.
+                Autonomous AI Multi-Agent starter plan with lead scraping, waterfall enrichment, and omnichannel outreach.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '14px' }}>
                 {[
-                  'Manual Lead Finder & Waterfall Enrichment',
+                  'Autonomous Lead Finder & Waterfall Enrichment',
                   'In-browser WebRTC Phone Dialer',
-                  'Omnichannel WhatsApp, Telegram & Email hub',
+                  'Omnichannel WhatsApp, Telegram & Email AI Hub',
                   'Meta & Google Ads Campaign Manager',
                   'Modular "Hire As You Grow" Agent option ($39/mo)',
                 ].map((feat, idx) => (
@@ -158,7 +158,7 @@ export default function ModeSwitchModal({
               fontSize: '0.7rem',
               color: 'var(--text-dim)',
             }}>
-              {currentMode === 'TOOL' ? '● Currently Active Mode' : 'Click to select Tool Mode'}
+              {currentMode === 'TOOL' ? '● Currently Active Mode' : 'Click to select AI Starter'}
             </div>
           </div>
 
@@ -284,7 +284,7 @@ export default function ModeSwitchModal({
             >
               {switching
                 ? 'Updating Mode...'
-                : `Confirm Switch to ${selectedMode === 'AI_COMPANY' ? 'AI Company ($249/mo)' : 'Tool Mode ($49/mo)'}`}
+                : `Confirm Switch to ${selectedMode === 'AI_COMPANY' ? 'Autonomous AI Company ($249/mo)' : 'AI Starter ($49/mo)'}`}
             </button>
           </div>
         </div>

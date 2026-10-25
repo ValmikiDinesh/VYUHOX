@@ -195,7 +195,7 @@ export default function AgentStore({ activeWorkspace, socket, onOpenModeModal })
           style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem' }}
         >
           <Sparkles size={15} color="#38BDF8" />
-          <span>Switch Operating Mode ({billingSummary?.operatingMode || 'TOOL'})</span>
+          <span>Autonomous AI Engine</span>
         </button>
       </div>
 
@@ -206,12 +206,12 @@ export default function AgentStore({ activeWorkspace, socket, onOpenModeModal })
             Current Operating Mode
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
-            <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: '800', color: isAiCompanyMode ? '#10B981' : '#38BDF8' }}>
-              {isAiCompanyMode ? 'Autonomous AI Company' : 'Self-Serve Tool Mode'}
+            <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: '800', color: '#10B981' }}>
+              Autonomous AI Company
             </span>
           </div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '4px' }}>
-            {isAiCompanyMode ? 'All 5 C-Suite Agents Bundled' : 'Modular "Hire As You Grow" active'}
+            {isAiCompanyMode ? 'All 5 C-Suite Agents Bundled' : 'Multi-Agent Autonomous AI Engine'}
           </div>
         </div>
 

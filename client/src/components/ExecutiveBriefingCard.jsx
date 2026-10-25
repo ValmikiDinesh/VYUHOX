@@ -167,25 +167,25 @@ export default function ExecutiveBriefingCard({
         <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
           <div style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>24h Leads Audited</div>
           <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#38BDF8', marginTop: '2px' }}>
-            +{kpis.leadsScraped24h || 18}
+            +{kpis.leadsScraped24h ?? 0}
           </div>
         </div>
         <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
           <div style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>Active Pipeline</div>
           <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#10B981', marginTop: '2px' }}>
-            ${(kpis.pipelineValueUSD || 48500).toLocaleString()}
+            ${(kpis.pipelineValueUSD ?? 0).toLocaleString()}
           </div>
         </div>
         <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
           <div style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>Demos Booked</div>
           <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#F59E0B', marginTop: '2px' }}>
-            {kpis.demosBooked24h || 3}
+            {kpis.demosBooked24h ?? 0}
           </div>
         </div>
         <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
           <div style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>Blended ROAS</div>
           <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#A855F7', marginTop: '2px' }}>
-            {kpis.blendedRoas || 3.8}x
+            {kpis.blendedRoas ? `${kpis.blendedRoas}x` : '0.00x'}
           </div>
         </div>
       </div>

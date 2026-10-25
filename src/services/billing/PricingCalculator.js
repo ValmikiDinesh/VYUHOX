@@ -56,14 +56,14 @@ export const AGENT_CATALOG = {
 
 export const PLAN_TIERS = {
   TOOL_MODE: {
-    name: 'Self-Serve Tool Mode',
+    name: 'Autonomous AI Starter',
     baseMonthlyFee: 49,
-    description: 'Full manual access to Lead Scraper, In-browser Dialer, Omnichannel Inbox, and Ad Manager.',
+    description: 'Autonomous AI access to Lead Scraper, In-browser Dialer, Omnichannel AI Drafter, and Ad Manager.',
     includedAgentsCount: 0,
     features: [
-      'Full Manual Scraper & Waterfall Enrichment',
+      'Autonomous Waterfall Lead Scraper & Enrichment',
       'In-browser WebRTC Phone Dialer',
-      'WhatsApp, Telegram & Email sequences',
+      'AI-Drafted WhatsApp, Telegram & Email sequences',
       'Meta & Google Ads Campaign Manager',
       'Universal DNC & Deliverability Audits',
       'Pay-as-you-go telephony usage wallet',
@@ -75,7 +75,7 @@ export const PLAN_TIERS = {
     description: 'Full autonomous C-Suite orchestration. All 5 AI agents + Central AI CEO included ($66/mo savings).',
     includedAgentsCount: 5,
     features: [
-      'Everything in Tool Mode included',
+      'Everything in AI Starter included',
       'All 5 AI Executives (CMO, SDR, Closer, CFO, CS) Active',
       'Central AI CEO 9:00 AM WhatsApp Morning Briefing',
       '1-Click Strategic Proposal Approvals',
@@ -214,7 +214,7 @@ class PricingCalculator {
 
     return {
       success: true,
-      message: `Operating mode updated to ${targetMode === 'AI_COMPANY' ? 'Autonomous AI Company' : 'Self-Serve Tool Mode'}`,
+      message: `Operating mode updated to ${targetMode === 'AI_COMPANY' ? 'Autonomous AI Company' : 'Autonomous AI Starter Engine'}`,
       workspace: ws,
     };
   }

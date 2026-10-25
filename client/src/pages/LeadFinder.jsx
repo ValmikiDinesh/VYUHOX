@@ -152,18 +152,20 @@ export default function LeadFinder({
 
   // Plan-Aware Free Quotas
   const PLAN_LIMITS = {
+    NONE: { name: 'Free Audit (No Plan)', quota: 0, badge: 'No Plan' },
     STARTER: { name: 'Starter AI Plan', quota: 250, badge: 'Starter' },
     GROWTH: { name: 'Growth Suite', quota: 1000, badge: 'Growth' },
     SCALE: { name: 'Autonomous Pro', quota: 5000, badge: 'Scale Pro' },
     ENTERPRISE: { name: 'Global Enterprise', quota: 25000, badge: 'Enterprise' },
   };
 
-  const currentPlanKey = activeWorkspace?.plan || 'GROWTH';
-  const planInfo = PLAN_LIMITS[currentPlanKey] || PLAN_LIMITS.GROWTH;
-  const monthlyQuota = activeWorkspace?.leadUsage?.monthlyIncludedQuota || planInfo.quota;
+  const planTier = activeWorkspace?.subscription?.planTier || activeWorkspace?.plan || 'NONE';
+  const isNoPlan = planTier === 'NONE';
+  const planInfo = PLAN_LIMITS[planTier] || PLAN_LIMITS.NONE;
+  const monthlyQuota = isNoPlan ? 0 : (activeWorkspace?.leadUsage?.monthlyIncludedQuota ?? planInfo.quota);
   const scrapedThisMonth = activeWorkspace?.leadUsage?.scrapedThisMonth || 0;
   const remainingFreeQuota = Math.max(0, monthlyQuota - scrapedThisMonth);
-  const quotaPercent = Math.min(100, Math.round((scrapedThisMonth / monthlyQuota) * 100));
+  const quotaPercent = monthlyQuota > 0 ? Math.min(100, Math.round((scrapedThisMonth / monthlyQuota) * 100)) : 0;
 
   // Current batch breakdown
   const freeBatch = Math.min(limit, remainingFreeQuota);
@@ -709,13 +711,13 @@ export default function LeadFinder({
         }}>
           <div>
             <div style={{ fontSize: '0.68rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {planInfo.badge} Plan Quota
+              {isNoPlan ? 'Plan Quota (No Plan)' : `${planInfo.badge} Plan Quota`}
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#10B981', marginTop: '2px' }}>
-              {remainingFreeQuota.toLocaleString()} <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>/ {monthlyQuota.toLocaleString()} free</span>
+            <div style={{ fontSize: '1.35rem', fontWeight: '800', color: isNoPlan ? '#64748B' : '#10B981', marginTop: '2px' }}>
+              {remainingFreeQuota.toLocaleString()} <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>/ {monthlyQuota.toLocaleString()} leads</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '1px' }}>
-              {scrapedThisMonth.toLocaleString()} used ({quotaPercent}%) • 0 overage
+              {isNoPlan ? 'Upgrade to a package to unlock lead quotas' : `${scrapedThisMonth.toLocaleString()} used (${quotaPercent}%) • 0 overage`}
             </div>
           </div>
           <Zap size={20} color="#10B981" />

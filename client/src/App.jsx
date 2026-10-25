@@ -36,15 +36,13 @@ import BulkImportModal from './components/modals/BulkImportModal';
 import ConnectChannelsModal from './components/modals/ConnectChannelsModal';
 
 import { api } from './services/api';
+import { authStorage } from './services/authStorage';
 
 export default function App() {
   const [workspaces, setWorkspaces] = useState([]);
   const [activeWorkspace, setActiveWorkspace] = useState(() => {
     try {
-      const saved = localStorage.getItem('vyuhox_active_workspace');
-      if (saved) return JSON.parse(saved);
-      const savedId = localStorage.getItem('vyuhox_active_ws_id');
-      if (savedId) return { _id: savedId, name: 'Quantum Shield' };
+      return authStorage.getActiveWorkspace();
     } catch (e) {}
     return null;
   });
@@ -140,8 +138,7 @@ export default function App() {
   // Current Logged-In User Identity
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('vyuhox_user');
-      return saved ? JSON.parse(saved) : null;
+      return authStorage.getUser();
     } catch (e) {
       return null;
     }
@@ -150,14 +147,15 @@ export default function App() {
   // Role / Persona Simulation (superadmin, client_ai, client_tool)
   const [rolePersona, setRolePersona] = useState(() => {
     try {
-      const saved = localStorage.getItem('vyuhox_user');
-      if (saved) {
-        const u = JSON.parse(saved);
+      const u = authStorage.getUser();
+      const w = authStorage.getActiveWorkspace();
+      if (u) {
         if (u.role === 'superadmin') return 'superadmin';
-        return 'client_ai';
+        const isPaidAi = w?.operatingMode === 'AI_COMPANY' && w?.subscription?.planTier && w?.subscription?.planTier !== 'NONE';
+        return isPaidAi ? 'client_ai' : 'client_tool';
       }
     } catch (e) {}
-    return 'client_ai';
+    return 'client_tool';
   });
   const [isAdminInspectionMode, setIsAdminInspectionMode] = useState(false);
 
@@ -186,16 +184,23 @@ export default function App() {
   useEffect(() => {
     const initApp = async () => {
       try {
-        const token = localStorage.getItem('vyuhox_token');
-        const meRes = await api.getMe(token || undefined);
+        const token = authStorage.getToken();
+        if (!token) {
+          setCurrentUser(null);
+          setActiveWorkspace(null);
+          setWorkspaces([]);
+          return;
+        }
+
+        const meRes = await api.getMe(token);
         if (meRes.success && meRes.user) {
           setCurrentUser(meRes.user);
-          localStorage.setItem('vyuhox_user', JSON.stringify(meRes.user));
+          authStorage.setUser(meRes.user);
 
           const wsList = meRes.workspaces || [];
           setWorkspaces(wsList);
 
-          const savedWsId = localStorage.getItem('vyuhox_active_ws_id');
+          const savedWsId = authStorage.getActiveWsId();
           let matchedWs = null;
 
           if (savedWsId && wsList.length > 0) {
@@ -210,70 +215,25 @@ export default function App() {
 
           if (matchedWs) {
             setActiveWorkspace(matchedWs);
-            localStorage.setItem('vyuhox_active_ws_id', matchedWs._id);
-            localStorage.setItem('vyuhox_active_workspace', JSON.stringify(matchedWs));
-            setOperatingMode(matchedWs.operatingMode || 'AI_COMPANY');
-            if (meRes.user.role === 'superadmin') {
-              setRolePersona('superadmin');
-            } else {
-              setRolePersona('client_ai');
-            }
-            return;
-          }
-        }
-
-        // Fallback if no token, unauthenticated, or activeWorkspace not resolved
-        const res = await api.getWorkspaces();
-        if (res.success && res.workspaces && res.workspaces.length > 0) {
-          const availableWs = res.workspaces;
-          setWorkspaces(availableWs);
-
-          // Find workspace corresponding to current user or saved workspace ID
-          const savedWsId = localStorage.getItem('vyuhox_active_ws_id');
-          let matchedWs = null;
-
-          if (savedWsId) {
-            matchedWs = availableWs.find((w) => String(w._id) === String(savedWsId));
-          }
-          if (!matchedWs && currentUser?.workspaceId) {
-            matchedWs = availableWs.find(
-              (w) => String(w._id) === String(currentUser.workspaceId)
-            );
-          }
-          if (!matchedWs) {
-            matchedWs = availableWs.find(
-              (w) =>
-                (w.name && w.name.toLowerCase().includes('quantum')) ||
-                (w.ownerEmail && w.ownerEmail.toLowerCase().includes('valmiki')) ||
-                (currentUser?.email && w.ownerEmail && w.ownerEmail.toLowerCase() === currentUser.email.toLowerCase())
-            );
+            authStorage.setActiveWorkspace(matchedWs);
+            setOperatingMode(matchedWs.operatingMode || 'TOOL');
           }
 
-          const defaultWs = matchedWs || availableWs[0];
-          if (defaultWs) {
-            setActiveWorkspace(defaultWs);
-            localStorage.setItem('vyuhox_active_ws_id', defaultWs._id);
-            localStorage.setItem('vyuhox_active_workspace', JSON.stringify(defaultWs));
-            setOperatingMode(defaultWs.operatingMode || 'AI_COMPANY');
-            if (!currentUser || !currentUser.email) {
-              const fallbackUserData = {
-                name: defaultWs.ownerName || 'Dinesh Valmiki',
-                email: defaultWs.ownerEmail || 'valmikidineshoffcl@gmail.com',
-                role: 'workspace_owner',
-                workspaceId: defaultWs._id,
-              };
-              setCurrentUser(fallbackUserData);
-              localStorage.setItem('vyuhox_user', JSON.stringify(fallbackUserData));
-            }
-          }
-          if (currentUser?.role === 'superadmin') {
+          if (meRes.user.role === 'superadmin') {
             setRolePersona('superadmin');
           } else {
-            setRolePersona('client_ai');
+            const isPaidAi = matchedWs?.operatingMode === 'AI_COMPANY' && matchedWs?.subscription?.planTier && matchedWs?.subscription?.planTier !== 'NONE';
+            setRolePersona(isPaidAi ? 'client_ai' : 'client_tool');
           }
+        } else {
+          // Token invalid or expired
+          authStorage.clearSession();
+          setCurrentUser(null);
+          setActiveWorkspace(null);
+          setWorkspaces([]);
         }
       } catch (err) {
-        console.error('Failed to initialize workspaces:', err);
+        console.error('Failed to initialize session:', err);
       }
     };
     initApp();
@@ -509,51 +469,52 @@ export default function App() {
     setCurrentView('landing');
   };
 
-  const handleAdminAuthSuccess = (user, workspace, chosenCurr) => {
+  const handleAdminAuthSuccess = (user, workspace, chosenCurr, token = null) => {
     if (chosenCurr) setCurrency(chosenCurr);
     setIsAdminInspectionMode(false);
     setRolePersona('superadmin');
     const adminUser = user || {
       id: 'usr_superadmin',
-      name: 'Nanda Sai (Platform Owner)',
+      name: 'Super Admin',
       email: 'admin@vyuhox.ai',
       role: 'superadmin',
     };
     setCurrentUser(adminUser);
-    localStorage.setItem('vyuhox_user', JSON.stringify(adminUser));
-    if (workspace) setActiveWorkspace(workspace);
+    authStorage.setUser(adminUser);
+    if (token) authStorage.setToken(token);
+    if (workspace) {
+      setActiveWorkspace(workspace);
+      authStorage.setActiveWorkspace(workspace);
+    }
     window.location.hash = '#app';
     setCurrentView('app');
   };
 
-  const handleClientAuthSuccess = (user, workspace, chosenCurr, role = 'client_ai') => {
+  const handleClientAuthSuccess = (user, workspace, chosenCurr, role = 'client_tool', token = null) => {
     if (chosenCurr) setCurrency(chosenCurr);
     setIsAdminInspectionMode(false);
     setRolePersona(role);
     setCurrentUser(user);
-    if (user) {
-      localStorage.setItem('vyuhox_user', JSON.stringify(user));
-    }
+    if (token) authStorage.setToken(token);
+    if (user) authStorage.setUser(user);
     if (workspace) {
       setActiveWorkspace(workspace);
+      authStorage.setActiveWorkspace(workspace);
       if (user?.role !== 'superadmin') {
         setWorkspaces([workspace]);
       }
     }
-    if (role === 'client_ai') {
-      setOperatingMode('AI_COMPANY');
-    } else {
-      setOperatingMode(workspace?.operatingMode || 'TOOL');
-    }
+    setOperatingMode(workspace?.operatingMode || 'TOOL');
     setActiveTab('dashboard');
     window.location.hash = '#app';
     setCurrentView('app');
   };
 
   const handleSignOut = () => {
-    localStorage.removeItem('vyuhox_token');
-    localStorage.removeItem('vyuhox_user');
+    authStorage.clearSession();
     setCurrentUser(null);
+    setActiveWorkspace(null);
+    setWorkspaces([]);
     setRolePersona('client_ai');
     window.location.hash = '#login';
     setCurrentView('client_login');
@@ -652,6 +613,18 @@ export default function App() {
     );
   }
 
+  // 8. Enforce Authentication for App Workspace
+  if (currentView === 'app' && !currentUser && !authStorage.getToken()) {
+    return (
+      <ClientAuthPage
+        initialMode="signin"
+        defaultCurrency={currency}
+        onAuthSuccess={handleClientAuthSuccess}
+        onBackToLanding={handleViewLanding}
+      />
+    );
+  }
+
   // Handle Role Persona Simulation Switching
   const handleChangeRolePersona = (roleId) => {
     setIsAdminInspectionMode(false);
@@ -685,8 +658,8 @@ export default function App() {
         currentUser={currentUser}
         onSelectWorkspace={(ws) => {
           setActiveWorkspace(ws);
-          if (ws?._id) localStorage.setItem('vyuhox_active_ws_id', ws._id);
-          setOperatingMode(ws.operatingMode || 'TOOL');
+          if (ws?._id) authStorage.setActiveWsId(ws._id);
+          setOperatingMode(ws.operatingMode || 'AI_COMPANY');
         }}
         onOpenNewWorkspaceModal={() => setIsNewWorkspaceModalOpen(true)}
         operatingMode={operatingMode}
@@ -789,6 +762,14 @@ export default function App() {
               onNavigateTab={(tab) => setActiveTab(tab)}
               onOpenAddFundsModal={() => setIsAddFundsModalOpen(true)}
               onToggleOperatingMode={handleToggleOperatingMode}
+              onUpdateActiveWorkspace={(updatedWs) => {
+                setActiveWorkspace(updatedWs);
+                authStorage.setActiveWorkspace(updatedWs);
+                if (updatedWs.operatingMode) {
+                  setOperatingMode(updatedWs.operatingMode);
+                }
+              }}
+              onOpenPlanModal={() => setIsModeModalOpen(true)}
               currency={currency}
               exchangeRate={exchangeRate}
             />
@@ -816,6 +797,14 @@ export default function App() {
               onNavigateTab={(tab) => setActiveTab(tab)}
               onOpenAddFundsModal={() => setIsAddFundsModalOpen(true)}
               onToggleOperatingMode={handleToggleOperatingMode}
+              onUpdateActiveWorkspace={(updatedWs) => {
+                setActiveWorkspace(updatedWs);
+                authStorage.setActiveWorkspace(updatedWs);
+                if (updatedWs.operatingMode) {
+                  setOperatingMode(updatedWs.operatingMode);
+                }
+              }}
+              onOpenPlanModal={() => setIsModeModalOpen(true)}
               currency={currency}
               exchangeRate={exchangeRate}
             />

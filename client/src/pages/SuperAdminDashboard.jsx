@@ -2459,7 +2459,7 @@ export default function SuperAdminDashboard({
             </div>
 
             <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
-              <div style={{ fontSize: '0.725rem', color: '#BAE6FD', fontWeight: '600', textTransform: 'uppercase' }}>Self-Serve Tool Mode</div>
+              <div style={{ fontSize: '0.725rem', color: '#BAE6FD', fontWeight: '600', textTransform: 'uppercase' }}>AI Starter Engine</div>
               <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#06B6D4', marginTop: '4px' }}>
                 {workspaces.filter((w) => w.operatingMode !== 'AI_COMPANY').length}
               </div>
@@ -2516,7 +2516,7 @@ export default function SuperAdminDashboard({
                 {[
                   { id: 'ALL', label: 'All Tenants' },
                   { id: 'AI_COMPANY', label: 'Autonomous AI' },
-                  { id: 'TOOL', label: 'Tool Mode' },
+                  { id: 'TOOL', label: 'AI Starter' },
                 ].map((tf) => (
                   <button
                     key={tf.id}
@@ -2636,10 +2636,10 @@ export default function SuperAdminDashboard({
                           <td style={{ padding: '14px 14px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               <span className={`badge ${isAi ? 'badge-emerald' : 'badge-cyan'}`} style={{ fontSize: '0.675rem' }}>
-                                {isAi ? '⚡ Autonomous AI Co.' : '🛠️ Self-Serve Tool Mode'}
+                                {isAi ? '⚡ Autonomous AI Co.' : '⚡ AI Starter Engine'}
                               </span>
                               <span style={{ fontSize: '0.7rem', color: '#CBD5E1', fontWeight: '600' }}>
-                                {ws.subscription?.planTier ? ws.subscription.planTier.replace(/_/g, ' ') : (isAi ? 'AI STARTER ($249/mo)' : 'TOOL MODE ($49/mo)')}
+                                {ws.subscription?.planTier ? ws.subscription.planTier.replace(/_/g, ' ') : (isAi ? 'AI STARTER ($249/mo)' : 'AI STARTER ($49/mo)')}
                               </span>
                             </div>
                           </td>
@@ -3312,8 +3312,8 @@ export default function SuperAdminDashboard({
                       textAlign: 'left',
                     }}
                   >
-                    <div style={{ fontWeight: '700', fontSize: '0.825rem' }}>🛠️ Self-Serve Tool Mode</div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Manual dialing, scraper, and inbox. Low entry fee ($49/mo).</div>
+                    <div style={{ fontWeight: '700', fontSize: '0.825rem' }}>⚡ AI Starter Engine</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Autonomous scraper, omnichannel AI drafter &amp; CRM ($49/mo).</div>
                   </button>
 
                   <button
@@ -3349,8 +3349,8 @@ export default function SuperAdminDashboard({
                   className="input-glass"
                   style={{ height: '36px', fontSize: '0.825rem' }}
                 >
-                  <option value="TOOL_MODE">Tool Mode Core ($49/mo | ₹3,999/mo)</option>
-                  <option value="MODULAR_AI">Tool + 1 Agent ($99/mo | ₹7,999/mo)</option>
+                  <option value="TOOL_MODE">AI Starter Core ($49/mo | ₹3,999/mo)</option>
+                  <option value="MODULAR_AI">AI SDR Accelerator ($99/mo | ₹7,999/mo)</option>
                   <option value="AI_COMPANY">Autonomous AI Company ($499/mo | ₹39,999/mo)</option>
                   <option value="ENTERPRISE">Autonomous Enterprise Suite ($1,499/mo | ₹1,19,999/mo)</option>
                   <option value="CUSTOM">Custom Enterprise Contract</option>

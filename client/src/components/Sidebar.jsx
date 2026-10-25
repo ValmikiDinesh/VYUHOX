@@ -71,7 +71,7 @@ export default function Sidebar({
     { id: 'integrations', label: 'Channel Integrations', icon: Link2, count: 'Multi-Tenant' },
     { id: 'compliance', label: 'Deliverability & DNC', icon: Shield, count: '10DLC' },
     { id: 'seo-aeo', label: 'SEO & AEO Authority', icon: Sparkles, count: 'DR 50+' },
-    { id: 'ai-company', label: 'AI Company HQ', icon: Bot, count: rolePersona === 'client_tool' ? 'Locked' : 'Live' },
+    { id: 'ai-company', label: 'AI Company HQ', icon: Bot, count: 'Live' },
     { id: 'agent-store', label: 'AI Employee Store', icon: ShoppingBag, count: 'New' },
     { id: 'admin-plans', label: 'Plans & Pricing Admin', icon: Shield, count: 'Admin', superadminOnly: true },
     { id: 'flywheel', label: 'Growth Flywheel', icon: RefreshCw, count: 'Auto', superadminOnly: true },
@@ -304,35 +304,26 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Mode Indicator & Switcher Badge */}
+        {/* Autonomous AI GTM Engine Badge */}
         <div style={{ marginTop: '14px' }}>
           <div
-            onClick={onToggleOperatingMode}
             style={{
               padding: '10px 12px',
               borderRadius: '10px',
-              background: isAiMode
-                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)'
-                : 'rgba(255, 255, 255, 0.03)',
-              border: isAiMode
-                ? '1px solid rgba(16, 185, 129, 0.4)'
-                : '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%)',
+              border: '1px solid rgba(6, 182, 212, 0.35)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              cursor: 'pointer',
-              transition: 'all 0.25s',
-              boxShadow: isAiMode ? '0 0 16px rgba(16, 185, 129, 0.2)' : 'none',
+              boxShadow: '0 0 16px rgba(6, 182, 212, 0.15)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span
                 className="live-dot"
                 style={{
-                  background: isAiMode ? '#10B981' : '#06B6D4',
-                  boxShadow: isAiMode
-                    ? '0 0 10px #10B981'
-                    : '0 0 8px #06B6D4',
+                  background: '#10B981',
+                  boxShadow: '0 0 10px #10B981',
                 }}
               />
               <div>
@@ -340,17 +331,17 @@ export default function Sidebar({
                   fontSize: '0.75rem',
                   fontWeight: '700',
                   letterSpacing: '0.04em',
-                  color: isAiMode ? '#34D399' : '#38BDF8',
+                  color: '#38BDF8',
                   textTransform: 'uppercase',
                 }}>
-                  {isAiMode ? 'AI Company Active' : 'Tool Mode'}
+                  Autonomous AI GTM
                 </div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>
-                  {isAiMode ? 'Multi-Agent C-Suite Running' : 'Manual GTM Operation'}
+                <div style={{ fontSize: '0.65rem', color: '#94A3B8' }}>
+                  24/7 AI Multi-Agent Engine
                 </div>
               </div>
             </div>
-            <Sparkles size={16} color={isAiMode ? '#34D399' : '#06B6D4'} />
+            <Sparkles size={16} color="#06B6D4" />
           </div>
         </div>
       </div>
@@ -512,15 +503,19 @@ export default function Sidebar({
             </div>
             <div style={{
               fontSize: '0.675rem',
-              color: rolePersona === 'client_ai' ? '#34D399' : rolePersona === 'client_tool' ? '#FBBF24' : '#10B981',
+              color: isSuperadmin ? '#10B981' : (!activeWorkspace?.subscription?.planTier || activeWorkspace?.subscription?.planTier === 'NONE') ? '#94A3B8' : rolePersona === 'client_ai' ? '#34D399' : '#FBBF24',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
             }}>
               <Shield size={10} />
-              {rolePersona === 'superadmin' && 'Superadmin'}
-              {rolePersona === 'client_ai' && 'AI Company ($249)'}
-              {rolePersona === 'client_tool' && 'Tool User ($49)'}
+              {isSuperadmin
+                ? 'Superadmin'
+                : (!activeWorkspace?.subscription?.planTier || activeWorkspace?.subscription?.planTier === 'NONE')
+                ? 'Plan: None (Free Audit)'
+                : activeWorkspace?.subscription?.planTier === 'TOOL_MODE'
+                ? 'Tool User ($49)'
+                : 'AI Company ($249)'}
             </div>
           </div>
         </div>

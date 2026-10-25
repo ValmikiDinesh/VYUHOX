@@ -45,22 +45,29 @@ export class DailyBriefingJob {
 
     const pipelineValue = (totalLeads * 1250) + (demos24h * 5000);
 
+    const hasStrategy = !!ws.currentStrategyId;
+    const isColdStart = (totalLeads === 0 && !hasStrategy);
+
     // Generate LLM Synthesis
     const prompt = `
 You are the AI Chief Revenue Officer (CRO) for ${ws.name || 'Enterprise'}.
 Analyze these 24-hour performance metrics and synthesize a high-impact, concise morning briefing for the founder.
+Workspace Industry: ${ws.industry || 'Business'}
+Business Category: ${ws.businessCategory || 'General'}
+Has Crawled Strategy: ${hasStrategy ? 'YES' : 'NO'}
 
 METRICS (Last 24 Hours):
 - New Leads Prospect & Audited: ${leads24h} (Total Database: ${totalLeads})
 - Demos Booked on Calendar: ${demos24h}
 - Active Paid Ad Campaigns: ${activeCampaignCount}
-- Blended Ad ROAS: ${blendedRoas}x
+- Blended Ad ROAS: ${activeCampaignCount > 0 ? blendedRoas + 'x' : '0.00x (No campaigns active)'}
 - Estimated Active Pipeline Value: $${pipelineValue.toLocaleString()}
 
 TASK:
-1. Write a 2-sentence executive summary highlighting top opportunities and growth bottlenecks.
-2. Formulate 2 high-leverage 1-Click Action Cards that the founder can approve in one click to accelerate revenue.
-   Action Types must be one of: "SCRAPE_LEADS", "SCALE_AD_BUDGET", "TRIGGER_RE_ENGAGEMENT".
+1. Write a 2-sentence executive summary highlighting current status, top opportunities and growth bottlenecks.
+${isColdStart ? 'NOTE: This is a fresh workspace without a website crawl or leads yet. Explicitly instruct the founder to crawl their business link in Step 1 to initialize the autonomous revenue engine.' : ''}
+2. Formulate 2 high-leverage 1-Click Action Cards tailored to ${ws.name || 'the business'}.
+   Action Types must be one of: "CRAWL_WEBSITE", "SCRAPE_LEADS", "SCALE_AD_BUDGET", "TRIGGER_RE_ENGAGEMENT", "CALCULATE_ICP".
 
 OUTPUT JSON:
 {
@@ -71,13 +78,9 @@ OUTPUT JSON:
       "actionId": "act_1",
       "title": "string",
       "description": "string",
-      "actionType": "SCRAPE_LEADS" | "SCALE_AD_BUDGET" | "TRIGGER_RE_ENGAGEMENT",
-      "estimatedImpact": "+15-20 Qualified Decision Maker Leads",
-      "executionPayload": {
-        "query": "string",
-        "targetRole": "BUYER" | "DECISION_MAKER",
-        "budgetIncrement": 50
-      }
+      "actionType": "CRAWL_WEBSITE" | "SCRAPE_LEADS" | "SCALE_AD_BUDGET" | "TRIGGER_RE_ENGAGEMENT" | "CALCULATE_ICP",
+      "estimatedImpact": "string",
+      "executionPayload": {}
     }
   ]
 }
@@ -99,30 +102,56 @@ OUTPUT JSON:
       console.warn('[DailyBriefingJob] LLM synthesis fallback:', e.message);
     }
 
-    // High-fidelity fallback if LLM synthesis errors
-    if (!briefingContent || !briefingContent.actions) {
-      briefingContent = {
-        title: 'Autonomous Morning Executive Intelligence Briefing',
-        executiveSummary: `Outbound acquisition is performing with a blended ROAS of ${blendedRoas}x across ${activeCampaignCount} active campaigns. Speed-to-lead response rates on calendar bookings are pacing ahead of Q4 targets.`,
-        actions: [
-          {
-            actionId: `act_scrape_${Date.now()}`,
-            title: `Scrape 50 Verified B2B Decision Makers in ${ws.targetAudience?.locations?.[0] || 'San Francisco'}`,
-            description: `Automated 2-step prospector targeting validated corporate email and telephone verified C-level profiles.`,
-            actionType: 'SCRAPE_LEADS',
-            estimatedImpact: '+18 High-Intent Conversations',
-            executionPayload: { query: 'Fintech and Enterprise SaaS CTOs', targetRole: 'DECISION_MAKER', count: 50 },
-          },
-          {
-            actionId: `act_scale_${Date.now()}`,
-            title: `Scale Winning Meta Campaign by +$50/day`,
-            description: `Top performing AdSet has sustained a ${blendedRoas}x ROAS with zero CPA fatigue. Algorithmic budget boost recommended.`,
-            actionType: 'SCALE_AD_BUDGET',
-            estimatedImpact: '+$4,200 Attributed Pipeline',
-            executionPayload: { budgetIncrement: 50 },
-          },
-        ],
-      };
+    // High-fidelity, authentic fallback if LLM synthesis errors or is unconfigured
+    if (!briefingContent || !briefingContent.actions || briefingContent.actions.length === 0) {
+      if (isColdStart) {
+        briefingContent = {
+          title: 'Autonomous Executive Intelligence Briefing • Initializing',
+          executiveSummary: `Welcome ${ws.name || 'Founder'}! Your autonomous AI revenue engine is initialized and on standby. Step 1: Submit your business website or link below to crawl your offerings, discover high-intent buyer personas, and activate your multi-agent team.`,
+          actions: [
+            {
+              actionId: `act_crawl_${Date.now()}`,
+              title: `Crawl Website & Synthesize Tailored GTM Strategy`,
+              description: `Deeply inspect your website or business link to extract your authentic value propositions and program Maya Voice Closer & Sarah SDR.`,
+              actionType: 'CRAWL_WEBSITE',
+              estimatedImpact: '+100% Customized GTM Foundation',
+              executionPayload: { step: 'CRAWL' },
+            },
+            {
+              actionId: `act_icp_${Date.now()}`,
+              title: `Run Free AI ICP & TAM Sizing Calculator`,
+              description: `Estimate your Total Addressable Market (TAM) and high-intent buyer personas based on your industry niche.`,
+              actionType: 'CALCULATE_ICP',
+              estimatedImpact: '+Target Persona Discovery',
+              executionPayload: { tool: 'icp-calculator' },
+            },
+          ],
+        };
+      } else {
+        const targetDesc = ws.businessCategory || ws.industry || 'Market Decision Makers';
+        briefingContent = {
+          title: 'Autonomous Morning Executive Intelligence Briefing',
+          executiveSummary: `Outbound pipeline for ${ws.name} is currently monitoring ${totalLeads} qualified prospects across ${activeCampaignCount} active campaigns. Speed-to-lead response rates on inbound bookings are active.`,
+          actions: [
+            {
+              actionId: `act_scrape_${Date.now()}`,
+              title: `Scrape 25 High-Intent Prospects for ${targetDesc}`,
+              description: `Automated multi-step prospector targeting verified decision-maker emails and contact channels tailored to your industry.`,
+              actionType: 'SCRAPE_LEADS',
+              estimatedImpact: '+15 High-Intent Conversations',
+              executionPayload: { query: `${targetDesc} Decision Makers`, targetRole: 'DECISION_MAKER', count: 25 },
+            },
+            {
+              actionId: `act_warmup_${Date.now()}`,
+              title: `Activate Omnichannel Outreach Cadence`,
+              description: `Dispatch automated hyper-personalized email and WhatsApp touchpoints using Sarah SDR.`,
+              actionType: 'TRIGGER_RE_ENGAGEMENT',
+              estimatedImpact: '+28% Meeting Booking Velocity',
+              executionPayload: { channel: 'OMNICHANNEL' },
+            },
+          ],
+        };
+      }
     }
 
     const briefing = await AiBriefing.create({
@@ -131,21 +160,21 @@ OUTPUT JSON:
       title: briefingContent.title || 'Autonomous Morning Executive Intelligence Briefing',
       executiveSummary: briefingContent.executiveSummary,
       kpiSnapshot: {
-        leadsScraped24h: leads24h || 18,
-        emailsSent24h: Math.floor(Math.random() * 45 + 32),
-        callsCompleted24h: Math.floor(Math.random() * 12 + 6),
-        demosBooked24h: demos24h || 3,
-        pipelineValueUSD: pipelineValue || 48500,
-        blendedRoas: Number(blendedRoas) || 3.8,
+        leadsScraped24h: leads24h,
+        emailsSent24h: 0,
+        callsCompleted24h: 0,
+        demosBooked24h: demos24h,
+        pipelineValueUSD: pipelineValue,
+        blendedRoas: campaigns.length > 0 ? Number(blendedRoas) : 0.0,
         churnRiskTenantsCount: 0,
-        platformWholesaleCostUSD: 14.80,
+        platformWholesaleCostUSD: 0.0,
       },
       actionCards: briefingContent.actions.map((act) => ({
         actionId: act.actionId || `act_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         title: act.title,
         description: act.description,
-        actionType: act.actionType || 'SCRAPE_LEADS',
-        estimatedImpact: act.estimatedImpact || '+12 Qualified Leads',
+        actionType: act.actionType || 'CRAWL_WEBSITE',
+        estimatedImpact: act.estimatedImpact || '+Autonomous Optimization',
         executionPayload: act.executionPayload || {},
         status: 'PENDING',
       })),
@@ -256,6 +285,10 @@ OUTPUT JSON:
         await campaign.save();
         executionOutput = { updatedDailyBudget: campaign.dailyBudget, campaignName: campaign.campaignName };
       }
+    } else if (card.actionType === 'CRAWL_WEBSITE') {
+      executionOutput = { status: 'READY_TO_CRAWL', step: 1, action: 'FOCUS_CRAWLER_INPUT' };
+    } else if (card.actionType === 'CALCULATE_ICP') {
+      executionOutput = { status: 'TOOL_LAUNCHED', route: '#tools/icp-calculator' };
     } else {
       executionOutput = { appliedAt: new Date().toISOString(), status: 'DISPATCHED_TO_CARRIER' };
     }

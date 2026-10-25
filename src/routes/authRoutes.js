@@ -19,7 +19,7 @@ const generateToken = (userId) => {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, companyName, industry, businessCategory, businessModelDescription } = req.body;
+    const { name, email, password, companyName, industry, businessCategory, businessModelDescription, websiteUrl } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
@@ -38,13 +38,30 @@ router.post('/register', async (req, res) => {
     const slugBase = finalCompanyName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
     const slug = `${slugBase}-${Date.now().toString().slice(-4)}`;
 
+    const cleanDomain = websiteUrl ? websiteUrl.replace(/^https?:\/\//, '').split('/')[0].replace(/^www\./, '') : '';
+    const initialIndustry = industry === 'AI_AUTO_DETECT' ? 'AI Auto-Detecting...' : (industry || 'B2B');
+
     const workspace = await Workspace.create({
       name: finalCompanyName,
       slug,
-      industry: industry || 'B2B',
-      businessCategory: businessCategory || '',
+      domain: cleanDomain,
+      industry: initialIndustry,
+      businessCategory: businessCategory || (industry === 'AI_AUTO_DETECT' ? 'AI Auto-Discovery Enabled' : ''),
       businessModelDescription: businessModelDescription || '',
-      operatingMode: 'TOOL',
+      operatingMode: 'AI_COMPANY',
+      subscription: {
+        planTier: 'NONE',
+        baseMonthlyFee: 0,
+        agentAddonFee: 0,
+        totalMonthlyFee: 0,
+        status: 'FREE_AUDIT',
+        billingCycle: 'MONTHLY',
+      },
+      leadUsage: {
+        monthlyIncludedQuota: 0,
+        scrapedThisMonth: 0,
+        cycleResetDate: new Date(),
+      },
       ownerEmail: email.toLowerCase(),
       ownerName: name,
       branding: {
@@ -54,18 +71,11 @@ router.post('/register', async (req, res) => {
       },
     });
 
-    // Create initial wallet with $50 complimentary GTM balance
+    // Create initial wallet with $0.0 balance. Real money only added via payment/transaction.
     await Wallet.create({
       workspaceId: workspace._id,
-      balanceUSD: 50.0,
-      transactions: [
-        {
-          type: 'BONUS',
-          amountUSD: 50.0,
-          description: 'Welcome GTM Promotional Credit',
-          referenceId: `WELCOME_${Date.now()}`,
-        },
-      ],
+      balanceUSD: 0.0,
+      transactions: [],
     });
 
     const user = await User.create({
@@ -235,13 +245,19 @@ router.get('/me', authMiddleware, async (req, res) => {
       activeWorkspace = workspaces[0];
     }
     if (!activeWorkspace) {
-      activeWorkspace = await Workspace.findOne().sort({ createdAt: -1 });
-    }
-
-    // Automatically synchronize user workspaceId if needed
-    if (activeWorkspace && user && user.role !== 'superadmin' && String(user.workspaceId) !== String(activeWorkspace._id)) {
-      await User.findByIdAndUpdate(user._id, { workspaceId: activeWorkspace._id });
-      user.workspaceId = activeWorkspace._id;
+      if (user && user.role === 'superadmin') {
+        activeWorkspace = await Workspace.findOne().sort({ createdAt: -1 });
+      } else if (user) {
+        // Safe auto-creation of the user's isolated workspace if missing
+        activeWorkspace = await Workspace.create({
+          name: `${user.name || user.email.split('@')[0]}'s Workspace`,
+          ownerEmail: user.email,
+          ownerName: user.name || '',
+          operatingMode: 'AI_COMPANY',
+        });
+        await User.findByIdAndUpdate(user._id, { workspaceId: activeWorkspace._id });
+        user.workspaceId = activeWorkspace._id;
+      }
     }
 
     if (workspaces.length === 0 && activeWorkspace) {

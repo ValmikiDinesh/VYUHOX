@@ -9,6 +9,8 @@ import { SMSService } from '../services/messaging/SMSService.js';
 import { EmailSequenceService } from '../services/messaging/EmailSequenceService.js';
 import { SentimentClassifier } from '../services/messaging/SentimentClassifier.js';
 import { dncComplianceService } from '../services/compliance/DNCComplianceService.js';
+import { AiOutreachDrafter } from '../services/messaging/AiOutreachDrafter.js';
+import { AiDealCloser } from '../services/messaging/AiDealCloser.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -35,6 +37,16 @@ router.get('/conversations/:workspaceId', async (req, res) => {
       .sort({ lastMessageAt: -1 })
       .lean();
 
+    // Guarantee that 100% of scraped CRM leads are visible in Omnichannel Inbox
+    const leadsCount = await Lead.countDocuments({ workspaceId });
+    if (conversations.length < leadsCount) {
+      await AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, { autoDispatch: false });
+      conversations = await Conversation.find(query)
+        .populate('leadId')
+        .sort({ lastMessageAt: -1 })
+        .lean();
+    }
+
     if (search) {
       const s = search.toLowerCase();
       conversations = conversations.filter((c) => {
@@ -53,6 +65,21 @@ router.get('/conversations/:workspaceId', async (req, res) => {
     });
   } catch (error) {
     console.error('[MessagingRoutes] Failed to fetch conversations:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/messaging/sync-scraped-leads/:workspaceId
+ * Syncs scraped CRM leads into Omnichannel Outreach and synthesizes bespoke AI drafts for Email, WhatsApp, Telegram & SMS
+ */
+router.post('/sync-scraped-leads/:workspaceId', async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const result = await AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, req.app.get('io'));
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('[MessagingRoutes] Sync scraped leads error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -339,6 +366,23 @@ async function processInboundMessage({ workspaceId, leadId, channel, content, se
     io.to(effectiveWorkspaceId.toString()).emit('conversation:updated', { conversation: populatedConv });
   }
 
+  // 9. 24/7 Autonomous AI Deal Closer (Handles 99.999% of inquiries end-to-end)
+  let closingResult = null;
+  if (!isStopKeyword) {
+    try {
+      closingResult = await AiDealCloser.handleInboundAndClose({
+        workspaceId: effectiveWorkspaceId,
+        leadId: lead._id,
+        conversationId: conv._id,
+        inboundContent: content.trim(),
+        channel: targetChannel,
+        io,
+      });
+    } catch (closerErr) {
+      console.warn('[MessagingRoutes] AI Deal Closer auto-reply notice:', closerErr.message);
+    }
+  }
+
   return {
     success: true,
     message,
@@ -346,8 +390,36 @@ async function processInboundMessage({ workspaceId, leadId, channel, content, se
     lead: updatedLead || lead,
     sentiment: sentimentResult,
     suggestedReply,
+    closingResult,
   };
 }
+
+/**
+ * POST /api/messaging/bulk-dispatch
+ * Bulk dispatch customized AI outreach to selected leads with optional custom campaign pitch
+ */
+router.post('/bulk-dispatch', async (req, res) => {
+  try {
+    const { workspaceId, leadIds = [], channel = 'AUTO', customPrompt = '' } = req.body;
+    if (!workspaceId || !Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'workspaceId and leadIds array are required' });
+    }
+
+    const io = req.app.get('io');
+    const result = await AiOutreachDrafter.bulkDispatchToLeads({
+      workspaceId,
+      leadIds,
+      channel,
+      customPrompt,
+      io,
+    });
+
+    return res.json(result);
+  } catch (error) {
+    console.error('[MessagingRoutes] Bulk dispatch error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 /**
  * POST /api/messaging/simulate-inbound

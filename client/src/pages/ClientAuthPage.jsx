@@ -14,8 +14,10 @@ import {
   Briefcase,
   Shield,
   Zap,
+  Globe,
 } from 'lucide-react';
 import { api } from '../services/api';
+import { authStorage } from '../services/authStorage';
 
 export default function ClientAuthPage({
   initialMode = 'signin', // 'signin' | 'signup'
@@ -24,12 +26,14 @@ export default function ClientAuthPage({
   onBackToLanding,
 }) {
   const [mode, setMode] = useState(initialMode); // 'signin' | 'signup'
+  const pendingCrawlUrl = typeof window !== 'undefined' ? sessionStorage.getItem('vyuhox_pending_crawl_url') || '' : '';
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     companyName: '',
-    industry: 'B2B',
+    websiteUrl: pendingCrawlUrl,
+    industry: 'AI_AUTO_DETECT',
     businessCategory: '',
     businessModelDescription: '',
     currency: defaultCurrency,
@@ -49,21 +53,21 @@ export default function ClientAuthPage({
           email: formData.email,
           password: formData.password,
           companyName: formData.companyName || `${formData.name.split(' ')[0]}'s Company`,
-          industry: formData.businessCategory ? formData.businessCategory : formData.industry,
+          websiteUrl: formData.websiteUrl,
+          industry: formData.industry,
           businessCategory: formData.businessCategory,
           businessModelDescription: formData.businessModelDescription,
         });
 
         if (res.success) {
-          localStorage.setItem('vyuhox_token', res.token);
-          if (res.user) {
-            localStorage.setItem('vyuhox_user', JSON.stringify(res.user));
-          }
+          authStorage.setSession(res.token, res.user, res.workspace);
+          const isAiCompanyPaid = res.workspace?.operatingMode === 'AI_COMPANY' && res.workspace?.subscription?.planTier && res.workspace?.subscription?.planTier !== 'NONE';
+          const signupPersona = isAiCompanyPaid ? 'client_ai' : 'client_tool';
           if (onAuthSuccess) {
-            onAuthSuccess(res.user, res.workspace, formData.currency, 'client_ai');
+            onAuthSuccess(res.user, res.workspace, formData.currency, signupPersona, res.token);
           }
         } else {
-          setError(res.message || 'Registration failed');
+          setError(res.message || 'Registration failed. Please try again.');
         }
       } else {
         // Sign In
@@ -73,60 +77,20 @@ export default function ClientAuthPage({
         });
 
         if (res.success) {
-          localStorage.setItem('vyuhox_token', res.token);
-          if (res.user) {
-            localStorage.setItem('vyuhox_user', JSON.stringify(res.user));
-          }
-          // If a client logs in, route to client dashboard
-          const persona = res.user.role === 'superadmin' ? 'superadmin' : 'client_ai';
+          authStorage.setSession(res.token, res.user, res.workspace);
+          // If a client logs in, route to client dashboard with their authentic plan
+          const isAiCompanyPaid = res.workspace?.operatingMode === 'AI_COMPANY' && res.workspace?.subscription?.planTier && res.workspace?.subscription?.planTier !== 'NONE';
+          const persona = res.user.role === 'superadmin' ? 'superadmin' : (isAiCompanyPaid ? 'client_ai' : 'client_tool');
           if (onAuthSuccess) {
-            onAuthSuccess(res.user, res.workspace, formData.currency, persona);
+            onAuthSuccess(res.user, res.workspace, formData.currency, persona, res.token);
           }
         } else {
-          // Client demo fallback
-          if (formData.email) {
-            const mockUser = {
-              id: 'usr_client_demo',
-              name: formData.name || formData.email.split('@')[0],
-              email: formData.email,
-              role: 'workspace_owner',
-            };
-            const mockWs = {
-              _id: 'ws_client',
-              name: formData.companyName || 'My Business Workspace',
-              industry: formData.industry || 'B2B',
-              operatingMode: 'AI_COMPANY',
-            };
-            if (onAuthSuccess) {
-              onAuthSuccess(mockUser, mockWs, formData.currency, 'client_ai');
-            }
-          } else {
-            setError(res.message || 'Invalid email or password');
-          }
+          setError(res.message || 'Invalid email or password. Please verify your credentials.');
         }
       }
     } catch (err) {
       console.error('Client auth error:', err);
-      // Clean fallback if network or connection glitch
-      if (formData.email) {
-        const mockUser = {
-          id: 'usr_client_demo',
-          name: formData.name || formData.email.split('@')[0],
-          email: formData.email,
-          role: 'workspace_owner',
-        };
-        const mockWs = {
-          _id: 'ws_client',
-          name: formData.companyName || 'My Business Workspace',
-          industry: formData.industry || 'B2B',
-          operatingMode: 'AI_COMPANY',
-        };
-        if (onAuthSuccess) {
-          onAuthSuccess(mockUser, mockWs, formData.currency, 'client_ai');
-        }
-      } else {
-        setError('Connection error. Please try again.');
-      }
+      setError(err.message || 'Connection error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -261,6 +225,27 @@ export default function ClientAuthPage({
               ? 'Deploy your autonomous AI C-Suite and scale multi-channel pipeline.'
               : 'Access your live leads, voice closer, and autonomous C-Suite dashboard.'}
           </p>
+
+          {pendingCrawlUrl && (
+            <div style={{
+              marginTop: '14px',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              background: 'rgba(6, 182, 212, 0.12)',
+              border: '1px solid rgba(6, 182, 212, 0.3)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.78rem',
+              color: '#38BDF8',
+              textAlign: 'left',
+            }}>
+              <Sparkles size={14} color="#06B6D4" />
+              <span>
+                <strong>Website queued for crawl:</strong> {pendingCrawlUrl} — your GTM strategy, business plan &amp; ICP will synthesize immediately upon entry.
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Tab Switcher: Sign In vs Create Account */}
@@ -417,21 +402,43 @@ export default function ClientAuthPage({
                 </div>
               </div>
 
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
+                  Website or Business Profile Link (Optional)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Globe size={15} color="#06B6D4" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                  <input
+                    type="url"
+                    placeholder="https://yourcompany.com or Google Maps / Business Link"
+                    value={formData.websiteUrl}
+                    onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+                    className="input-glass"
+                    style={{ width: '100%', paddingLeft: '36px', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <span style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '3px', display: 'block' }}>
+                  Provide your link to let AI LLM immediately crawl and discover your offerings.
+                </span>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-                    Industry Vertical
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600' }}>
+                      Industry Vertical
+                    </label>
+                    <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '700' }}>
+                      AI Handled
+                    </span>
+                  </div>
                   <select
-                    value={['B2B', 'Cybersecurity', 'Crypto', 'Fintech', 'Health', 'EdTech', 'Ecommerce', 'D2C', 'Local'].includes(formData.industry) ? formData.industry : 'Custom'}
-                    onChange={(e) => {
-                      if (e.target.value !== 'Custom') {
-                        setFormData({ ...formData, industry: e.target.value });
-                      }
-                    }}
+                    value={formData.industry}
+                    onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
                     className="input-glass"
                     style={{ width: '100%', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box', background: '#0F172A', color: '#F8FAFC' }}
                   >
+                    <option value="AI_AUTO_DETECT">✨ Auto-Detect by AI LLM (Recommended)</option>
                     <option value="B2B">B2B SaaS / Services</option>
                     <option value="Cybersecurity">Cybersecurity & PQC</option>
                     <option value="Crypto">Crypto & Web3</option>
@@ -442,6 +449,9 @@ export default function ClientAuthPage({
                     <option value="Local">Local & Professional</option>
                     <option value="Custom">Custom / Other Industry</option>
                   </select>
+                  <span style={{ fontSize: '0.68rem', color: '#38BDF8', marginTop: '4px', display: 'block', lineHeight: '1.3' }}>
+                    AI LLM will accurately detect and handle your category after crawling your business link.
+                  </span>
                 </div>
 
                 <div>

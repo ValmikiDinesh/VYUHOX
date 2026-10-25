@@ -408,10 +408,10 @@ export default function TopBar({
               {/* Profile Card Header */}
               <div style={{ padding: '8px 10px 12px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#F8FAFC' }}>
-                  {currentUser?.name || activeWorkspace?.ownerName || (rolePersona === 'superadmin' ? 'Nanda Sai (Platform Owner)' : activeWorkspace?.name || 'Dinesh Valmiki')}
+                  {currentUser?.name || activeWorkspace?.ownerName || (rolePersona === 'superadmin' ? 'Platform Administrator' : activeWorkspace?.name || 'Workspace Account')}
                 </div>
                 <div style={{ fontSize: '0.725rem', color: '#94A3B8', marginTop: '2px', wordBreak: 'break-all' }}>
-                  {currentUser?.email || activeWorkspace?.ownerEmail || (rolePersona === 'superadmin' ? 'founder@vyuhox.ai' : 'valmikidineshoffcl@gmail.com')}
+                  {currentUser?.email || activeWorkspace?.ownerEmail || (rolePersona === 'superadmin' ? 'admin@vyuhox.ai' : '')}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
                   <span className={`badge ${rolePersona === 'superadmin' ? 'badge-purple' : 'badge-cyan'}`} style={{ fontSize: '0.625rem' }}>
@@ -464,7 +464,7 @@ export default function TopBar({
                 <div style={{ padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#64748B' }}>Workspace:</span>
-                    <strong style={{ color: '#38BDF8' }}>{activeWorkspace?.name || 'Quantum Shield'}</strong>
+                    <strong style={{ color: '#38BDF8' }}>{activeWorkspace?.name || 'Active Workspace'}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#64748B' }}>Industry:</span>
@@ -472,8 +472,10 @@ export default function TopBar({
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#64748B' }}>Plan:</span>
-                    <span style={{ color: '#10B981', fontWeight: '600' }}>
-                      {activeWorkspace?.subscription?.planTier ? activeWorkspace.subscription.planTier.replace(/_/g, ' ') : 'Self-Serve Tool Mode'}
+                    <span style={{ color: (!activeWorkspace?.subscription?.planTier || activeWorkspace?.subscription?.planTier === 'NONE') ? '#94A3B8' : '#10B981', fontWeight: '600' }}>
+                      {(!activeWorkspace?.subscription?.planTier || activeWorkspace?.subscription?.planTier === 'NONE')
+                        ? 'None (Free Audit)'
+                        : activeWorkspace.subscription.planTier.replace(/_/g, ' ')}
                     </span>
                   </div>
                 </div>

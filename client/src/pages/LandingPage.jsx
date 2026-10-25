@@ -29,6 +29,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { api } from '../services/api';
+import { authStorage } from '../services/authStorage';
 
 export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency = 'INR' }) {
   // Automatic Indian Locale & Currency Detection (Defaults to INR ₹ in India, USD $ optional)
@@ -84,44 +85,23 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
   // FAQ accordion state
   const [openFaq, setOpenFaq] = useState(0);
 
-  // Handle live scan
-  const handleScanBusiness = async (e) => {
+  // Handle live scan - saves pending URL and guides client through signup/signin to dashboard
+  const handleScanBusiness = (e) => {
     e?.preventDefault();
-    if (!scanUrl) return;
-    try {
-      setScanning(true);
-      setScanResult(null);
-      const res = await api.scanWebsitePublic(scanUrl);
-      if (res.success) {
-        setScanResult(res);
-      }
-    } catch (err) {
-      console.warn('Scan fallback:', err.message);
-      // Resilient fallback preview for smooth demo
-      setScanResult({
-        domainName: scanUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, ''),
-        strategy: {
-          category: 'High-Ticket B2B & Quantitative Tech',
-          buyerPersonas: [
-            { title: 'Chief Risk Officer / Managing Partner', priority: 'High', painPoint: 'Manual client acquisition & slow inbound response times' },
-            { title: 'VP of Growth / CMO', priority: 'High', painPoint: 'High CAC and disconnected outreach tools' },
-          ],
-          valueProps: [
-            'Autonomous sub-45s speed-to-lead voice qualification with sub-800ms Bland.ai carrier pipeline',
-            'Waterfall enrichment across Apollo, Hunter, and LinkedIn with 98% inbox deliverability',
-            'Complete omnichannel synchronization across WhatsApp, Email, Telegram, and SMS',
-          ],
-        },
-        recommendedTeam: [
-          { role: 'CMO', name: 'Sophia Sterling', monthlyFee: 49, purpose: 'Scrapes targeted directories & runs autonomous ad creative iteration' },
-          { role: 'SDR', name: 'Marcus Cole', monthlyFee: 39, purpose: 'Dispatches personalized multi-channel outreach with interactive previews' },
-          { role: 'VOICE_CLOSER', name: 'Maya Vance', monthlyFee: 49, purpose: 'Dials inbound leads in under 30s with live objection resolution' },
-          { role: 'CFO', name: 'Julian Vance', monthlyFee: 39, purpose: 'Enforces CAC/LTV safeguards & manages Stripe Connect re-billing margins' },
-        ],
-        projectedRoiMultiple: '7.8x',
-      });
-    } finally {
-      setScanning(false);
+    if (!scanUrl || !scanUrl.trim()) return;
+
+    const trimmed = scanUrl.trim();
+    const formattedUrl = trimmed.startsWith('http://') || trimmed.startsWith('https://')
+      ? trimmed
+      : `https://${trimmed}`;
+
+    sessionStorage.setItem('vyuhox_pending_crawl_url', formattedUrl);
+
+    const token = authStorage.getToken();
+    if (token) {
+      window.location.hash = '#app';
+    } else {
+      window.location.hash = '#signup';
     }
   };
 
@@ -169,8 +149,8 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
       a: 'The 6 AI C-Suite employees (CMO, SDR, Voice Closer, CFO, CS, CEO) operate on a shared event bus. When the AI CMO identifies high-converting ICP segments, the AI SDR generates personalized outreach sequences, the Voice Closer bridges live inbound dials in under 30s, and the AI CFO tracks real-time CAC/LTV margins to prevent budget bleed.',
     },
     {
-      q: 'Can I start in Self-Serve Tool Mode and upgrade to Autonomous AI later?',
-      a: 'Yes, completely seamlessly. You can start in Tool Mode to utilize our in-browser softphone, lead scraper, and omnichannel inbox. Whenever you are ready to automate pipeline growth, you can hire individual agents or activate the full 6-agent Autonomous AI Company in 1-click.',
+      q: 'How does the Autonomous AI GTM Engine operate?',
+      a: 'Vyuhox operates as a fully autonomous AI multi-agent GTM engine. Our specialized AI digital workforce handles lead scraping, multi-channel enrichment, tailored outreach across Email, WhatsApp, Telegram, and SMS, and automated pipeline conversion without manual overhead.',
     },
     {
       q: 'How does the Voice AI achieve sub-800ms conversational response latency?',
@@ -929,7 +909,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
           alignItems: 'stretch',
           marginBottom: '32px',
         }}>
-          {/* Plan 1: Solo Tool Mode */}
+          {/* Plan 1: AI Growth Starter */}
           <div style={{
             background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 17, 32, 0.95) 100%)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -944,16 +924,16 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span className="badge badge-gray" style={{ fontSize: '0.7rem', fontWeight: '800', letterSpacing: '0.04em' }}>
-                  SOLO FOUNDER
+                  AI STARTER
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>Prepaid Utility</span>
+                <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>Autonomous</span>
               </div>
 
               <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '4px 0 10px', color: '#F8FAFC' }}>
-                Manual Powerhouse
+                AI Growth Engine
               </h3>
               <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.45' }}>
-                Full self-serve control over Lead Scraper, Softphone Dialer, Omnichannel Inbox &amp; Ad Manager.
+                Autonomous AI Lead Scraper, Waterfall Enrichment, AI Omnichannel Drafter &amp; Smart CRM.
               </p>
 
               <div style={{ marginBottom: '18px' }}>
@@ -979,7 +959,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
               }}>
                 <Zap size={14} color="#06B6D4" />
                 <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#38BDF8' }}>
-                  250 Verified Leads / month included (FREE)
+                  250 Verified Leads / month included
                 </span>
               </div>
 
@@ -990,19 +970,15 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CheckCircle size={14} color="#10B981" />
-                  <span>Sub-800ms Web Calling Dialer</span>
+                  <span>Autonomous AI Drafts (Email, WhatsApp, Telegram, SMS)</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CheckCircle size={14} color="#10B981" />
-                  <span>WhatsApp &amp; Email Unified Inbox</span>
+                  <span>Omnichannel Unified Outreach Inbox</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CheckCircle size={14} color="#10B981" />
-                  <span>Meta &amp; Google Ads Campaign Manager</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
-                  <span style={{ color: '#FBBF24', fontWeight: '600' }}>{currencySymbol}{isINR ? '4,000' : '50'} Welcome Usage Bonus</span>
+                  <span>Meta &amp; Google Autonomous Ads Manager</span>
                 </div>
               </div>
             </div>
@@ -1014,7 +990,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
               className="btn btn-secondary"
               style={{ width: '100%', padding: '12px', fontWeight: '700', fontSize: '0.85rem' }}
             >
-              Start Solo Tool Mode
+              Start AI Growth Engine
             </button>
           </div>
 
@@ -1039,10 +1015,10 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
               </div>
 
               <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '4px 0 10px', color: '#F8FAFC' }}>
-                Tool + 1 Agent
+                AI SDR Accelerator
               </h3>
               <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.45' }}>
-                Full Tool Mode base plus 1 dedicated autonomous digital employee (e.g. Maya Voice Closer or Sarah SDR).
+                AI Growth Engine plus 1 dedicated autonomous digital employee (e.g. Maya Voice Closer or Sarah SDR).
               </p>
 
               <div style={{ marginBottom: '18px' }}>
@@ -1075,7 +1051,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '28px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CheckCircle size={14} color="#10B981" />
-                  <span>Everything in Solo Tool Mode</span>
+                  <span>Everything in AI Growth Starter</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CheckCircle size={14} color="#10B981" />

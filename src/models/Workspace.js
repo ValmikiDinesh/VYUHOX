@@ -46,8 +46,8 @@ const workspaceSchema = new mongoose.Schema(
     },
     operatingMode: {
       type: String,
-      enum: ['TOOL', 'AI_COMPANY'],
-      default: 'TOOL',
+      enum: ['AI_COMPANY'],
+      default: 'AI_COMPANY',
     },
     logo: {
       type: String,
@@ -79,18 +79,18 @@ const workspaceSchema = new mongoose.Schema(
     subscription: {
       planTier: {
         type: String,
-        enum: ['TOOL_MODE', 'AI_COMPANY_STARTER', 'AI_COMPANY_SCALE', 'CUSTOM'],
-        default: 'TOOL_MODE',
+        enum: ['NONE', 'TOOL_MODE', 'AI_COMPANY_STARTER', 'AI_COMPANY_SCALE', 'CUSTOM'],
+        default: 'NONE',
       },
-      baseMonthlyFee: { type: Number, default: 49 },
+      baseMonthlyFee: { type: Number, default: 0 },
       agentAddonFee: { type: Number, default: 0 },
-      totalMonthlyFee: { type: Number, default: 49 },
-      status: { type: String, default: 'ACTIVE' },
+      totalMonthlyFee: { type: Number, default: 0 },
+      status: { type: String, default: 'FREE_AUDIT' },
       billingCycle: { type: String, default: 'MONTHLY' },
       nextBillingDate: { type: Date },
     },
     leadUsage: {
-      monthlyIncludedQuota: { type: Number, default: 250 },
+      monthlyIncludedQuota: { type: Number, default: 0 },
       scrapedThisMonth: { type: Number, default: 0 },
       cycleResetDate: { type: Date, default: Date.now },
     },

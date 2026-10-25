@@ -153,12 +153,86 @@ export default function OmnichannelInbox({ activeWorkspace, socket }) {
   const [isSimulating, setIsSimulating] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
+  // AI Scraped Leads & Outreach Drafting
+  const [syncingLeads, setSyncingLeads] = useState(false);
+  const [activeDraftTab, setActiveDraftTab] = useState('EMAIL');
+
   const messagesEndRef = useRef(null);
 
   // Show Toast
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleSyncScrapedLeads = async () => {
+    if (!activeWorkspace?._id) return;
+    setSyncingLeads(true);
+    try {
+      const res = await api.syncScrapedLeads(activeWorkspace._id);
+      if (res.success) {
+        showToast(`✨ ${res.message || 'Scraped leads synced and AI outreach drafted!'}`);
+        await loadConversations();
+      } else {
+        showToast(res.message || 'Failed to sync leads');
+      }
+    } catch (err) {
+      showToast('Error syncing leads: ' + err.message);
+    } finally {
+      setSyncingLeads(false);
+    }
+  };
+
+  // Bulk Contact Selection & AI Outreach
+  const [selectedLeadIds, setSelectedLeadIds] = useState([]);
+  const [bulkChannel, setBulkChannel] = useState('AUTO');
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkCustomPrompt, setBulkCustomPrompt] = useState('');
+  const [bulkSending, setBulkSending] = useState(false);
+
+  const handleToggleSelectLead = (leadId) => {
+    if (!leadId) return;
+    const strId = leadId.toString();
+    setSelectedLeadIds((prev) =>
+      prev.includes(strId) ? prev.filter((id) => id !== strId) : [...prev, strId]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    const allFilteredIds = filteredConversations
+      .map((c) => c.leadId?._id?.toString())
+      .filter(Boolean);
+    if (selectedLeadIds.length === allFilteredIds.length) {
+      setSelectedLeadIds([]);
+    } else {
+      setSelectedLeadIds(allFilteredIds);
+    }
+  };
+
+  const handleBulkSend = async (channel = bulkChannel, customPrompt = '') => {
+    if (!activeWorkspace?._id || selectedLeadIds.length === 0) return;
+    setBulkSending(true);
+    try {
+      const res = await api.bulkDispatchOutreach({
+        workspaceId: activeWorkspace._id,
+        leadIds: selectedLeadIds,
+        channel,
+        customPrompt,
+      });
+      if (res.success) {
+        showToast(`🚀 ${res.message || `Dispatched AI outreach to ${res.sentCount} leads!`}`);
+        setIsBulkModalOpen(false);
+        setBulkCustomPrompt('');
+        setSelectedLeadIds([]);
+        await loadConversations(true);
+      } else {
+        showToast(res.message || 'Bulk dispatch failed');
+      }
+    } catch (err) {
+      showToast('Bulk dispatch error: ' + err.message);
+    } finally {
+      setBulkSending(false);
+    }
   };
 
   // 1. Fetch Conversations on workspace change or filter change
@@ -513,32 +587,58 @@ export default function OmnichannelInbox({ activeWorkspace, socket }) {
               </div>
             </div>
 
-            {/* Quick Simulate Trigger */}
-            <button
-              id="simulate-inbound-btn"
-              onClick={() => {
-                setSimSenderName(activeLead?.name || '');
-                setIsSimModalOpen(true);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 10px',
-                borderRadius: '7px',
-                background: 'rgba(6, 182, 212, 0.15)',
-                border: '1px solid rgba(6, 182, 212, 0.4)',
-                color: '#38BDF8',
-                fontSize: '0.75rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              title="Simulate inbound message from lead"
-            >
-              <Zap size={13} />
-              Simulate
-            </button>
+            {/* Header Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                id="sync-scraped-leads-btn"
+                onClick={handleSyncScrapedLeads}
+                disabled={syncingLeads}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '6px 10px',
+                  borderRadius: '7px',
+                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(16, 185, 129, 0.2))',
+                  border: '1px solid rgba(6, 182, 212, 0.4)',
+                  color: '#38BDF8',
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  cursor: syncingLeads ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Fetch scraped CRM leads and use AI to draft personalized Email, WhatsApp, Telegram, and SMS outreach"
+              >
+                <Sparkles size={12} className={syncingLeads ? 'spin-icon' : ''} color="#10B981" />
+                {syncingLeads ? 'AI Drafting...' : 'AI Draft Leads'}
+              </button>
+
+              <button
+                id="simulate-inbound-btn"
+                onClick={() => {
+                  setSimSenderName(activeLead?.name || '');
+                  setIsSimModalOpen(true);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '6px 10px',
+                  borderRadius: '7px',
+                  background: 'rgba(6, 182, 212, 0.15)',
+                  border: '1px solid rgba(6, 182, 212, 0.4)',
+                  color: '#38BDF8',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Simulate inbound message from lead"
+              >
+                <Zap size={13} />
+                Simulate
+              </button>
+            </div>
           </div>
 
           {/* Search Bar */}
@@ -603,7 +703,141 @@ export default function OmnichannelInbox({ activeWorkspace, socket }) {
               );
             })}
           </div>
+
+          {/* Select All & Multi-Lead Selection Bar */}
+          {filteredConversations.length > 0 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingTop: '6px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+              fontSize: '0.72rem',
+              color: '#94A3B8',
+            }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={filteredConversations.length > 0 && selectedLeadIds.length === filteredConversations.length}
+                  onChange={handleToggleSelectAll}
+                  style={{ accentColor: '#06B6D4', cursor: 'pointer' }}
+                />
+                <span>Select All ({filteredConversations.length})</span>
+              </label>
+
+              {selectedLeadIds.length > 0 ? (
+                <span style={{ color: '#38BDF8', fontWeight: '700' }}>
+                  {selectedLeadIds.length} Selected
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.675rem', color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span className="live-dot" style={{ width: '6px', height: '6px', background: '#10B981' }} />
+                  AI Auto-Closer Active
+                </span>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* Sticky Bulk AI Action Toolbar */}
+        {selectedLeadIds.length > 0 && (
+          <div style={{
+            padding: '10px 14px',
+            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(16, 185, 129, 0.18) 100%)',
+            borderBottom: '1px solid rgba(6, 182, 212, 0.4)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: '800', color: '#F8FAFC' }}>
+                ⚡ Bulk Outreach ({selectedLeadIds.length} Selected)
+              </span>
+              <button
+                onClick={() => setSelectedLeadIds([])}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '0.7rem', cursor: 'pointer' }}
+              >
+                Clear
+              </button>
+            </div>
+
+            {/* Target Channel Selector */}
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {[
+                { id: 'AUTO', label: 'Auto (Best)' },
+                { id: 'WHATSAPP', label: 'WhatsApp' },
+                { id: 'EMAIL', label: 'Email' },
+                { id: 'TELEGRAM', label: 'Telegram' },
+              ].map((ch) => (
+                <button
+                  key={ch.id}
+                  onClick={() => setBulkChannel(ch.id)}
+                  style={{
+                    flex: 1,
+                    padding: '3px 4px',
+                    borderRadius: '5px',
+                    fontSize: '0.66rem',
+                    fontWeight: bulkChannel === ch.id ? '700' : '500',
+                    background: bulkChannel === ch.id ? '#06B6D4' : 'rgba(255, 255, 255, 0.06)',
+                    color: bulkChannel === ch.id ? '#04101A' : '#CBD5E1',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {ch.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Dispatch Buttons */}
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                onClick={() => handleBulkSend(bulkChannel)}
+                disabled={bulkSending}
+                style={{
+                  flex: 1,
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  background: 'linear-gradient(135deg, #10B981, #059669)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  fontSize: '0.72rem',
+                  fontWeight: '800',
+                  cursor: bulkSending ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Send size={11} />
+                {bulkSending ? 'Sending...' : `AI Send (${selectedLeadIds.length})`}
+              </button>
+
+              <button
+                onClick={() => setIsBulkModalOpen(true)}
+                disabled={bulkSending}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#38BDF8',
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+                title="Enter custom campaign goal or product feature update"
+              >
+                <Sparkles size={11} />
+                Custom AI Pitch
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Thread Cards List */}
         <div style={{
@@ -620,8 +854,34 @@ export default function OmnichannelInbox({ activeWorkspace, socket }) {
               Connecting to omnichannel streams...
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B', fontSize: '0.85rem' }}>
-              No conversations found. Click "Simulate" to test an inbound message!
+            <div style={{ textAlign: 'center', padding: '30px 16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '10px', border: '1px dashed rgba(255, 255, 255, 0.1)' }}>
+              <Sparkles size={24} color="#06B6D4" style={{ margin: '0 auto 10px', opacity: 0.8 }} />
+              <div style={{ fontSize: '0.825rem', fontWeight: '700', color: '#F8FAFC', marginBottom: '6px' }}>
+                No active outreach threads
+              </div>
+              <p style={{ fontSize: '0.72rem', color: '#94A3B8', margin: '0 0 14px', lineHeight: '1.4' }}>
+                Fetch your scraped CRM leads to automatically draft tailored AI messages across Email, WhatsApp, Telegram, and SMS.
+              </p>
+              <button
+                onClick={handleSyncScrapedLeads}
+                disabled={syncingLeads}
+                style={{
+                  padding: '7px 12px',
+                  borderRadius: '7px',
+                  background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+                  border: 'none',
+                  color: '#04101A',
+                  fontSize: '0.72rem',
+                  fontWeight: '800',
+                  cursor: syncingLeads ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Sparkles size={12} className={syncingLeads ? 'spin-icon' : ''} />
+                {syncingLeads ? 'AI Drafting...' : '⚡ AI Fetch & Draft Leads'}
+              </button>
             </div>
           ) : (
             filteredConversations.map((conv) => {
@@ -651,6 +911,17 @@ export default function OmnichannelInbox({ activeWorkspace, socket }) {
                   {/* Top row: Avatar + Name + Time */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedLeadIds.includes(lead._id)}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleToggleSelectLead(lead._id);
+                        }}
+                        style={{ accentColor: '#06B6D4', cursor: 'pointer', width: '14px', height: '14px', marginRight: '2px' }}
+                        title="Select lead for bulk outreach"
+                      />
                       <div style={{
                         width: '32px',
                         height: '32px',
@@ -984,8 +1255,40 @@ export default function OmnichannelInbox({ activeWorkspace, socket }) {
                   })}
                 </div>
 
-                {/* Quick Templates Selector */}
+                {/* Quick Templates Selector & AI Draft Load */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {selectedConversation?.aiDrafts?.[activeComposeChannel] && (
+                    <button
+                      type="button"
+                      id="load-ai-draft-quick-btn"
+                      onClick={() => {
+                        const draft = selectedConversation.aiDrafts[activeComposeChannel];
+                        const text = activeComposeChannel === 'EMAIL' && draft.subject
+                          ? `Subject: ${draft.subject}\n\n${draft.body}`
+                          : draft.body;
+                        setComposeText(text);
+                        showToast(`✨ Loaded AI ${activeComposeChannel} draft`);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 9px',
+                        borderRadius: '6px',
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid rgba(16, 185, 129, 0.4)',
+                        color: '#10B981',
+                        fontSize: '0.72rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                      }}
+                      title="Load AI drafted copy for this channel"
+                    >
+                      <Sparkles size={11} />
+                      Load AI Draft
+                    </button>
+                  )}
+
                   <select
                     onChange={(e) => {
                       const tmpl = QUICK_TEMPLATES.find((t) => t.title === e.target.value);
@@ -1334,6 +1637,203 @@ export default function OmnichannelInbox({ activeWorkspace, socket }) {
               </button>
             </div>
 
+            {/* 🤖 AI AUTONOMOUS MULTI-CHANNEL OUTREACH DRAFTS */}
+            <div style={{
+              padding: '16px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              boxShadow: '0 8px 32px rgba(16, 185, 129, 0.12)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Bot size={16} color="#10B981" />
+                  <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    AI Omnichannel Drafts
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: '0.68rem',
+                  padding: '2px 7px',
+                  borderRadius: '5px',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  color: '#10B981',
+                  fontWeight: '700',
+                }}>
+                  Sarah SDR AI
+                </span>
+              </div>
+
+              {/* Channel Tabs */}
+              <div style={{ display: 'flex', gap: '4px', background: 'rgba(0,0,0,0.3)', padding: '3px', borderRadius: '8px' }}>
+                {[
+                  { id: 'EMAIL', label: 'Email', icon: Mail, color: '#06B6D4' },
+                  { id: 'WHATSAPP', label: 'WhatsApp', icon: MessageSquare, color: '#10B981' },
+                  { id: 'TELEGRAM', label: 'Telegram', icon: MessageCircle, color: '#0EA5E9' },
+                  { id: 'SMS', label: 'SMS', icon: Phone, color: '#A855F7' },
+                ].map((tab) => {
+                  const active = activeDraftTab === tab.id;
+                  const TabIcon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveDraftTab(tab.id)}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        padding: '6px 2px',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: active ? '700' : '500',
+                        background: active ? `${tab.color}30` : 'transparent',
+                        border: active ? `1px solid ${tab.color}` : '1px solid transparent',
+                        color: active ? tab.color : '#94A3B8',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <TabIcon size={12} />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Current Channel Draft Content */}
+              {(() => {
+                const drafts = selectedConversation?.aiDrafts || selectedConversation?.metadata?.aiDrafts || {};
+                const currentDraft = drafts[activeDraftTab];
+
+                if (!currentDraft || (!currentDraft.body && !currentDraft.subject)) {
+                  return (
+                    <div style={{
+                      padding: '14px',
+                      background: 'rgba(15, 23, 42, 0.6)',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      color: '#94A3B8',
+                      textAlign: 'center',
+                      lineHeight: '1.4',
+                    }}>
+                      No {activeDraftTab} draft cached for this lead yet.
+                      <button
+                        onClick={handleSyncScrapedLeads}
+                        disabled={syncingLeads}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          marginTop: '8px',
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          background: 'rgba(6, 182, 212, 0.2)',
+                          border: '1px solid rgba(6, 182, 212, 0.4)',
+                          color: '#38BDF8',
+                          fontSize: '0.72rem',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Sparkles size={11} className={syncingLeads ? 'spin-icon' : ''} />
+                        {syncingLeads ? 'Drafting...' : '✨ Generate AI Drafts'}
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {activeDraftTab === 'EMAIL' && currentDraft.subject && (
+                      <div style={{
+                        fontSize: '0.74rem',
+                        padding: '6px 10px',
+                        background: 'rgba(6, 182, 212, 0.12)',
+                        border: '1px solid rgba(6, 182, 212, 0.25)',
+                        borderRadius: '6px',
+                        color: '#F8FAFC',
+                      }}>
+                        <strong style={{ color: '#38BDF8' }}>Subject:</strong> {currentDraft.subject}
+                      </div>
+                    )}
+                    <div style={{
+                      padding: '10px 12px',
+                      background: 'rgba(15, 23, 42, 0.85)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      color: '#CBD5E1',
+                      lineHeight: '1.45',
+                      maxHeight: '130px',
+                      overflowY: 'auto',
+                      whiteSpace: 'pre-line',
+                    }}>
+                      {currentDraft.body}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        onClick={() => {
+                          setActiveComposeChannel(activeDraftTab);
+                          const text = activeDraftTab === 'EMAIL' && currentDraft.subject
+                            ? `Subject: ${currentDraft.subject}\n\n${currentDraft.body}`
+                            : currentDraft.body;
+                          setComposeText(text);
+                          showToast(`Applied ${activeDraftTab} AI draft to composer!`);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '7px 10px',
+                          borderRadius: '6px',
+                          background: 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          color: '#F8FAFC',
+                          fontSize: '0.72rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ✏️ Edit in Compose
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setActiveComposeChannel(activeDraftTab);
+                          const textToSend = activeDraftTab === 'EMAIL' && currentDraft.subject
+                            ? `Subject: ${currentDraft.subject}\n\n${currentDraft.body}`
+                            : currentDraft.body;
+                          await handleSendMessage(textToSend);
+                        }}
+                        disabled={isSending}
+                        style={{
+                          flex: 1,
+                          padding: '7px 10px',
+                          borderRadius: '6px',
+                          background: 'linear-gradient(135deg, #10B981, #06B6D4)',
+                          border: 'none',
+                          color: '#04101A',
+                          fontSize: '0.72rem',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <Send size={11} />
+                        Instant Send
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
             {/* 🤖 AI COPILOT SUGGESTED RESPONSE */}
             <div style={{
               padding: '16px',
@@ -1632,6 +2132,220 @@ export default function OmnichannelInbox({ activeWorkspace, socket }) {
               >
                 {isSimulating ? <RefreshCw size={14} className="spin-icon" /> : <Zap size={14} />}
                 Trigger Inbound Event
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* BULK CUSTOM AI PITCH MODAL */}
+      {/* ========================================================================= */}
+      {isBulkModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: '#0B1120',
+            border: '1px solid rgba(6, 182, 212, 0.4)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(6, 182, 212, 0.2)',
+            borderRadius: '14px',
+            width: '540px',
+            maxWidth: '92vw',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #06B6D4, #10B981)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Sparkles size={20} color="#04101A" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    Custom AI Pitch Campaign
+                  </h3>
+                  <div style={{ fontSize: '0.74rem', color: '#94A3B8' }}>
+                    Personalize & dispatch to <span style={{ color: '#38BDF8', fontWeight: '700' }}>{selectedLeadIds.length} leads</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsBulkModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94A3B8',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Channel Selection */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#94A3B8', marginBottom: '8px' }}>
+                TARGET CHANNEL
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                {[
+                  { id: 'AUTO', label: 'Auto (Best)', icon: Sparkles, color: '#06B6D4' },
+                  { id: 'WHATSAPP', label: 'WhatsApp', icon: MessageSquare, color: '#10B981' },
+                  { id: 'EMAIL', label: 'Email', icon: Mail, color: '#38BDF8' },
+                  { id: 'TELEGRAM', label: 'Telegram', icon: Send, color: '#0EA5E9' },
+                ].map((ch) => {
+                  const Icon = ch.icon;
+                  const active = bulkChannel === ch.id;
+                  return (
+                    <button
+                      key={ch.id}
+                      onClick={() => setBulkChannel(ch.id)}
+                      style={{
+                        padding: '10px 8px',
+                        borderRadius: '8px',
+                        background: active ? `${ch.color}25` : 'rgba(255, 255, 255, 0.03)',
+                        border: `1px solid ${active ? ch.color : 'rgba(255, 255, 255, 0.08)'}`,
+                        color: active ? ch.color : '#CBD5E1',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        fontWeight: active ? '700' : '500',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <Icon size={16} />
+                      {ch.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Campaign Prompt / Goal */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#94A3B8', marginBottom: '8px' }}>
+                CUSTOM AI DIRECTIVE / VALUE PROP OBJECTIVE
+              </label>
+              <textarea
+                rows={4}
+                value={bulkCustomPrompt}
+                onChange={(e) => setBulkCustomPrompt(e.target.value)}
+                placeholder="E.g., Highlight our end-to-end web & mobile app engineering services, mention our recent 40% performance boost guarantee, and propose an architecture audit..."
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: 'rgba(15, 23, 42, 0.9)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  color: '#F8FAFC',
+                  fontSize: '0.82rem',
+                  outline: 'none',
+                  lineHeight: '1.4',
+                  resize: 'vertical',
+                }}
+              />
+            </div>
+
+            {/* Quick Strategy Presets */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: '#64748B', marginBottom: '6px' }}>
+                OR SELECT STRATEGY PRESET:
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {[
+                  {
+                    label: '🎯 Consultative Feature Breakdown & Deal Closing',
+                    prompt: 'Detail our top service offerings, explain key features and direct ROI, and propose closing a partnership agreement this week.',
+                  },
+                  {
+                    label: '🚀 End-of-Quarter 20% Strategic Partnership Offer',
+                    prompt: 'Introduce our premium services catalog with a special 20% quarterly partnership incentive, highlighting fast time-to-market.',
+                  },
+                  {
+                    label: '💼 Complimentary Tech & Strategy Growth Audit',
+                    prompt: 'Offer a 100% free comprehensive audit of their digital presence and infrastructure based on our core capabilities.',
+                  },
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setBulkCustomPrompt(preset.prompt)}
+                    style={{
+                      textAlign: 'left',
+                      padding: '7px 10px',
+                      borderRadius: '6px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      color: '#E2E8F0',
+                      fontSize: '0.74rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+              <button
+                onClick={() => setIsBulkModalOpen(false)}
+                disabled={bulkSending}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  color: '#94A3B8',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                id="submit-bulk-campaign"
+                onClick={() => handleBulkSend(bulkChannel, bulkCustomPrompt)}
+                disabled={bulkSending}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+                  border: 'none',
+                  color: '#04101A',
+                  fontWeight: '800',
+                  fontSize: '0.82rem',
+                  cursor: bulkSending ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {bulkSending ? <RefreshCw size={14} className="spin-icon" /> : <Send size={14} />}
+                {bulkSending ? 'AI Dispatching...' : `Launch AI Campaign (${selectedLeadIds.length})`}
               </button>
             </div>
           </div>

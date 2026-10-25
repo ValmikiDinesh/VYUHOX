@@ -28,6 +28,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { api } from '../services/api';
+import { authStorage } from '../services/authStorage';
 import ExecutiveBriefingCard from '../components/ExecutiveBriefingCard';
 
 export default function ClientDashboardView({
@@ -40,6 +41,8 @@ export default function ClientDashboardView({
   onNavigateTab,
   onOpenAddFundsModal,
   onToggleOperatingMode,
+  onUpdateActiveWorkspace,
+  onOpenPlanModal,
   currency = 'INR',
   exchangeRate = 83.5,
 }) {
@@ -87,6 +90,16 @@ export default function ClientDashboardView({
     };
     loadStrategy();
     loadBriefing();
+
+    // Check if client arrived from website landing page with a queued crawl URL
+    const pendingUrl = sessionStorage.getItem('vyuhox_pending_crawl_url');
+    if (pendingUrl) {
+      sessionStorage.removeItem('vyuhox_pending_crawl_url');
+      setUrlInput(pendingUrl);
+      setTimeout(() => {
+        handleStartCrawl(pendingUrl);
+      }, 500);
+    }
   }, [activeWorkspace]);
 
   // Handle direct website scan from dashboard
@@ -96,21 +109,14 @@ export default function ClientDashboardView({
       alert('Please enter your website URL (e.g. https://yourbusiness.com)');
       return;
     }
-    let wsId = activeWorkspace?._id || localStorage.getItem('vyuhox_active_ws_id');
+    let wsId = activeWorkspace?._id || authStorage.getActiveWsId();
     if (!wsId) {
       try {
         const wsRes = await api.getWorkspaces();
         if (wsRes.success && wsRes.workspaces && wsRes.workspaces.length > 0) {
-          const qs = wsRes.workspaces.find(
-            (w) =>
-              (w.name && w.name.toLowerCase().includes('quantum')) ||
-              (w.ownerEmail && w.ownerEmail.toLowerCase().includes('valmiki'))
-          ) || wsRes.workspaces[0];
-          if (qs) {
-            wsId = qs._id;
-            localStorage.setItem('vyuhox_active_ws_id', qs._id);
-            localStorage.setItem('vyuhox_active_workspace', JSON.stringify(qs));
-          }
+          const firstWs = wsRes.workspaces[0];
+          wsId = firstWs._id;
+          authStorage.setActiveWorkspace(firstWs);
         }
       } catch (err) {
         console.warn('Auto-resolve workspace error:', err);
@@ -128,6 +134,13 @@ export default function ClientDashboardView({
       const res = await api.scanWebsite(wsId, finalUrl);
       if (res.success && res.strategy) {
         setActiveStrategy(res.strategy);
+        if (res.workspace) {
+          authStorage.setActiveWorkspace(res.workspace);
+          if (onUpdateActiveWorkspace) {
+            onUpdateActiveWorkspace(res.workspace);
+          }
+        }
+        await loadBriefing();
         setScanStatus('Strategy synthesized! Redirecting to GTM Blueprint...');
         setTimeout(() => {
           onNavigateTab('strategy');
@@ -264,9 +277,36 @@ export default function ClientDashboardView({
             <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#34D399', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Autonomous Revenue Engine Active
             </span>
-            <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
-              Autonomous AI Company (24/7 Multi-Agent)
-            </span>
+            {(!activeWorkspace?.subscription?.planTier || activeWorkspace?.subscription?.planTier === 'NONE') ? (
+              <span className="badge badge-gray" style={{ fontSize: '0.675rem', background: 'rgba(255, 255, 255, 0.08)', color: '#CBD5E1' }}>
+                Plan: Free Strategy &amp; Audit Access ($0)
+              </span>
+            ) : activeWorkspace?.subscription?.planTier === 'TOOL_MODE' || activeWorkspace?.subscription?.planTier === 'AI_STARTER' ? (
+              <span className="badge badge-amber" style={{ fontSize: '0.675rem' }}>
+                AI Starter ($49/mo)
+              </span>
+            ) : (
+              <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
+                Autonomous AI Company ($249/mo)
+              </span>
+            )}
+            {(!activeWorkspace?.subscription?.planTier || activeWorkspace?.subscription?.planTier === 'NONE') && (
+              <button
+                onClick={() => onOpenPlanModal && onOpenPlanModal()}
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: 'linear-gradient(135deg, #06B6D4, #3B82F6)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  fontSize: '0.65rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                }}
+              >
+                Choose Execution Package ⚡
+              </button>
+            )}
             {activeWorkspace?.name && (
               <span className="badge badge-emerald" style={{ fontSize: '0.675rem' }}>
                 🏢 {activeWorkspace.name}
@@ -293,8 +333,19 @@ export default function ClientDashboardView({
           border: '1px solid rgba(255, 255, 255, 0.12)',
         }}>
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '600' }}>
-              Available Compute Credit
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+              <span style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '600' }}>
+                Available Compute Credit
+              </span>
+              {walletBalanceNum > 0 ? (
+                <span className="badge badge-emerald" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+                  Funded
+                </span>
+              ) : (
+                <span className="badge badge-gray" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+                  Unfunded
+                </span>
+              )}
             </div>
             <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', fontWeight: '800', color: '#10B981' }}>
               {currencySymbol}{displayWalletBalance}
@@ -444,10 +495,30 @@ export default function ClientDashboardView({
             </div>
             {(() => {
               const cat = (activeStrategy.category || '').toLowerCase();
+              const bName = (activeStrategy.businessName || '').toLowerCase();
+              const isChitFund = cat.includes('chit fund') || cat.includes('chit scheme') || bName.includes('chit fund');
+              const isFinance = cat.includes('financial') || cat.includes('fintech') || cat.includes('invest');
               const isPqc = cat.includes('quantum') || cat.includes('pqc') || cat.includes('cryptograph');
               const isEcom = cat.includes('ecommerce') || cat.includes('retail');
 
-              if (isPqc) {
+              if (isChitFund) {
+                return (
+                  <>
+                    <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
+                      🏛️ State Regulated Chit Savings Scheme
+                    </span>
+                    <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
+                      💰 Monthly e-Auctions &amp; Liquidity
+                    </span>
+                    <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
+                      📱 Automated WhatsApp Digital Passbook
+                    </span>
+                    <span className="badge badge-gray" style={{ fontSize: '0.7rem' }}>
+                      🎯 Target: Local Merchants &amp; Savers
+                    </span>
+                  </>
+                );
+              } else if (isPqc) {
                 return (
                   <>
                     <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
@@ -478,17 +549,31 @@ export default function ClientDashboardView({
                     </span>
                   </>
                 );
-              } else {
+              } else if (isFinance) {
                 return (
                   <>
                     <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
-                      🏢 Enterprise Decision-Maker Multi-Threading
+                      💳 Secure Financial Advisory Rail
                     </span>
                     <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
                       ⚡ Sub-45s Inbound Speed-to-Lead SLA
                     </span>
                     <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
-                      📊 High-ACV Pipeline Model
+                      📈 High-Trust Client Acquisition
+                    </span>
+                  </>
+                );
+              } else {
+                return (
+                  <>
+                    <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
+                      🏢 Decision-Maker Multi-Threading
+                    </span>
+                    <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
+                      ⚡ Sub-45s Inbound Speed-to-Lead SLA
+                    </span>
+                    <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
+                      📊 Automated Revenue Pipeline Model
                     </span>
                   </>
                 );

@@ -11,13 +11,6 @@ export const authMiddleware = async (req, res, next) => {
     }
 
     if (!token) {
-      // In dev mode, if no token is passed, allow fallback to Dinesh Valmiki or first active user
-      const fallbackUser = (await User.findOne({ email: 'valmikidineshoffcl@gmail.com' }).lean()) || (await User.findOne().lean());
-      if (fallbackUser && process.env.NODE_ENV !== 'production') {
-        req.user = fallbackUser;
-        req.workspaceId = req.headers['x-workspace-id'] || fallbackUser.workspaceId?.toString();
-        return next();
-      }
       return res.status(401).json({ success: false, message: 'Authentication required. No token provided.' });
     }
 
@@ -36,14 +29,6 @@ export const authMiddleware = async (req, res, next) => {
     }
 
     if (!user) {
-      if (process.env.NODE_ENV !== 'production') {
-        const fallbackUser = (await User.findOne({ email: 'valmikidineshoffcl@gmail.com' }).lean()) || (await User.findOne().lean());
-        if (fallbackUser) {
-          req.user = fallbackUser;
-          req.workspaceId = req.headers['x-workspace-id'] || fallbackUser.workspaceId?.toString();
-          return next();
-        }
-      }
       return res.status(401).json({ success: false, message: 'User not found or session expired.' });
     }
 
@@ -67,16 +52,6 @@ export const authMiddleware = async (req, res, next) => {
 
     next();
   } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        const fallbackUser = (await User.findOne({ email: 'valmikidineshoffcl@gmail.com' }).lean()) || (await User.findOne().lean());
-        if (fallbackUser) {
-          req.user = fallbackUser;
-          req.workspaceId = req.headers['x-workspace-id'] || fallbackUser.workspaceId?.toString();
-          return next();
-        }
-      } catch (e) {}
-    }
     return res.status(401).json({ success: false, message: 'Invalid or expired token', error: error.message });
   }
 };

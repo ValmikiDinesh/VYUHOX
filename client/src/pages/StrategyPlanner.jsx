@@ -47,6 +47,7 @@ import {
   PhoneCall,
 } from 'lucide-react';
 import { api } from '../services/api';
+import { authStorage } from '../services/authStorage';
 import VisualCreativeStudio from '../components/VisualCreativeStudio';
 
 export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab }) {
@@ -87,11 +88,15 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
 
   // 1. Fetch current strategy for active workspace
   useEffect(() => {
-    if (!activeWorkspace) return;
+    const wsId = activeWorkspace?._id || authStorage.getActiveWsId();
+    if (!wsId) {
+      setLoadingInitial(false);
+      return;
+    }
     const fetchStrategy = async () => {
       setLoadingInitial(true);
       try {
-        const res = await api.getStrategy(activeWorkspace._id);
+        const res = await api.getStrategy(wsId);
         if (res.success && res.strategy) {
           setStrategy(res.strategy);
           setUrlInput(res.strategy.targetUrl || '');
@@ -104,7 +109,7 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
       }
     };
     fetchStrategy();
-  }, [activeWorkspace]);
+  }, [activeWorkspace?._id, activeWorkspace?.currentStrategyId]);
 
   // Populate edit form from strategy
   const initEditForm = (strat) => {
@@ -160,21 +165,14 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
       alert('Please enter your website URL (e.g. https://yourbusiness.com)');
       return;
     }
-    let wsId = activeWorkspace?._id || localStorage.getItem('vyuhox_active_ws_id');
+    let wsId = activeWorkspace?._id || authStorage.getActiveWsId();
     if (!wsId) {
       try {
         const wsRes = await api.getWorkspaces();
         if (wsRes.success && wsRes.workspaces && wsRes.workspaces.length > 0) {
-          const qs = wsRes.workspaces.find(
-            (w) =>
-              (w.name && w.name.toLowerCase().includes('quantum')) ||
-              (w.ownerEmail && w.ownerEmail.toLowerCase().includes('valmiki'))
-          ) || wsRes.workspaces[0];
-          if (qs) {
-            wsId = qs._id;
-            localStorage.setItem('vyuhox_active_ws_id', qs._id);
-            localStorage.setItem('vyuhox_active_workspace', JSON.stringify(qs));
-          }
+          const firstWs = wsRes.workspaces[0];
+          wsId = firstWs._id;
+          authStorage.setActiveWorkspace(firstWs);
         }
       } catch (err) {
         console.warn('Auto-resolve workspace error:', err);
@@ -463,9 +461,13 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
 `;
   };
 
-  const analysis = strategy?.analysisResult;
-  const doc = strategy?.businessPlanDocument;
-  const roadmap = strategy?.stepByStepRoadmap || doc?.stepByStepLaunchRoadmap || [];
+  const analysis = strategy?.analysisResult || (strategy?.targetAudience ? strategy : null);
+  const doc = strategy?.businessPlanDocument || {};
+  const roadmap = Array.isArray(strategy?.stepByStepRoadmap)
+    ? strategy.stepByStepRoadmap
+    : Array.isArray(doc?.stepByStepLaunchRoadmap)
+    ? doc.stepByStepLaunchRoadmap
+    : [];
   const rawData = strategy?.rawExtractedData || {};
 
   return (

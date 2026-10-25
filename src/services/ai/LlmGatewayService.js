@@ -9,6 +9,7 @@
  * 4. Cost & Telemetry: Real-time latency tracking, token usage estimation, and wholesale cost calculation.
  */
 
+import mongoose from 'mongoose';
 import { PlatformConfig } from '../../models/PlatformConfig.js';
 
 // In-memory key rotation tracker
@@ -422,10 +423,17 @@ export class LlmGatewayService {
    * Cache-aware configuration fetcher
    */
   static async getOrInitConfig() {
-    let config = await PlatformConfig.findOne({ configKey: 'GLOBAL_CONFIG' }).lean();
-    if (!config) {
-      config = await PlatformConfig.create({ configKey: 'GLOBAL_CONFIG' });
+    try {
+      if (mongoose.connection?.readyState !== 1) {
+        return null;
+      }
+      let config = await PlatformConfig.findOne({ configKey: 'GLOBAL_CONFIG' }).lean();
+      if (!config) {
+        config = await PlatformConfig.create({ configKey: 'GLOBAL_CONFIG' });
+      }
+      return config;
+    } catch (e) {
+      return null;
     }
-    return config;
   }
 }

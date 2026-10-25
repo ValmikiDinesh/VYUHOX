@@ -1360,6 +1360,14 @@ Return a strict JSON object:
         leads: enrichedList,
       });
 
+      // Automatically fetch leads into Omnichannel Outreach, analyze with AI LLM against owner's services, and auto-contact
+      try {
+        const { AiOutreachDrafter } = await import('./messaging/AiOutreachDrafter.js');
+        await AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, { autoDispatch: true, io });
+      } catch (autoErr) {
+        console.warn('[LeadScraperService] Auto-drafting error:', autoErr.message);
+      }
+
       return { success: true, count: enrichedList.length, leads: enrichedList };
     } catch (err) {
       console.error(`[LeadScraperService execution failed]:`, err);

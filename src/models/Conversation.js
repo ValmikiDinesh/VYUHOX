@@ -47,6 +47,25 @@ const conversationSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    aiDrafts: {
+      EMAIL: {
+        subject: { type: String, default: '' },
+        body: { type: String, default: '' },
+      },
+      WHATSAPP: {
+        body: { type: String, default: '' },
+      },
+      TELEGRAM: {
+        body: { type: String, default: '' },
+      },
+      SMS: {
+        body: { type: String, default: '' },
+      },
+    },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
   },
   { timestamps: true }
 );

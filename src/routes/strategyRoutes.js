@@ -3,6 +3,7 @@ import { GtmStrategy } from '../models/GtmStrategy.js';
 import { Workspace } from '../models/Workspace.js';
 import { ScannerService } from '../services/ScannerService.js';
 import { VisualAiService } from '../services/visual/VisualAiService.js';
+import { DailyBriefingJob } from '../cron/dailyBriefingJob.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -91,10 +92,18 @@ router.post('/scan', authMiddleware, async (req, res) => {
       status: 'ACTIVE',
     });
 
-    // Update workspace reference
+    // Update workspace reference and autonomously set Industry & Business Category
     workspace.currentStrategyId = gtmStrategy._id;
     if (extractedData.url && !workspace.domain) {
       workspace.domain = extractedData.domainName;
+    }
+    workspace.industry = category;
+    workspace.businessCategory = category;
+    if (strategyData.positioning?.coreValueProp) {
+      workspace.businessModelDescription = strategyData.positioning.coreValueProp;
+    }
+    if (businessName && (workspace.name === 'sample' || workspace.name.includes("'s Company") || workspace.name === 'My Business Workspace')) {
+      workspace.name = businessName;
     }
     await workspace.save();
 
@@ -108,12 +117,19 @@ router.post('/scan', authMiddleware, async (req, res) => {
         businessName: gtmStrategy.businessName,
         category: gtmStrategy.category,
         strategy: gtmStrategy,
+        workspace,
+      });
+
+      // Autonomously refresh Executive Briefing with real crawled business context
+      DailyBriefingJob.generateWorkspaceBriefing(workspaceId, io).catch((bErr) => {
+        console.warn('[StrategyRoutes] Briefing auto-refresh warning:', bErr.message);
       });
     }
 
     return res.status(201).json({
       success: true,
       strategy: gtmStrategy,
+      workspace,
       message: 'GTM Strategy & Business Plan Document created successfully',
     });
   } catch (error) {

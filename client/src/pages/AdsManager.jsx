@@ -81,15 +81,15 @@ export default function AdsManager({
   // Data State
   const [campaigns, setCampaigns] = useState([]);
   const [metrics, setMetrics] = useState({
-    totalSpend: 5665,
-    attributedRevenue: 20677,
-    blendedRoas: 3.65,
-    blendedCpa: 32.4,
-    totalImpressions: 224200,
-    totalClicks: 7770,
-    totalConversions: 35,
-    blendedCtr: 3.47,
-    activeCampaignsCount: 3,
+    totalSpend: 0,
+    attributedRevenue: 0,
+    blendedRoas: 0,
+    blendedCpa: 0,
+    totalImpressions: 0,
+    totalClicks: 0,
+    totalConversions: 0,
+    blendedCtr: 0,
+    activeCampaignsCount: 0,
   });
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1709,7 +1709,43 @@ export default function AdsManager({
               </tr>
             </thead>
             <tbody>
-              {campaigns.map((camp) => {
+              {campaigns.length === 0 ? (
+                <tr>
+                  <td colSpan="8" style={{ padding: '48px 24px', textAlign: 'center' }}>
+                    <div style={{ maxWidth: '420px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(6, 182, 212, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Megaphone size={24} color="#06B6D4" />
+                      </div>
+                      <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#F8FAFC', margin: 0 }}>
+                        No Active Campaigns Yet
+                      </h3>
+                      <p style={{ fontSize: '0.82rem', color: '#94A3B8', margin: 0, lineHeight: 1.5 }}>
+                        Provision your first autonomous Meta or Google Ads campaign to begin capturing high-intent leads and tracking conversions.
+                      </p>
+                      <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        style={{
+                          marginTop: '8px',
+                          padding: '8px 18px',
+                          borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #06B6D4, #3B82F6)',
+                          color: '#FFF',
+                          fontSize: '0.82rem',
+                          fontWeight: '700',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Plus size={14} /> Launch Campaign
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                campaigns.map((camp) => {
                 const isMeta = camp.platform === 'META' || camp.platform?.startsWith('META');
                 const isShopping = camp.platform?.includes('SHOPPING');
                 const isYoutube = camp.platform?.includes('YOUTUBE');
@@ -1865,7 +1901,7 @@ export default function AdsManager({
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

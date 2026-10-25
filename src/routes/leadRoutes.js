@@ -1,6 +1,7 @@
 import express from 'express';
 import { Lead } from '../models/Lead.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { AiOutreachDrafter } from '../services/messaging/AiOutreachDrafter.js';
 
 const router = express.Router();
 
@@ -93,6 +94,11 @@ router.post('/', authMiddleware, async (req, res) => {
     if (req.app.get('io')) {
       req.app.get('io').to(workspaceId.toString()).emit('leadCreated', lead);
     }
+
+    // Auto-sync into Omnichannel and auto-contact with bespoke AI script
+    AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, { autoDispatch: true, io: req.app.get('io') }).catch((err) => {
+      console.warn('[LeadRoutes] Auto-sync outreach error:', err.message);
+    });
 
     return res.status(201).json({ success: true, lead });
   } catch (error) {
@@ -199,6 +205,12 @@ router.post('/bulk-import', authMiddleware, async (req, res) => {
     }));
 
     const inserted = await Lead.insertMany(preparedLeads);
+
+    // Auto-sync into Omnichannel and auto-contact with bespoke AI scripts
+    AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, { autoDispatch: true, io: req.app.get('io') }).catch((err) => {
+      console.warn('[LeadRoutes] Bulk auto-sync outreach error:', err.message);
+    });
+
     return res.status(201).json({ success: true, count: inserted.length, leads: inserted });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -234,6 +246,12 @@ router.post('/import', authMiddleware, async (req, res) => {
     }));
 
     const inserted = await Lead.insertMany(preparedLeads);
+
+    // Auto-sync into Omnichannel and auto-contact with bespoke AI scripts
+    AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, { autoDispatch: true, io: req.app.get('io') }).catch((err) => {
+      console.warn('[LeadRoutes] Import auto-sync outreach error:', err.message);
+    });
+
     return res.status(201).json({ success: true, count: inserted.length, leads: inserted });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

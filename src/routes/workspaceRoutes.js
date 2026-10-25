@@ -110,7 +110,7 @@ router.post('/', authMiddleware, async (req, res) => {
       industry: industry || 'B2B',
       businessCategory: businessCategory || '',
       businessModelDescription: businessModelDescription || '',
-      operatingMode: operatingMode || 'TOOL',
+      operatingMode: operatingMode || 'AI_COMPANY',
       ownerEmail: req.user ? req.user.email : '',
       ownerName: req.user ? req.user.name : '',
       branding: branding || {
