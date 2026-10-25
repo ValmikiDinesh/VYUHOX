@@ -481,7 +481,7 @@ Recent Appointments: ${recentAppointmentsList.join('; ') || 'No upcoming appoint
    * Answers ANY question asked by a lead/client using the accumulated business data + LLM.
    * Stores the question and verified answer into the permanent Q&A ledger so data is never missed.
    */
-  static async answerLeadQuestion({ workspaceId, leadId = null, question, channel = 'OMNICHANNEL' }) {
+  static async answerLeadQuestion({ workspaceId, leadId = null, question, channel = 'OMNICHANNEL', leadName = null, leadCompany = null }) {
     if (!question || !question.trim()) {
       return { answer: 'How can I assist you today?', confidenceScore: 0.9 };
     }
@@ -489,45 +489,61 @@ Recent Appointments: ${recentAppointmentsList.join('; ') || 'No upcoming appoint
     const brain = await this.getOrCreateBrain(workspaceId);
     const ctx = await this.getLevel6Context(workspaceId);
 
-    // 1. Check if a very similar question was already answered in the QA ledger or learned FAQs
+    // 1. Retrieve past verified entries from the trained Business Brain as ground truth
     const cleanQ = question.trim().toLowerCase();
-    const existingEntry = (brain.qaLedger || []).slice(-30).find(
+    const existingEntry = (brain.qaLedger || []).slice(-50).find(
       (entry) => entry.question && cleanQ.includes(entry.question.toLowerCase().slice(0, 20))
     );
 
-    let answer = '';
-    let confidenceScore = 0.95;
+    const verifiedPriorKnowledge = existingEntry?.exactAnswer
+      ? `VERIFIED PRIOR ANSWER FROM BUSINESS BRAIN:\n"${existingEntry.exactAnswer}"`
+      : 'NO DIRECT MATCH IN HISTORICAL LEDGER (Synthesize directly using full trained business knowledge below)';
 
-    if (existingEntry && existingEntry.exactAnswer) {
-      answer = existingEntry.exactAnswer;
-    } else {
-      // 2. Generate grounded, exact answer using LlmGatewayService
-      const prompt = `You are the primary business intelligence AI representing ${ctx.businessName}.
-A client or prospect has asked the following specific question:
+    const effectiveLeadName = leadName || ctx.activeLead?.name || 'there';
+    const effectiveLeadCompany = leadCompany || ctx.activeLead?.company || 'your team';
+
+    // 2. Synthesize response using BOTH AI LLM + Trained Business Intelligence
+    const prompt = `You are the primary business intelligence AI representing ${ctx.businessName}.
+A client or prospect has asked the following specific inquiry:
 "${question}"
 
-FULL COMPOUNDING BUSINESS DATA (LEVELS 1 THROUGH 6 + PREVIOUS ROUNDS):
+TARGET PROSPECT: ${effectiveLeadName} (${ctx.activeLead?.title || 'Decision Maker'}) at ${effectiveLeadCompany}
+COMMUNICATION CHANNEL: ${channel}
+
+${verifiedPriorKnowledge}
+
+FULL TRAINED BUSINESS DATA (LEVELS 1 THROUGH 6 + PREVIOUS ROUNDS ARCHIVES):
 ${ctx.summaryText}
 
 REQUIREMENTS:
-1. Answer accurately and directly using ONLY the real business facts, capabilities, value propositions, and offerings of ${ctx.businessName}.
-2. If asking about pricing, implementation time, compliance, architecture, or features, use the exact facts from the context above.
-3. Keep the answer concise, polite, professional, and confident (between 25 and 80 words).
-4. Output ONLY the answer without quotation marks, conversational preambles, or AI disclaimers.`;
+1. ACCESS BOTH: Utilize your AI LLM language reasoning AND the trained business intelligence provided above.
+2. ACCURACY: Ground every claim, pricing detail, feature, timeline, or competitive differentiator in ${ctx.businessName}'s real business facts.
+3. CONVERSATIONAL EXCELLENCE: Address the prospect respectfully, directly answering what they asked without generic evasions.
+4. TONE & LENGTH: Keep the reply concise, high-converting, empathetic, and professional (between 30 and 80 words).
+5. Output ONLY the reply message text to send to the lead.`;
 
-      try {
-        const res = await LlmGatewayService.execute({
-          prompt,
-          systemInstruction: `You are the official corporate representative AI for ${ctx.businessName}. Answer with factual accuracy based strictly on the provided company intelligence.`,
-          temperature: 0.2,
-          timeoutMs: 6000,
-        });
-        answer = res.content.trim();
-      } catch (err) {
-        console.warn('[CumulativeContextService] LLM answer fallback:', err.message);
-        answer = `At ${ctx.businessName}, we specialize in ${ctx.coreValueProp}. Our solution directly addresses ${ctx.painPoints[0] || 'core enterprise efficiency'}. Would you like to schedule a 15-minute briefing to review this in detail?`;
-        confidenceScore = 0.8;
+    let answer = '';
+    let confidenceScore = 0.96;
+    let providerUsed = 'MULTI_LLM_CASCADE';
+
+    try {
+      const res = await LlmGatewayService.execute({
+        prompt,
+        systemInstruction: `You are the official corporate AI representative for ${ctx.businessName}. You combine advanced AI LLM reasoning with real, trained business data to answer prospect inquiries with 100% precision.`,
+        temperature: 0.25,
+        timeoutMs: 6500,
+      });
+
+      if (res?.text && res.text.trim()) {
+        answer = res.text.replace(/^["']|["']$/g, '').trim();
+        providerUsed = res.model || 'MULTI_LLM_CASCADE';
+      } else {
+        answer = existingEntry?.exactAnswer || `At ${ctx.businessName}, we specialize in ${ctx.coreValueProp}. Our solution directly addresses ${ctx.painPoints[0] || 'core enterprise efficiency'}. Would you be open to a quick 10-minute briefing to review this in detail?`;
       }
+    } catch (err) {
+      console.warn('[CumulativeContextService] LLM answer fallback, using trained business brain data:', err.message);
+      answer = existingEntry?.exactAnswer || `At ${ctx.businessName}, we specialize in ${ctx.coreValueProp}. Our solution directly addresses ${ctx.painPoints[0] || 'core enterprise efficiency'}. Would you be open to a quick 10-minute briefing to review this in detail?`;
+      confidenceScore = 0.88;
     }
 
     // 3. Persist to immutable QA Ledger so the business brain never misses this question

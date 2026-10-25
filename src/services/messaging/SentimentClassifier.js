@@ -164,20 +164,26 @@ export class SentimentClassifier {
     const leadTitle = lead?.title || 'Decision Maker';
     const isQuestion = messageContent.includes('?') || /what|how|why|when|where|who|price|cost|tier|pricing|can you|do you|feature|support|demo|integrate/i.test(messageContent);
 
-    // If prospect is asking a specific question, answer with 100% exact business data from the trained Brain
-    if (isQuestion) {
+    // If prospect is asking a question or general inquiry, answer accessing BOTH AI LLM + Trained Business Brain
+    if (isQuestion || sentiment === 'QUESTION' || sentiment === 'GENERAL_INQUIRY') {
       try {
         const qaResult = await CumulativeContextService.answerLeadQuestion({
           workspaceId,
           leadId: lead?._id,
           question: messageContent,
           channel: lead?.channel || 'OMNICHANNEL',
+          leadName,
+          leadCompany: company,
         });
         if (qaResult?.answer) {
+          const formattedReply = qaResult.answer.toLowerCase().startsWith('hi') || qaResult.answer.toLowerCase().startsWith('hello')
+            ? qaResult.answer
+            : `Hi ${leadName}, ${qaResult.answer}`;
           return {
-            suggestedText: `Hi ${leadName}, ${qaResult.answer}`,
-            rationale: `Answered directly from ${businessName} Business Brain (Round ${qaResult.round || 1}) grounded in real business capabilities & QA ledger.`,
-            provider: 'BUSINESS_BRAIN_AI',
+            suggestedText: formattedReply,
+            rationale: `Synthesized via AI LLM (${qaResult.provider || 'CASCADE'}) + Trained Business Brain (Round ${qaResult.round || 1}) grounded in authentic company intelligence & QA ledger.`,
+            provider: 'AI_LLM_PLUS_TRAINED_BUSINESS_BRAIN',
+            groundedSources: qaResult.groundedSources || ['AI LLM', 'Trained Business Brain'],
           };
         }
       } catch (qaErr) {
