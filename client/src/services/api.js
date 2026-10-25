@@ -824,6 +824,32 @@ export const api = {
     return res.json();
   },
 
+  // Continuous Multi-Round AI Brain & Evolution
+  getBusinessBrain: async (workspaceId) => {
+    const res = await fetch(`${API_BASE}/flywheel/brain/${workspaceId}`);
+    return res.json();
+  },
+  askBusinessBrain: async (workspaceId, data) => {
+    const res = await fetch(`${API_BASE}/flywheel/brain/${workspaceId}/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  advanceBrainRound: async (workspaceId, data = {}) => {
+    const res = await fetch(`${API_BASE}/flywheel/brain/${workspaceId}/advance-round`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  getSuperAdminBrainOverview: async () => {
+    const res = await fetch(`${API_BASE}/flywheel/brain-superadmin/overview`);
+    return res.json();
+  },
+
   // Auth
   login: async (credentials) => {
     const res = await fetch(`${API_BASE}/auth/login`, {

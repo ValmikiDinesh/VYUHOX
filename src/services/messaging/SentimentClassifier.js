@@ -162,11 +162,33 @@ export class SentimentClassifier {
     const leadName = lead?.name ? lead.name.split(' ')[0] : 'there';
     const company = lead?.company || 'your team';
     const leadTitle = lead?.title || 'Decision Maker';
+    const isQuestion = messageContent.includes('?') || /what|how|why|when|where|who|price|cost|tier|pricing|can you|do you|feature|support|demo|integrate/i.test(messageContent);
+
+    // If prospect is asking a specific question, answer with 100% exact business data from the trained Brain
+    if (isQuestion) {
+      try {
+        const qaResult = await CumulativeContextService.answerLeadQuestion({
+          workspaceId,
+          leadId: lead?._id,
+          question: messageContent,
+          channel: lead?.channel || 'OMNICHANNEL',
+        });
+        if (qaResult?.answer) {
+          return {
+            suggestedText: `Hi ${leadName}, ${qaResult.answer}`,
+            rationale: `Answered directly from ${businessName} Business Brain (Round ${qaResult.round || 1}) grounded in real business capabilities & QA ledger.`,
+            provider: 'BUSINESS_BRAIN_AI',
+          };
+        }
+      } catch (qaErr) {
+        console.warn('[SentimentClassifier] QA answer error:', qaErr.message);
+      }
+    }
 
     // 1. Multi-LLM Generation via LlmGatewayService (Gemini, Groq, OpenAI)
     try {
       const prompt = `You are an elite enterprise Account Executive representing ${businessName}.
-CONTEXT (CUMULATIVE FLYWHEEL):
+CONTEXT (CUMULATIVE FLYWHEEL ACROSS ALL ROUNDS & LEVELS):
 ${ctx?.summaryText || `Company: ${businessName}. Value Prop: ${coreValueProp}`}
 
 INBOUND MESSAGE TO ANSWER:
@@ -194,7 +216,7 @@ Output ONLY the drafted reply message text.`;
         const cleanReply = llmResult.text.replace(/^["']|["']$/g, '').trim();
         return {
           suggestedText: cleanReply,
-          rationale: `AI Copilot generated reply tailored to ${sentiment} intent for ${company} using Level 1-3 Business Context.`,
+          rationale: `AI Copilot generated reply tailored to ${sentiment} intent for ${company} using Level 1-6 Business Context.`,
           provider: llmResult.model || 'MULTI_LLM_CASCADE',
         };
       }
