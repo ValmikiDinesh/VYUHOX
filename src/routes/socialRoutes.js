@@ -12,6 +12,7 @@ import { ImagePostAgent } from '../services/social/ImagePostAgent.js';
 import { PromptContentAgent } from '../services/social/PromptContentAgent.js';
 import { GtmStrategy } from '../models/GtmStrategy.js';
 import { checkAndPublishPendingPosts } from '../cron/socialPublisher.js';
+import { CumulativeContextService } from '../ai/CumulativeContextService.js';
 
 const router = express.Router();
 
@@ -97,12 +98,14 @@ router.post('/generate-from-prompt', async (req, res) => {
 
     const ws = await Workspace.findById(workspaceId);
     const strategy = await GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' });
+    const cumulativeContext = await CumulativeContextService.getLevel5Context(workspaceId).catch(() => null);
 
     // 1. Synthesize unique script & content matrix from prompt + business context
     const content = await PromptContentAgent.generateFromPrompt({
       prompt,
       workspace: ws,
       strategy,
+      cumulativeContext,
       postType,
       voiceId,
       language,

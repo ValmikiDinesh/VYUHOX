@@ -81,13 +81,35 @@ export default function LeadFinder({
   const [strategy, setStrategy] = useState(null);
   const [isLoadingStrategy, setIsLoadingStrategy] = useState(false);
 
-  // Scraper Search Parameters
-  const [location, setLocation] = useState('');
+  // Scraper Search Parameters (Multi-Territory Support: Cities, States, Countries)
+  const [selectedLocations, setSelectedLocations] = useState(['Hyderabad, Telangana']);
+  const [locationInput, setLocationInput] = useState('');
   const [limit, setLimit] = useState(25);
   const [customKeywords, setCustomKeywords] = useState('');
   const [isScraping, setIsScraping] = useState(false);
   const [activeJobId, setActiveJobId] = useState(null);
   const [expandedNotesId, setExpandedNotesId] = useState(null);
+
+  const handleAddLocation = (locToAdd) => {
+    const term = (locToAdd || locationInput).trim();
+    if (!term) return;
+    if (!selectedLocations.includes(term)) {
+      setSelectedLocations([...selectedLocations, term]);
+    }
+    setLocationInput('');
+  };
+
+  const handleRemoveLocation = (locToRemove) => {
+    setSelectedLocations(selectedLocations.filter((l) => l !== locToRemove));
+  };
+
+  const handleTogglePreset = (presetLoc) => {
+    if (selectedLocations.includes(presetLoc)) {
+      handleRemoveLocation(presetLoc);
+    } else {
+      setSelectedLocations([...selectedLocations, presetLoc]);
+    }
+  };
 
   // Per-Lead Pricing Rate
   const RATE_PER_LEAD_USD = 0.15;
@@ -254,15 +276,23 @@ export default function LeadFinder({
     };
   }, [socket, onRefreshLeads]);
 
-  // 3. Launch Autonomous AI Multi-Source Scraper
+  // 3. Launch Autonomous AI Multi-Source Scraper across Multiple Territories
   const handleStartScrape = async () => {
     if (!activeWorkspace) return;
 
-    const targetLoc = (location || '').trim();
-    if (!targetLoc) {
-      alert('Please enter a target location (e.g. San Francisco, California or Bengaluru, India) where you want to scrape leads.');
+    // Resolve multi-locations
+    const finalLocations = selectedLocations.length > 0
+      ? selectedLocations
+      : locationInput.trim()
+      ? [locationInput.trim()]
+      : [];
+
+    if (finalLocations.length === 0) {
+      alert('Please select or enter at least one target location (e.g. Hyderabad, Telangana or San Francisco, CA) where you want to scrape leads.');
       return;
     }
+
+    const locationSummary = finalLocations.join('; ');
 
     // Plan-Aware Lead Quota & Wallet Check
     if (overageBatch > 0) {
@@ -291,13 +321,14 @@ export default function LeadFinder({
       step: 'SOURCE_DISCOVERY',
       stepIndex: 1,
       totalSteps: 4,
-      message: `AI querying search engines, registries & social tools across "${targetLoc}" for ${businessName}...`,
+      message: `AI querying multi-source registries across ${finalLocations.length} territories [${finalLocations.slice(0, 3).join(', ')}${finalLocations.length > 3 ? '...' : ''}] for ${businessName}...`,
       percent: 15,
     });
 
     try {
       const res = await api.startScraper(activeWorkspace._id, {
-        location: targetLoc,
+        location: locationSummary,
+        locations: finalLocations,
         limit,
         targetRole: aiCalibratedRole, // Pure AI-Calibrated Role
         customKeywords: customKeywords.trim(),
@@ -781,38 +812,66 @@ export default function LeadFinder({
           </p>
         </div>
 
-        {/* Inputs Grid (Clean & Professional: No Clumsy Manual Role Dropdown) */}
+        {/* Inputs Grid (Multi-City/State/Country Autonomous Scraping) */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1.4fr 1fr 0.7fr auto',
           gap: '14px',
           alignItems: 'flex-end',
-          marginBottom: '14px',
+          marginBottom: '10px',
         }}>
-          {/* 1. Location Input */}
+          {/* 1. Location Input with Enter to Add */}
           <div>
-            <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px', fontWeight: '600' }}>
-              <Compass size={13} color="#10B981" /> Target Geographic Territory
+            <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', fontWeight: '600' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Compass size={13} color="#10B981" /> Target Geographic Territories ({selectedLocations.length} active)
+              </span>
+              <span style={{ fontSize: '0.68rem', color: '#64748B' }}>Add multiple cities/states/countries</span>
             </label>
-            <div style={{ position: 'relative' }}>
-              <MapPin size={15} color="#34D399" style={{ position: 'absolute', left: '12px', top: '13px' }} />
-              <input
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g. San Francisco Bay Area, CA or Bengaluru, India..."
+            <div style={{ position: 'relative', display: 'flex', gap: '6px' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <MapPin size={15} color="#34D399" style={{ position: 'absolute', left: '12px', top: '13px' }} />
+                <input
+                  type="text"
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddLocation();
+                    }
+                  }}
+                  placeholder="Type city/state/country & press Enter (e.g. Hyderabad, London, Dallas)..."
+                  style={{
+                    height: '42px',
+                    paddingLeft: '38px',
+                    width: '100%',
+                    fontSize: '0.85rem',
+                    color: '#F8FAFC',
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleAddLocation()}
                 style={{
-                  height: '42px',
-                  paddingLeft: '38px',
-                  width: '100%',
-                  fontSize: '0.85rem',
-                  color: '#F8FAFC',
-                  background: 'rgba(0, 0, 0, 0.35)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '0 12px',
                   borderRadius: '8px',
-                  outline: 'none',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  color: '#34D399',
+                  fontSize: '0.75rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
-              />
+              >
+                + Add
+              </button>
             </div>
           </div>
 
@@ -895,41 +954,110 @@ export default function LeadFinder({
             >
               {isScraping ? (
                 <>
-                  <RefreshCw size={15} className="animate-spin" /> Scraping {location || 'Market'}...
+                  <RefreshCw size={15} className="animate-spin" /> Scraping {selectedLocations.length || 1} Territories...
                 </>
               ) : (
                 <>
-                  <Play size={15} fill="#021C11" /> Run AI Scraper ({limit} Leads)
+                  <Play size={15} fill="#021C11" /> Run AI Scraper ({limit} Leads • {selectedLocations.length || 1} {selectedLocations.length === 1 ? 'City' : 'Cities'})
                 </>
               )}
             </button>
           </div>
         </div>
 
-        {/* Territory Suggestion Chips */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+        {/* Active Selected Territory Tags */}
+        {selectedLocations.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Active Target Territories ({selectedLocations.length}):
+            </span>
+            {selectedLocations.map((loc) => (
+              <span
+                key={loc}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '3px 10px',
+                  borderRadius: '999px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  color: '#34D399',
+                  fontSize: '0.73rem',
+                  fontWeight: '600',
+                }}
+              >
+                <MapPin size={11} /> {loc}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveLocation(loc)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#94A3B8',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    padding: 0,
+                    marginLeft: '2px',
+                    lineHeight: 1,
+                  }}
+                  title="Remove territory"
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+            {selectedLocations.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setSelectedLocations([])}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748B',
+                  fontSize: '0.7rem',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  marginLeft: '4px',
+                }}
+              >
+                Clear All
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Territory Suggestion Chips (Click to Toggle On/Off) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
           <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Quick Territories:
+            Click to Add/Toggle Territories:
           </span>
-          {locationSuggestions.map((loc, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => setLocation(loc)}
-              style={{
-                padding: '3px 10px',
-                borderRadius: '6px',
-                background: location === loc ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255, 255, 255, 0.03)',
-                border: location === loc ? '1px solid #10B981' : '1px solid rgba(255, 255, 255, 0.07)',
-                color: location === loc ? '#34D399' : '#CBD5E1',
-                fontSize: '0.72rem',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {loc}
-            </button>
-          ))}
+          {locationSuggestions.map((loc, idx) => {
+            const isSelected = selectedLocations.includes(loc);
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleTogglePreset(loc)}
+                style={{
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  background: isSelected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                  border: isSelected ? '1px solid #10B981' : '1px solid rgba(255, 255, 255, 0.07)',
+                  color: isSelected ? '#34D399' : '#CBD5E1',
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                {isSelected && <Check size={11} />}
+                {loc}
+              </button>
+            );
+          })}
         </div>
 
         {/* Live Plan Quota & Billing Strip */}

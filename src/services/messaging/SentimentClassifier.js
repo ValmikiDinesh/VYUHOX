@@ -13,6 +13,8 @@
 
 import { GtmStrategy } from '../../models/GtmStrategy.js';
 import { Lead } from '../../models/Lead.js';
+import { CumulativeContextService } from '../ai/CumulativeContextService.js';
+import { LlmGatewayService } from '../ai/LlmGatewayService.js';
 
 export class SentimentClassifier {
   /**
@@ -145,80 +147,73 @@ export class SentimentClassifier {
   }
 
   /**
-   * Generate context-aware AI suggestion for response
+   * Generate context-aware AI suggestion for response using Cumulative Context Flywheel (Level 1 + 2 + 3)
    */
   static async generateSuggestedReply({ messageContent, sentiment, lead, workspaceId }) {
-    // Fetch workspace strategy if exists for personalized messaging hooks
-    let strategyContext = '';
+    let ctx = null;
     try {
-      const strategy = await GtmStrategy.findOne({ workspaceId }).lean();
-      if (strategy) {
-        strategyContext = `Company: ${strategy.companyName || 'Our SaaS'}. Value prop: ${strategy.valueProposition || 'Accelerating autonomous pipeline'}. Primary ICP: ${strategy.targetAudience?.icpDescription || 'Decision makers'}.`;
-      }
-    } catch {
-      // ignore
+      ctx = await CumulativeContextService.getLevel3Context(workspaceId, lead?._id);
+    } catch (e) {
+      console.warn('[SentimentClassifier] Context retrieval fallback:', e.message);
     }
 
+    const businessName = ctx?.businessName || 'Our Team';
+    const coreValueProp = ctx?.coreValueProp || 'Accelerating autonomous pipeline velocity';
     const leadName = lead?.name ? lead.name.split(' ')[0] : 'there';
     const company = lead?.company || 'your team';
+    const leadTitle = lead?.title || 'Decision Maker';
 
-    // 1. OpenAI GPT generation if key provided
-    if (process.env.OPENAI_API_KEY) {
-      try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: `You are an expert SDR & Account Executive AI Copilot. Draft a concise, high-converting, empathetic, and professional reply (under 75 words).
-Strategy Context: ${strategyContext || 'Autonomous GTM Platform delivering multi-channel outbound velocity.'}
-Lead Name: ${leadName}
-Lead Company: ${company}
-Sentiment Detected: ${sentiment}`,
-              },
-              {
-                role: 'user',
-                content: `Inbound Message: "${messageContent}"\nDraft the ideal response directly:`,
-              },
-            ],
-            temperature: 0.3,
-          }),
-        });
+    // 1. Multi-LLM Generation via LlmGatewayService (Gemini, Groq, OpenAI)
+    try {
+      const prompt = `You are an elite enterprise Account Executive representing ${businessName}.
+CONTEXT (CUMULATIVE FLYWHEEL):
+${ctx?.summaryText || `Company: ${businessName}. Value Prop: ${coreValueProp}`}
 
-        if (response.ok) {
-          const data = await response.json();
-          const draft = data.choices[0]?.message?.content?.trim();
-          if (draft) {
-            return {
-              suggestedText: draft,
-              rationale: `AI Copilot generated reply tailored to ${sentiment} intent for ${company}.`,
-              provider: 'OPENAI_GPT_4O_MINI',
-            };
-          }
-        }
-      } catch (err) {
-        console.warn('[SentimentClassifier] OpenAI draft generation failed, using intelligent templates:', err.message);
+INBOUND MESSAGE TO ANSWER:
+"${messageContent}"
+
+DETECTED SENTIMENT: ${sentiment}
+LEAD: ${leadName} (${leadTitle}) at ${company}
+
+TASK:
+Draft a concise, high-converting, empathetic reply (under 75 words).
+- Speak specifically on behalf of ${businessName}.
+- Directly address their inquiry/objection using ${businessName}'s value proposition.
+- If HIGH_INTENT: Offer a direct 15-minute sync.
+- If OBJECTION: Acknowledge empathetically with high-conviction social proof.
+- If GENERAL_INQUIRY: Clarify capabilities and ask a sharp qualifying discovery question.
+Output ONLY the drafted reply message text.`;
+
+      const llmResult = await LlmGatewayService.execute({
+        prompt,
+        systemInstruction: `You are an expert SDR & Account Executive AI Copilot representing ${businessName}. Output only the direct message reply without preambles or quotes.`,
+        temperature: 0.3,
+      });
+
+      if (llmResult?.text && llmResult.text.trim()) {
+        const cleanReply = llmResult.text.replace(/^["']|["']$/g, '').trim();
+        return {
+          suggestedText: cleanReply,
+          rationale: `AI Copilot generated reply tailored to ${sentiment} intent for ${company} using Level 1-3 Business Context.`,
+          provider: llmResult.model || 'MULTI_LLM_CASCADE',
+        };
       }
+    } catch (err) {
+      console.warn('[SentimentClassifier] LLM generation failed, falling back to context-aware templates:', err.message);
     }
 
-    // 2. Intelligent Context-Aware Reply Generator
+    // 2. High-Fidelity Context-Aware Fallback Templates
     let suggestedText = '';
     let rationale = '';
 
     switch (sentiment) {
       case 'HIGH_INTENT':
-        suggestedText = `Hi ${leadName}, fantastic to hear! We would love to walk ${company} through a tailored walkthrough and discuss custom deployment terms. You can pick any 15-minute slot on our calendar right here: https://cal.com/vyuhox/discovery-sync. Looking forward to speaking!`;
-        rationale = 'High Intent detected: Immediate calendar dispatch to lock in demo while interest is peaking.';
+        suggestedText = `Hi ${leadName}, fantastic to hear! We would love to walk ${company} through how ${businessName} delivers ${coreValueProp}. You can pick any 15-minute slot on our calendar right here: https://cal.com/vyuhox/discovery-sync. Looking forward to speaking!`;
+        rationale = 'High Intent detected: Immediate calendar dispatch with business value hook.';
         break;
 
       case 'OBJECTION':
-        suggestedText = `Hi ${leadName}, completely understand your concern regarding budget and timing. Many leaders at high-growth firms had the exact same hesitation before seeing our 3.4x ROI within their first 14 days of automated outreach. Would you be open to reviewing a quick 2-minute benchmark report comparing costs?`;
+        suggestedText = `Hi ${leadName}, completely understand your concern regarding timing and allocation. Many leaders evaluating ${businessName} had the exact same hesitation before seeing our results in under 14 days. Would you be open to reviewing a quick 2-minute benchmark report?`;
         rationale = 'Objection detected: Empathetic acknowledgment paired with ROI social proof.';
         break;
 
@@ -228,12 +223,12 @@ Sentiment Detected: ${sentiment}`,
         break;
 
       case 'GENERAL_INQUIRY':
-        suggestedText = `Hi ${leadName}, thanks for reaching out! Yes, our platform natively connects to WhatsApp Cloud, Telegram Bot API, Twilio SMS, and automated email drips with real-time AI classification. Are you looking to streamline outbound prospecting or automate inbound lead qualification?`;
-        rationale = 'General Inquiry: Clarified core capability and closed with a qualifying discovery question.';
+        suggestedText = `Hi ${leadName}, thanks for reaching out! Yes, ${businessName} directly provides ${coreValueProp} with turnkey integration. Are you looking to streamline current operational bottlenecks or accelerate active pipelines?`;
+        rationale = 'General Inquiry: Clarified business capability and closed with a qualifying discovery question.';
         break;
 
       default:
-        suggestedText = `Hi ${leadName}, thanks for following up! How are things currently looking on your side at ${company}? Let me know if there are specific targets you are aiming to hit this quarter.`;
+        suggestedText = `Hi ${leadName}, thanks for following up! How are things currently looking on your side at ${company}? Let me know if there are specific targets you are aiming to hit this quarter with ${businessName}.`;
         rationale = 'Neutral Sentiment: Polite engagement keeping the conversation warm.';
         break;
     }

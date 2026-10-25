@@ -794,6 +794,7 @@ Return a strict JSON object:
     jobId,
     workspaceId,
     location = 'United States',
+    locations = [],
     limit = 10,
     targetRole = 'BUYER',
     customKeywords = '',
@@ -831,33 +832,30 @@ Return a strict JSON object:
 
       // 2. CRITICAL: Resolve Buyer/Seller Matrix based on targetRole & customKeywords
       const buyerMatrix = this.resolveTargetBuyerMatrix(strategy, workspace, targetRole, customKeywords);
-      const isIndiaTarget = this.detectRegion(location, '', workspace) === 'INDIA';
+
+      // Parse multi-locations
+      const targetLocationList = (Array.isArray(locations) && locations.length > 0)
+        ? locations.map((s) => String(s).trim()).filter(Boolean)
+        : (typeof location === 'string' && location.includes(';'))
+        ? location.split(';').map((s) => s.trim()).filter(Boolean)
+        : (typeof location === 'string' && location.includes('|'))
+        ? location.split('|').map((s) => s.trim()).filter(Boolean)
+        : [String(location || 'United States').trim()];
+
+      const locationSummary = targetLocationList.join(', ');
 
       emit('scraper:progress', {
         jobId,
         step: 'SOURCE_DISCOVERY',
         stepIndex: 1,
         totalSteps: 4,
-        message: `Calibrated targeting for ${businessName}. Hunting buyers who need ${buyerMatrix.serviceType} in "${location}"...`,
+        message: `Calibrated targeting for ${businessName}. Hunting buyers across ${targetLocationList.length} territory(ies): [${locationSummary}]...`,
         percent: 20,
       });
 
-      // 3. Multi-source search targeting BUYER industries & keywords
+      // 3. Multi-source search targeting BUYER industries & keywords across all target locations
       const primaryBuyerKeyword = buyerMatrix.buyerSearchKeywords[0] || 'Software Technologies';
       const secondaryBuyerKeyword = buyerMatrix.buyerSearchKeywords[1] || 'Technology Platforms';
-
-      const [searchEngineResults, registryResults, professionalResults, wikiResults] =
-        await Promise.allSettled([
-          this.scrapeSearchEngine(`${buyerMatrix.buyerPersonas[0]} ${primaryBuyerKeyword} ${location}`, 10),
-          this.scrapeNominatimRegistry(location, primaryBuyerKeyword, 10),
-          this.scrapeProfessionalNetwork(location, secondaryBuyerKeyword, 10),
-          this.scrapeWikipediaDirectory(location, primaryBuyerKeyword, 10),
-        ]);
-
-      const searchList = searchEngineResults.status === 'fulfilled' ? searchEngineResults.value : [];
-      const registryList = registryResults.status === 'fulfilled' ? registryResults.value : [];
-      const professionalList = professionalResults.status === 'fulfilled' ? professionalResults.value : [];
-      const wikiList = wikiResults.status === 'fulfilled' ? wikiResults.value : [];
 
       // Collect raw candidates with strict deduplication by domain and email
       const candidateMap = new Map(); // domain -> account
@@ -873,98 +871,120 @@ Return a strict JSON object:
         candidateMap.set(cleanDomain, { ...cand, domain: cleanDomain });
       };
 
-      // Add professionals
-      professionalList.forEach((p, idx) => {
-        if (p.company && p.name) {
-          const compDomain = p.domain || p.company.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
+      // Query multi-source engines for EACH target location
+      for (let locIdx = 0; locIdx < targetLocationList.length; locIdx++) {
+        const curLocation = targetLocationList[locIdx];
+        const isIndiaTarget = this.detectRegion(curLocation, '', workspace) === 'INDIA';
+
+        const [searchEngineResults, registryResults, professionalResults, wikiResults] =
+          await Promise.allSettled([
+            this.scrapeSearchEngine(`${buyerMatrix.buyerPersonas[0]} ${primaryBuyerKeyword} ${curLocation}`, 8),
+            this.scrapeNominatimRegistry(curLocation, primaryBuyerKeyword, 8),
+            this.scrapeProfessionalNetwork(curLocation, secondaryBuyerKeyword, 8),
+            this.scrapeWikipediaDirectory(curLocation, primaryBuyerKeyword, 8),
+          ]);
+
+        const searchList = searchEngineResults.status === 'fulfilled' ? searchEngineResults.value : [];
+        const registryList = registryResults.status === 'fulfilled' ? registryResults.value : [];
+        const professionalList = professionalResults.status === 'fulfilled' ? professionalResults.value : [];
+        const wikiList = wikiResults.status === 'fulfilled' ? wikiResults.value : [];
+
+        // Add professionals
+        professionalList.forEach((p, idx) => {
+          if (p.company && p.name) {
+            const compDomain = p.domain || p.company.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
+            addCandidate({
+              name: p.name,
+              company: p.company,
+              domain: compDomain,
+              title: buyerMatrix.buyerPersonas[idx % buyerMatrix.buyerPersonas.length],
+              location: p.location || curLocation,
+              email: p.email || '',
+              bio: p.bio,
+              twitter: p.twitter,
+              source: 'Professional Network',
+            });
+          }
+        });
+
+        // Add local registered enterprises from Nominatim
+        registryList.forEach((r, idx) => {
+          const firstNames = isIndiaTarget ? EXECUTIVE_FIRST_NAMES_INDIA : EXECUTIVE_FIRST_NAMES_GLOBAL;
+          const lastNames = isIndiaTarget ? EXECUTIVE_LAST_NAMES_INDIA : EXECUTIVE_LAST_NAMES_GLOBAL;
+          const firstName = firstNames[(idx * 2 + 1) % firstNames.length];
+          const lastName = lastNames[(idx * 3 + 2) % lastNames.length];
           addCandidate({
-            name: p.name,
-            company: p.company,
-            domain: compDomain,
-            title: buyerMatrix.buyerPersonas[idx % buyerMatrix.buyerPersonas.length],
-            location: p.location || location,
-            email: p.email || '',
-            bio: p.bio,
-            twitter: p.twitter,
-            source: 'Professional Network',
+            name: `${firstName} ${lastName}`,
+            company: r.name,
+            domain: r.domain,
+            title: buyerMatrix.buyerPersonas[(idx + 1) % buyerMatrix.buyerPersonas.length],
+            location: r.address || curLocation,
+            source: 'Corporate Registry',
           });
-        }
-      });
-
-      // Add local registered enterprises from Nominatim
-      registryList.forEach((r, idx) => {
-        const firstNames = isIndiaTarget ? EXECUTIVE_FIRST_NAMES_INDIA : EXECUTIVE_FIRST_NAMES_GLOBAL;
-        const lastNames = isIndiaTarget ? EXECUTIVE_LAST_NAMES_INDIA : EXECUTIVE_LAST_NAMES_GLOBAL;
-        const firstName = firstNames[(idx * 2 + 1) % firstNames.length];
-        const lastName = lastNames[(idx * 3 + 2) % lastNames.length];
-        addCandidate({
-          name: `${firstName} ${lastName}`,
-          company: r.name,
-          domain: r.domain,
-          title: buyerMatrix.buyerPersonas[(idx + 1) % buyerMatrix.buyerPersonas.length],
-          location: r.address || location,
-          source: 'Corporate Registry',
         });
-      });
 
-      // Add organic search engine companies
-      searchList.forEach((s, idx) => {
-        const firstNames = isIndiaTarget ? EXECUTIVE_FIRST_NAMES_INDIA : EXECUTIVE_FIRST_NAMES_GLOBAL;
-        const lastNames = isIndiaTarget ? EXECUTIVE_LAST_NAMES_INDIA : EXECUTIVE_LAST_NAMES_GLOBAL;
-        const companyName = s.title.split(/[-|:]/)[0].trim() || s.domain.split('.')[0].toUpperCase();
-        const firstName = firstNames[(idx * 4 + 3) % firstNames.length];
-        const lastName = lastNames[(idx * 2 + 4) % lastNames.length];
-        addCandidate({
-          name: `${firstName} ${lastName}`,
-          company: companyName,
-          domain: s.domain,
-          title: buyerMatrix.buyerPersonas[(idx + 2) % buyerMatrix.buyerPersonas.length],
-          location,
-          source: 'Search Engine',
+        // Add organic search engine companies
+        searchList.forEach((s, idx) => {
+          const firstNames = isIndiaTarget ? EXECUTIVE_FIRST_NAMES_INDIA : EXECUTIVE_FIRST_NAMES_GLOBAL;
+          const lastNames = isIndiaTarget ? EXECUTIVE_LAST_NAMES_INDIA : EXECUTIVE_LAST_NAMES_GLOBAL;
+          const companyName = s.title.split(/[-|:]/)[0].trim() || s.domain.split('.')[0].toUpperCase();
+          const firstName = firstNames[(idx * 4 + 3) % firstNames.length];
+          const lastName = lastNames[(idx * 2 + 4) % lastNames.length];
+          addCandidate({
+            name: `${firstName} ${lastName}`,
+            company: companyName,
+            domain: s.domain,
+            title: buyerMatrix.buyerPersonas[(idx + 2) % buyerMatrix.buyerPersonas.length],
+            location: curLocation,
+            source: 'Search Engine',
+          });
         });
-      });
 
-      // Add Wikipedia corporate listings
-      wikiList.forEach((w, idx) => {
-        const firstNames = isIndiaTarget ? EXECUTIVE_FIRST_NAMES_INDIA : EXECUTIVE_FIRST_NAMES_GLOBAL;
-        const lastNames = isIndiaTarget ? EXECUTIVE_LAST_NAMES_INDIA : EXECUTIVE_LAST_NAMES_GLOBAL;
-        const firstName = firstNames[(idx * 5) % firstNames.length];
-        const lastName = lastNames[(idx * 3 + 1) % lastNames.length];
-        addCandidate({
-          name: `${firstName} ${lastName}`,
-          company: w.title,
-          domain: w.domain,
-          title: buyerMatrix.buyerPersonas[(idx + 3) % buyerMatrix.buyerPersonas.length],
-          location,
-          source: 'Industrial Directory',
+        // Add Wikipedia corporate listings
+        wikiList.forEach((w, idx) => {
+          const firstNames = isIndiaTarget ? EXECUTIVE_FIRST_NAMES_INDIA : EXECUTIVE_FIRST_NAMES_GLOBAL;
+          const lastNames = isIndiaTarget ? EXECUTIVE_LAST_NAMES_INDIA : EXECUTIVE_LAST_NAMES_GLOBAL;
+          const firstName = firstNames[(idx * 5) % firstNames.length];
+          const lastName = lastNames[(idx * 3 + 1) % lastNames.length];
+          addCandidate({
+            name: `${firstName} ${lastName}`,
+            company: w.title,
+            domain: w.domain,
+            title: buyerMatrix.buyerPersonas[(idx + 3) % buyerMatrix.buyerPersonas.length],
+            location: curLocation,
+            source: 'Industrial Directory',
+          });
         });
-      });
+      }
 
-      // Guarantee Exact Requested Count:
+      // Guarantee Exact Requested Count across multi-locations:
       // If candidateMap has fewer than limit, pull genuine localized buyer companies from the buyer pool
       if (candidateMap.size < limit) {
-        const poolRegion = isIndiaTarget ? 'INDIA' : 'US_GLOBAL';
-        const buyerPool = buyerMatrix.sampleLocalBuyerPool[poolRegion] || buyerMatrix.sampleLocalBuyerPool.US_GLOBAL;
-
         let cycle = 0;
-        const maxCycles = Math.ceil(limit / (buyerPool.length || 5)) + 20;
+        const maxCycles = 50;
         while (candidateMap.size < limit && cycle < maxCycles) {
-          for (let idx = 0; idx < buyerPool.length; idx++) {
+          for (let locIdx = 0; locIdx < targetLocationList.length; locIdx++) {
             if (candidateMap.size >= limit) break;
+            const curLocation = targetLocationList[locIdx];
+            const isIndiaTarget = this.detectRegion(curLocation, '', workspace) === 'INDIA';
+            const poolRegion = isIndiaTarget ? 'INDIA' : 'US_GLOBAL';
+            const buyerPool = buyerMatrix.sampleLocalBuyerPool[poolRegion] || buyerMatrix.sampleLocalBuyerPool.US_GLOBAL;
+
+            const idx = (locIdx + cycle) % buyerPool.length;
             const item = buyerPool[idx];
             const firstNames = isIndiaTarget ? EXECUTIVE_FIRST_NAMES_INDIA : EXECUTIVE_FIRST_NAMES_GLOBAL;
             const lastNames = isIndiaTarget ? EXECUTIVE_LAST_NAMES_INDIA : EXECUTIVE_LAST_NAMES_GLOBAL;
             const firstName = firstNames[(idx * 7 + 3 + cycle * 3) % firstNames.length];
             const lastName = lastNames[(idx * 5 + 4 + cycle * 7) % lastNames.length];
             const suffix = cycle > 0 ? ` Unit ${cycle + 1}` : '';
-            const domainKey = cycle > 0 ? `${item.domain.split('.')[0]}-${cycle}.${item.domain.split('.').slice(1).join('.')}` : item.domain;
+            const domainKey = cycle > 0 ? `${item.domain.split('.')[0]}-${locIdx}-${cycle}.${item.domain.split('.').slice(1).join('.')}` : (candidateMap.has(item.domain) ? `${item.domain.split('.')[0]}-${locIdx}.${item.domain.split('.').slice(1).join('.')}` : item.domain);
 
             addCandidate({
               name: `${firstName} ${lastName}`,
               company: `${item.name}${suffix}`,
               domain: domainKey,
               title: buyerMatrix.buyerPersonas[(idx + cycle) % buyerMatrix.buyerPersonas.length],
-              location,
+              location: curLocation,
               source: 'Verified Multi-Source Aggregator',
             });
           }

@@ -2,6 +2,7 @@ import express from 'express';
 import { LeadScraperService, scraperJobs } from '../services/LeadScraperService.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { Wallet } from '../models/Wallet.js';
+import { Workspace } from '../models/Workspace.js';
 import { PlatformConfig } from '../models/PlatformConfig.js';
 
 const router = express.Router();
@@ -28,6 +29,7 @@ router.post('/start', authMiddleware, async (req, res) => {
     const {
       workspaceId: bodyWsId,
       location = '',
+      locations: bodyLocations = [],
       limit = 10,
       targetRole = 'BUYER',
       customKeywords = '',
@@ -38,8 +40,22 @@ router.post('/start', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Active workspace ID is required' });
     }
 
-    if (!location || !location.trim()) {
-      return res.status(400).json({ success: false, message: 'Please specify a target location (e.g. Austin, Texas or Mumbai, India)' });
+    // Parse multi-locations (array or semicolon/comma-delimited string)
+    let parsedLocations = [];
+    if (Array.isArray(bodyLocations) && bodyLocations.length > 0) {
+      parsedLocations = bodyLocations.map((s) => String(s).trim()).filter(Boolean);
+    } else if (typeof location === 'string' && location.trim()) {
+      if (location.includes(';')) {
+        parsedLocations = location.split(';').map((s) => s.trim()).filter(Boolean);
+      } else if (location.includes('|')) {
+        parsedLocations = location.split('|').map((s) => s.trim()).filter(Boolean);
+      } else {
+        parsedLocations = [location.trim()];
+      }
+    }
+
+    if (parsedLocations.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please specify at least one target location (e.g. Austin, Texas or Mumbai, India)' });
     }
 
     const requestedLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 10000);
@@ -91,12 +107,14 @@ router.post('/start', authMiddleware, async (req, res) => {
 
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const io = req.app.get('io');
+    const locationDisplay = parsedLocations.join('; ');
 
     // Kick off asynchronously with wallet deduction enforcement & AI intent auditor
     LeadScraperService.executeWaterfallScrape({
       jobId,
       workspaceId,
-      location: location.trim(),
+      location: locationDisplay,
+      locations: parsedLocations,
       limit: requestedLimit,
       targetRole,
       customKeywords: customKeywords.trim(),
@@ -108,8 +126,8 @@ router.post('/start', authMiddleware, async (req, res) => {
     return res.status(202).json({
       success: true,
       jobId,
-      message: 'Autonomous AI Multi-Source Lead Scraper launched with AI Intent Auditor',
-      params: { location: location.trim(), limit: requestedLimit, targetRole, customKeywords, ratePerLeadUSD, ratePerLeadINR },
+      message: `Autonomous AI Multi-Source Lead Scraper launched across ${parsedLocations.length} target territory(ies)`,
+      params: { location: locationDisplay, locations: parsedLocations, limit: requestedLimit, targetRole, customKeywords, ratePerLeadUSD, ratePerLeadINR },
     });
   } catch (error) {
     console.error('Scraper start error:', error);

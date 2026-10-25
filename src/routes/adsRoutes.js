@@ -16,6 +16,7 @@ import { GoogleAdsService } from '../services/ads/GoogleAdsService.js';
 import { ConversionTrackingService } from '../services/ads/ConversionTrackingService.js';
 import { AdOptimizerEngine } from '../cron/adOptimizer.js';
 import { AdSelfHealingService } from '../services/ads/AdSelfHealingService.js';
+import { CumulativeContextService } from '../ai/CumulativeContextService.js';
 
 const router = express.Router();
 
@@ -27,12 +28,22 @@ async function ensureDefaultCampaigns(workspaceId) {
   if (count > 0) return;
 
   const ws = await Workspace.findById(workspaceId);
-  const company = ws?.name || 'HedgeX Algorithmic Capital';
+  const ctx = await CumulativeContextService.getLevel5Context(workspaceId).catch(() => null);
+
+  const company = ctx?.businessName || ws?.name || 'Enterprise AI Solutions';
+  const domain = ws?.domain || 'growth.vyuhox.com';
+  const valueProp = ctx?.strategy?.positioning?.coreValueProp || 'Enterprise-grade autonomous GTM execution';
+  const targetPersona = ctx?.strategy?.targetAudience?.primaryPersona || 'Enterprise Decision Makers & Revenue Leaders';
+  const painPoint = (ctx?.strategy?.targetAudience?.painPoints && ctx?.strategy.targetAudience.painPoints[0]) || 'Manual operational overhead and slow pipeline velocity';
+  const leadLocations = ctx?.leads?.length 
+    ? [...new Set(ctx.leads.map(l => l.city || l.territory).filter(Boolean))] 
+    : ['United States', 'United Kingdom', 'Singapore', 'India'];
+  const locations = leadLocations.length > 0 ? leadLocations.slice(0, 5) : ['United States', 'United Kingdom', 'India'];
 
   // 1. Meta Scaled Winner (ROAS 4.6x, 18 conversions)
   const metaWinner = await AdCampaign.create({
     workspaceId,
-    campaignName: 'Meta • Institutional Allocators Instant Lead Gen',
+    campaignName: `Meta • ${company} High-Intent Lead Gen`,
     platform: 'META',
     objective: 'LEAD_GENERATION',
     status: 'ACTIVE',
@@ -40,10 +51,10 @@ async function ensureDefaultCampaigns(workspaceId) {
     totalSpend: 3120,
     targetCpa: 35,
     targeting: {
-      locations: ['United States', 'United Kingdom', 'Switzerland', 'Singapore'],
+      locations,
       ageRange: [28, 62],
-      interests: ['Algorithmic Trading', 'Hedge Funds', 'Quant Finance', 'Family Office'],
-      keywords: ['crypto hedge fund execution', 'zero slippage routing'],
+      interests: [company, targetPersona, 'Enterprise Technology', 'Revenue Operations'],
+      keywords: [company.toLowerCase(), 'enterprise workflow', 'b2b acceleration'],
     },
     metrics: {
       spend: 3120,
@@ -60,10 +71,10 @@ async function ensureDefaultCampaigns(workspaceId) {
   await AdCreative.create({
     workspaceId,
     campaignId: metaWinner._id,
-    headline: 'Sub-Millisecond Execution for Institutional Allocators',
-    primaryText: 'Stop losing alpha to manual desk latency. HedgeX provides sub-600ms cross-exchange order routing with Fireblocks custody. Download verified execution audit.',
+    headline: `${company}: ${valueProp.slice(0, 55)}`,
+    primaryText: `Tired of ${painPoint.toLowerCase()}? ${company} empowers ${targetPersona} with guaranteed execution. Book your discovery session today.`,
     ctaText: 'Book Strategy Call',
-    destinationUrl: `https://${ws?.domain || 'growth.hedgex.io'}/demo`,
+    destinationUrl: `https://${domain}/demo`,
     mediaUrl: '/media/hedgex_reel.jpg',
     platformFormat: 'META_FEED',
     ctrScore: 3.38,
@@ -73,7 +84,7 @@ async function ensureDefaultCampaigns(workspaceId) {
   // 2. Google Search Responsive Campaign (ROAS 3.8x, 12 conversions)
   const googleWinner = await AdCampaign.create({
     workspaceId,
-    campaignName: 'Google Search • High-Intent Quant Trading Keywords',
+    campaignName: `Google Search • ${company} High-Intent Keywords`,
     platform: 'GOOGLE_ADS',
     objective: 'CONVERSIONS',
     status: 'ACTIVE',
@@ -81,14 +92,14 @@ async function ensureDefaultCampaigns(workspaceId) {
     totalSpend: 2450,
     targetCpa: 40,
     targeting: {
-      locations: ['United States', 'United Kingdom', 'Canada', 'Germany'],
+      locations,
       ageRange: [25, 60],
-      interests: ['High Frequency Trading', 'Asset Management'],
+      interests: ['Enterprise Software', 'Digital Transformation'],
       keywords: [
-        'crypto hedge fund execution api',
-        'sub second order routing software',
-        'institutional algorithmic trading',
-        'fireblocks trading custody bridge',
+        `${company.toLowerCase()} platform`,
+        'enterprise ai deployment',
+        'automated pipeline intelligence',
+        'b2b growth automation',
       ],
     },
     metrics: {
@@ -101,15 +112,13 @@ async function ensureDefaultCampaigns(workspaceId) {
       ctr: 5.14,
     },
     lastOptimizedAt: new Date(),
-  });
-
   await AdCreative.create({
     workspaceId,
     campaignId: googleWinner._id,
-    headline: 'Low-Latency Crypto Order Routing API',
-    primaryText: 'Bridge Binance, OKX, and Bybit in sub-600ms. Slashes cross-exchange latency by 18bps. Verified institutional Fireblocks architecture.',
+    headline: `${company} Solution Overview`,
+    primaryText: `${valueProp}. Proven enterprise implementation with measurable outcomes. Book a tailored briefing.`,
     ctaText: 'Access Live Benchmark',
-    destinationUrl: `https://${ws?.domain || 'growth.hedgex.io'}/benchmark`,
+    destinationUrl: `https://${domain}/benchmark`,
     mediaUrl: '/media/vyuhox_reel.jpg',
     platformFormat: 'GOOGLE_SEARCH_RESPONSIVE',
     ctrScore: 5.14,

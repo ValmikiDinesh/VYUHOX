@@ -12,26 +12,29 @@ export class PromptContentAgent {
     prompt,
     workspace,
     strategy,
+    cumulativeContext = null,
     postType = 'REEL',
     voiceId = 'maya',
     language = 'en-US',
     tone = 'aggressive_challenger',
     platform = 'INSTAGRAM',
   }) {
-    const companyName = workspace?.name || 'HedgeX Algorithmic Capital';
-    const industry = workspace?.industry || strategy?.category || 'Crypto';
-    const domain = workspace?.domain || 'growth.hedgex.io';
+    const companyName = cumulativeContext?.businessName || workspace?.name || strategy?.businessName || 'Enterprise Partner';
+    const industry = workspace?.industry || strategy?.category || 'B2B Enterprise';
+    const domain = workspace?.domain || 'growth.vyuhox.com';
     
-    // Extract real business context if available
-    const valueProp = strategy?.analysisResult?.valueProposition || 
-      (industry.toLowerCase().includes('crypto') 
-        ? 'Sub-millisecond cross-exchange execution and zero slippage on high-frequency trades'
-        : 'Autonomous AI sales dialer qualifying enterprise inbound leads in 42 seconds');
+    // Extract real business context if available from cumulative AI flywheel
+    const valueProp = cumulativeContext?.strategy?.positioning?.coreValueProp 
+      || strategy?.analysisResult?.positioning?.coreValueProp 
+      || strategy?.analysisResult?.positioning?.unfairAdvantage
+      || strategy?.analysisResult?.valueProposition 
+      || 'Autonomous AI go-to-market execution delivering hyper-targeted enterprise conversion';
 
-    const targetAudience = strategy?.analysisResult?.targetAudience || 
-      (industry.toLowerCase().includes('crypto')
-        ? 'Institutional allocators, quantitative fund managers, and family offices'
-        : 'B2B Founders, revenue leaders, and enterprise sales teams');
+    const rawAudience = cumulativeContext?.strategy?.targetAudience 
+      || strategy?.analysisResult?.targetAudience;
+    const targetAudience = typeof rawAudience === 'object' && rawAudience !== null
+      ? (rawAudience.primaryPersona || (rawAudience.decisionMakers && rawAudience.decisionMakers.join(', ')) || 'Enterprise decision-makers and business leaders')
+      : (typeof rawAudience === 'string' ? rawAudience : 'Enterprise decision-makers and business leaders');
 
     const cleanPrompt = (prompt || '').trim();
 

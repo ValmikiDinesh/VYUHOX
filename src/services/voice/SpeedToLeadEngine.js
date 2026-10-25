@@ -10,6 +10,7 @@ import { BlandAIGateway } from './BlandAIGateway.js';
 import { CallLog } from '../../models/CallLog.js';
 import { Lead } from '../../models/Lead.js';
 import { VoiceAgentConfig } from '../../models/VoiceAgentConfig.js';
+import { CumulativeContextService } from '../ai/CumulativeContextService.js';
 
 export class SpeedToLeadEngine {
   /**
@@ -30,17 +31,28 @@ export class SpeedToLeadEngine {
   }
 
   /**
-   * Execute Speed-to-Lead call for a lead
+   * Execute Speed-to-Lead call for a lead using Cumulative Context Flywheel (Level 1 + 2 + 3 + 4)
    */
   static async executeSpeedToLead({ leadId, workspaceId, io, delaySeconds = 0 }) {
     const lead = await Lead.findById(leadId);
     if (!lead) throw new Error('Lead not found for Speed-to-Lead trigger');
 
+    let ctx = null;
+    try {
+      ctx = await CumulativeContextService.getLevel4Context(workspaceId, leadId);
+    } catch (e) {
+      console.warn('[SpeedToLeadEngine] Cumulative context retrieval fallback:', e.message);
+    }
+
+    const businessName = ctx?.businessName || 'Our Business';
+    const coreValueProp = ctx?.coreValueProp || 'Accelerating autonomous pipeline velocity';
+    const primaryPainPoint = ctx?.painPoints?.[0] || 'growth and operational bottlenecks';
+
     let agentConfig = await VoiceAgentConfig.findOne({ workspaceId });
     if (!agentConfig) {
       agentConfig = await VoiceAgentConfig.create({
         workspaceId,
-        agentName: 'Maya - Autonomous SDR',
+        agentName: 'Maya - Autonomous Closer',
         voicePersona: {
           tone: 'Consultative',
           accent: 'US Professional',
@@ -48,9 +60,9 @@ export class SpeedToLeadEngine {
           speed: 1.0,
         },
         qualificationQuestions: [
-          'What is your primary growth bottleneck right now?',
-          'What monthly revenue or budget allocation are you aiming for?',
-          'Who besides yourself makes technical and investment decisions?',
+          `What is your primary bottleneck regarding ${primaryPainPoint}?`,
+          'What is your target timeline for solving this?',
+          'Who besides yourself evaluates technical architecture or commercial approvals?',
         ],
         calendarBookingUrl: 'https://cal.com/vyuhox/discovery-sync',
         speedToLeadEnabled: true,
@@ -59,11 +71,20 @@ export class SpeedToLeadEngine {
       });
     }
 
-    const taskPrompt = `You are ${agentConfig.agentName}. You are calling ${lead.name} at ${lead.company || 'their firm'} because they just signaled high interest in our autonomous GTM engine.
-Ask these qualification questions:
-1) ${agentConfig.qualificationQuestions[0] || 'What is your primary growth bottleneck?'}
-2) ${agentConfig.qualificationQuestions[1] || 'What is your timeline for scaling?'}
-If qualified, immediately offer a direct sync using the calendar link: ${agentConfig.calendarBookingUrl}.`;
+    const taskPrompt = `You are Maya, the expert enterprise Voice AI closer representing ${businessName}.
+You are calling ${lead.name} (${lead.title || 'Decision Maker'}) at ${lead.company || 'their firm'}.
+They were identified as an ideal match for ${businessName}'s ${coreValueProp}.
+
+CUMULATIVE BUSINESS & PROSPECT CONTEXT (Level 1-4 Flywheel):
+${ctx?.summaryText || `Company: ${businessName}. Value Prop: ${coreValueProp}`}
+
+YOUR MISSION:
+1. Deliver the personalized hook: Introduce yourself on behalf of ${businessName}.
+2. Ask these qualification questions:
+   - "What is your current bottleneck regarding ${primaryPainPoint}?"
+   - "What is your target timeline for scaling?"
+3. If qualified, secure an immediate discovery booking using calendar: ${agentConfig.calendarBookingUrl}.
+Be conversational, confident, concise (under 25 words per turn), and speak with sub-second responsiveness.`;
 
     // 1. Dispatch Voice Call via Gateway
     const callResult = await BlandAIGateway.initiateCall({
@@ -74,16 +95,20 @@ If qualified, immediately offer a direct sync using the calendar link: ${agentCo
       voiceId: agentConfig.voicePersona.voiceId,
     });
 
-    // 2. Create Initial Call Log
+    const leadFirstName = lead.name ? lead.name.split(' ')[0] : 'there';
+    const leadTitle = lead.title || 'initiatives';
+    const leadCompany = lead.company || 'your team';
+
+    // 2. Create Initial Call Log with authentic business branding
     const initialTranscript = [
       {
         role: 'system',
-        content: `Speed-to-Lead triggered automated outbound call (<45s latency target). Lead score: ${lead.score}/100.`,
+        content: `Speed-to-Lead triggered automated outbound call (<45s latency target) for ${businessName}. Lead fit score: ${lead.score}/100.`,
         timestamp: new Date(),
       },
       {
         role: 'assistant',
-        content: `Hi ${lead.name.split(' ')[0]}! This is Maya from VYUHOX. I saw you were looking into our autonomous GTM pipeline—do you have two quick minutes to check if our architecture fits your current growth targets?`,
+        content: ctx?.mayaOpeningPitch || `Hi ${leadFirstName}! This is Maya from ${businessName}. I saw you are leading ${leadTitle} at ${leadCompany}. We help companies like yours solve ${primaryPainPoint} with our ${coreValueProp}—do you have two quick minutes to check if our architecture fits your current roadmap?`,
         timestamp: new Date(),
       },
     ];
