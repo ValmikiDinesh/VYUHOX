@@ -14,6 +14,7 @@ import OmnichannelInbox from './pages/OmnichannelInbox';
 import VoiceStudio from './pages/VoiceStudio';
 import SocialStudio from './pages/SocialStudio';
 import AdsManager from './pages/AdsManager';
+import IntegrationsHub from './pages/IntegrationsHub';
 import CalendarSettings from './pages/CalendarSettings';
 import ComplianceSettings from './pages/ComplianceSettings';
 import AICompanyHQ from './pages/AICompanyHQ';
@@ -800,6 +801,13 @@ export default function App() {
             activeWorkspace={activeWorkspace}
             socket={socket}
             wallet={wallet}
+          />
+        )}
+
+        {activeTab === 'integrations' && (
+          <IntegrationsHub
+            activeWorkspace={activeWorkspace}
+            socket={socket}
           />
         )}
 

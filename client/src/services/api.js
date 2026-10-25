@@ -1009,6 +1009,36 @@ export const api = {
     const res = await fetch(`${API_BASE}/visual/tools-status`);
     return res.json();
   },
+
+  // Phase 4: Client Self-Serve Channel Integration Wizard (Multi-Tenancy)
+  getWorkspaceIntegrations: async (workspaceId) => {
+    const res = await fetch(`${API_BASE}/integrations/${workspaceId}`);
+    return res.json();
+  },
+  connectChannelOAuth: async (data) => {
+    const res = await fetch(`${API_BASE}/integrations/oauth/connect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  pingChannelIntegration: async (workspaceId, serviceName) => {
+    const res = await fetch(`${API_BASE}/integrations/ping`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId, serviceName }),
+    });
+    return res.json();
+  },
+  disconnectChannelIntegration: async (workspaceId, serviceName) => {
+    const res = await fetch(`${API_BASE}/integrations/disconnect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId, serviceName }),
+    });
+    return res.json();
+  },
 };
 
 

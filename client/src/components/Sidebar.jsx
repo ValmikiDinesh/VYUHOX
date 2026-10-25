@@ -21,6 +21,7 @@ import {
   ShoppingBag,
   RefreshCw,
   Globe,
+  Link2,
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -64,6 +65,7 @@ export default function Sidebar({
     { id: 'calendar', label: '5. Calendar & Demos', icon: Calendar, count: 'Step 5' },
     { id: 'social', label: 'Social Studio', icon: Video, count: 'Live' },
     { id: 'ads', label: 'Ads Manager', icon: TrendingUp, count: 'Live' },
+    { id: 'integrations', label: 'Channel Integrations', icon: Link2, count: 'Multi-Tenant' },
     { id: 'compliance', label: 'Deliverability & DNC', icon: Shield, count: '10DLC' },
     { id: 'ai-company', label: 'AI Company HQ', icon: Bot, count: rolePersona === 'client_tool' ? 'Locked' : 'Live' },
     { id: 'agent-store', label: 'AI Employee Store', icon: ShoppingBag, count: 'New' },

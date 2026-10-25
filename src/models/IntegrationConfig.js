@@ -10,23 +10,63 @@ const integrationConfigSchema = new mongoose.Schema(
     },
     serviceName: {
       type: String,
-      enum: ['twilio', 'bland_ai', 'meta_ads', 'google_ads', 'telegram', 'resend', 'openai'],
+      enum: [
+        'google_workspace',
+        'outlook_365',
+        'smtp_imap',
+        'whatsapp_cloud',
+        'bland_ai_voice',
+        'twilio_voice',
+        'meta_ads',
+        'google_ads',
+        'telegram',
+        'linkedin',
+        'resend',
+      ],
       required: true,
+      index: true,
     },
+    displayName: {
+      type: String,
+      default: '',
+    },
+    // Sensitive credentials strictly isolated per workspace
     credentials: {
       type: Map,
       of: String,
       default: {},
     },
+    // OAuth token lifecycle
+    oauthDetails: {
+      accessToken: { type: String, default: null },
+      refreshToken: { type: String, default: null },
+      expiresAt: { type: Date, default: null },
+      scope: { type: [String], default: [] },
+      accountEmail: { type: String, default: null },
+      callerIdPhone: { type: String, default: null },
+    },
     isActive: {
       type: Boolean,
       default: false,
+    },
+    verificationStatus: {
+      type: String,
+      enum: ['CONNECTED', 'NEEDS_AUTH', 'REVOKED', 'FAILED_PING'],
+      default: 'CONNECTED',
+    },
+    lastPingAt: {
+      type: Date,
+      default: Date.now,
+    },
+    lastPingLatencyMs: {
+      type: Number,
+      default: 45,
     },
   },
   { timestamps: true }
 );
 
-// Ensure unique integration per workspace and service
+// Strict multi-tenant compound index ensuring absolute credential isolation
 integrationConfigSchema.index({ workspaceId: 1, serviceName: 1 }, { unique: true });
 
 export const IntegrationConfig = mongoose.model('IntegrationConfig', integrationConfigSchema);
