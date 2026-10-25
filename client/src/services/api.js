@@ -9,6 +9,38 @@ export const getAuthHeaders = (extra = {}) => {
   return headers;
 };
 
+export const safeFetchJson = async (url, options = {}) => {
+  try {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    if (!text || !text.trim()) {
+      if (!res.ok) {
+        return { success: false, message: `Server returned HTTP ${res.status} with empty response.` };
+      }
+      return { success: true };
+    }
+    try {
+      const data = JSON.parse(text);
+      if (!res.ok && data.success === undefined) {
+        data.success = false;
+      }
+      return data;
+    } catch (parseErr) {
+      if (!res.ok) {
+        return { success: false, message: `Server error (${res.status}): ${text.slice(0, 150)}` };
+      }
+      return { success: false, message: `Unexpected response format: ${text.slice(0, 100)}` };
+    }
+  } catch (networkErr) {
+    return {
+      success: false,
+      message: networkErr.message?.includes('abort')
+        ? 'Scan request timed out. The server is still crawling in background.'
+        : `Network connection error: ${networkErr.message}`,
+    };
+  }
+};
+
 export const api = {
   // Auth
   login: async (credentials) => {
@@ -179,20 +211,18 @@ export const api = {
 
   // Strategy (Phase 2)
   scanWebsite: async (workspaceId, url) => {
-    const res = await fetch(`${API_BASE}/strategy/scan`, {
+    return safeFetchJson(`${API_BASE}/strategy/scan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
       body: JSON.stringify({ url, workspaceId }),
     });
-    return res.json();
   },
   scanWebsitePublic: async (url) => {
-    const res = await fetch(`${API_BASE}/strategy/scan-public`, {
+    return safeFetchJson(`${API_BASE}/strategy/scan-public`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
     });
-    return res.json();
   },
   getStrategy: async (workspaceId) => {
     const res = await fetch(`${API_BASE}/strategy/${workspaceId}`, {
@@ -917,12 +947,11 @@ export const api = {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     if (workspaceId) headers['x-workspace-id'] = workspaceId;
 
-    const res = await fetch(`${API_BASE}/strategy/scan`, {
+    return safeFetchJson(`${API_BASE}/strategy/scan`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ workspaceId, url }),
     });
-    return res.json();
   },
   updateStrategy: async (strategyId, data) => {
     const token = localStorage.getItem('vyuhox_token');

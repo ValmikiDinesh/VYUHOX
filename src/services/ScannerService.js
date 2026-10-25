@@ -51,7 +51,7 @@ export class ScannerService {
 
       const crawlPromises = pagesToCrawl.map(async (item) => {
         try {
-          const pageResult = await this.fetchAndParsePage(item.url, item.type);
+          const pageResult = await this.fetchAndParsePage(item.url, item.type, 5000);
           return pageResult.ok ? pageResult : null;
         } catch (e) {
           return null;
@@ -81,9 +81,9 @@ export class ScannerService {
    * Deeply inspects each and every text block, tab, page route, image with alt text, product offering, and link.
    * For Single Page Applications (SPAs / CSR), automatically discovers and parses client-side JavaScript bundles.
    */
-  static async fetchAndParsePage(pageUrl, pageType = 'GENERAL') {
+  static async fetchAndParsePage(pageUrl, pageType = 'GENERAL', timeoutMs = 8000) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per page
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(pageUrl, {

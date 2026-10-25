@@ -163,13 +163,15 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
 
     try {
       const res = await api.scanWebsite(activeWorkspace._id, finalUrl);
-      if (res.success && res.strategy) {
+      if (res && res.success && res.strategy) {
         setStrategy(res.strategy);
         initEditForm(res.strategy);
+      } else if (res && !res.success) {
+        alert(res.message || 'Scanning did not return a valid strategy.');
       }
     } catch (err) {
       console.error('Scan failed:', err);
-      alert('Scanning error: ' + (err.message || 'Unable to analyze website'));
+      alert('Scanning notice: ' + (err.message || 'Unable to complete scan'));
     } finally {
       setIsScanning(false);
     }
