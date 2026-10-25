@@ -108,6 +108,9 @@ export default function LeadFinder({
     loadLeadsData();
   }, [activeWorkspace?._id]);
 
+  // Active View Tab: 'crm_leads' | 'scraper_console' | 'all'
+  const [activeSubTab, setActiveSubTab] = useState('crm_leads');
+
   // Scraper Search Parameters (Multi-Territory Support: Cities, States, Countries)
   const [selectedLocations, setSelectedLocations] = useState(['Hyderabad, Telangana']);
   const [locationInput, setLocationInput] = useState('');
@@ -282,6 +285,7 @@ export default function LeadFinder({
         percent: 100,
       });
       loadLeadsData();
+      setActiveSubTab('crm_leads');
       if (onRefreshLeads) onRefreshLeads();
       setTimeout(() => {
         setActiveJobId(null);
@@ -390,6 +394,7 @@ export default function LeadFinder({
                   percent: 100,
                 });
                 await loadLeadsData();
+                setActiveSubTab('crm_leads');
                 if (onRefreshLeads) onRefreshLeads();
                 setTimeout(() => setActiveJobId(null), 5000);
               } else if (j.status === 'FAILED') {
@@ -658,10 +663,10 @@ export default function LeadFinder({
             <Users size={16} color="#38BDF8" />
           </div>
           <div style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '6px', color: '#F8FAFC' }}>
-            {leads.length.toLocaleString()}
+            {allCurrentLeads.length.toLocaleString()}
           </div>
           <div style={{ fontSize: '0.72rem', color: '#10B981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <ShieldCheck size={12} /> {leads.filter((l) => l.verificationStatus === 'VERIFIED').length} 100% Mailserver Validated
+            <ShieldCheck size={12} /> {allCurrentLeads.filter((l) => l.verificationStatus === 'VERIFIED').length} 100% Mailserver Validated
           </div>
         </div>
 
@@ -729,8 +734,147 @@ export default function LeadFinder({
         </div>
       </div>
 
-      {/* 3. Pure AI-Calibrated ICP Intelligence Card (Replaces Clumsy Manual Role Dropdown) */}
+      {/* 2.5 View Navigation Switcher */}
       <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        paddingBottom: '14px',
+        marginTop: '6px',
+        flexWrap: 'wrap',
+        gap: '12px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('crm_leads')}
+            style={{
+              padding: '9px 18px',
+              borderRadius: '8px',
+              background: activeSubTab === 'crm_leads'
+                ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)'
+                : 'rgba(255, 255, 255, 0.03)',
+              border: activeSubTab === 'crm_leads'
+                ? '1px solid #10B981'
+                : '1px solid rgba(255, 255, 255, 0.07)',
+              color: activeSubTab === 'crm_leads' ? '#34D399' : '#94A3B8',
+              fontSize: '0.85rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <Users size={16} color={activeSubTab === 'crm_leads' ? '#34D399' : '#94A3B8'} />
+            Verified Leads in CRM
+            <span style={{
+              fontSize: '0.72rem',
+              padding: '2px 8px',
+              borderRadius: '999px',
+              background: activeSubTab === 'crm_leads' ? '#10B981' : 'rgba(255, 255, 255, 0.1)',
+              color: activeSubTab === 'crm_leads' ? '#021C11' : '#F8FAFC',
+              fontWeight: '800',
+            }}>
+              {allCurrentLeads.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('scraper_console')}
+            style={{
+              padding: '9px 18px',
+              borderRadius: '8px',
+              background: activeSubTab === 'scraper_console'
+                ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)'
+                : 'rgba(255, 255, 255, 0.03)',
+              border: activeSubTab === 'scraper_console'
+                ? '1px solid #06B6D4'
+                : '1px solid rgba(255, 255, 255, 0.07)',
+              color: activeSubTab === 'scraper_console' ? '#38BDF8' : '#94A3B8',
+              fontSize: '0.85rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <Compass size={16} color={activeSubTab === 'scraper_console' ? '#38BDF8' : '#94A3B8'} />
+            Autonomous Territory Scraper &amp; ICP Calibration
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('all')}
+            style={{
+              padding: '9px 14px',
+              borderRadius: '8px',
+              background: activeSubTab === 'all'
+                ? 'rgba(255, 255, 255, 0.1)'
+                : 'transparent',
+              border: '1px solid rgba(255, 255, 255, 0.07)',
+              color: activeSubTab === 'all' ? '#F8FAFC' : '#64748B',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            View All
+          </button>
+        </div>
+
+        {activeSubTab === 'crm_leads' ? (
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('scraper_console')}
+            style={{
+              padding: '7px 14px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+              border: 'none',
+              color: '#021C11',
+              fontSize: '0.78rem',
+              fontWeight: '800',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Play size={13} fill="#021C11" /> Scrape More Leads
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('crm_leads')}
+            style={{
+              padding: '7px 14px',
+              borderRadius: '8px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              color: '#34D399',
+              fontSize: '0.78rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Users size={13} /> View {allCurrentLeads.length} Leads in CRM →
+          </button>
+        )}
+      </div>
+
+      {(activeSubTab === 'scraper_console' || activeSubTab === 'all') && (
+        <>
+          {/* 3. Pure AI-Calibrated ICP Intelligence Card (Replaces Clumsy Manual Role Dropdown) */}
+          <div style={{
         padding: '18px 22px',
         borderRadius: '14px',
         background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.06) 0%, rgba(15, 23, 42, 0.85) 100%)',
@@ -1265,9 +1409,11 @@ export default function LeadFinder({
           </div>
         )}
       </div>
+        </>
+      )}
 
-      {/* 5. Filter Toolbar & CRM Table */}
-      <div style={{
+      {(activeSubTab === 'crm_leads' || activeSubTab === 'all') && (
+        <div style={{
         background: 'rgba(15, 23, 42, 0.65)',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '16px',
@@ -1790,6 +1936,7 @@ export default function LeadFinder({
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }
