@@ -256,7 +256,7 @@ export default function AgentStore({ activeWorkspace, socket, onOpenModeModal })
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
             <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.75rem', fontWeight: '800', color: '#A855F7' }}>
-              ${(billingSummary?.walletBalanceUSD || 50).toFixed(2)}
+              ${(billingSummary?.walletBalanceUSD ?? 0).toFixed(2)}
             </span>
             <span style={{ fontSize: '0.75rem', color: '#A855F7', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Zap size={13} /> Telephony Reserve

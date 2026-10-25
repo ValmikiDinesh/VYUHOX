@@ -156,13 +156,21 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
   // 3. Trigger Scan
   const handleStartScan = async (targetUrlToScan) => {
     const finalUrl = (targetUrlToScan || urlInput).trim();
-    if (!finalUrl || !activeWorkspace) return;
+    if (!finalUrl) {
+      alert('Please enter your website URL (e.g. https://yourbusiness.com)');
+      return;
+    }
+    const wsId = activeWorkspace?._id || localStorage.getItem('vyuhox_active_ws_id');
+    if (!wsId) {
+      alert('Active workspace is loading. Please select your business workspace from the top menu first.');
+      return;
+    }
 
     setIsScanning(true);
     setScanProgress({ step: 'INIT', message: `Connecting to ${finalUrl}...`, percent: 10 });
 
     try {
-      const res = await api.scanWebsite(activeWorkspace._id, finalUrl);
+      const res = await api.scanWebsite(wsId, finalUrl);
       if (res && res.success && res.strategy) {
         setStrategy(res.strategy);
         initEditForm(res.strategy);

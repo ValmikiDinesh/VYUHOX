@@ -212,9 +212,14 @@ router.get('/me', authMiddleware, async (req, res) => {
     const user = req.user;
     let query = {};
     if (user && user.role !== 'superadmin') {
-      query = { _id: user.workspaceId };
+      if (user.workspaceId) {
+        query = { _id: user.workspaceId };
+      } else if (user.email) {
+        query = { ownerEmail: user.email };
+      }
     }
-    const workspaces = await Workspace.find(query).sort({ createdAt: -1 });
+
+    let workspaces = await Workspace.find(query).sort({ createdAt: -1 });
     let activeWorkspace = null;
 
     if (req.workspaceId) {
@@ -223,10 +228,30 @@ router.get('/me', authMiddleware, async (req, res) => {
     if (!activeWorkspace && user?.workspaceId) {
       activeWorkspace = await Workspace.findById(user.workspaceId);
     }
+    if (!activeWorkspace && user?.email) {
+      activeWorkspace = await Workspace.findOne({ ownerEmail: user.email });
+    }
+    if (!activeWorkspace && workspaces.length > 0) {
+      activeWorkspace = workspaces[0];
+    }
+    if (!activeWorkspace) {
+      activeWorkspace = await Workspace.findOne().sort({ createdAt: -1 });
+    }
+
+    // Automatically synchronize user workspaceId if needed
+    if (activeWorkspace && user && user.role !== 'superadmin' && String(user.workspaceId) !== String(activeWorkspace._id)) {
+      await User.findByIdAndUpdate(user._id, { workspaceId: activeWorkspace._id });
+      user.workspaceId = activeWorkspace._id;
+    }
+
+    if (workspaces.length === 0 && activeWorkspace) {
+      workspaces = [activeWorkspace];
+    }
+
     let enrichedActiveWs = null;
     if (activeWorkspace) {
       enrichedActiveWs = {
-        ...activeWorkspace.toObject ? activeWorkspace.toObject() : activeWorkspace,
+        ...(activeWorkspace.toObject ? activeWorkspace.toObject() : activeWorkspace),
         ownerEmail: activeWorkspace.ownerEmail || user?.email || '',
         ownerName: activeWorkspace.ownerName || user?.name || '',
       };

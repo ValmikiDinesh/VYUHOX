@@ -92,12 +92,20 @@ export default function ClientDashboardView({
   // Handle direct website scan from dashboard
   const handleStartCrawl = async (targetUrlToScan) => {
     const finalUrl = (targetUrlToScan || urlInput).trim();
-    if (!finalUrl || !activeWorkspace?._id) return;
+    if (!finalUrl) {
+      alert('Please enter your website URL (e.g. https://yourbusiness.com)');
+      return;
+    }
+    const wsId = activeWorkspace?._id || localStorage.getItem('vyuhox_active_ws_id');
+    if (!wsId) {
+      alert('Active workspace is loading. Please select your business workspace from the top menu first.');
+      return;
+    }
 
     setIsScanning(true);
     setScanStatus(`Crawling ${finalUrl} DOM & parsing value proposition...`);
     try {
-      const res = await api.scanWebsite(activeWorkspace._id, finalUrl);
+      const res = await api.scanWebsite(wsId, finalUrl);
       if (res.success && res.strategy) {
         setActiveStrategy(res.strategy);
         setScanStatus('Strategy synthesized! Redirecting to GTM Blueprint...');
@@ -116,7 +124,7 @@ export default function ClientDashboardView({
   };
 
   // Format wallet balance
-  const walletBalanceNum = wallet?.balanceUSD || 50;
+  const walletBalanceNum = Number(wallet?.balanceUSD ?? 0);
   const displayWalletBalance = isINR
     ? (walletBalanceNum * exchangeRate).toLocaleString('en-IN', { maximumFractionDigits: 0 })
     : walletBalanceNum.toFixed(2);

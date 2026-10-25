@@ -188,51 +188,68 @@ export default function App() {
             const wsList = meRes.workspaces || [];
             setWorkspaces(wsList);
 
-            let matchedWs = meRes.activeWorkspace;
+            const savedWsId = localStorage.getItem('vyuhox_active_ws_id');
+            let matchedWs = null;
+
+            if (savedWsId && wsList.length > 0) {
+              matchedWs = wsList.find((w) => String(w._id) === String(savedWsId));
+            }
+            if (!matchedWs) {
+              matchedWs = meRes.activeWorkspace;
+            }
             if (!matchedWs && wsList.length > 0) {
               matchedWs = wsList.find((w) => String(w._id) === String(meRes.user.workspaceId)) || wsList[0];
             }
+
             if (matchedWs) {
               setActiveWorkspace(matchedWs);
+              localStorage.setItem('vyuhox_active_ws_id', matchedWs._id);
               setOperatingMode(matchedWs.operatingMode || 'TOOL');
+              if (meRes.user.role === 'superadmin') {
+                setRolePersona('superadmin');
+              } else {
+                setRolePersona('client_ai');
+              }
+              return;
             }
-            if (meRes.user.role === 'superadmin') {
-              setRolePersona('superadmin');
-            } else {
-              setRolePersona('client_ai');
-            }
-            return;
           }
         }
 
-        // Fallback if no token or unauthenticated
+        // Fallback if no token, unauthenticated, or activeWorkspace not resolved
         const res = await api.getWorkspaces();
         if (res.success && res.workspaces.length > 0) {
           let availableWs = res.workspaces;
           if (currentUser && currentUser.role !== 'superadmin' && currentUser.workspaceId) {
             availableWs = res.workspaces.filter((w) => String(w._id) === String(currentUser.workspaceId));
+            if (availableWs.length === 0) availableWs = res.workspaces;
           }
           setWorkspaces(availableWs);
 
-          // Find workspace corresponding to current user
+          // Find workspace corresponding to current user or saved workspace ID
+          const savedWsId = localStorage.getItem('vyuhox_active_ws_id');
           let matchedWs = null;
-          const savedUser = currentUser;
-          if (savedUser && savedUser.workspaceId) {
+
+          if (savedWsId) {
+            matchedWs = availableWs.find((w) => String(w._id) === String(savedWsId));
+          }
+          if (!matchedWs && currentUser?.workspaceId) {
             matchedWs = availableWs.find(
-              (w) => String(w._id) === String(savedUser.workspaceId)
+              (w) => String(w._id) === String(currentUser.workspaceId)
             );
           }
-          if (!matchedWs && savedUser && savedUser.email) {
+          if (!matchedWs && currentUser?.email) {
             matchedWs = availableWs.find(
               (w) =>
-                (savedUser.email.includes('dinesh') && w.name?.toLowerCase().includes('quantum')) ||
-                (savedUser.companyName && w.name?.toLowerCase() === savedUser.companyName.toLowerCase())
+                (currentUser.email.includes('dinesh') && w.name?.toLowerCase().includes('quantum')) ||
+                (w.ownerEmail && w.ownerEmail.toLowerCase() === currentUser.email.toLowerCase()) ||
+                (currentUser.companyName && w.name?.toLowerCase() === currentUser.companyName.toLowerCase())
             );
           }
 
           const defaultWs = matchedWs || availableWs[0];
           setActiveWorkspace(defaultWs);
           if (defaultWs) {
+            localStorage.setItem('vyuhox_active_ws_id', defaultWs._id);
             setOperatingMode(defaultWs.operatingMode || 'TOOL');
             if (!currentUser || !currentUser.email) {
               const fallbackUserData = {
@@ -660,6 +677,7 @@ export default function App() {
         currentUser={currentUser}
         onSelectWorkspace={(ws) => {
           setActiveWorkspace(ws);
+          if (ws?._id) localStorage.setItem('vyuhox_active_ws_id', ws._id);
           setOperatingMode(ws.operatingMode || 'TOOL');
         }}
         onOpenNewWorkspaceModal={() => setIsNewWorkspaceModalOpen(true)}

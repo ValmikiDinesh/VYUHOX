@@ -47,13 +47,16 @@ export default function Sidebar({
   const isSuperadmin = rolePersona === 'superadmin' || currentUser?.role === 'superadmin';
   const visibleWorkspaces = isSuperadmin
     ? (workspaces || [])
-    : (workspaces || []).filter((w) =>
-        currentUser?.workspaceId
-          ? String(w._id) === String(currentUser.workspaceId)
-          : activeWorkspace
-          ? String(w._id) === String(activeWorkspace._id)
-          : true
-      );
+    : (() => {
+        const filtered = (workspaces || []).filter((w) =>
+          currentUser?.workspaceId
+            ? String(w._id) === String(currentUser.workspaceId)
+            : activeWorkspace
+            ? String(w._id) === String(activeWorkspace._id)
+            : true
+        );
+        return filtered.length > 0 ? filtered : (workspaces || []);
+      })();
 
   // Filter navigation items dynamically based on user role / package
   const allNavItems = [
