@@ -187,9 +187,9 @@ export default function LeadFinder({
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [actionNotice, setActionNotice] = useState('');
 
-  // Table Pagination State
+  // Table Pagination State (Default 50 clients per page)
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10); // 10, 25, or 'ALL'
+  const [pageSize, setPageSize] = useState(50); // 50, 100, or 'ALL'
 
   // Reset to first page when filtering or searching
   useEffect(() => {
@@ -668,290 +668,135 @@ export default function LeadFinder({
         </div>
       )}
 
-      {/* 2. Sleek KPI Metrics Strip (SaaS Style) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.65)',
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          borderRadius: '12px',
-          padding: '16px 20px',
-          backdropFilter: 'blur(10px)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94A3B8' }}>
-            <span style={{ fontSize: '0.725rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              CRM Verified Leads
-            </span>
-            <Users size={16} color="#38BDF8" />
-          </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '6px', color: '#F8FAFC' }}>
-            {allCurrentLeads.length.toLocaleString()}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#10B981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <ShieldCheck size={12} /> {allCurrentLeads.filter((l) => l.verificationStatus === 'VERIFIED').length} 100% Mailserver Validated
-          </div>
-        </div>
-
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.65)',
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          borderRadius: '12px',
-          padding: '16px 20px',
-          backdropFilter: 'blur(10px)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94A3B8' }}>
-            <span style={{ fontSize: '0.725rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {planInfo.badge} Plan Quota
-            </span>
-            <Zap size={16} color="#10B981" />
-          </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '6px', color: '#10B981' }}>
-            {remainingFreeQuota.toLocaleString()} <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>/ {monthlyQuota.toLocaleString()} free</span>
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
-            {scrapedThisMonth.toLocaleString()} used this cycle ({quotaPercent}%) • 0 overage fees
-          </div>
-        </div>
-
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.65)',
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          borderRadius: '12px',
-          padding: '16px 20px',
-          backdropFilter: 'blur(10px)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94A3B8' }}>
-            <span style={{ fontSize: '0.725rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Autonomous Fit Conviction
-            </span>
-            <Target size={16} color="#C084FC" />
-          </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '6px', color: '#C084FC' }}>
-            94.8%
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
-            Evaluated by LLM ICP Persona Matrix
-          </div>
-        </div>
-
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.65)',
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          borderRadius: '12px',
-          padding: '16px 20px',
-          backdropFilter: 'blur(10px)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94A3B8' }}>
-            <span style={{ fontSize: '0.725rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Wallet Reserve
-            </span>
-            <Coins size={16} color="#FBBF24" />
-          </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '6px', color: '#FBBF24' }}>
-            {currency === 'INR' ? `₹${walletBalanceINR.toLocaleString('en-IN')}` : `$${walletBalanceUSD.toFixed(2)}`}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
-            Standby for volume scrapes beyond quota
-          </div>
-        </div>
-      </div>
-
-      {/* 2.5 View Navigation Switcher */}
+      {/* 2. Sleek KPI Metrics Strip (Compact 1-Line SaaS Bar) */}
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        paddingBottom: '14px',
-        marginTop: '6px',
-        flexWrap: 'wrap',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: '12px',
+        marginBottom: '2px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSubTab('crm_leads');
-              setTimeout(() => {
-                const el = document.getElementById('crm-leads-card-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }, 40);
-            }}
-            style={{
-              padding: '9px 18px',
-              borderRadius: '8px',
-              background: activeSubTab === 'crm_leads'
-                ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)'
-                : 'rgba(255, 255, 255, 0.03)',
-              border: activeSubTab === 'crm_leads'
-                ? '1px solid #10B981'
-                : '1px solid rgba(255, 255, 255, 0.07)',
-              color: activeSubTab === 'crm_leads' ? '#34D399' : '#94A3B8',
-              fontSize: '0.85rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Users size={16} color={activeSubTab === 'crm_leads' ? '#34D399' : '#94A3B8'} />
-            Verified Leads in CRM
-            <span style={{
-              fontSize: '0.72rem',
-              padding: '2px 8px',
-              borderRadius: '999px',
-              background: activeSubTab === 'crm_leads' ? '#10B981' : 'rgba(255, 255, 255, 0.1)',
-              color: activeSubTab === 'crm_leads' ? '#021C11' : '#F8FAFC',
-              fontWeight: '800',
-            }}>
-              {allCurrentLeads.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('scraper_console')}
-            style={{
-              padding: '9px 18px',
-              borderRadius: '8px',
-              background: activeSubTab === 'scraper_console'
-                ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)'
-                : 'rgba(255, 255, 255, 0.03)',
-              border: activeSubTab === 'scraper_console'
-                ? '1px solid #06B6D4'
-                : '1px solid rgba(255, 255, 255, 0.07)',
-              color: activeSubTab === 'scraper_console' ? '#38BDF8' : '#94A3B8',
-              fontSize: '0.85rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Compass size={16} color={activeSubTab === 'scraper_console' ? '#38BDF8' : '#94A3B8'} />
-            Autonomous Territory Scraper &amp; ICP Calibration
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('all')}
-            style={{
-              padding: '9px 14px',
-              borderRadius: '8px',
-              background: activeSubTab === 'all'
-                ? 'rgba(255, 255, 255, 0.1)'
-                : 'transparent',
-              border: '1px solid rgba(255, 255, 255, 0.07)',
-              color: activeSubTab === 'all' ? '#F8FAFC' : '#64748B',
-              fontSize: '0.8rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
-          >
-            View All
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              const el = document.getElementById('crm-leads-card-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            style={{
-              padding: '9px 14px',
-              borderRadius: '8px',
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.25)',
-              color: '#34D399',
-              fontSize: '0.8rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-            title="Scroll directly down to CRM Leads Table"
-          >
-            <span>⬇ Jump to Leads Table ({allCurrentLeads.length})</span>
-          </button>
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.7)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '10px',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ fontSize: '0.68rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              CRM Verified Leads
+            </div>
+            <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#F8FAFC', marginTop: '2px' }}>
+              {allCurrentLeads.length.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#10B981', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <ShieldCheck size={11} /> {allCurrentLeads.filter((l) => l.verificationStatus === 'VERIFIED').length} Mailserver Validated
+            </div>
+          </div>
+          <Users size={20} color="#38BDF8" />
         </div>
 
-        {activeSubTab === 'crm_leads' ? (
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('scraper_console')}
-            style={{
-              padding: '7px 14px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
-              border: 'none',
-              color: '#021C11',
-              fontSize: '0.78rem',
-              fontWeight: '800',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <Play size={13} fill="#021C11" /> Scrape More Leads
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('crm_leads')}
-            style={{
-              padding: '7px 14px',
-              borderRadius: '8px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
-              color: '#34D399',
-              fontSize: '0.78rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <Users size={13} /> View {allCurrentLeads.length} Leads in CRM →
-          </button>
-        )}
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.7)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '10px',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ fontSize: '0.68rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {planInfo.badge} Plan Quota
+            </div>
+            <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#10B981', marginTop: '2px' }}>
+              {remainingFreeQuota.toLocaleString()} <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>/ {monthlyQuota.toLocaleString()} free</span>
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '1px' }}>
+              {scrapedThisMonth.toLocaleString()} used ({quotaPercent}%) • 0 overage
+            </div>
+          </div>
+          <Zap size={20} color="#10B981" />
+        </div>
+
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.7)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '10px',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ fontSize: '0.68rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              LLM Fit Conviction
+            </div>
+            <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#C084FC', marginTop: '2px' }}>
+              94.8%
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '1px' }}>
+              ICP Persona Matrix Calibrated
+            </div>
+          </div>
+          <Target size={20} color="#C084FC" />
+        </div>
+
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.7)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '10px',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ fontSize: '0.68rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Wallet Reserve
+            </div>
+            <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#FBBF24', marginTop: '2px' }}>
+              {currency === 'INR' ? `₹${walletBalanceINR.toLocaleString('en-IN')}` : `$${walletBalanceUSD.toFixed(2)}`}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '1px' }}>
+              Standby for extra volume scrapes
+            </div>
+          </div>
+          <Coins size={20} color="#FBBF24" />
+        </div>
       </div>
 
-      {(activeSubTab === 'scraper_console' || activeSubTab === 'all') && (
-        <>
-          {/* 3. Pure AI-Calibrated ICP Intelligence Card (Replaces Clumsy Manual Role Dropdown) */}
-          <div style={{
-        padding: '18px 22px',
+      {/* 3. Launch Autonomous Territory Prospecting Card (Unified & Compact) */}
+      <div style={{
+        padding: '16px 20px',
         borderRadius: '14px',
-        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.06) 0%, rgba(15, 23, 42, 0.85) 100%)',
-        border: '1px solid rgba(6, 182, 212, 0.22)',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.07) 0%, rgba(15, 23, 42, 0.88) 100%)',
+        border: '1px solid rgba(6, 182, 212, 0.28)',
+        boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+        {/* Card Header with ICP Summary */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '9px',
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
               background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#021C11',
               fontWeight: '800',
-              fontSize: '1.1rem',
+              flexShrink: 0,
             }}>
-              ✨
+              <Compass size={17} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#F8FAFC' }}>
-                  AI Autonomous ICP Calibration: {currentBusinessName}
+                <span style={{ fontSize: '0.98rem', fontWeight: '800', color: '#F8FAFC' }}>
+                  Launch Autonomous Territory Prospecting
                 </span>
                 <span style={{
                   fontSize: '0.675rem',
@@ -962,138 +807,55 @@ export default function LeadFinder({
                   border: '1px solid rgba(6, 182, 212, 0.3)',
                   fontWeight: '700',
                 }}>
-                  {currentCategory}
-                </span>
-                <span style={{
-                  fontSize: '0.675rem',
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#34D399',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                  fontWeight: '700',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}>
-                  <Check size={11} /> Auto-Calibrated from Web Crawl &amp; ICP Matrix
+                  ✨ AI ICP: {currentBusinessName} ({currentCategory})
                 </span>
               </div>
-              <div style={{ fontSize: '0.76rem', color: '#94A3B8', marginTop: '2px' }}>
-                Target roles are automatically determined by AI LLM from your business positioning. No manual role selection required.
+              <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
+                Extract verified decision-makers across target territories with authentic 10-digit mobile numbers &amp; DNS MX validation.
               </div>
             </div>
           </div>
 
-          <div style={{
-            fontSize: '0.725rem',
-            color: '#34D399',
-            background: 'rgba(16, 185, 129, 0.08)',
-            border: '1px solid rgba(16, 185, 129, 0.2)',
-            padding: '4px 10px',
-            borderRadius: '8px',
-            fontWeight: '600',
-          }}>
-            🎯 Inferred Role: {aiRoleLabel}
-          </div>
-        </div>
-
-        {/* AI Identified Decision Makers & ICP Pills */}
-        <div style={{
-          padding: '12px 16px',
-          borderRadius: '10px',
-          background: 'rgba(0, 0, 0, 0.25)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.72rem', color: '#38BDF8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Target Decision Makers (LLM Extracted):
-            </span>
-            {aiDecisionMakers.map((dm, idx) => (
+          {/* Decision Makers Chips */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.675rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>Target Roles:</span>
+            {aiDecisionMakers.slice(0, 3).map((dm, idx) => (
               <span
                 key={idx}
                 style={{
-                  fontSize: '0.72rem',
+                  fontSize: '0.675rem',
                   fontWeight: '600',
-                  color: '#F8FAFC',
-                  background: 'rgba(6, 182, 212, 0.12)',
-                  border: '1px solid rgba(6, 182, 212, 0.25)',
-                  padding: '3px 9px',
-                  borderRadius: '6px',
+                  color: '#CBD5E1',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  padding: '2px 7px',
+                  borderRadius: '5px',
                 }}
               >
                 {dm}
               </span>
             ))}
           </div>
-
-          <div style={{ fontSize: '0.74rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Target size={13} color="#10B981" />
-            <span>Target ICP Pain Point: <em>"{aiPainPoint}"</em></span>
-          </div>
-
-          <div style={{
-            marginTop: '4px',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            background: 'rgba(16, 185, 129, 0.06)',
-            border: '1px solid rgba(16, 185, 129, 0.2)',
-            fontSize: '0.74rem',
-            color: '#34D399',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}>
-            <ShieldCheck size={15} color="#10B981" style={{ flexShrink: 0 }} />
-            <div>
-              <strong>Calibrated Buyer Targeting:</strong> Exclusively searches for companies that need and buy {currentBusinessName}'s solutions. Competitors offering identical services are automatically filtered out.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Sleek Scraper Execution Console */}
-      <div style={{
-        background: 'rgba(15, 23, 42, 0.65)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '16px',
-        padding: '22px 24px',
-        backdropFilter: 'blur(10px)',
-      }}>
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <MapPin size={18} color="#10B981" />
-            <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#F8FAFC', margin: 0 }}>
-              Launch Autonomous Territory Prospecting
-            </h3>
-          </div>
-          <p style={{ fontSize: '0.785rem', color: '#94A3B8', margin: 0 }}>
-            Specify the geographic target market. The AI scraper cross-references corporate registries, LinkedIn profiles, and verified MX mailservers to ingest decision-makers.
-          </p>
         </div>
 
-        {/* Inputs Grid (Multi-City/State/Country Autonomous Scraping) */}
+        {/* Inputs Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1.4fr 1fr 0.7fr auto',
-          gap: '14px',
+          gridTemplateColumns: '1.4fr 1fr 0.8fr auto',
+          gap: '12px',
           alignItems: 'flex-end',
           marginBottom: '10px',
         }}>
-          {/* 1. Location Input with Enter to Add */}
+          {/* Territory Input */}
           <div>
-            <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', fontWeight: '600' }}>
+            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px', fontWeight: '600' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Compass size={13} color="#10B981" /> Target Geographic Territories ({selectedLocations.length} active)
+                <MapPin size={12} color="#10B981" /> Target Geographic Territories ({selectedLocations.length} active)
               </span>
-              <span style={{ fontSize: '0.68rem', color: '#64748B' }}>Add multiple cities/states/countries</span>
             </label>
             <div style={{ position: 'relative', display: 'flex', gap: '6px' }}>
               <div style={{ position: 'relative', flex: 1 }}>
-                <MapPin size={15} color="#34D399" style={{ position: 'absolute', left: '12px', top: '13px' }} />
+                <MapPin size={14} color="#34D399" style={{ position: 'absolute', left: '11px', top: '12px' }} />
                 <input
                   type="text"
                   value={locationInput}
@@ -1104,15 +866,15 @@ export default function LeadFinder({
                       handleAddLocation();
                     }
                   }}
-                  placeholder="Type city/state/country & press Enter (e.g. Hyderabad, London, Dallas)..."
+                  placeholder="Type city/state/country & press Enter..."
                   style={{
-                    height: '42px',
-                    paddingLeft: '38px',
+                    height: '38px',
+                    paddingLeft: '34px',
                     width: '100%',
-                    fontSize: '0.85rem',
+                    fontSize: '0.825rem',
                     color: '#F8FAFC',
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'rgba(0, 0, 0, 0.4)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
                     borderRadius: '8px',
                     outline: 'none',
                   }}
@@ -1124,10 +886,10 @@ export default function LeadFinder({
                 style={{
                   padding: '0 12px',
                   borderRadius: '8px',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  background: 'rgba(16, 185, 129, 0.18)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
                   color: '#34D399',
-                  fontSize: '0.75rem',
+                  fontSize: '0.74rem',
                   fontWeight: '700',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -1138,47 +900,47 @@ export default function LeadFinder({
             </div>
           </div>
 
-          {/* 2. Custom Keywords / Niche (Optional) */}
+          {/* Optional Niche */}
           <div>
-            <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px', fontWeight: '600' }}>
-              <Sparkles size={13} color="#A78BFA" /> Optional Niche / Specialization
+            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '5px', fontWeight: '600' }}>
+              <Sparkles size={12} color="#A78BFA" /> Optional Niche / Focus
             </label>
             <input
               type="text"
               value={customKeywords}
               onChange={(e) => setCustomKeywords(e.target.value)}
-              placeholder="e.g. Fintech, Healthcare, Cloud Security, SaaS..."
+              placeholder="e.g. Fintech, Healthcare, SaaS..."
               style={{
-                height: '42px',
-                padding: '0 14px',
+                height: '38px',
+                padding: '0 12px',
                 width: '100%',
-                fontSize: '0.85rem',
+                fontSize: '0.825rem',
                 color: '#F8FAFC',
-                background: 'rgba(0, 0, 0, 0.35)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'rgba(0, 0, 0, 0.4)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
                 borderRadius: '8px',
                 outline: 'none',
               }}
             />
           </div>
 
-          {/* 3. Volume Batch */}
+          {/* Batch Volume */}
           <div>
-            <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
+            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '5px', fontWeight: '600' }}>
               Batch Volume
             </label>
             <select
               value={limit}
               onChange={(e) => setLimit(parseInt(e.target.value))}
               style={{
-                height: '42px',
-                padding: '0 12px',
+                height: '38px',
+                padding: '0 10px',
                 cursor: 'pointer',
                 width: '100%',
-                fontSize: '0.825rem',
+                fontSize: '0.8rem',
                 color: '#F8FAFC',
                 background: 'rgba(15, 23, 42, 0.95)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
                 borderRadius: '8px',
                 outline: 'none',
               }}
@@ -1187,217 +949,145 @@ export default function LeadFinder({
               <option value={25}>25 Leads (Recommended)</option>
               <option value={50}>50 Leads (Sprint)</option>
               <option value={100}>100 Leads (Standard)</option>
-              <option value={250}>250 Leads (High-Volume)</option>
-              <option value={500}>500 Leads (Scale)</option>
-              <option value={1000}>1,000 Leads (Enterprise)</option>
             </select>
           </div>
 
-          {/* 4. Launch Button */}
+          {/* Scraper Run Button */}
           <div>
             <button
               onClick={handleStartScrape}
               disabled={isScraping}
               style={{
-                height: '42px',
-                padding: '0 24px',
+                height: '38px',
+                padding: '0 20px',
                 borderRadius: '8px',
                 background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
                 border: 'none',
                 color: '#021C11',
                 fontWeight: '800',
-                fontSize: '0.825rem',
+                fontSize: '0.8rem',
                 cursor: isScraping ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 16px rgba(16, 185, 129, 0.25)',
+                gap: '7px',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
                 whiteSpace: 'nowrap',
               }}
             >
               {isScraping ? (
                 <>
-                  <RefreshCw size={15} className="animate-spin" /> Scraping {selectedLocations.length || 1} Territories...
+                  <RefreshCw size={14} className="animate-spin" /> Scraping...
                 </>
               ) : (
                 <>
-                  <Play size={15} fill="#021C11" /> Run AI Scraper ({limit} Leads • {selectedLocations.length || 1} {selectedLocations.length === 1 ? 'City' : 'Cities'})
+                  <Play size={14} fill="#021C11" /> Run AI Scraper ({limit} Leads)
                 </>
               )}
             </button>
           </div>
         </div>
 
-        {/* Active Selected Territory Tags */}
-        {selectedLocations.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Active Target Territories ({selectedLocations.length}):
-            </span>
-            {selectedLocations.map((loc) => (
-              <span
-                key={loc}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '3px 10px',
-                  borderRadius: '999px',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  border: '1px solid rgba(16, 185, 129, 0.35)',
-                  color: '#34D399',
-                  fontSize: '0.73rem',
-                  fontWeight: '600',
-                }}
-              >
-                <MapPin size={11} /> {loc}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveLocation(loc)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#94A3B8',
-                    cursor: 'pointer',
-                    fontSize: '0.75rem',
-                    padding: 0,
-                    marginLeft: '2px',
-                    lineHeight: 1,
-                  }}
-                  title="Remove territory"
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
-            {selectedLocations.length > 1 && (
+        {/* Selected Territories & Quick Preset Chips */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+          <span style={{ fontSize: '0.68rem', color: '#10B981', fontWeight: '700', textTransform: 'uppercase' }}>
+            Territories ({selectedLocations.length}):
+          </span>
+          {selectedLocations.map((loc) => (
+            <span
+              key={loc}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                color: '#34D399',
+                fontSize: '0.71rem',
+                fontWeight: '600',
+              }}
+            >
+              <MapPin size={10} /> {loc}
               <button
                 type="button"
-                onClick={() => setSelectedLocations([])}
+                onClick={() => handleRemoveLocation(loc)}
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#64748B',
-                  fontSize: '0.7rem',
+                  color: '#94A3B8',
                   cursor: 'pointer',
-                  textDecoration: 'underline',
-                  marginLeft: '4px',
+                  fontSize: '0.72rem',
+                  padding: 0,
+                  marginLeft: '2px',
                 }}
               >
-                Clear All
+                ✕
               </button>
-            )}
-          </div>
-        )}
+            </span>
+          ))}
 
-        {/* Territory Suggestion Chips (Click to Toggle On/Off) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
-          <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Click to Add/Toggle Territories:
-          </span>
-          {locationSuggestions.map((loc, idx) => {
+          <span style={{ fontSize: '0.68rem', color: '#64748B', marginLeft: '6px' }}>Presets:</span>
+          {locationSuggestions.slice(0, 5).map((loc, idx) => {
             const isSelected = selectedLocations.includes(loc);
+            if (isSelected) return null;
             return (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleTogglePreset(loc)}
                 style={{
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  background: isSelected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
-                  border: isSelected ? '1px solid #10B981' : '1px solid rgba(255, 255, 255, 0.07)',
-                  color: isSelected ? '#34D399' : '#CBD5E1',
-                  fontSize: '0.72rem',
+                  padding: '2px 8px',
+                  borderRadius: '5px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  color: '#94A3B8',
+                  fontSize: '0.69rem',
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
                 }}
               >
-                {isSelected && <Check size={11} />}
-                {loc}
+                + {loc}
               </button>
             );
           })}
         </div>
 
-        {/* Live Plan Quota & Billing Strip */}
+        {/* Quota / Billing Indicator */}
         <div style={{
-          marginTop: '16px',
-          padding: '12px 18px',
-          borderRadius: '10px',
+          marginTop: '10px',
+          padding: '8px 12px',
+          borderRadius: '7px',
           background: 'rgba(16, 185, 129, 0.05)',
-          border: '1px solid rgba(16, 185, 129, 0.2)',
+          border: '1px solid rgba(16, 185, 129, 0.18)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '12px',
+          gap: '8px',
+          fontSize: '0.73rem',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Coins size={16} color="#10B981" />
-            <div style={{ fontSize: '0.78rem', color: '#E2E8F0' }}>
-              {overageBatch === 0 ? (
-                <>
-                  <strong style={{ color: '#34D399' }}>✓ 100% Free with {planInfo.name}</strong>
-                  <span style={{ color: '#94A3B8', marginLeft: '6px' }}>
-                    ({limit} leads will be drawn from your {remainingFreeQuota.toLocaleString()} free monthly allowance. Zero wallet charge).
-                  </span>
-                </>
-              ) : freeBatch > 0 ? (
-                <>
-                  <strong style={{ color: '#38BDF8' }}>{freeBatch} Free Leads (Included)</strong>
-                  <span style={{ color: '#CBD5E1', margin: '0 6px' }}>+</span>
-                  <strong style={{ color: '#FBBF24' }}>{overageBatch} Overage Leads (${overageCostUSD} / ₹{overageCostINR})</strong>
-                  <span style={{ color: '#94A3B8', marginLeft: '6px' }}>
-                    (Only leads exceeding your monthly allowance draw from wallet).
-                  </span>
-                </>
-              ) : (
-                <>
-                  <strong style={{ color: '#FBBF24' }}>Monthly Quota Fully Utilized</strong>
-                  <span style={{ color: '#94A3B8', marginLeft: '6px' }}>
-                    • Batch cost: ${totalCostUSD} (~₹{totalCostINR}) for {limit} verified leads from wallet balance.
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '0.74rem', color: '#94A3B8' }}>
-              Wallet: <strong style={{ color: '#10B981' }}>{currency === 'INR' ? `₹${walletBalanceINR.toLocaleString('en-IN')}` : `$${walletBalanceUSD.toFixed(2)}`}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#E2E8F0' }}>
+            <CheckCircle2 size={13} color="#10B981" />
+            <strong style={{ color: '#34D399' }}>✓ 100% Free with {planInfo.name}</strong>
+            <span style={{ color: '#94A3B8' }}>
+              ({limit} leads drawn from {remainingFreeQuota} free allowance. Results listed below).
             </span>
-            <button
-              onClick={onOpenAddFundsModal}
-              style={{
-                padding: '4px 10px',
-                borderRadius: '6px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#CBD5E1',
-                fontSize: '0.7rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-              }}
-            >
-              + Recharge
-            </button>
+          </div>
+          <div style={{ color: '#94A3B8' }}>
+            Wallet: <strong style={{ color: '#10B981' }}>{currency === 'INR' ? `₹${walletBalanceINR.toLocaleString('en-IN')}` : `$${walletBalanceUSD.toFixed(2)}`}</strong>
           </div>
         </div>
 
         {/* Live Stepped Scraper Progress */}
         {(isScraping || activeJobId) && (
           <div style={{
-            marginTop: '18px',
-            padding: '16px 20px',
-            borderRadius: '12px',
+            marginTop: '12px',
+            padding: '12px 16px',
+            borderRadius: '10px',
             background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)',
             border: '1px solid rgba(16, 185, 129, 0.28)',
           }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '10px' }}>
               {stepsList.map((step) => {
                 const isPassed = progressData.percent >= (step.id / 4) * 100 || progressData.stepIndex > step.id;
                 const isCurrent = progressData.stepIndex === step.id;
@@ -1405,8 +1095,8 @@ export default function LeadFinder({
                   <div
                     key={step.id}
                     style={{
-                      padding: '8px 10px',
-                      borderRadius: '8px',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
                       background: isPassed
                         ? 'rgba(16, 185, 129, 0.15)'
                         : isCurrent
@@ -1419,18 +1109,18 @@ export default function LeadFinder({
                         : '1px solid rgba(255, 255, 255, 0.05)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      gap: '6px',
                     }}
                   >
                     {isPassed ? (
-                      <CheckCircle2 size={15} color="#10B981" />
+                      <CheckCircle2 size={13} color="#10B981" />
                     ) : isCurrent ? (
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#06B6D4' }} />
+                      <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#06B6D4' }} />
                     ) : (
-                      <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '700' }}>{step.id}</span>
+                      <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700' }}>{step.id}</span>
                     )}
                     <span style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.68rem',
                       fontWeight: isPassed || isCurrent ? '600' : '400',
                       color: isPassed ? '#34D399' : isCurrent ? '#38BDF8' : '#94A3B8',
                     }}>
@@ -1441,15 +1131,15 @@ export default function LeadFinder({
               })}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.8rem', color: '#F8FAFC', fontWeight: '500' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.76rem', color: '#F8FAFC', fontWeight: '500' }}>
                 {progressData.message || 'Executing autonomous multi-source search and verification...'}
               </span>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#10B981' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: '700', color: '#10B981' }}>
                 {progressData.percent}%
               </span>
             </div>
-            <div style={{ width: '100%', height: '6px', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.08)', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '5px', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.08)', overflow: 'hidden' }}>
               <div style={{
                 width: `${progressData.percent}%`,
                 height: '100%',
@@ -1460,20 +1150,138 @@ export default function LeadFinder({
           </div>
         )}
       </div>
-        </>
-      )}
 
-      {(activeSubTab === 'crm_leads' || activeSubTab === 'all') && (
-        <div
-          id="crm-leads-card-section"
-          style={{
-            background: 'rgba(15, 23, 42, 0.65)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '16px',
-            overflow: 'hidden',
-            backdropFilter: 'blur(10px)',
-          }}
-        >
+      {/* 4. Verified Leads Database & CRM Table (50 clients per page) */}
+      <div
+        id="crm-leads-card-section"
+        style={{
+          background: 'rgba(15, 23, 42, 0.75)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '800px',
+        }}
+      >
+        {/* Card Header for Verified Leads Table */}
+        <div style={{
+          padding: '14px 20px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          background: 'rgba(10, 16, 30, 0.85)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#34D399',
+            }}>
+              <Users size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: '1rem', fontWeight: '800', color: '#F8FAFC', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Verified Leads &amp; Client Directory
+                <span style={{
+                  fontSize: '0.685rem',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: 'rgba(16, 185, 129, 0.18)',
+                  color: '#34D399',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  fontWeight: '700',
+                }}>
+                  {filteredLeads.length} Clients
+                </span>
+                <span style={{
+                  fontSize: '0.685rem',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: 'rgba(6, 182, 212, 0.15)',
+                  color: '#38BDF8',
+                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  fontWeight: '600',
+                }}>
+                  50 Clients per page
+                </span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
+                Authenticated decision-makers with TRAI-compliant 10-digit mobile numbers &amp; live DNS MX mailservers.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={loadLeadsData}
+              title="Refresh CRM Leads"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '6px 12px',
+                borderRadius: '7px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#CBD5E1',
+                fontSize: '0.74rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              <RefreshCw size={13} /> Sync CRM
+            </button>
+            <a
+              href="/api/leads/export"
+              style={{
+                padding: '6px 12px',
+                borderRadius: '7px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#CBD5E1',
+                fontSize: '0.74rem',
+                fontWeight: '600',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <Download size={13} /> Export CSV
+            </a>
+            <button
+              onClick={onOpenNewLeadModal}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '7px',
+                background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+                border: 'none',
+                color: '#021C11',
+                fontSize: '0.75rem',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <Plus size={14} /> Add Lead
+            </button>
+          </div>
+        </div>
         {/* Bulk Action Toolbar if selected */}
         {selectedLeadIds.length > 0 && (
           <div style={{
@@ -1658,10 +1466,14 @@ export default function LeadFinder({
         <div
           id="crm-leads-table-container"
           style={{
-            maxHeight: '580px',
-            overflowY: 'auto',
             overflowX: 'auto',
+            overflowY: 'auto',
+            flex: 1,
+            minHeight: '650px',
+            maxHeight: '820px',
             position: 'relative',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(16, 185, 129, 0.4) rgba(15, 23, 42, 0.6)',
           }}
         >
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
@@ -2079,7 +1891,7 @@ export default function LeadFinder({
           {/* Center: Rows per page selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Show:</span>
-            {[10, 25, 'ALL'].map((size) => (
+            {[25, 50, 100, 'ALL'].map((size) => (
               <button
                 key={size}
                 type="button"
@@ -2099,7 +1911,7 @@ export default function LeadFinder({
                   transition: 'all 0.15s ease',
                 }}
               >
-                {size === 'ALL' ? `All (${totalFilteredCount})` : size}
+                {size === 'ALL' ? `All (${totalFilteredCount})` : `${size} Clients`}
               </button>
             ))}
           </div>
@@ -2134,23 +1946,24 @@ export default function LeadFinder({
               disabled={safePage <= 1}
               onClick={() => {
                 setCurrentPage((p) => Math.max(1, p - 1));
-                const tableEl = document.getElementById('crm-leads-table-container');
-                if (tableEl) tableEl.scrollTop = 0;
+                const tableEl = document.getElementById('crm-leads-card-section');
+                if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               style={{
-                padding: '5px 10px',
+                padding: '6px 14px',
                 borderRadius: '6px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: safePage <= 1 ? '#475569' : '#CBD5E1',
-                fontSize: '0.72rem',
+                background: safePage <= 1 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: safePage <= 1 ? '#475569' : '#F8FAFC',
+                fontSize: '0.76rem',
+                fontWeight: '600',
                 cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '3px',
+                gap: '5px',
               }}
             >
-              <ChevronLeft size={14} /> Prev
+              <ChevronLeft size={15} /> Previous Page
             </button>
 
             {/* Page number buttons */}
@@ -2160,19 +1973,19 @@ export default function LeadFinder({
                 type="button"
                 onClick={() => {
                   setCurrentPage(pNum);
-                  const tableEl = document.getElementById('crm-leads-table-container');
-                  if (tableEl) tableEl.scrollTop = 0;
+                  const tableEl = document.getElementById('crm-leads-card-section');
+                  if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
                 style={{
-                  minWidth: '28px',
-                  height: '28px',
-                  padding: '0 6px',
+                  minWidth: '32px',
+                  height: '30px',
+                  padding: '0 8px',
                   borderRadius: '6px',
                   background: safePage === pNum ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.04)',
                   border: safePage === pNum ? '1px solid #10B981' : '1px solid rgba(255, 255, 255, 0.08)',
                   color: safePage === pNum ? '#34D399' : '#94A3B8',
-                  fontSize: '0.74rem',
-                  fontWeight: safePage === pNum ? '700' : '500',
+                  fontSize: '0.76rem',
+                  fontWeight: safePage === pNum ? '800' : '500',
                   cursor: 'pointer',
                 }}
               >
@@ -2185,23 +1998,24 @@ export default function LeadFinder({
               disabled={safePage >= totalPages}
               onClick={() => {
                 setCurrentPage((p) => Math.min(totalPages, p + 1));
-                const tableEl = document.getElementById('crm-leads-table-container');
-                if (tableEl) tableEl.scrollTop = 0;
+                const tableEl = document.getElementById('crm-leads-card-section');
+                if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               style={{
-                padding: '5px 10px',
+                padding: '6px 14px',
                 borderRadius: '6px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: safePage >= totalPages ? '#475569' : '#CBD5E1',
-                fontSize: '0.72rem',
+                background: safePage >= totalPages ? 'rgba(255, 255, 255, 0.02)' : 'linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(16, 185, 129, 0.25))',
+                border: safePage >= totalPages ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #10B981',
+                color: safePage >= totalPages ? '#475569' : '#34D399',
+                fontSize: '0.76rem',
+                fontWeight: '700',
                 cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '3px',
+                gap: '5px',
               }}
             >
-              Next <ChevronRight size={14} />
+              Next Page <ChevronRight size={15} />
             </button>
             <button
               type="button"
@@ -2254,8 +2068,7 @@ export default function LeadFinder({
             </button>
           </div>
         </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
