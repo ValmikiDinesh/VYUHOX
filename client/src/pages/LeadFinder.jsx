@@ -81,6 +81,33 @@ export default function LeadFinder({
   const [strategy, setStrategy] = useState(null);
   const [isLoadingStrategy, setIsLoadingStrategy] = useState(false);
 
+  // Self-healing internal leads state
+  const [internalLeads, setInternalLeads] = useState(Array.isArray(leads) ? leads : []);
+
+  useEffect(() => {
+    if (Array.isArray(leads) && leads.length > 0) {
+      setInternalLeads(leads);
+    }
+  }, [leads]);
+
+  const loadLeadsData = async () => {
+    const wsId = activeWorkspace?._id || localStorage.getItem('vyuhox_active_ws_id');
+    if (!wsId) return;
+    try {
+      const res = await api.getLeads(wsId);
+      if (res && res.success && Array.isArray(res.leads)) {
+        setInternalLeads(res.leads);
+        if (onRefreshLeads) onRefreshLeads();
+      }
+    } catch (e) {
+      console.warn('Failed to fetch leads in LeadFinder:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadLeadsData();
+  }, [activeWorkspace?._id]);
+
   // Scraper Search Parameters (Multi-Territory Support: Cities, States, Countries)
   const [selectedLocations, setSelectedLocations] = useState(['Hyderabad, Telangana']);
   const [locationInput, setLocationInput] = useState('');
@@ -232,6 +259,7 @@ export default function LeadFinder({
     };
 
     const handleLeadFound = () => {
+      loadLeadsData();
       if (onRefreshLeads) onRefreshLeads();
     };
 
@@ -253,6 +281,7 @@ export default function LeadFinder({
         message: `Scrape complete! Ingested ${data.count} genuine, MX-verified leads in ${data.location}. ${billingMsg}`,
         percent: 100,
       });
+      loadLeadsData();
       if (onRefreshLeads) onRefreshLeads();
       setTimeout(() => {
         setActiveJobId(null);
@@ -260,6 +289,7 @@ export default function LeadFinder({
     };
 
     const handleBulkUpdated = () => {
+      loadLeadsData();
       if (onRefreshLeads) onRefreshLeads();
     };
 
@@ -333,8 +363,45 @@ export default function LeadFinder({
         targetRole: aiCalibratedRole, // Pure AI-Calibrated Role
         customKeywords: customKeywords.trim(),
       });
-      if (res.success) {
+      if (res.success && res.jobId) {
         setActiveJobId(res.jobId);
+
+        // Fallback polling to guarantee UI sync even if socket event was dropped
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusRes = await api.getScraperStatus(activeWorkspace._id, res.jobId);
+            if (statusRes.success && statusRes.job) {
+              const j = statusRes.job;
+              if (j.progress && j.status === 'RUNNING') {
+                setProgressData((prev) => ({
+                  ...prev,
+                  percent: Math.max(prev.percent, j.progress),
+                  message: j.step || prev.message,
+                }));
+              }
+              if (j.status === 'COMPLETED') {
+                clearInterval(pollInterval);
+                setIsScraping(false);
+                setProgressData({
+                  step: 'INGESTED_TO_CRM',
+                  stepIndex: 4,
+                  totalSteps: 4,
+                  message: `Scrape complete! Ingested ${j.count || j.leads?.length || limit} genuine verified leads to CRM.`,
+                  percent: 100,
+                });
+                await loadLeadsData();
+                if (onRefreshLeads) onRefreshLeads();
+                setTimeout(() => setActiveJobId(null), 5000);
+              } else if (j.status === 'FAILED') {
+                clearInterval(pollInterval);
+                setIsScraping(false);
+                alert('Scraper encountered an error: ' + (j.error || 'Failed to complete scrape'));
+              }
+            }
+          } catch (e) {
+            console.warn('Scraper polling notice:', e);
+          }
+        }, 1500);
       } else {
         alert(res.message || 'Failed to start scraper');
         setIsScraping(false);
@@ -403,9 +470,10 @@ export default function LeadFinder({
   };
 
   // 8. Filter Leads
-  const filteredLeads = leads.filter((lead) => {
+  const allCurrentLeads = internalLeads && internalLeads.length > 0 ? internalLeads : (Array.isArray(leads) ? leads : []);
+  const filteredLeads = allCurrentLeads.filter((lead) => {
     const matchesStage = stageFilter === 'ALL' || lead.stage === stageFilter;
-    const matchesScore = lead.score >= minScore;
+    const matchesScore = typeof lead.score === 'number' ? lead.score >= minScore : true;
     const matchesSearch =
       searchTerm === '' ||
       lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1347,6 +1415,42 @@ export default function LeadFinder({
               onChange={(e) => setMinScore(parseInt(e.target.value))}
               style={{ width: '80px', accentColor: '#06B6D4' }}
             />
+          </div>
+
+          {/* Real-time CRM Count & Refresh Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              fontSize: '0.75rem',
+              color: '#34D399',
+              fontWeight: '700',
+              background: 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              whiteSpace: 'nowrap',
+            }}>
+              {filteredLeads.length} of {allCurrentLeads.length} Leads
+            </span>
+            <button
+              type="button"
+              onClick={loadLeadsData}
+              title="Refresh CRM Leads"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '6px 11px',
+                borderRadius: '6px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#CBD5E1',
+                fontSize: '0.72rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              <RefreshCw size={12} /> Sync CRM
+            </button>
           </div>
         </div>
 

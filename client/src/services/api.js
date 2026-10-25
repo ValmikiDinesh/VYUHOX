@@ -77,7 +77,7 @@ export const api = {
   },
   getWorkspaceStats: async (workspaceId) => {
     const res = await fetch(`${API_BASE}/workspaces/${workspaceId}/stats`, {
-      headers: { 'x-workspace-id': workspaceId },
+      headers: getAuthHeaders({ 'x-workspace-id': workspaceId }),
     });
     return res.json();
   },
@@ -100,7 +100,7 @@ export const api = {
   setOperatingMode: async (id, mode) => {
     const res = await fetch(`${API_BASE}/workspaces/${id}/operating-mode`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-workspace-id': id },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', 'x-workspace-id': id }),
       body: JSON.stringify({ operatingMode: mode }),
     });
     return res.json();
@@ -108,7 +108,7 @@ export const api = {
   superadminManageWorkspace: async (id, data) => {
     const res = await fetch(`${API_BASE}/workspaces/${id}/superadmin-manage`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-workspace-id': id },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', 'x-workspace-id': id }),
       body: JSON.stringify(data),
     });
     return res.json();
@@ -118,14 +118,14 @@ export const api = {
   getLeads: async (workspaceId, params = {}) => {
     const query = new URLSearchParams(params).toString();
     const res = await fetch(`${API_BASE}/leads?${query}`, {
-      headers: { 'x-workspace-id': workspaceId },
+      headers: getAuthHeaders({ 'x-workspace-id': workspaceId }),
     });
     return res.json();
   },
   createLead: async (workspaceId, leadData) => {
     const res = await fetch(`${API_BASE}/leads`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', 'x-workspace-id': workspaceId }),
       body: JSON.stringify(leadData),
     });
     return res.json();
@@ -133,7 +133,7 @@ export const api = {
   updateLeadStage: async (workspaceId, leadId, stage) => {
     const res = await fetch(`${API_BASE}/leads/${leadId}/stage`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', 'x-workspace-id': workspaceId }),
       body: JSON.stringify({ stage }),
     });
     return res.json();
@@ -141,14 +141,14 @@ export const api = {
   deleteLead: async (workspaceId, leadId) => {
     const res = await fetch(`${API_BASE}/leads/${leadId}`, {
       method: 'DELETE',
-      headers: { 'x-workspace-id': workspaceId },
+      headers: getAuthHeaders({ 'x-workspace-id': workspaceId }),
     });
     return res.json();
   },
   bulkImportLeads: async (workspaceId, leads) => {
     const res = await fetch(`${API_BASE}/leads/bulk-import`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', 'x-workspace-id': workspaceId }),
       body: JSON.stringify({ leads }),
     });
     return res.json();

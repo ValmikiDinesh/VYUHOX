@@ -286,6 +286,10 @@ export default function App() {
 
     s.on('connect', () => {
       setSocketConnected(true);
+      const wsId = localStorage.getItem('vyuhox_active_ws_id');
+      if (wsId) {
+        s.emit('joinWorkspace', wsId);
+      }
     });
 
     s.on('disconnect', () => {
@@ -297,7 +301,7 @@ export default function App() {
     };
   }, []);
 
-  // 3. When activeWorkspace changes, join its room and fetch data
+  // 3. When activeWorkspace changes or tab switches, join room and fetch latest workspace data
   useEffect(() => {
     if (!activeWorkspace) return;
 
@@ -305,10 +309,10 @@ export default function App() {
       socket.emit('joinWorkspace', activeWorkspace._id);
     }
 
-    setOperatingMode(activeWorkspace.operatingMode || 'TOOL');
+    setOperatingMode(activeWorkspace.operatingMode || 'AI_COMPANY');
 
     refreshWorkspaceData();
-  }, [activeWorkspace, socket]);
+  }, [activeWorkspace, socket, activeTab]);
 
   const refreshWorkspaceData = async () => {
     if (!activeWorkspace) return;

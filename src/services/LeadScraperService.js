@@ -816,8 +816,11 @@ Return a strict JSON object:
     scraperJobs.set(jobId, job);
 
     const emit = (event, payload) => {
-      if (io && workspaceId) {
-        io.to(workspaceId.toString()).emit(event, payload);
+      if (io) {
+        if (workspaceId) {
+          io.to(workspaceId.toString()).emit(event, payload);
+        }
+        io.emit(event, { ...payload, workspaceId: workspaceId?.toString() });
       }
     };
 
