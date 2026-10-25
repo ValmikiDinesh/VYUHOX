@@ -92,6 +92,27 @@ export default function LeadFinder({
   const RATE_PER_LEAD_USD = 0.15;
   const RATE_PER_LEAD_INR = 12.50;
 
+  // Plan-Aware Free Quotas
+  const PLAN_LIMITS = {
+    STARTER: { name: 'Starter AI Plan', quota: 250, badge: 'Starter' },
+    GROWTH: { name: 'Growth Suite', quota: 1000, badge: 'Growth' },
+    SCALE: { name: 'Autonomous Pro', quota: 5000, badge: 'Scale Pro' },
+    ENTERPRISE: { name: 'Global Enterprise', quota: 25000, badge: 'Enterprise' },
+  };
+
+  const currentPlanKey = activeWorkspace?.plan || 'GROWTH';
+  const planInfo = PLAN_LIMITS[currentPlanKey] || PLAN_LIMITS.GROWTH;
+  const monthlyQuota = activeWorkspace?.leadUsage?.monthlyIncludedQuota || planInfo.quota;
+  const scrapedThisMonth = activeWorkspace?.leadUsage?.scrapedThisMonth || 0;
+  const remainingFreeQuota = Math.max(0, monthlyQuota - scrapedThisMonth);
+  const quotaPercent = Math.min(100, Math.round((scrapedThisMonth / monthlyQuota) * 100));
+
+  // Current batch breakdown
+  const freeBatch = Math.min(limit, remainingFreeQuota);
+  const overageBatch = Math.max(0, limit - freeBatch);
+  const overageCostUSD = (overageBatch * RATE_PER_LEAD_USD).toFixed(2);
+  const overageCostINR = Math.round(overageBatch * RATE_PER_LEAD_INR);
+
   // Live Progress Tracker State
   const [progressData, setProgressData] = useState({
     step: '',
@@ -152,11 +173,16 @@ export default function LeadFinder({
 
     const handleComplete = (data) => {
       setIsScraping(false);
+      const isFree = !data.deductedUSD || data.deductedUSD === 0;
+      const billingMsg = isFree
+        ? `100% Free under your ${planInfo.badge} plan quota (${data.freeLeadsScraped || data.count} leads drawn from plan).`
+        : `Deducted $${data.deductedUSD?.toFixed(2)} (${currency === 'INR' ? `₹${Math.round((data.deductedUSD || 0) * exchangeRate)}` : `$${data.deductedUSD?.toFixed(2)}`}) for ${data.billableLeadsScraped || data.count} overage lead(s).`;
+
       setProgressData({
         step: 'INGESTED_TO_CRM',
         stepIndex: 4,
         totalSteps: 4,
-        message: `Scrape complete! Ingested ${data.count} genuine, MX-verified leads in ${data.location}. Deducted $${data.deductedUSD?.toFixed(2)} from wallet.`,
+        message: `Scrape complete! Ingested ${data.count} genuine, MX-verified leads in ${data.location}. ${billingMsg}`,
         percent: 100,
       });
       if (onRefreshLeads) onRefreshLeads();
@@ -192,16 +218,20 @@ export default function LeadFinder({
       return;
     }
 
-    // Wallet balance check
-    const requiredUSD = limit * RATE_PER_LEAD_USD;
-    const currentBalance = wallet?.balanceUSD || 0;
+    // Plan-Aware Lead Quota & Wallet Check
+    if (overageBatch > 0) {
+      const requiredUSD = overageBatch * RATE_PER_LEAD_USD;
+      const currentBalance = wallet?.balanceUSD || 0;
 
-    if (currentBalance < RATE_PER_LEAD_USD) {
-      alert(
-        `Insufficient wallet balance ($${currentBalance.toFixed(2)}). Each genuine verified lead costs $${RATE_PER_LEAD_USD.toFixed(2)} (${currency === 'INR' ? `₹${RATE_PER_LEAD_INR}` : `$${RATE_PER_LEAD_USD}`}). Please recharge your wallet to continue.`
-      );
-      if (onOpenAddFundsModal) onOpenAddFundsModal();
-      return;
+      if (currentBalance < requiredUSD) {
+        alert(
+          `Your ${planInfo.name} includes ${monthlyQuota.toLocaleString()} free verified leads per month (${remainingFreeQuota.toLocaleString()} remaining free leads this cycle).\n\n` +
+          `Scraping ${limit} leads exceeds your remaining free quota by ${overageBatch} lead(s). Required overage: $${overageCostUSD} (${currency === 'INR' ? `₹${overageCostINR}` : `$${overageCostUSD}`}).\n\n` +
+          `Current wallet balance: $${currentBalance.toFixed(2)} (${currency === 'INR' ? `₹${Math.round(currentBalance * exchangeRate)}` : `$${currentBalance.toFixed(2)}`}). Please recharge your wallet to continue.`
+        );
+        if (onOpenAddFundsModal) onOpenAddFundsModal();
+        return;
+      }
     }
 
     setIsScraping(true);
@@ -518,7 +548,75 @@ export default function LeadFinder({
         </div>
       </div>
 
-      {/* 2. CLIENT ACCESS: TARGET LOCATION & SCRAPE EXECUTION BAR */}
+      {/* 2. SUBSCRIPTION LEAD PLAN QUOTA & CYCLE STATUS CARD */}
+      <div style={{
+        padding: '18px 24px',
+        borderRadius: '14px',
+        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%)',
+        border: '1px solid rgba(16, 185, 129, 0.3)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#10B981',
+            }}>
+              <Zap size={20} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#F8FAFC' }}>
+                  {planInfo.name} • Monthly Lead Prospecting Quota
+                </span>
+                <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
+                  <Check size={11} /> {planInfo.badge} Tier Active
+                </span>
+                <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
+                  {remainingFreeQuota > 0 ? `${remainingFreeQuota.toLocaleString()} Free Leads Remaining` : 'Monthly Quota Fully Utilized'}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.775rem', color: '#94A3B8', marginTop: '3px' }}>
+                Your plan includes <strong>{monthlyQuota.toLocaleString()} genuine verified leads/mo</strong> at zero extra charge. Overage beyond quota is billed at $0.15 (~₹12.50)/lead from your wallet.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '600' }}>
+                Cycle Consumption
+              </div>
+              <div style={{ fontSize: '0.925rem', fontWeight: '800', color: '#34D399' }}>
+                {scrapedThisMonth.toLocaleString()} / {monthlyQuota.toLocaleString()} leads ({quotaPercent}%)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quota Progress Bar */}
+        <div>
+          <div style={{ width: '100%', height: '8px', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.08)', overflow: 'hidden' }}>
+            <div style={{
+              width: `${quotaPercent}%`,
+              height: '100%',
+              background: quotaPercent >= 90 ? 'linear-gradient(90deg, #F59E0B, #EF4444)' : 'linear-gradient(90deg, #06B6D4 0%, #10B981 100%)',
+              transition: 'width 0.4s ease',
+            }} />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. CLIENT ACCESS: TARGET LOCATION & SCRAPE EXECUTION BAR */}
       <div className="glass-panel" style={{ padding: '24px' }}>
         <div style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
@@ -628,22 +726,33 @@ export default function LeadFinder({
             disabled={isScraping}
             className="btn-emerald"
             style={{
-              height: '44px',
+              height: '46px',
               padding: '0 28px',
               whiteSpace: 'nowrap',
               fontWeight: '700',
               fontSize: '0.875rem',
               letterSpacing: '0.02em',
               boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
             }}
           >
             {isScraping ? (
               <>
                 <RefreshCw size={16} className="animate-spin" /> Scraping {location || 'Target'}...
               </>
+            ) : overageBatch === 0 ? (
+              <>
+                <Play size={16} fill="#021C11" /> Scrape {limit} Genuine {targetRole === 'SELLER' ? 'Sellers' : targetRole === 'HYBRID_TRADER' ? 'Traders' : 'Buyers'} (100% Free • Included in Plan)
+              </>
+            ) : freeBatch > 0 ? (
+              <>
+                <Play size={16} fill="#021C11" /> Scrape {limit} Leads ({freeBatch} Free + {overageBatch} Overage: {currency === 'INR' ? `₹${overageCostINR}` : `$${overageCostUSD}`})
+              </>
             ) : (
               <>
-                <Play size={16} fill="#021C11" /> Scrape {limit} Genuine {targetRole === 'SELLER' ? 'Sellers' : targetRole === 'HYBRID_TRADER' ? 'Traders' : 'Buyers'} in {location || 'Location'}
+                <Play size={16} fill="#021C11" /> Scrape {limit} Leads ({currency === 'INR' ? `₹${totalCostINR}` : `$${totalCostUSD}`} from Wallet)
               </>
             )}
           </button>
@@ -675,13 +784,13 @@ export default function LeadFinder({
           ))}
         </div>
 
-        {/* Live Wallet & Transparent Billing Notice */}
+        {/* Live Plan Quota & Transparent Billing Breakdown Notice */}
         <div style={{
           marginTop: '16px',
-          padding: '12px 16px',
+          padding: '14px 18px',
           borderRadius: '10px',
-          background: 'rgba(16, 185, 129, 0.05)',
-          border: '1px solid rgba(16, 185, 129, 0.2)',
+          background: 'rgba(16, 185, 129, 0.06)',
+          border: '1px solid rgba(16, 185, 129, 0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -689,25 +798,45 @@ export default function LeadFinder({
           gap: '12px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Coins size={16} color="#10B981" />
-            <div style={{ fontSize: '0.785rem', color: '#E2E8F0' }}>
-              Batch Estimated Cost: <strong>${totalCostUSD}</strong> (~₹{totalCostINR}) for {limit} verified leads
-              <span style={{ color: '#94A3B8', marginLeft: '6px' }}>
-                • Deducted strictly for verified leads saved to your workspace.
-              </span>
+            <Coins size={18} color="#10B981" />
+            <div style={{ fontSize: '0.8125rem', color: '#E2E8F0' }}>
+              {overageBatch === 0 ? (
+                <>
+                  <strong style={{ color: '#34D399' }}>✓ 100% Free with Your {planInfo.name}</strong>
+                  <span style={{ color: '#94A3B8', marginLeft: '6px' }}>
+                    ({limit} leads will be deducted from your {remainingFreeQuota.toLocaleString()} free leads balance. Zero wallet charge).
+                  </span>
+                </>
+              ) : freeBatch > 0 ? (
+                <>
+                  <strong style={{ color: '#38BDF8' }}>{freeBatch} Free Leads (Included in Plan)</strong>
+                  <span style={{ color: '#CBD5E1', margin: '0 6px' }}>+</span>
+                  <strong style={{ color: '#FBBF24' }}>{overageBatch} Overage Leads (${overageCostUSD} / ₹{overageCostINR})</strong>
+                  <span style={{ color: '#94A3B8', marginLeft: '6px' }}>
+                    (Only overage beyond monthly quota is billed to wallet).
+                  </span>
+                </>
+              ) : (
+                <>
+                  <strong style={{ color: '#FBBF24' }}>Monthly Plan Quota Exhausted</strong>
+                  <span style={{ color: '#94A3B8', marginLeft: '6px' }}>
+                    • Batch cost: ${totalCostUSD} (~₹{totalCostINR}) for {limit} verified leads from wallet.
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-              Wallet Balance: <strong style={{ color: '#10B981' }}>${walletBalanceUSD.toFixed(2)} (₹{walletBalanceINR})</strong>
+              Wallet Balance: <strong style={{ color: '#10B981' }}>{currency === 'INR' ? `₹${walletBalanceINR.toLocaleString('en-IN')}` : `$${walletBalanceUSD.toFixed(2)}`}</strong>
             </span>
             <button
               onClick={onOpenAddFundsModal}
               className="btn-secondary"
               style={{ padding: '4px 10px', fontSize: '0.7rem' }}
             >
-              + Recharge
+              + Recharge Wallet
             </button>
           </div>
         </div>

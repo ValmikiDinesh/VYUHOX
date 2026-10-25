@@ -49,7 +49,22 @@ router.post('/start', authMiddleware, async (req, res) => {
     const ratePerLeadUSD = config?.usageRates?.scrapingPerLeadUSD || 0.15;
     const ratePerLeadINR = config?.usageRates?.scrapingPerLeadINR || 12.50;
 
-    // Verify wallet has balance for at least 1 lead
+    // Fetch workspace to evaluate free monthly subscription quota
+    const workspace = await Workspace.findById(workspaceId);
+    const planTier = workspace?.subscription?.planTier || (workspace?.operatingMode === 'AI_COMPANY' ? 'AI_COMPANY_SCALE' : 'TOOL_MODE');
+
+    let defaultQuota = 250;
+    if (planTier === 'AI_COMPANY_SCALE' || workspace?.operatingMode === 'AI_COMPANY') defaultQuota = 5000;
+    else if (planTier === 'AI_COMPANY_STARTER') defaultQuota = 1000;
+    else if (planTier === 'CUSTOM' || planTier === 'ENTERPRISE') defaultQuota = 25000;
+
+    const monthlyQuota = workspace?.leadUsage?.monthlyIncludedQuota || defaultQuota;
+    const scrapedThisMonth = workspace?.leadUsage?.scrapedThisMonth || 0;
+    const remainingFreeQuota = Math.max(0, monthlyQuota - scrapedThisMonth);
+
+    // Calculate billable leads (only count over the plan quota)
+    const billableLeadsRequested = Math.max(0, requestedLimit - remainingFreeQuota);
+
     let wallet = await Wallet.findOne({ workspaceId });
     if (!wallet) {
       wallet = await Wallet.create({
@@ -66,10 +81,11 @@ router.post('/start', authMiddleware, async (req, res) => {
       });
     }
 
-    if (wallet.balanceUSD < ratePerLeadUSD) {
+    // Only enforce wallet balance if the requested limit exceeds remaining free plan quota
+    if (billableLeadsRequested > 0 && wallet.balanceUSD < ratePerLeadUSD) {
       return res.status(402).json({
         success: false,
-        message: `Insufficient wallet balance ($${wallet.balanceUSD.toFixed(2)}). Each genuine lead costs $${ratePerLeadUSD.toFixed(2)} (₹${ratePerLeadINR.toFixed(2)}). Please add funds to proceed.`,
+        message: `Monthly plan quota reached (${scrapedThisMonth}/${monthlyQuota} leads used). Additional leads cost $${ratePerLeadUSD.toFixed(2)} (₹${ratePerLeadINR.toFixed(2)}) each. Please top up your compute credit wallet to continue.`,
       });
     }
 

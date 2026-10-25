@@ -1125,9 +1125,25 @@ Return a strict JSON object:
         await new Promise((r) => setTimeout(r, 160));
       }
 
-      // 6. Accurate Per-Lead Wallet Deduction
+      // 6. Plan-Aware Lead Quota & Accurate Per-Lead Wallet Deduction
       const verifiedCount = enrichedList.length;
-      const totalDeductionUSD = +(verifiedCount * ratePerLeadUSD).toFixed(2);
+
+      const ws = await Workspace.findById(workspaceId);
+      const planTier = ws?.subscription?.planTier || (ws?.operatingMode === 'AI_COMPANY' ? 'AI_COMPANY_SCALE' : 'TOOL_MODE');
+
+      let defaultQuota = 250;
+      if (planTier === 'AI_COMPANY_SCALE' || ws?.operatingMode === 'AI_COMPANY') defaultQuota = 5000;
+      else if (planTier === 'AI_COMPANY_STARTER') defaultQuota = 1000;
+      else if (planTier === 'CUSTOM' || planTier === 'ENTERPRISE') defaultQuota = 25000;
+
+      const monthlyQuota = ws?.leadUsage?.monthlyIncludedQuota || defaultQuota;
+      const scrapedThisMonth = ws?.leadUsage?.scrapedThisMonth || 0;
+      const remainingFreeQuota = Math.max(0, monthlyQuota - scrapedThisMonth);
+
+      // Determine how many leads are covered by the free monthly quota
+      const freeLeadsCount = Math.min(verifiedCount, remainingFreeQuota);
+      const billableLeadsCount = Math.max(0, verifiedCount - freeLeadsCount);
+      const totalDeductionUSD = +(billableLeadsCount * ratePerLeadUSD).toFixed(2);
 
       let updatedWalletBalance = 0;
       let wallet = await Wallet.findOne({ workspaceId });
@@ -1136,7 +1152,7 @@ Return a strict JSON object:
         const transaction = {
           type: 'DEBIT',
           amountUSD: totalDeductionUSD,
-          description: `Lead Prospecting: ${verifiedCount} genuine verified leads in "${location}" for ${businessName} ($${ratePerLeadUSD.toFixed(2)}/lead)`,
+          description: `Lead Prospecting Overage: ${billableLeadsCount} leads in "${location}" for ${businessName} ($${ratePerLeadUSD.toFixed(2)}/lead after free plan quota)`,
           timestamp: new Date(),
           referenceId: `SCRAPE_${Date.now()}_${jobId.substring(0, 8)}`,
         };
@@ -1144,33 +1160,44 @@ Return a strict JSON object:
         await wallet.save();
         updatedWalletBalance = wallet.balanceUSD;
 
-        await Workspace.findByIdAndUpdate(workspaceId, {
-          $inc: { scrapedLeadsCount: verifiedCount },
-        });
-
         emit('walletUpdated', {
           balanceUSD: wallet.balanceUSD,
           transaction,
         });
+      } else if (wallet) {
+        updatedWalletBalance = wallet.balanceUSD;
       }
+
+      await Workspace.findByIdAndUpdate(workspaceId, {
+        $inc: {
+          'leadUsage.scrapedThisMonth': verifiedCount,
+          scrapedLeadsCount: verifiedCount,
+        },
+      });
 
       // 7. Step 4: Final Ingestion & Completion
       job.status = 'COMPLETED';
       job.progress = 100;
       job.leads = enrichedList;
 
+      const completionMessage = billableLeadsCount === 0
+        ? `Successfully verified and ingested ${verifiedCount} genuine leads in "${location}". 100% covered by your monthly plan quota (FREE).`
+        : `Successfully verified and ingested ${verifiedCount} leads (${freeLeadsCount} covered by free plan quota, ${billableLeadsCount} billed at $${ratePerLeadUSD.toFixed(2)} each).`;
+
       emit('scraper:progress', {
         jobId,
         step: 'INGESTED_TO_CRM',
         stepIndex: 4,
         totalSteps: 4,
-        message: `Successfully verified and ingested ${enrichedList.length} genuine leads in "${location}". Deducted $${totalDeductionUSD.toFixed(2)} (₹${(totalDeductionUSD * 83.5).toFixed(0)}) from wallet.`,
+        message: completionMessage,
         percent: 100,
       });
 
       emit('scraper:complete', {
         jobId,
         count: enrichedList.length,
+        freeCount: freeLeadsCount,
+        billableCount: billableLeadsCount,
         location,
         deductedUSD: totalDeductionUSD,
         newBalanceUSD: updatedWalletBalance,

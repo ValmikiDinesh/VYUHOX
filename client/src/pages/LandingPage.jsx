@@ -924,28 +924,86 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
         {/* 4 Tier Pricing Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
-          gap: '20px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '24px',
           alignItems: 'stretch',
+          marginBottom: '32px',
         }}>
           {/* Plan 1: Solo Tool Mode */}
-          <div className="card" style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 17, 32, 0.95) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '18px',
+            padding: '32px 26px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+            transition: 'all 0.2s',
+          }}>
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>Solo Tool Mode</div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '4px 0 16px', color: '#F8FAFC' }}>Manual Powerhouse</h3>
-              <div style={{ fontSize: '2.5rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
-                {currencySymbol}{getPlanPrice(49, 3999).toLocaleString(isINR ? 'en-IN' : 'en-US')}<span style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>/month</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span className="badge badge-gray" style={{ fontSize: '0.7rem', fontWeight: '800', letterSpacing: '0.04em' }}>
+                  SOLO FOUNDER
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>Prepaid Utility</span>
               </div>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 20px', lineHeight: '1.5' }}>
-                Full manual access to Scraper, Softphone Dialer, Omnichannel Hub, and Ad Manager with prepaid wallet rates.
+
+              <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '4px 0 10px', color: '#F8FAFC' }}>
+                Manual Powerhouse
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.45' }}>
+                Full self-serve control over Lead Scraper, Softphone Dialer, Omnichannel Inbox &amp; Ad Manager.
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '24px' }}>
-                <div>✓ Waterfall Lead Scraper & Enrichment</div>
-                <div>✓ Web Dialer with sub-800ms latency</div>
-                <div>✓ WhatsApp & Email Omnichannel Inbox</div>
-                <div>✓ Meta & Google Ads Budget Manager</div>
-                <div>✓ {currencySymbol}{isINR ? '4,000' : '50'} Welcome Usage Bonus</div>
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
+                  {currencySymbol}{getPlanPrice(49, 3999).toLocaleString(isINR ? 'en-IN' : 'en-US')}
+                  <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '500' }}>/mo</span>
+                </div>
+                <div style={{ fontSize: '0.725rem', color: '#64748B', marginTop: '4px' }}>
+                  {isAnnual ? 'Billed annually ($470/yr)' : 'Flexible month-to-month'}
+                </div>
+              </div>
+
+              {/* Highlighted Lead Quota Pill */}
+              <div style={{
+                background: 'rgba(6, 182, 212, 0.08)',
+                border: '1px solid rgba(6, 182, 212, 0.25)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                <Zap size={14} color="#06B6D4" />
+                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#38BDF8' }}>
+                  250 Verified Leads / month included (FREE)
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Waterfall Lead Scraper &amp; Enrichment</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Sub-800ms Web Calling Dialer</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>WhatsApp &amp; Email Unified Inbox</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Meta &amp; Google Ads Campaign Manager</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span style={{ color: '#FBBF24', fontWeight: '600' }}>{currencySymbol}{isINR ? '4,000' : '50'} Welcome Usage Bonus</span>
+                </div>
               </div>
             </div>
 
@@ -956,28 +1014,85 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
               className="btn btn-secondary"
               style={{ width: '100%', padding: '12px', fontWeight: '700', fontSize: '0.85rem' }}
             >
-              Start Tool Mode
+              Start Solo Tool Mode
             </button>
           </div>
 
           {/* Plan 2: Tool + 1 Agent */}
-          <div className="card" style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 17, 32, 0.95) 100%)',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: '18px',
+            padding: '32px 26px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+            transition: 'all 0.2s',
+          }}>
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#38BDF8', textTransform: 'uppercase' }}>Hire As You Grow</div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '4px 0 16px', color: '#F8FAFC' }}>Tool + 1 Agent</h3>
-              <div style={{ fontSize: '2.5rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
-                {currencySymbol}{getPlanPrice(99, 7999).toLocaleString(isINR ? 'en-IN' : 'en-US')}<span style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>/month</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span className="badge badge-cyan" style={{ fontSize: '0.7rem', fontWeight: '800', letterSpacing: '0.04em' }}>
+                  MODULAR SCALING
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '600' }}>1 AI Employee</span>
               </div>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 20px', lineHeight: '1.5' }}>
-                Tool Mode base plus 1 dedicated autonomous AI employee (e.g. Maya Voice Closer or Sarah SDR).
+
+              <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '4px 0 10px', color: '#F8FAFC' }}>
+                Tool + 1 Agent
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.45' }}>
+                Full Tool Mode base plus 1 dedicated autonomous digital employee (e.g. Maya Voice Closer or Sarah SDR).
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '24px' }}>
-                <div>✓ Everything in Solo Tool Mode</div>
-                <div>✓ 1 Dedicated Autonomous AI Agent</div>
-                <div>✓ Autonomous speed-to-lead callback</div>
-                <div>✓ Add more agents for {currencySymbol}{isINR ? '2,999' : '39'}/mo each</div>
-                <div>✓ {currencySymbol}{isINR ? '6,000' : '75'} Welcome Usage Bonus</div>
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
+                  {currencySymbol}{getPlanPrice(99, 7999).toLocaleString(isINR ? 'en-IN' : 'en-US')}
+                  <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '500' }}>/mo</span>
+                </div>
+                <div style={{ fontSize: '0.725rem', color: '#64748B', marginTop: '4px' }}>
+                  {isAnnual ? 'Billed annually ($950/yr)' : 'Flexible month-to-month'}
+                </div>
+              </div>
+
+              {/* Highlighted Lead Quota Pill */}
+              <div style={{
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                <Zap size={14} color="#38BDF8" />
+                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#38BDF8' }}>
+                  1,000 Verified Leads / month included (FREE)
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Everything in Solo Tool Mode</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span><strong>1 Dedicated AI Employee (Maya or Sarah)</strong></span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Sub-45s Inbound Speed-to-Lead Calling</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Add more agents for {currencySymbol}{isINR ? '2,999' : '39'}/mo each</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span style={{ color: '#FBBF24', fontWeight: '600' }}>{currencySymbol}{isINR ? '6,000' : '75'} Welcome Usage Bonus</span>
+                </div>
               </div>
             </div>
 
@@ -992,51 +1107,100 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
             </button>
           </div>
 
-          {/* Plan 3: Full AI Company (Featured) */}
-          <div className="card" style={{
-            padding: '32px 24px',
+          {/* Plan 3: Full AI Company (Featured - Most Popular) */}
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(6, 182, 212, 0.14) 0%, rgba(15, 23, 42, 0.98) 100%)',
+            border: '2px solid #06B6D4',
+            borderRadius: '18px',
+            padding: '32px 26px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(6, 182, 212, 0.1) 100%)',
-            border: '2px solid #06B6D4',
-            boxShadow: '0 0 32px rgba(6, 182, 212, 0.3)',
+            boxShadow: '0 0 35px rgba(6, 182, 212, 0.35)',
             position: 'relative',
+            transition: 'all 0.2s',
           }}>
             <div style={{
               position: 'absolute',
-              top: '-12px',
+              top: '-13px',
               left: '50%',
               transform: 'translateX(-50%)',
               background: 'linear-gradient(135deg, #06B6D4, #10B981)',
-              color: '#04101A',
-              padding: '3px 14px',
-              borderRadius: '12px',
-              fontSize: '0.7rem',
+              color: '#030712',
+              padding: '4px 16px',
+              borderRadius: '20px',
+              fontSize: '0.675rem',
               fontWeight: '800',
               textTransform: 'uppercase',
-              letterSpacing: '0.04em',
+              letterSpacing: '0.06em',
+              boxShadow: '0 2px 10px rgba(6, 182, 212, 0.5)',
             }}>
-              Most Popular • Complete C-Suite
+              ★ Most Popular • Full C-Suite Workforce
             </div>
 
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#06B6D4', textTransform: 'uppercase' }}>Autonomous AI Company</div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '4px 0 16px', color: '#F8FAFC' }}>Full AI Department</h3>
-              <div style={{ fontSize: '2.5rem', fontWeight: '900', color: '#38BDF8', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
-                {currencySymbol}{getPlanPrice(499, 39999).toLocaleString(isINR ? 'en-IN' : 'en-US')}<span style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>/month</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span className="badge badge-emerald" style={{ fontSize: '0.7rem', fontWeight: '800', letterSpacing: '0.04em' }}>
+                  AUTONOMOUS GTM CO.
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '700' }}>All 6 Agents Active</span>
               </div>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 20px', lineHeight: '1.5' }}>
-                All 6 C-Suite agents deployed 24/7. Marketing, outbound sales, inbound phone dials, finance, and retention run completely on autopilot.
+
+              <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '4px 0 10px', color: '#F8FAFC' }}>
+                Autonomous AI Company
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.45' }}>
+                All 6 digital C-Suite employees deployed 24/7. Marketing, outreach, inbound calling, finance &amp; CRM run on complete autopilot.
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '24px' }}>
-                <div>✓ <strong>All 6 Autonomous C-Suite Agents Included</strong></div>
-                <div>✓ Sophia Sterling (CMO) + Marcus Cole (SDR)</div>
-                <div>✓ Maya Vance (Voice AE, sub-30s speed-to-lead)</div>
-                <div>✓ Julian Vance (CFO) + Chloe Kim (CS) + CEO</div>
-                <div>✓ Real-time multi-agent activity stream</div>
-                <div>✓ {currencySymbol}{isINR ? '8,000' : '100'} Welcome Usage Bonus</div>
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#38BDF8', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
+                  {currencySymbol}{getPlanPrice(499, 39999).toLocaleString(isINR ? 'en-IN' : 'en-US')}
+                  <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '500' }}>/mo</span>
+                </div>
+                <div style={{ fontSize: '0.725rem', color: '#34D399', marginTop: '4px', fontWeight: '600' }}>
+                  Replaces ~$75,000/yr human SDR &amp; agency retainer costs
+                </div>
+              </div>
+
+              {/* Highlighted Lead Quota Pill */}
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                <Zap size={14} color="#10B981" />
+                <span style={{ fontSize: '0.775rem', fontWeight: '800', color: '#34D399' }}>
+                  5,000 Verified Leads / month included (FREE)
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span><strong>Complete 6-Agent AI C-Suite Included</strong></span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Ava CMO (Ads &amp; Social) + Sarah SDR (Outreach)</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Maya Vance (Sub-45s Voice AI Telephone Closer)</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Julian CFO (FinOps) + Chloe CS + Autonomous CEO</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span style={{ color: '#FBBF24', fontWeight: '600' }}>{currencySymbol}{isINR ? '8,000' : '100'} Welcome Usage Bonus</span>
+                </div>
               </div>
             </div>
 
@@ -1045,31 +1209,87 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
                 window.location.hash = '#signup';
               }}
               className="btn btn-primary"
-              style={{ width: '100%', padding: '12px', fontWeight: '700', fontSize: '0.85rem' }}
+              style={{ width: '100%', padding: '12px', fontWeight: '800', fontSize: '0.875rem' }}
             >
               Deploy Autonomous AI Company
             </button>
           </div>
 
           {/* Plan 4: Enterprise High-Scale */}
-          <div className="card" style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 17, 32, 0.95) 100%)',
+            border: '1px solid rgba(168, 85, 247, 0.4)',
+            borderRadius: '18px',
+            padding: '32px 26px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+            transition: 'all 0.2s',
+          }}>
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#A78BFA', textTransform: 'uppercase' }}>Enterprise High-Scale</div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '4px 0 16px', color: '#F8FAFC' }}>Autonomous Enterprise</h3>
-              <div style={{ fontSize: '2.5rem', fontWeight: '900', color: '#C4B5FD', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
-                {currencySymbol}{getPlanPrice(1499, 119999).toLocaleString(isINR ? 'en-IN' : 'en-US')}<span style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>/month</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span className="badge badge-purple" style={{ fontSize: '0.7rem', fontWeight: '800', letterSpacing: '0.04em' }}>
+                  ENTERPRISE SCALE
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#C4B5FD', fontWeight: '600' }}>Custom SIP &amp; SLAs</span>
               </div>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 20px', lineHeight: '1.5' }}>
-                Dedicated telecom trunking, high-throughput voice carriers, custom CRM webhooks, and priority 24/7 dedicated engineering support.
+
+              <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '4px 0 10px', color: '#F8FAFC' }}>
+                Autonomous Enterprise
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.45' }}>
+                Dedicated telecom trunking, high-throughput voice carriers, custom CRM webhooks, and 24/7 dedicated engineering SLA.
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '24px' }}>
-                <div>✓ <strong>Full 6-Agent C-Suite Workforce Active</strong></div>
-                <div>✓ Unlimited Continuous Lead Prospecting</div>
-                <div>✓ Private Dedicated Twilio SIP Trunk</div>
-                <div>✓ Dedicated WhatsApp High-Volume Numbers</div>
-                <div>✓ Custom Webhook Integrations &amp; API Triggers</div>
-                <div>✓ Priority 24/7 Dedicated Engineering SLA</div>
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#C4B5FD', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
+                  {currencySymbol}{getPlanPrice(1499, 119999).toLocaleString(isINR ? 'en-IN' : 'en-US')}
+                  <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '500' }}>/mo</span>
+                </div>
+                <div style={{ fontSize: '0.725rem', color: '#A78BFA', marginTop: '4px' }}>
+                  Custom high-volume billing available
+                </div>
+              </div>
+
+              {/* Highlighted Lead Quota Pill */}
+              <div style={{
+                background: 'rgba(168, 85, 247, 0.08)',
+                border: '1px solid rgba(168, 85, 247, 0.25)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                <Zap size={14} color="#C4B5FD" />
+                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#C4B5FD' }}>
+                  25,000 Verified Leads / month included (FREE)
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span><strong>Full 6-Agent C-Suite Workforce Active</strong></span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Private Dedicated Twilio / Carrier SIP Trunk</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>High-Volume Verified WhatsApp API Numbers</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Custom Bi-directional Webhooks &amp; Salesforce Sync</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={14} color="#10B981" />
+                  <span>Priority 24/7 Dedicated Engineering Support</span>
+                </div>
               </div>
             </div>
 
@@ -1078,7 +1298,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
                 window.location.hash = '#signup';
               }}
               className="btn btn-secondary"
-              style={{ width: '100%', padding: '12px', fontWeight: '700', fontSize: '0.85rem', borderColor: 'rgba(139, 92, 246, 0.5)' }}
+              style={{ width: '100%', padding: '12px', fontWeight: '700', fontSize: '0.85rem', borderColor: 'rgba(168, 85, 247, 0.45)' }}
             >
               Deploy Enterprise Suite
             </button>

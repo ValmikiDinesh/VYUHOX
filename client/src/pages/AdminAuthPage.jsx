@@ -42,12 +42,36 @@ export default function AdminAuthPage({
         if (res.user) {
           localStorage.setItem('vyuhox_user', JSON.stringify(res.user));
         }
+        const detectedCurrency = (() => {
+          try {
+            const saved = localStorage.getItem('vyuhox_currency');
+            if (saved) return saved;
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+            if (tz.includes('Calcutta') || tz.includes('Kolkata') || new Date().getTimezoneOffset() === -330) {
+              return 'INR';
+            }
+          } catch (e) {}
+          return 'INR';
+        })();
+
         if (onAuthSuccess) {
-          onAuthSuccess(res.user, res.workspace, 'USD', 'superadmin');
+          onAuthSuccess(res.user, res.workspace, detectedCurrency, 'superadmin');
         }
       } else {
         // Fallback for authorized master key in demo environment
         if (formData.adminKey === 'vyuhox2026' || formData.email.toLowerCase().includes('admin') || formData.email.toLowerCase().includes('owner')) {
+          const detectedCurrency = (() => {
+            try {
+              const saved = localStorage.getItem('vyuhox_currency');
+              if (saved) return saved;
+              const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+              if (tz.includes('Calcutta') || tz.includes('Kolkata') || new Date().getTimezoneOffset() === -330) {
+                return 'INR';
+              }
+            } catch (e) {}
+            return 'INR';
+          })();
+
           const mockAdminUser = {
             id: 'usr_superadmin',
             name: 'Nanda Sai (Platform Owner)',
@@ -61,7 +85,7 @@ export default function AdminAuthPage({
             operatingMode: 'AI_COMPANY',
           };
           if (onAuthSuccess) {
-            onAuthSuccess(mockAdminUser, mockWs, 'USD', 'superadmin');
+            onAuthSuccess(mockAdminUser, mockWs, detectedCurrency, 'superadmin');
           }
         } else {
           setError(res.message || 'Invalid Super Admin credentials or security key.');

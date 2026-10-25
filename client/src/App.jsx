@@ -106,8 +106,27 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  // Global Currency State (USD $ vs INR ₹) with standard conversion rate
-  const [currency, setCurrency] = useState('INR');
+  // Global Currency State (USD $ vs INR ₹) with automatic Indian timezone detection
+  const [currency, setCurrencyState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vyuhox_currency');
+      if (saved === 'INR' || saved === 'USD') return saved;
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const offset = new Date().getTimezoneOffset();
+      if (tz.includes('Calcutta') || tz.includes('Kolkata') || offset === -330) {
+        return 'INR';
+      }
+    } catch (e) {}
+    return 'INR';
+  });
+
+  const setCurrency = (newCurr) => {
+    setCurrencyState(newCurr);
+    try {
+      localStorage.setItem('vyuhox_currency', newCurr);
+    } catch (e) {}
+  };
+
   const exchangeRate = 83.5;
 
   // Current Logged-In User Identity
@@ -827,6 +846,8 @@ export default function App() {
                 if (res.success) setWallet(res.wallet);
               }
             }}
+            currency={currency}
+            exchangeRate={exchangeRate}
           />
         )}
 

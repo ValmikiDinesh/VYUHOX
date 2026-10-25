@@ -19,7 +19,11 @@ export default function SettingsWalletView({
   wallet,
   onAddFunds,
   onUpdateWalletSettings,
+  currency = 'INR',
+  exchangeRate = 83.5,
 }) {
+  const isINR = currency === 'INR';
+  const currencySymbol = isINR ? '₹' : '$';
   const [name, setName] = useState(activeWorkspace?.name || '');
   const [industry, setIndustry] = useState(activeWorkspace?.industry || 'B2B');
   const [businessCategory, setBusinessCategory] = useState(activeWorkspace?.businessCategory || '');
@@ -243,10 +247,19 @@ export default function SettingsWalletView({
               color: '#F8FAFC',
               margin: '4px 0',
             }}>
-              ${wallet ? wallet.balanceUSD?.toFixed(2) : '0.00'}{' '}
-              <span style={{ fontSize: '1rem', color: '#10B981', fontWeight: '600' }}>USD</span>
+              {isINR
+                ? `₹${Math.round((wallet?.balanceUSD || 0) * exchangeRate).toLocaleString('en-IN')}`
+                : `$${(wallet?.balanceUSD || 0).toFixed(2)}`}{' '}
+              <span style={{ fontSize: '1rem', color: '#10B981', fontWeight: '600' }}>
+                {isINR ? 'INR (₹)' : 'USD ($)'}
+              </span>
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              {isINR && (
+                <span style={{ color: '#38BDF8', fontWeight: '500', marginRight: '6px' }}>
+                  (~${(wallet?.balanceUSD || 0).toFixed(2)} USD reserve) •
+                </span>
+              )}
               Funds Voice AI calls, Scraper enrichment tokens, and automated SMS/WhatsApp
             </div>
           </div>
@@ -257,24 +270,24 @@ export default function SettingsWalletView({
               Instant Top-Up
             </label>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-              {['50', '100', '250', '500'].map((amt) => (
+              {(isINR ? ['2000', '5000', '10000', '25000'] : ['50', '100', '250', '500']).map((amt) => (
                 <button
                   key={amt}
                   type="button"
-                  onClick={() => setDepositAmount(amt)}
+                  onClick={() => setDepositAmount(isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt)}
                   style={{
                     flex: 1,
                     padding: '8px 0',
                     borderRadius: '8px',
-                    border: depositAmount === amt ? '1px solid #10B981' : '1px solid rgba(255,255,255,0.08)',
-                    background: depositAmount === amt ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.03)',
-                    color: depositAmount === amt ? '#34D399' : '#CBD5E1',
+                    border: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '1px solid #10B981' : '1px solid rgba(255,255,255,0.08)',
+                    background: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.03)',
+                    color: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '#34D399' : '#CBD5E1',
                     fontSize: '0.8125rem',
                     fontWeight: '600',
                     cursor: 'pointer',
                   }}
                 >
-                  ${amt}
+                  {isINR ? `₹${parseInt(amt).toLocaleString('en-IN')}` : `$${amt}`}
                 </button>
               ))}
             </div>
@@ -444,7 +457,10 @@ export default function SettingsWalletView({
                     fontWeight: '700',
                     color: tx.type === 'DEBIT' ? '#F43F5E' : '#10B981',
                   }}>
-                    {tx.type === 'DEBIT' ? '-' : '+'}${tx.amountUSD?.toFixed(2)}
+                    {tx.type === 'DEBIT' ? '-' : '+'}
+                    {isINR
+                      ? `₹${Math.round((tx.amountUSD || 0) * exchangeRate).toLocaleString('en-IN')}`
+                      : `$${(tx.amountUSD || 0).toFixed(2)}`}
                   </div>
                 </div>
               ))

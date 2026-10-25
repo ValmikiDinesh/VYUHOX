@@ -335,13 +335,15 @@ export class ScannerService {
               const strRegex = /"([^"\\]{15,250})"|'([^'\\]{15,250})'|`([^`\\]{15,250})`/g;
               let sm;
               const isCodeJunk = (str) => {
-                if (str.includes('=>') || str.includes(';') || str.includes('{') || str.includes('}') || str.includes('(') || str.includes(')')) return true;
-                if (str.includes('function') || str.includes('class ') || str.includes('return ') || str.includes('const ') || str.includes('import ') || str.includes('export ')) return true;
-                if (str.includes('node_modules') || str.includes('webpack') || str.includes('vite') || str.includes('css') || str.includes('linear-gradient') || str.includes('rgba(')) return true;
-                if (/\b(mousedown|mouseup|touchstart|touchend|keydown|keypress|durationchange|timeupdate)\b/i.test(str)) return true;
-                if (/\b(dangerouslySetInnerHTML|forceFrameRate|minified\s+dev|React\.Children|suppressHydrationWarning|defaultChecked|defaultValue|innerHTML|suppressContentEditableWarning)\b/i.test(str)) return true;
-                if (/^Warning:\s*/i.test(str) || /^Error:\s*/i.test(str)) return true;
-                if (!/[a-zA-Z]{3,}\s+[a-zA-Z]{3,}/.test(str)) return true; // Require at least two words
+                if (!str || typeof str !== 'string') return true;
+                const trimmed = str.trim();
+                if (trimmed.includes('=>') || trimmed.includes('{') || trimmed.includes('}') || trimmed.includes('===') || trimmed.includes('!==')) return true;
+                if (/\b(function|class|return|const|let|var|import|export|typeof|instanceof)\b/.test(trimmed) && trimmed.includes(';')) return true;
+                if (trimmed.includes('node_modules') || trimmed.includes('webpack') || trimmed.includes('linear-gradient') || trimmed.includes('rgba(')) return true;
+                if (/\b(mousedown|mouseup|touchstart|touchend|keydown|keypress|durationchange|timeupdate)\b/i.test(trimmed)) return true;
+                if (/\b(dangerouslySetInnerHTML|forceFrameRate|minified\s+dev|React\.Children|suppressHydrationWarning|defaultChecked|defaultValue|innerHTML)\b/i.test(trimmed)) return true;
+                if (/^Warning:\s*/i.test(trimmed) || /^Error:\s*/i.test(trimmed)) return true;
+                if (!/[a-zA-Z]{2,}\s+[a-zA-Z]{2,}/.test(trimmed) && !/^(PQC|NIST|FIPS|CBOM|AST|SDR|AE|CRM|API)$/i.test(trimmed)) return true;
                 return false;
               };
 
@@ -680,22 +682,52 @@ export class ScannerService {
     // 2. Extract or Synthesize Authentic Value Proposition from Crawled Headings
     const primaryHeading = (data.h1List && data.h1List[0]) || data.title || `${name} Platform`;
     const secondaryHeading = (data.h2List && data.h2List[0]) || '';
-    const featureSample = (data.detectedFeatures && data.detectedFeatures.slice(0, 4)) || [];
+    const featureSample = (data.detectedFeatures && data.detectedFeatures.slice(0, 8)) || [];
+
+    // Synthesize What the Business Actually Sells & Discovered Core Offerings
+    let whatTheySell = '';
+    let coreOfferings = [];
+
+    const isPqcSecurity = industryProfile.category.includes('Post-Quantum') || corpus.includes('quantum') || corpus.includes('pqc') || corpus.includes('cryptograph');
+    const isEcom = industryProfile.category.includes('E-Commerce') || industryProfile.category.includes('Retail');
+
+    if (isPqcSecurity) {
+      whatTheySell = `${name} is an enterprise Post-Quantum Cryptography (PQC) Security Readiness & Vulnerability Discovery Platform. It scans developer codebases, software repositories, and cloud microservices to discover cryptographic debt, pinpoint algorithms vulnerable to Shor's quantum computing attacks (RSA, ECC, Diffie-Hellman), and automate migration to NIST-approved post-quantum encryption standards (ML-KEM, ML-DSA, SLH-DSA).`;
+      coreOfferings = [
+        'Automated Cryptographic Bill of Materials (CBOM) & AST Codebase Inspection across Node.js, Python, Java, Go, OpenSSL & SSH configs',
+        'Shor’s Algorithm Quantum Risk Pinpointing (identifying legacy public-key encryption vulnerable to Harvest-Now-Decrypt-Later threats)',
+        'NIST FIPS 203 (ML-KEM), FIPS 204 (ML-DSA) & FIPS 205 (SLH-DSA) Algorithmic Migration Roadmaps',
+        'Automated GitHub Pull Request & CI/CD Repository Scanner (/scans/github) with blocking gates for new cryptographic vulnerabilities',
+        'ZIP Codebase Archive Upload & Instant Cryptographic Audit Reports (Exportable PDF & machine-readable JSON)',
+        'Interactive AI Cryptography Remediation Assistant for drop-in PQC hybrid cipher implementation without code exposure',
+      ];
+    } else if (isEcom) {
+      whatTheySell = `${name} is a high-growth e-commerce brand selling premium consumer products with direct-to-consumer digital storefronts and automated order fulfillment.`;
+      coreOfferings = featureSample.length >= 3 ? featureSample : [
+        'Curated Direct-to-Consumer Digital Storefront with Frictionless Mobile Checkout',
+        'Multi-Tier Promotional Bundles, High-AOV Upsells & Customer Loyalty Architecture',
+        'Sub-45s Conversational WhatsApp & SMS Cart Abandonment Recovery Sequences',
+        'Automated Inventory Replenishment, Order Tracking & Cross-Border Logistics Integration',
+      ];
+    } else {
+      whatTheySell = `${name} delivers specialized ${industryProfile.category} platforms engineered to streamline complex operational workflows, reduce administrative friction, and drive predictable customer growth.`;
+      coreOfferings = featureSample.length >= 3 ? featureSample : [
+        `Turnkey ${industryProfile.category} Automated Workflow Engine with zero manual friction`,
+        'Unified Cloud Microservice APIs, Webhooks & Seamless Third-Party Integrations',
+        'Real-Time Predictive Intelligence Dashboards & Operational Telemetry',
+        'Enterprise Single Sign-On (SSO), Role-Based Access Controls & SOC2 Compliance Architecture',
+      ];
+    }
 
     const coreValueProp = data.metaDescription && data.metaDescription.length > 40
       ? data.metaDescription
-      : `${primaryHeading}. ${secondaryHeading ? secondaryHeading + '.' : ''} Designed for modern organizations seeking accelerated performance and market leadership.`;
+      : whatTheySell;
 
-    const unfairAdvantage = featureSample.length > 0
-      ? `Combines ${featureSample[0].toLowerCase()} with ${featureSample[1] ? featureSample[1].toLowerCase() : 'enterprise-grade automated workflows'} to deliver measurable customer ROI from day one.`
+    const unfairAdvantage = coreOfferings.length > 0
+      ? `Combines ${coreOfferings[0].toLowerCase()} with ${coreOfferings[1] ? coreOfferings[1].toLowerCase() : 'enterprise-grade automated workflows'} to deliver measurable customer ROI from day one.`
       : `Differentiated ${industryProfile.category} architecture delivering proprietary performance benchmarks and automated operational scaling.`;
 
-    const keyDifferentiators = [
-      featureSample[0] || `${industryProfile.category} specialization with zero manual operational friction`,
-      featureSample[1] || `Sub-second responsiveness and turnkey deployment across existing client stacks`,
-      featureSample[2] || `Predictable transparent pricing model with measurable business outcomes`,
-      featureSample[3] || `Enterprise security standards, regulatory compliance, and 24/7 dedicated monitoring`,
-    ];
+    const keyDifferentiators = coreOfferings;
 
     // 3. Realistic Pricing Model Discovery
     const detectedPricing = data.detectedPricing || [];
@@ -705,9 +737,9 @@ export class ScannerService {
     if (detectedPricing.some((p) => /\/mo|\/month|\$\d+/i.test(p))) {
       pricingSummary = `Discovered Pricing: ${detectedPricing.slice(0, 3).join(', ')}`;
     }
-    if (industryProfile.category.includes('Enterprise') || industryProfile.category.includes('Security') || industryProfile.category.includes('Infrastructure')) {
-      estimatedACV = '$24,000 – $120,000 / year (Enterprise Tier)';
-    } else if (industryProfile.category.includes('D2C') || industryProfile.category.includes('E-Commerce')) {
+    if (industryProfile.category.includes('Enterprise') || industryProfile.category.includes('Security') || industryProfile.category.includes('Infrastructure') || isPqcSecurity) {
+      estimatedACV = '$25,000 – $150,000 / year (Enterprise Tier)';
+    } else if (isEcom) {
       estimatedACV = '$45 – $250 Average Order Value (AOV)';
     }
 
@@ -743,6 +775,8 @@ export class ScannerService {
       summary: coreValueProp,
       targetAudience,
       positioning: {
+        whatTheySell,
+        coreOfferings,
         coreValueProp,
         unfairAdvantage,
         keyDifferentiators,
@@ -761,12 +795,16 @@ export class ScannerService {
       websiteUrl: data.url,
       category: industryProfile.category,
       summary: coreValueProp,
-      targetAudience,
+      whatTheySell,
+      coreOfferings,
       positioning: {
+        whatTheySell,
+        coreOfferings,
         coreValueProp,
         unfairAdvantage,
         keyDifferentiators,
       },
+      targetAudience,
       recommendedChannels,
       adAngles,
       recommendedAITeam,

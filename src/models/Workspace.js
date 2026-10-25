@@ -89,6 +89,15 @@ const workspaceSchema = new mongoose.Schema(
       billingCycle: { type: String, default: 'MONTHLY' },
       nextBillingDate: { type: Date },
     },
+    leadUsage: {
+      monthlyIncludedQuota: { type: Number, default: 250 },
+      scrapedThisMonth: { type: Number, default: 0 },
+      cycleResetDate: { type: Date, default: Date.now },
+    },
+    scrapedLeadsCount: {
+      type: Number,
+      default: 0,
+    },
     createdAt: {
       type: Date,
       default: Date.now,
