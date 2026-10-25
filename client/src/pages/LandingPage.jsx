@@ -54,6 +54,29 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
 
+  // Geo-IP & Visitor Intent Personalization State (<5ms)
+  const [geoData, setGeoData] = useState(null);
+
+  useEffect(() => {
+    const fetchPersonalization = async () => {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const params = Object.fromEntries(searchParams.entries());
+        const res = await api.getGeoPersonalization(params);
+        if (res.success && res.geo) {
+          setGeoData(res);
+          // Sync currency automatically with verified geo location
+          if (res.geo.currency && (res.geo.currency === 'INR' || res.geo.currency === 'USD')) {
+            setCurrency(res.geo.currency);
+          }
+        }
+      } catch (err) {
+        console.warn('[Personalization] Local fallback active:', err.message);
+      }
+    };
+    fetchPersonalization();
+  }, []);
+
   // Audio player state for voice AI sample
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioPlaybackTime, setAudioPlaybackTime] = useState(0);
@@ -402,7 +425,9 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
             marginBottom: '24px',
           }}>
             <Sparkles size={14} color="#38BDF8" />
-            <span>The World's First Fully Autonomous Go-To-Market Operating System</span>
+            <span>
+              {geoData?.geo?.badgeText || "The World's First Fully Autonomous Go-To-Market Operating System"}
+            </span>
           </div>
 
           <h1 style={{
@@ -417,7 +442,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>
-            Strategy, Leads, Voice AI, Omnichannel Comms & Paid Ads in One Platform.
+            {geoData?.intent?.headlineHook || 'Strategy, Leads, Voice AI, Omnichannel Comms & Paid Ads in One Platform.'}
           </h1>
 
           <p style={{
@@ -427,7 +452,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
             margin: '0 auto 36px',
             lineHeight: '1.6',
           }}>
-            Replace fragmented sales teams and disconnected point solutions. VYUHOX deploys an autonomous AI C-Suite that scrapes leads, dials high-intent prospects in 14 seconds, and runs multi-channel outreach 24/7.
+            {geoData?.intent?.subHeadline || 'Replace fragmented sales teams and disconnected point solutions. VYUHOX deploys an autonomous AI C-Suite that scrapes leads, dials high-intent prospects in 14 seconds, and runs multi-channel outreach 24/7.'}
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '48px' }}>

@@ -1065,6 +1065,13 @@ export const api = {
     });
     return res.json();
   },
+
+  // Phase 6: Ultra-Fast Dynamic Landing Page Personalization (Geo-IP & Visitor Intent)
+  getGeoPersonalization: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE}/public/personalization?${query}`);
+    return res.json();
+  },
 };
 
 

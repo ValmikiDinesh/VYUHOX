@@ -26,6 +26,7 @@ import flywheelRoutes from './src/routes/flywheelRoutes.js';
 import visualRoutes from './src/routes/visualRoutes.js';
 import integrationRoutes from './src/routes/integrationRoutes.js';
 import briefingRoutes from './src/routes/briefingRoutes.js';
+import publicRoutes from './src/routes/publicRoutes.js';
 import { agentEventBus } from './src/services/agents/AgentEventBus.js';
 import { initSocialPublisher } from './src/cron/socialPublisher.js';
 import { initAdOptimizerCron } from './src/cron/adOptimizer.js';
@@ -117,6 +118,7 @@ app.use('/api/flywheel', flywheelRoutes);
 app.use('/api/visual', visualRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/briefings', briefingRoutes);
+app.use('/api/public', publicRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
