@@ -24,6 +24,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { api } from '../services/api';
+import ExecutiveBriefingCard from '../components/ExecutiveBriefingCard';
 
 export default function ClientDashboardView({
   currentUser,
@@ -48,7 +49,22 @@ export default function ClientDashboardView({
   const [scanStatus, setScanStatus] = useState('');
   const [activeStrategy, setActiveStrategy] = useState(null);
 
-  // Load active strategy on mount or workspace change
+  // Briefing State
+  const [briefing, setBriefing] = useState(null);
+
+  const loadBriefing = async () => {
+    if (!activeWorkspace?._id) return;
+    try {
+      const res = await api.getLatestBriefing(activeWorkspace._id);
+      if (res.success && res.briefing) {
+        setBriefing(res.briefing);
+      }
+    } catch (e) {
+      console.warn('Failed to load briefing:', e);
+    }
+  };
+
+  // Load active strategy & briefing on mount or workspace change
   useEffect(() => {
     if (!activeWorkspace?._id) return;
     const loadStrategy = async () => {
@@ -65,6 +81,7 @@ export default function ClientDashboardView({
       }
     };
     loadStrategy();
+    loadBriefing();
   }, [activeWorkspace]);
 
   // Handle direct website scan from dashboard
@@ -259,6 +276,16 @@ export default function ClientDashboardView({
           </button>
         </div>
       </div>
+
+      {/* PHASE 5: AUTONOMOUS MORNING EXECUTIVE BRIEFING & 1-CLICK ACTION CARDS */}
+      {briefing && (
+        <ExecutiveBriefingCard
+          briefing={briefing}
+          workspaceId={activeWorkspace?._id}
+          onActionCompleted={loadBriefing}
+          onRefresh={loadBriefing}
+        />
+      )}
 
       {/* STEP 1: INTERACTIVE WEBSITE SCANNER CARD (THE FOUNDATION) */}
       <div style={{

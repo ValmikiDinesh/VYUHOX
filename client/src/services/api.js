@@ -1039,6 +1039,32 @@ export const api = {
     });
     return res.json();
   },
+
+  // Phase 5: Autonomous Daily Executive Briefings & 1-Click Action Cards
+  getLatestBriefing: async (workspaceId) => {
+    const res = await fetch(`${API_BASE}/briefings/latest/${workspaceId}`);
+    return res.json();
+  },
+  generateBriefing: async (data) => {
+    const res = await fetch(`${API_BASE}/briefings/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  getGlobalBriefing: async () => {
+    const res = await fetch(`${API_BASE}/briefings/global`);
+    return res.json();
+  },
+  executeActionCard: async (data) => {
+    const res = await fetch(`${API_BASE}/briefings/actions/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
 };
 
 
