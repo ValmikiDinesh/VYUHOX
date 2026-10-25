@@ -22,6 +22,11 @@ import {
   Globe,
   Coins,
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
+  Smartphone,
+  ArrowUp,
   PhoneCall,
   Check,
   Building2,
@@ -181,6 +186,15 @@ export default function LeadFinder({
   const [minScore, setMinScore] = useState(0);
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [actionNotice, setActionNotice] = useState('');
+
+  // Table Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10); // 10, 25, or 'ALL'
+
+  // Reset to first page when filtering or searching
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, stageFilter, minScore]);
 
   // 1. Fetch Active Workspace Strategy on Mount or Workspace Switch
   useEffect(() => {
@@ -421,7 +435,7 @@ export default function LeadFinder({
   // 4. Selection Handlers
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedLeadIds(filteredLeads.map((l) => l._id));
+      setSelectedLeadIds(displayedLeads.map((l) => l._id));
     } else {
       setSelectedLeadIds([]);
     }
@@ -474,7 +488,7 @@ export default function LeadFinder({
     }
   };
 
-  // 8. Filter Leads
+  // 8. Filter & Paginate Leads
   const allCurrentLeads = internalLeads && internalLeads.length > 0 ? internalLeads : (Array.isArray(leads) ? leads : []);
   const filteredLeads = allCurrentLeads.filter((lead) => {
     const matchesStage = stageFilter === 'ALL' || lead.stage === stageFilter;
@@ -486,9 +500,16 @@ export default function LeadFinder({
       lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.notes?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStage && matchesScore && matchesSearch;
   });
+
+  const totalFilteredCount = filteredLeads.length;
+  const totalPages = pageSize === 'ALL' ? 1 : Math.max(1, Math.ceil(totalFilteredCount / (pageSize || 10)));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = pageSize === 'ALL' ? 0 : (safePage - 1) * (pageSize || 10);
+  const displayedLeads = pageSize === 'ALL' ? filteredLeads : filteredLeads.slice(startIndex, startIndex + (pageSize || 10));
 
   const stepsList = [
     { id: 1, label: 'Multi-Source Discovery', key: 'SOURCE_DISCOVERY' },
@@ -748,7 +769,13 @@ export default function LeadFinder({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
             type="button"
-            onClick={() => setActiveSubTab('crm_leads')}
+            onClick={() => {
+              setActiveSubTab('crm_leads');
+              setTimeout(() => {
+                const el = document.getElementById('crm-leads-card-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }, 40);
+            }}
             style={{
               padding: '9px 18px',
               borderRadius: '8px',
@@ -825,6 +852,30 @@ export default function LeadFinder({
             }}
           >
             View All
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById('crm-leads-card-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            style={{
+              padding: '9px 14px',
+              borderRadius: '8px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              color: '#34D399',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            title="Scroll directly down to CRM Leads Table"
+          >
+            <span>⬇ Jump to Leads Table ({allCurrentLeads.length})</span>
           </button>
         </div>
 
@@ -1413,13 +1464,16 @@ export default function LeadFinder({
       )}
 
       {(activeSubTab === 'crm_leads' || activeSubTab === 'all') && (
-        <div style={{
-        background: 'rgba(15, 23, 42, 0.65)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '16px',
-        overflow: 'hidden',
-        backdropFilter: 'blur(10px)',
-      }}>
+        <div
+          id="crm-leads-card-section"
+          style={{
+            background: 'rgba(15, 23, 42, 0.65)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
         {/* Bulk Action Toolbar if selected */}
         {selectedLeadIds.length > 0 && (
           <div style={{
@@ -1600,13 +1654,21 @@ export default function LeadFinder({
           </div>
         </div>
 
-        {/* CRM Leads Table */}
-        <div style={{ overflowX: 'auto' }}>
+        {/* CRM Leads Table Scroll Wrapper */}
+        <div
+          id="crm-leads-table-container"
+          style={{
+            maxHeight: '580px',
+            overflowY: 'auto',
+            overflowX: 'auto',
+            position: 'relative',
+          }}
+        >
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
-            <thead>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0B1120', boxShadow: '0 2px 6px rgba(0,0,0,0.6)' }}>
               <tr style={{
-                background: 'rgba(255, 255, 255, 0.02)',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                background: '#0B1120',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                 color: '#64748B',
                 textTransform: 'uppercase',
                 fontSize: '0.68rem',
@@ -1617,7 +1679,7 @@ export default function LeadFinder({
                   <input
                     type="checkbox"
                     onChange={handleSelectAll}
-                    checked={filteredLeads.length > 0 && selectedLeadIds.length === filteredLeads.length}
+                    checked={displayedLeads.length > 0 && selectedLeadIds.length === displayedLeads.length}
                     style={{ cursor: 'pointer' }}
                   />
                 </th>
@@ -1648,7 +1710,7 @@ export default function LeadFinder({
                   </td>
                 </tr>
               ) : (
-                filteredLeads.map((lead, idx) => {
+                displayedLeads.map((lead, idx) => {
                   const isChecked = selectedLeadIds.includes(lead._id);
                   const isVerified = lead.verificationStatus === 'VERIFIED';
                   const isNotesExpanded = expandedNotesId === lead._id;
@@ -1680,7 +1742,7 @@ export default function LeadFinder({
 
                         {/* Numbering */}
                         <td style={{ padding: '14px 8px', textAlign: 'center', color: '#64748B', fontWeight: '700', fontSize: '0.72rem' }}>
-                          {idx + 1}
+                          {startIndex + idx + 1}
                         </td>
 
                         {/* Contact Info */}
@@ -1779,11 +1841,56 @@ export default function LeadFinder({
 
                         {/* Phone & Location */}
                         <td style={{ padding: '14px 16px' }}>
-                          <div style={{ color: lead.phone ? '#10B981' : '#64748B', fontWeight: '500' }}>
-                            {lead.phone || 'Direct extension active'}
+                          <div style={{
+                            color: lead.phone ? '#10B981' : '#64748B',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            fontSize: '0.8rem',
+                          }}>
+                            <Smartphone size={13} color="#10B981" />
+                            <span>{lead.phone || 'Direct extension active'}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px', flexWrap: 'wrap' }}>
+                            {lead.phone && (
+                              <span style={{
+                                fontSize: '0.62rem',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                background: 'rgba(16, 185, 129, 0.12)',
+                                color: '#34D399',
+                                border: '1px solid rgba(16, 185, 129, 0.25)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontWeight: '600',
+                              }}>
+                                <CheckCircle2 size={9} />
+                                {lead.metadata?.phoneVerification?.telecomStandard === 'TRAI_10_DIGIT_CELLULAR' || lead.phone?.startsWith('+91')
+                                  ? 'TRAI Mobile'
+                                  : 'Cellular Line'}
+                              </span>
+                            )}
+                            {lead.channels?.whatsapp && (
+                              <span style={{
+                                fontSize: '0.62rem',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                background: 'rgba(37, 211, 102, 0.12)',
+                                color: '#25D366',
+                                border: '1px solid rgba(37, 211, 102, 0.25)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontWeight: '600',
+                              }}>
+                                WhatsApp
+                              </span>
+                            )}
                           </div>
                           {lead.location && (
-                            <div style={{ fontSize: '0.685rem', color: '#94A3B8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <div style={{ fontSize: '0.685rem', color: '#94A3B8', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                               <MapPin size={10} color="#64748B" /> {lead.location}
                             </div>
                           )}
@@ -1935,7 +2042,219 @@ export default function LeadFinder({
             </tbody>
           </table>
         </div>
-      </div>
+
+        {/* Pagination Toolbar */}
+        <div style={{
+          padding: '14px 20px',
+          background: 'rgba(10, 16, 30, 0.95)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}>
+          {/* Left: Summary */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '0.78rem', color: '#94A3B8' }}>
+              Showing <strong style={{ color: '#F8FAFC' }}>{totalFilteredCount === 0 ? 0 : startIndex + 1}</strong> to{' '}
+              <strong style={{ color: '#F8FAFC' }}>{Math.min(startIndex + (pageSize === 'ALL' ? totalFilteredCount : pageSize), totalFilteredCount)}</strong> of{' '}
+              <strong style={{ color: '#34D399' }}>{totalFilteredCount} Verified Leads</strong>
+            </span>
+            {totalFilteredCount > 0 && (
+              <span style={{
+                fontSize: '0.7rem',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                background: 'rgba(6, 182, 212, 0.12)',
+                color: '#38BDF8',
+                border: '1px solid rgba(6, 182, 212, 0.25)',
+                fontWeight: '600',
+              }}>
+                Page {safePage} of {totalPages}
+              </span>
+            )}
+          </div>
+
+          {/* Center: Rows per page selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Show:</span>
+            {[10, 25, 'ALL'].map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.72rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  background: pageSize === size ? '#06B6D4' : 'rgba(255, 255, 255, 0.04)',
+                  color: pageSize === size ? '#021C11' : '#94A3B8',
+                  border: pageSize === size ? '1px solid #06B6D4' : '1px solid rgba(255, 255, 255, 0.08)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {size === 'ALL' ? `All (${totalFilteredCount})` : size}
+              </button>
+            ))}
+          </div>
+
+          {/* Right: Page Navigation Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              type="button"
+              disabled={safePage <= 1}
+              onClick={() => {
+                setCurrentPage(1);
+                const tableEl = document.getElementById('crm-leads-table-container');
+                if (tableEl) tableEl.scrollTop = 0;
+              }}
+              style={{
+                padding: '5px 8px',
+                borderRadius: '6px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                color: safePage <= 1 ? '#475569' : '#CBD5E1',
+                fontSize: '0.72rem',
+                cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              title="First Page"
+            >
+              <ChevronsLeft size={14} />
+            </button>
+            <button
+              type="button"
+              disabled={safePage <= 1}
+              onClick={() => {
+                setCurrentPage((p) => Math.max(1, p - 1));
+                const tableEl = document.getElementById('crm-leads-table-container');
+                if (tableEl) tableEl.scrollTop = 0;
+              }}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '6px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                color: safePage <= 1 ? '#475569' : '#CBD5E1',
+                fontSize: '0.72rem',
+                cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+            >
+              <ChevronLeft size={14} /> Prev
+            </button>
+
+            {/* Page number buttons */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
+              <button
+                key={pNum}
+                type="button"
+                onClick={() => {
+                  setCurrentPage(pNum);
+                  const tableEl = document.getElementById('crm-leads-table-container');
+                  if (tableEl) tableEl.scrollTop = 0;
+                }}
+                style={{
+                  minWidth: '28px',
+                  height: '28px',
+                  padding: '0 6px',
+                  borderRadius: '6px',
+                  background: safePage === pNum ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.04)',
+                  border: safePage === pNum ? '1px solid #10B981' : '1px solid rgba(255, 255, 255, 0.08)',
+                  color: safePage === pNum ? '#34D399' : '#94A3B8',
+                  fontSize: '0.74rem',
+                  fontWeight: safePage === pNum ? '700' : '500',
+                  cursor: 'pointer',
+                }}
+              >
+                {pNum}
+              </button>
+            ))}
+
+            <button
+              type="button"
+              disabled={safePage >= totalPages}
+              onClick={() => {
+                setCurrentPage((p) => Math.min(totalPages, p + 1));
+                const tableEl = document.getElementById('crm-leads-table-container');
+                if (tableEl) tableEl.scrollTop = 0;
+              }}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '6px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                color: safePage >= totalPages ? '#475569' : '#CBD5E1',
+                fontSize: '0.72rem',
+                cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+            >
+              Next <ChevronRight size={14} />
+            </button>
+            <button
+              type="button"
+              disabled={safePage >= totalPages}
+              onClick={() => {
+                setCurrentPage(totalPages);
+                const tableEl = document.getElementById('crm-leads-table-container');
+                if (tableEl) tableEl.scrollTop = 0;
+              }}
+              style={{
+                padding: '5px 8px',
+                borderRadius: '6px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                color: safePage >= totalPages ? '#475569' : '#CBD5E1',
+                fontSize: '0.72rem',
+                cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              title="Last Page"
+            >
+              <ChevronsRight size={14} />
+            </button>
+
+            {/* Scroll to Top helper */}
+            <button
+              type="button"
+              onClick={() => {
+                const tableEl = document.getElementById('crm-leads-table-container');
+                if (tableEl) tableEl.scrollTop = 0;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              style={{
+                marginLeft: '6px',
+                padding: '5px 8px',
+                borderRadius: '6px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                color: '#94A3B8',
+                fontSize: '0.7rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+              title="Scroll to Top"
+            >
+              <ArrowUp size={12} /> Top
+            </button>
+          </div>
+        </div>
+        </div>
       )}
     </div>
   );
