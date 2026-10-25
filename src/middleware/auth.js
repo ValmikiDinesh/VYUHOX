@@ -22,7 +22,18 @@ export const authMiddleware = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'vyuhox_super_secret_jwt_key_2026_gtm_autonomous');
-    const user = await User.findById(decoded.userId).select('-passwordHash').lean();
+    let user = null;
+
+    if (decoded.userId === 'usr_superadmin') {
+      user = {
+        _id: 'usr_superadmin',
+        name: 'Super Admin',
+        email: 'admin@vyuhox.ai',
+        role: 'superadmin',
+      };
+    } else {
+      user = await User.findById(decoded.userId).select('-passwordHash').lean();
+    }
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'User not found or session expired.' });

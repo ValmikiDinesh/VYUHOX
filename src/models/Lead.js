@@ -70,6 +70,18 @@ const leadSchema = new mongoose.Schema(
       enum: ['Scraper', 'Form', 'Ad', 'Inbound'],
       default: 'Scraper',
     },
+    entityRole: {
+      type: String,
+      enum: ['BUYER', 'SELLER', 'HYBRID_TRADER', 'DECISION_MAKER', 'UNSPECIFIED'],
+      default: 'BUYER',
+      index: true,
+    },
+    tradeDetails: {
+      hsCodes: [{ type: String }],
+      products: [{ type: String }],
+      verificationAudit: { type: String, default: '' },
+      roleConfidenceScore: { type: Number, default: 85 },
+    },
     channels: {
       whatsapp: { type: String, default: '' },
       telegram: { type: String, default: '' },

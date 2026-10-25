@@ -29,6 +29,11 @@ import {
   Presentation,
   Database,
   Search,
+  Activity,
+  Sliders,
+  CheckCircle2,
+  Server,
+  ArrowRight,
 } from 'lucide-react';
 import { api } from '../services/api';
 import VisualCreativeStudio from '../components/VisualCreativeStudio';
@@ -76,6 +81,9 @@ export default function SuperAdminDashboard({
   const [savingConfig, setSavingConfig] = useState(false);
   const [pingStatus, setPingStatus] = useState({});
   const [toastMessage, setToastMessage] = useState(null);
+  const [finopsData, setFinopsData] = useState(null);
+  const [evaluatingFinops, setEvaluatingFinops] = useState(false);
+  const [applyingFinops, setApplyingFinops] = useState(false);
 
   const isINR = currency === 'INR';
   const currencySymbol = isINR ? '₹' : '$';
@@ -204,16 +212,56 @@ export default function SuperAdminDashboard({
         dalleVisualAi: platformConfig.dalleVisualAi,
         shortVideoEngine: platformConfig.shortVideoEngine,
         visualToolsGovernance: platformConfig.visualToolsGovernance,
+        llmCascadeConfig: platformConfig.llmCascadeConfig,
+        finOpsConfig: platformConfig.finOpsConfig,
       });
       if (res.success) {
         setPlatformConfig(res.config);
-        showToast('Platform rates, carrier integrations & visual AI tools saved successfully!');
+        showToast('Platform rates, Multi-LLM cascade & FinOps config saved successfully!');
       }
     } catch (err) {
       console.error('Failed to save platform config:', err);
       showToast('Failed to save config');
     } finally {
       setSavingConfig(false);
+    }
+  };
+
+  // Autonomous FinOps Evaluation & Live Rate Application Handlers
+  const handleEvaluateFinops = async () => {
+    try {
+      setEvaluatingFinops(true);
+      const res = await api.evaluateFinOps();
+      if (res.success) {
+        setFinopsData(res);
+        showToast('FinOps Cost-Plus audit complete! Live unit margins recalculated.');
+      } else {
+        showToast(res.message || 'FinOps evaluation notice');
+      }
+    } catch (err) {
+      console.error('Failed to run FinOps evaluation:', err);
+      showToast('FinOps evaluation failed');
+    } finally {
+      setEvaluatingFinops(false);
+    }
+  };
+
+  const handleApplyFinopsRates = async () => {
+    try {
+      setApplyingFinops(true);
+      const res = await api.applyFinOpsRates();
+      if (res.success) {
+        showToast('80%+ Margin Recommended Rates applied live to platform!');
+        fetchPlatformConfig();
+        handleEvaluateFinops();
+      } else {
+        showToast(res.message || 'Failed to apply recommended rates');
+      }
+    } catch (err) {
+      console.error('Failed to apply FinOps rates:', err);
+      showToast('Error applying rates');
+    } finally {
+      setApplyingFinops(false);
     }
   };
 
@@ -358,6 +406,7 @@ export default function SuperAdminDashboard({
         {[
           { id: 'plans', label: 'Subscription Plans & Country Targeting', icon: DollarSign },
           { id: 'rates', label: 'Utility Rates (Calling, WhatsApp, Email, SMS)', icon: Zap },
+          { id: 'llmFinops', label: '⚡ Multi-LLM Master Gateway & FinOps Pricing', icon: Cpu },
           { id: 'integrations', label: 'Master Carrier & Tool Integrations (Twilio, AiSensy, etc.)', icon: Radio },
           { id: 'visualTools', label: '🎨 Visual AI & PowerPoint Presentation Tools', icon: Presentation },
           { id: 'tenants', label: 'Active Business Workspaces & Actual Features', icon: Building2 },
@@ -901,6 +950,798 @@ export default function SuperAdminDashboard({
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2.5: MULTI-LLM MASTER GATEWAY & AUTONOMOUS FINOPS ENGINE */}
+      {/* ========================================================================= */}
+      {activeTab === 'llmFinops' && platformConfig && (() => {
+        const cascadeConfig = platformConfig.llmCascadeConfig || {
+          activeExecutionMode: 'CASCADE_FAILOVER',
+          providers: [
+            { providerId: 'gemini', modelName: 'gemini-1.5-flash', priority: 1, timeoutMs: 6000, maxRetries: 2, apiKeys: [] },
+            { providerId: 'openai', modelName: 'gpt-4o-mini', priority: 2, timeoutMs: 8000, maxRetries: 2, apiKeys: [] },
+            { providerId: 'groq', modelName: 'llama-3.3-70b-versatile', priority: 3, timeoutMs: 5000, maxRetries: 2, apiKeys: [] },
+            { providerId: 'deepseek', modelName: 'deepseek-chat', priority: 4, timeoutMs: 10000, maxRetries: 2, apiKeys: [] },
+          ],
+        };
+
+        const finOps = platformConfig.finOpsConfig || {
+          autoMarginPricingEnabled: false,
+          targetGrossMarginPercent: 80,
+          priceIncreasePolicy: 'NEW_SIGNUPS_ONLY',
+          wholesaleCostTracking: {
+            geminiInputPerMillionUSD: 0.075,
+            geminiOutputPerMillionUSD: 0.30,
+            openAiInputPerMillionUSD: 0.15,
+            openAiOutputPerMillionUSD: 0.60,
+            blandCallingPerMinuteUSD: 0.09,
+            metaWhatsAppPerMsgINR: 0.75,
+            serverFixedOverheadMonthlyUSD: 40.0,
+          },
+        };
+
+        const getProvider = (id) => {
+          return (cascadeConfig.providers || []).find((p) => p.providerId === id) || {
+            providerId: id,
+            modelName: id === 'gemini' ? 'gemini-1.5-flash' : id === 'openai' ? 'gpt-4o-mini' : id === 'groq' ? 'llama-3.3-70b-versatile' : 'deepseek-chat',
+            priority: id === 'gemini' ? 1 : id === 'openai' ? 2 : id === 'groq' ? 3 : 4,
+            timeoutMs: 6000,
+            maxRetries: 2,
+            apiKeys: [],
+            isActive: true,
+          };
+        };
+
+        const updateProviderField = (providerId, field, value) => {
+          const current = cascadeConfig.providers || [];
+          const exists = current.some((p) => p.providerId === providerId);
+          let updated;
+          if (exists) {
+            updated = current.map((p) => (p.providerId === providerId ? { ...p, [field]: value } : p));
+          } else {
+            const p = getProvider(providerId);
+            updated = [...current, { ...p, [field]: value }];
+          }
+          setPlatformConfig({
+            ...platformConfig,
+            llmCascadeConfig: { ...cascadeConfig, providers: updated },
+          });
+        };
+
+        const updateKeysString = (providerId, str) => {
+          const keys = str.split(/[\n,]+/).map((k) => k.trim()).filter(Boolean);
+          updateProviderField(providerId, 'apiKeys', keys);
+        };
+
+        const rec = finopsData?.recommendations || finOps.lastCalculatedRecommendations || {
+          suggestedScrapingPerLeadUSD: 0.15,
+          suggestedScrapingPerLeadINR: 12.50,
+          suggestedVoicePerMinuteUSD: 0.35,
+          suggestedVoicePerMinuteINR: 29.0,
+          suggestedWhatsappUSD: 0.045,
+          suggestedWhatsappINR: 3.75,
+          marginAchievedPercent: 80,
+          wholesaleUnitCosts: {
+            totalScrapeWholesaleUSD: 0.0003,
+            voiceWholesaleUSD: 0.09,
+            whatsappWholesaleINR: 0.75,
+          },
+        };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+            {/* Header Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+              <div>
+                <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: '800', margin: '0 0 4px', color: '#F8FAFC' }}>
+                  ⚡ Multi-LLM Master Gateway &amp; Autonomous FinOps Engine
+                </h2>
+                <p style={{ margin: 0, fontSize: '0.825rem', color: '#94A3B8' }}>
+                  Failover cascade (&lt;200ms switchover), API key pooling (round-robin), wholesale token telemetry, and mathematical Cost-Plus 80%+ margin guarantee.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={handleEvaluateFinops}
+                  disabled={evaluatingFinops}
+                  className="btn-primary"
+                  style={{ padding: '9px 18px', fontWeight: '700', fontSize: '0.825rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Activity size={16} />
+                  <span>{evaluatingFinops ? 'Auditing Live Costs...' : 'Audit Unit Margins'}</span>
+                </button>
+                <button
+                  onClick={handleSavePlatformConfig}
+                  disabled={savingConfig}
+                  className="btn-emerald"
+                  style={{ padding: '9px 22px', fontWeight: '700', fontSize: '0.825rem' }}
+                >
+                  {savingConfig ? 'Saving...' : 'Save Gateway & FinOps'}
+                </button>
+              </div>
+            </div>
+
+            {/* SECTION 1: MULTI-LLM CASCADE ROUTING & FAILOVER */}
+            <div className="card" style={{ padding: '24px', background: '#0D1527', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Cpu size={20} color="#06B6D4" />
+                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
+                      Multi-LLM Master Gateway Architecture
+                    </h3>
+                    <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Sub-200ms Failover</span>
+                  </div>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#94A3B8' }}>
+                    If Primary LLM experiences a 429 rate limit or outage, the cascade instantly executes on Secondary fallback with zero user disruption.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>Active Execution Mode:</span>
+                  <select
+                    value={cascadeConfig.activeExecutionMode || 'CASCADE_FAILOVER'}
+                    onChange={(e) => setPlatformConfig({
+                      ...platformConfig,
+                      llmCascadeConfig: { ...cascadeConfig, activeExecutionMode: e.target.value },
+                    })}
+                    className="input-glass"
+                    style={{ height: '34px', fontSize: '0.78rem', fontWeight: '700', color: '#38BDF8' }}
+                  >
+                    <option value="CASCADE_FAILOVER">Cascade Failover (Priority 1st → 2nd → 3rd → 4th)</option>
+                    <option value="COST_OPTIMIZED">Cost Optimized (Lowest Wholesale Unit Cost First)</option>
+                    <option value="ROUND_ROBIN">Round Robin Key Pool Distribution</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Providers Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
+                {/* 1. Google Gemini */}
+                {(() => {
+                  const p = getProvider('gemini');
+                  const ping = pingStatus.geminiLlm;
+                  return (
+                    <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '1.2rem' }}>💎</span>
+                          <div>
+                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Google Gemini</h4>
+                            <span style={{ fontSize: '0.7rem', color: '#38BDF8' }}>Cost: $0.075 / 1M Tokens (Ultra-low)</span>
+                          </div>
+                        </div>
+                        <select
+                          value={p.priority}
+                          onChange={(e) => updateProviderField('gemini', 'priority', parseInt(e.target.value, 10))}
+                          className="input-glass"
+                          style={{ height: '28px', fontSize: '0.7rem', padding: '0 8px', fontWeight: '700' }}
+                        >
+                          <option value="1">Priority #1 (Primary)</option>
+                          <option value="2">Priority #2 (Secondary)</option>
+                          <option value="3">Priority #3 (Tertiary)</option>
+                          <option value="4">Priority #4 (Fallback)</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Model Name</label>
+                          <input
+                            type="text"
+                            value={p.modelName || 'gemini-1.5-flash'}
+                            onChange={(e) => updateProviderField('gemini', 'modelName', e.target.value)}
+                            className="input-glass"
+                            style={{ height: '32px', fontSize: '0.78rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>
+                            API Keys Pool (one per line or comma-separated)
+                          </label>
+                          <textarea
+                            rows={2}
+                            placeholder="AIzaSy... (supports multi-key round robin)"
+                            value={(p.apiKeys || []).join('\n')}
+                            onChange={(e) => updateKeysString('gemini', e.target.value)}
+                            className="input-glass"
+                            style={{ fontSize: '0.75rem', fontFamily: 'monospace', resize: 'vertical' }}
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Timeout (ms)</label>
+                            <input
+                              type="number"
+                              value={p.timeoutMs || 6000}
+                              onChange={(e) => updateProviderField('gemini', 'timeoutMs', parseInt(e.target.value, 10))}
+                              className="input-glass"
+                              style={{ height: '30px', fontSize: '0.75rem' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Max Retries</label>
+                            <input
+                              type="number"
+                              value={p.maxRetries || 2}
+                              onChange={(e) => updateProviderField('gemini', 'maxRetries', parseInt(e.target.value, 10))}
+                              className="input-glass"
+                              style={{ height: '30px', fontSize: '0.75rem' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleTestPing('geminiLlm')}
+                        className="btn-secondary"
+                        style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
+                      >
+                        {ping?.loading ? 'Pinging Gemini Gateway...' : 'Ping Test Gemini Gateway'}
+                      </button>
+                      {ping?.message && (
+                        <div style={{ fontSize: '0.7rem', color: ping.live ? '#34D399' : '#FBBF24', marginTop: '6px' }}>
+                          {ping.message} {ping.latency && `(${ping.latency}ms)`}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* 2. OpenAI GPT */}
+                {(() => {
+                  const p = getProvider('openai');
+                  const ping = pingStatus.openAiLlm;
+                  return (
+                    <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '1.2rem' }}>🧠</span>
+                          <div>
+                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>OpenAI GPT</h4>
+                            <span style={{ fontSize: '0.7rem', color: '#34D399' }}>Cost: $0.15 / 1M Tokens (High Accuracy)</span>
+                          </div>
+                        </div>
+                        <select
+                          value={p.priority}
+                          onChange={(e) => updateProviderField('openai', 'priority', parseInt(e.target.value, 10))}
+                          className="input-glass"
+                          style={{ height: '28px', fontSize: '0.7rem', padding: '0 8px', fontWeight: '700' }}
+                        >
+                          <option value="1">Priority #1 (Primary)</option>
+                          <option value="2">Priority #2 (Secondary)</option>
+                          <option value="3">Priority #3 (Tertiary)</option>
+                          <option value="4">Priority #4 (Fallback)</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Model Name</label>
+                          <input
+                            type="text"
+                            value={p.modelName || 'gpt-4o-mini'}
+                            onChange={(e) => updateProviderField('openai', 'modelName', e.target.value)}
+                            className="input-glass"
+                            style={{ height: '32px', fontSize: '0.78rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>
+                            API Keys Pool (one per line or comma-separated)
+                          </label>
+                          <textarea
+                            rows={2}
+                            placeholder="sk-proj-... (round-robin rotation)"
+                            value={(p.apiKeys || []).join('\n')}
+                            onChange={(e) => updateKeysString('openai', e.target.value)}
+                            className="input-glass"
+                            style={{ fontSize: '0.75rem', fontFamily: 'monospace', resize: 'vertical' }}
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Timeout (ms)</label>
+                            <input
+                              type="number"
+                              value={p.timeoutMs || 8000}
+                              onChange={(e) => updateProviderField('openai', 'timeoutMs', parseInt(e.target.value, 10))}
+                              className="input-glass"
+                              style={{ height: '30px', fontSize: '0.75rem' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Max Retries</label>
+                            <input
+                              type="number"
+                              value={p.maxRetries || 2}
+                              onChange={(e) => updateProviderField('openai', 'maxRetries', parseInt(e.target.value, 10))}
+                              className="input-glass"
+                              style={{ height: '30px', fontSize: '0.75rem' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleTestPing('openAiLlm')}
+                        className="btn-secondary"
+                        style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
+                      >
+                        {ping?.loading ? 'Pinging OpenAI Gateway...' : 'Ping Test OpenAI Gateway'}
+                      </button>
+                      {ping?.message && (
+                        <div style={{ fontSize: '0.7rem', color: ping.live ? '#34D399' : '#FBBF24', marginTop: '6px' }}>
+                          {ping.message} {ping.latency && `(${ping.latency}ms)`}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* 3. Groq (Llama 3.3 70B) */}
+                {(() => {
+                  const p = getProvider('groq');
+                  const ping = pingStatus.groqLlm;
+                  return (
+                    <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '1.2rem' }}>⚡</span>
+                          <div>
+                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Groq LPUs</h4>
+                            <span style={{ fontSize: '0.7rem', color: '#FBBF24' }}>Speed: Sub-200ms Inference</span>
+                          </div>
+                        </div>
+                        <select
+                          value={p.priority}
+                          onChange={(e) => updateProviderField('groq', 'priority', parseInt(e.target.value, 10))}
+                          className="input-glass"
+                          style={{ height: '28px', fontSize: '0.7rem', padding: '0 8px', fontWeight: '700' }}
+                        >
+                          <option value="1">Priority #1 (Primary)</option>
+                          <option value="2">Priority #2 (Secondary)</option>
+                          <option value="3">Priority #3 (Tertiary)</option>
+                          <option value="4">Priority #4 (Fallback)</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Model Name</label>
+                          <input
+                            type="text"
+                            value={p.modelName || 'llama-3.3-70b-versatile'}
+                            onChange={(e) => updateProviderField('groq', 'modelName', e.target.value)}
+                            className="input-glass"
+                            style={{ height: '32px', fontSize: '0.78rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>
+                            API Keys Pool (one per line or comma-separated)
+                          </label>
+                          <textarea
+                            rows={2}
+                            placeholder="gsk_... (round-robin rotation)"
+                            value={(p.apiKeys || []).join('\n')}
+                            onChange={(e) => updateKeysString('groq', e.target.value)}
+                            className="input-glass"
+                            style={{ fontSize: '0.75rem', fontFamily: 'monospace', resize: 'vertical' }}
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Timeout (ms)</label>
+                            <input
+                              type="number"
+                              value={p.timeoutMs || 5000}
+                              onChange={(e) => updateProviderField('groq', 'timeoutMs', parseInt(e.target.value, 10))}
+                              className="input-glass"
+                              style={{ height: '30px', fontSize: '0.75rem' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Max Retries</label>
+                            <input
+                              type="number"
+                              value={p.maxRetries || 2}
+                              onChange={(e) => updateProviderField('groq', 'maxRetries', parseInt(e.target.value, 10))}
+                              className="input-glass"
+                              style={{ height: '30px', fontSize: '0.75rem' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleTestPing('groqLlm')}
+                        className="btn-secondary"
+                        style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
+                      >
+                        {ping?.loading ? 'Pinging Groq Gateway...' : 'Ping Test Groq Gateway'}
+                      </button>
+                      {ping?.message && (
+                        <div style={{ fontSize: '0.7rem', color: ping.live ? '#34D399' : '#FBBF24', marginTop: '6px' }}>
+                          {ping.message} {ping.latency && `(${ping.latency}ms)`}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* 4. DeepSeek V3 */}
+                {(() => {
+                  const p = getProvider('deepseek');
+                  const ping = pingStatus.deepseekLlm;
+                  return (
+                    <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '1.2rem' }}>🌊</span>
+                          <div>
+                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>DeepSeek V3</h4>
+                            <span style={{ fontSize: '0.7rem', color: '#A78BFA' }}>Cost: Sub-cent Token Architecture</span>
+                          </div>
+                        </div>
+                        <select
+                          value={p.priority}
+                          onChange={(e) => updateProviderField('deepseek', 'priority', parseInt(e.target.value, 10))}
+                          className="input-glass"
+                          style={{ height: '28px', fontSize: '0.7rem', padding: '0 8px', fontWeight: '700' }}
+                        >
+                          <option value="1">Priority #1 (Primary)</option>
+                          <option value="2">Priority #2 (Secondary)</option>
+                          <option value="3">Priority #3 (Tertiary)</option>
+                          <option value="4">Priority #4 (Fallback)</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Model Name</label>
+                          <input
+                            type="text"
+                            value={p.modelName || 'deepseek-chat'}
+                            onChange={(e) => updateProviderField('deepseek', 'modelName', e.target.value)}
+                            className="input-glass"
+                            style={{ height: '32px', fontSize: '0.78rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>
+                            API Keys Pool (one per line or comma-separated)
+                          </label>
+                          <textarea
+                            rows={2}
+                            placeholder="sk-... (round-robin rotation)"
+                            value={(p.apiKeys || []).join('\n')}
+                            onChange={(e) => updateKeysString('deepseek', e.target.value)}
+                            className="input-glass"
+                            style={{ fontSize: '0.75rem', fontFamily: 'monospace', resize: 'vertical' }}
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Timeout (ms)</label>
+                            <input
+                              type="number"
+                              value={p.timeoutMs || 10000}
+                              onChange={(e) => updateProviderField('deepseek', 'timeoutMs', parseInt(e.target.value, 10))}
+                              className="input-glass"
+                              style={{ height: '30px', fontSize: '0.75rem' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Max Retries</label>
+                            <input
+                              type="number"
+                              value={p.maxRetries || 2}
+                              onChange={(e) => updateProviderField('deepseek', 'maxRetries', parseInt(e.target.value, 10))}
+                              className="input-glass"
+                              style={{ height: '30px', fontSize: '0.75rem' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleTestPing('deepseekLlm')}
+                        className="btn-secondary"
+                        style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
+                      >
+                        {ping?.loading ? 'Pinging DeepSeek Gateway...' : 'Ping Test DeepSeek Gateway'}
+                      </button>
+                      {ping?.message && (
+                        <div style={{ fontSize: '0.7rem', color: ping.live ? '#34D399' : '#FBBF24', marginTop: '6px' }}>
+                          {ping.message} {ping.latency && `(${ping.latency}ms)`}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* SECTION 2: AUTONOMOUS FINOPS & COST-PLUS 80%+ GROSS MARGIN ENGINE */}
+            <div className="card" style={{ padding: '24px', background: '#0D1527', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <TrendingUp size={20} color="#10B981" />
+                  <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
+                    Autonomous FinOps &amp; Cost-Plus Pricing Engine
+                  </h3>
+                  <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Guaranteed 80%+ Margin</span>
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94A3B8' }}>
+                  Eliminates underpricing risks. Mathematical Cost-Plus formula automatically sets client utility rates to guarantee platform profitability.
+                </p>
+              </div>
+
+              {/* Mathematical Formula Display Banner */}
+              <div style={{
+                padding: '14px 18px',
+                borderRadius: '10px',
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: '#6EE7B7', fontWeight: '700', textTransform: 'uppercase' }}>
+                    MATHEMATICAL COST-PLUS PRICING FORMULA
+                  </div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC', marginTop: '3px', fontFamily: 'monospace' }}>
+                    Platform Price = Wholesale Real Cost / (1 - Target Margin)
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '2px' }}>
+                    At 80% Target Margin, Selling Price is strictly 5x Wholesale Cost. Zero margin leakage.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Target Gross Margin</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input
+                        type="range"
+                        min="50"
+                        max="95"
+                        value={finOps.targetGrossMarginPercent || 80}
+                        onChange={(e) => setPlatformConfig({
+                          ...platformConfig,
+                          finOpsConfig: { ...finOps, targetGrossMarginPercent: parseInt(e.target.value, 10) },
+                        })}
+                        style={{ width: '100px', cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: '1rem', fontWeight: '800', color: '#34D399', minWidth: '40px' }}>
+                        {finOps.targetGrossMarginPercent || 80}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ borderLeft: '1px solid rgba(255, 255, 255, 0.1)', paddingLeft: '16px' }}>
+                    <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Autonomous Auto-Apply</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="checkbox"
+                        id="autoMarginPricingEnabled"
+                        checked={finOps.autoMarginPricingEnabled || false}
+                        onChange={(e) => setPlatformConfig({
+                          ...platformConfig,
+                          finOpsConfig: { ...finOps, autoMarginPricingEnabled: e.target.checked },
+                        })}
+                      />
+                      <label htmlFor="autoMarginPricingEnabled" style={{ fontSize: '0.75rem', color: '#CBD5E1', cursor: 'pointer', fontWeight: '600' }}>
+                        Auto-Update Rates
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Wholesale Cost Tracking Parameters */}
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: '#CBD5E1', margin: '0 0 10px' }}>
+                  Wholesale Supplier Unit Costs (Baseline Inputs)
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                  <div style={{ padding: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Bland AI Voice / min</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#64748B' }}>$</span>
+                      <input
+                        type="number"
+                        step="0.005"
+                        value={finOps.wholesaleCostTracking?.blandCallingPerMinuteUSD || 0.09}
+                        onChange={(e) => setPlatformConfig({
+                          ...platformConfig,
+                          finOpsConfig: {
+                            ...finOps,
+                            wholesaleCostTracking: { ...finOps.wholesaleCostTracking, blandCallingPerMinuteUSD: parseFloat(e.target.value) || 0 },
+                          },
+                        })}
+                        className="input-glass"
+                        style={{ height: '28px', fontSize: '0.78rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Meta WhatsApp / msg</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#64748B' }}>₹</span>
+                      <input
+                        type="number"
+                        step="0.05"
+                        value={finOps.wholesaleCostTracking?.metaWhatsAppPerMsgINR || 0.75}
+                        onChange={(e) => setPlatformConfig({
+                          ...platformConfig,
+                          finOpsConfig: {
+                            ...finOps,
+                            wholesaleCostTracking: { ...finOps.wholesaleCostTracking, metaWhatsAppPerMsgINR: parseFloat(e.target.value) || 0 },
+                          },
+                        })}
+                        className="input-glass"
+                        style={{ height: '28px', fontSize: '0.78rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Gemini Tokens (In/Out 1M)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#64748B' }}>$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={finOps.wholesaleCostTracking?.geminiInputPerMillionUSD || 0.075}
+                        onChange={(e) => setPlatformConfig({
+                          ...platformConfig,
+                          finOpsConfig: {
+                            ...finOps,
+                            wholesaleCostTracking: { ...finOps.wholesaleCostTracking, geminiInputPerMillionUSD: parseFloat(e.target.value) || 0 },
+                          },
+                        })}
+                        className="input-glass"
+                        style={{ height: '28px', fontSize: '0.78rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Price Policy (Grandfathering)</div>
+                    <select
+                      value={finOps.priceIncreasePolicy || 'NEW_SIGNUPS_ONLY'}
+                      onChange={(e) => setPlatformConfig({
+                        ...platformConfig,
+                        finOpsConfig: { ...finOps, priceIncreasePolicy: e.target.value },
+                      })}
+                      className="input-glass"
+                      style={{ height: '28px', fontSize: '0.72rem', marginTop: '4px' }}
+                    >
+                      <option value="NEW_SIGNUPS_ONLY">New Signups Only (Grandfather)</option>
+                      <option value="NEXT_RENEWAL_WITH_30_DAYS_NOTICE">Next Renewal (30d Notice)</option>
+                      <option value="ANNUAL_ANNIVERSARY_ONLY">Annual Anniversary Only</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Cost-Plus Comparison Table */}
+              <div style={{
+                background: 'rgba(15, 23, 42, 0.6)',
+                borderRadius: '10px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                overflow: 'hidden',
+                marginBottom: '16px',
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: '#94A3B8' }}>
+                      <th style={{ padding: '10px 14px' }}>Platform Utility Service</th>
+                      <th style={{ padding: '10px 14px' }}>Wholesale Real Cost</th>
+                      <th style={{ padding: '10px 14px' }}>Current Live Rate</th>
+                      <th style={{ padding: '10px 14px' }}>Recommended Rate (80% Margin)</th>
+                      <th style={{ padding: '10px 14px' }}>Calculated Margin</th>
+                      <th style={{ padding: '10px 14px' }}>FinOps Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Lead Scraping */}
+                    <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                      <td style={{ padding: '12px 14px', fontWeight: '700', color: '#F8FAFC' }}>
+                        AI Multi-Source Lead Scraping (per lead)
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#94A3B8', fontFamily: 'monospace' }}>
+                        ${rec.wholesaleUnitCosts?.totalScrapeWholesaleUSD || 0.0003}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#CBD5E1', fontWeight: '600' }}>
+                        ${platformConfig.usageRates?.scrapingPerLeadUSD ?? 0.15} / ₹{platformConfig.usageRates?.scrapingPerLeadINR ?? 12.50}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#34D399', fontWeight: '700' }}>
+                        ${rec.suggestedScrapingPerLeadUSD} / ₹{rec.suggestedScrapingPerLeadINR}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#38BDF8', fontWeight: '700' }}>
+                        {rec.marginAchievedPercent || 80}%
+                      </td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Protected Margin</span>
+                      </td>
+                    </tr>
+
+                    {/* AI Voice Calling */}
+                    <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                      <td style={{ padding: '12px 14px', fontWeight: '700', color: '#F8FAFC' }}>
+                        Bland AI Sub-800ms Voice Closer (per minute)
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#94A3B8', fontFamily: 'monospace' }}>
+                        ${rec.wholesaleUnitCosts?.voiceWholesaleUSD || 0.0900}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#CBD5E1', fontWeight: '600' }}>
+                        ${platformConfig.usageRates?.voicePerMinuteUSD ?? 0.012} / ₹{platformConfig.usageRates?.voicePerMinuteINR ?? 1.00}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#34D399', fontWeight: '700' }}>
+                        ${rec.suggestedVoicePerMinuteUSD} / ₹{rec.suggestedVoicePerMinuteINR}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#38BDF8', fontWeight: '700' }}>
+                        {rec.marginAchievedPercent || 80}%
+                      </td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Protected Margin</span>
+                      </td>
+                    </tr>
+
+                    {/* WhatsApp Outreach */}
+                    <tr>
+                      <td style={{ padding: '12px 14px', fontWeight: '700', color: '#F8FAFC' }}>
+                        WhatsApp Business Marketing (per message)
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#94A3B8', fontFamily: 'monospace' }}>
+                        ₹{rec.wholesaleUnitCosts?.whatsappWholesaleINR || 0.75}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#CBD5E1', fontWeight: '600' }}>
+                        ${platformConfig.usageRates?.whatsappPerMessageUSD ?? 0.005} / ₹{platformConfig.usageRates?.whatsappPerMessageINR ?? 0.40}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#34D399', fontWeight: '700' }}>
+                        ${rec.suggestedWhatsappUSD} / ₹{rec.suggestedWhatsappINR}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#38BDF8', fontWeight: '700' }}>
+                        {rec.marginAchievedPercent || 80}%
+                      </td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Protected Margin</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 1-Click Apply Button */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Audited timestamp: {rec.calculatedAt ? new Date(rec.calculatedAt).toLocaleTimeString() : 'Live Calculated'}
+                </span>
+
+                <button
+                  onClick={handleApplyFinopsRates}
+                  disabled={applyingFinops}
+                  className="btn-emerald"
+                  style={{ padding: '10px 24px', fontWeight: '800', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>{applyingFinops ? 'Applying Rates...' : '⚡ 1-Click Apply Recommended Rates to Live Platform'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* TAB 3: MASTER CARRIER & TOOL INTEGRATIONS */}

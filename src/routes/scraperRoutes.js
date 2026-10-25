@@ -29,6 +29,8 @@ router.post('/start', authMiddleware, async (req, res) => {
       workspaceId: bodyWsId,
       location = '',
       limit = 10,
+      targetRole = 'BUYER',
+      customKeywords = '',
     } = req.body;
 
     const workspaceId = bodyWsId || req.workspaceId;
@@ -40,7 +42,7 @@ router.post('/start', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please specify a target location (e.g. Austin, Texas or Mumbai, India)' });
     }
 
-    const requestedLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
+    const requestedLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 10000);
 
     // Fetch platform pricing rate per single lead
     const config = await PlatformConfig.findOne({ configKey: 'GLOBAL_CONFIG' }).lean();
@@ -74,12 +76,14 @@ router.post('/start', authMiddleware, async (req, res) => {
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const io = req.app.get('io');
 
-    // Kick off asynchronously with wallet deduction enforcement
+    // Kick off asynchronously with wallet deduction enforcement & AI intent auditor
     LeadScraperService.executeWaterfallScrape({
       jobId,
       workspaceId,
       location: location.trim(),
       limit: requestedLimit,
+      targetRole,
+      customKeywords: customKeywords.trim(),
       ratePerLeadUSD,
       ratePerLeadINR,
       io,
@@ -88,8 +92,8 @@ router.post('/start', authMiddleware, async (req, res) => {
     return res.status(202).json({
       success: true,
       jobId,
-      message: 'Autonomous AI Multi-Source Lead Scraper launched',
-      params: { location: location.trim(), limit: requestedLimit, ratePerLeadUSD, ratePerLeadINR },
+      message: 'Autonomous AI Multi-Source Lead Scraper launched with AI Intent Auditor',
+      params: { location: location.trim(), limit: requestedLimit, targetRole, customKeywords, ratePerLeadUSD, ratePerLeadINR },
     });
   } catch (error) {
     console.error('Scraper start error:', error);

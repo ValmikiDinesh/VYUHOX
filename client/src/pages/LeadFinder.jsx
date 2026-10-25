@@ -82,6 +82,8 @@ export default function LeadFinder({
   // Client Location & Batch Control (Simplified & Non-Clumsy)
   const [location, setLocation] = useState('');
   const [limit, setLimit] = useState(10);
+  const [targetRole, setTargetRole] = useState('BUYER'); // 'BUYER' | 'SELLER' | 'HYBRID_TRADER' | 'DECISION_MAKER'
+  const [customKeywords, setCustomKeywords] = useState('');
   const [isScraping, setIsScraping] = useState(false);
   const [activeJobId, setActiveJobId] = useState(null);
   const [expandedNotesId, setExpandedNotesId] = useState(null);
@@ -217,6 +219,8 @@ export default function LeadFinder({
       const res = await api.startScraper(activeWorkspace._id, {
         location: targetLoc,
         limit,
+        targetRole,
+        customKeywords: customKeywords.trim(),
       });
       if (res.success) {
         setActiveJobId(res.jobId);
@@ -529,11 +533,11 @@ export default function LeadFinder({
         </div>
 
         {/* Input & Batch Controls Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) 180px auto', gap: '16px', alignItems: 'flex-end' }}>
-          {/* Free Location Input */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', alignItems: 'flex-end', marginBottom: '16px' }}>
+          {/* 1. Free Location Input */}
           <div>
             <label style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-              <Compass size={13} color="#10B981" /> Target Geographic Location / Territory (Type any city or region)
+              <Compass size={13} color="#10B981" /> Target Geographic Location / Territory
             </label>
             <div style={{ position: 'relative' }}>
               <MapPin size={15} color="#34D399" style={{ position: 'absolute', left: '12px', top: '14px' }} />
@@ -554,32 +558,78 @@ export default function LeadFinder({
             </div>
           </div>
 
-          {/* Quantity Selector */}
+          {/* 2. Target Commercial Entity & Trade Role */}
+          <div>
+            <label style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+              <Users size={13} color="#06B6D4" /> Target Entity &amp; Trade Role
+            </label>
+            <select
+              value={targetRole}
+              onChange={(e) => setTargetRole(e.target.value)}
+              className="input-glass"
+              style={{ height: '44px', cursor: 'pointer', width: '100%', fontSize: '0.85rem', fontWeight: '600', color: '#38BDF8' }}
+            >
+              <option value="BUYER" style={{ background: '#0F172A' }}>🛒 Verified Direct Buyers (Importers / Sourcing)</option>
+              <option value="SELLER" style={{ background: '#0F172A' }}>🏭 Verified Manufacturers &amp; Sellers (Exporters)</option>
+              <option value="HYBRID_TRADER" style={{ background: '#0F172A' }}>🌐 Both (Import/Export Trading Houses &amp; Brokers)</option>
+              <option value="DECISION_MAKER" style={{ background: '#0F172A' }}>👔 Enterprise C-Suite (CEOs, Founders, Directors)</option>
+            </select>
+          </div>
+
+          {/* 3. Product / HS-Code / Keywords */}
+          <div>
+            <label style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+              <Sparkles size={13} color="#A78BFA" /> Products, HS-Codes or Niche (Optional)
+            </label>
+            <input
+              type="text"
+              value={customKeywords}
+              onChange={(e) => setCustomKeywords(e.target.value)}
+              placeholder="e.g. Spices HS 0910, Textiles, Fintech API, Solar Panels..."
+              className="input-glass"
+              style={{
+                height: '44px',
+                width: '100%',
+                fontSize: '0.85rem',
+                color: '#F8FAFC',
+              }}
+            />
+          </div>
+
+          {/* 4. Quantity Selector */}
           <div>
             <label style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-              Leads To Scrape
+              Leads To Scrape (Up to 10k+)
             </label>
             <select
               value={limit}
               onChange={(e) => setLimit(parseInt(e.target.value))}
               className="input-glass"
-              style={{ height: '44px', cursor: 'pointer', width: '100%', fontSize: '0.875rem' }}
+              style={{ height: '44px', cursor: 'pointer', width: '100%', fontSize: '0.85rem' }}
             >
-              <option value={5} style={{ background: '#0F172A' }}>5 Verified Leads</option>
-              <option value={10} style={{ background: '#0F172A' }}>10 Verified Leads</option>
+              <option value={5} style={{ background: '#0F172A' }}>5 Verified Leads (Sample)</option>
+              <option value={10} style={{ background: '#0F172A' }}>10 Verified Leads (Starter)</option>
               <option value={25} style={{ background: '#0F172A' }}>25 Verified Leads</option>
               <option value={50} style={{ background: '#0F172A' }}>50 Verified Leads</option>
+              <option value={100} style={{ background: '#0F172A' }}>100 Verified Leads (Batch)</option>
+              <option value={250} style={{ background: '#0F172A' }}>250 Verified Leads</option>
+              <option value={500} style={{ background: '#0F172A' }}>500 Verified Leads (Growth)</option>
+              <option value={1000} style={{ background: '#0F172A' }}>1,000 High-Volume Leads</option>
+              <option value={5000} style={{ background: '#0F172A' }}>5,000 High-Volume Leads</option>
+              <option value={10000} style={{ background: '#0F172A' }}>10,000 Enterprise Scale</option>
             </select>
           </div>
+        </div>
 
-          {/* Launch Button */}
+        {/* Action Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <button
             onClick={handleStartScrape}
             disabled={isScraping}
             className="btn-emerald"
             style={{
               height: '44px',
-              padding: '0 24px',
+              padding: '0 28px',
               whiteSpace: 'nowrap',
               fontWeight: '700',
               fontSize: '0.875rem',
@@ -593,7 +643,7 @@ export default function LeadFinder({
               </>
             ) : (
               <>
-                <Play size={16} fill="#021C11" /> Scrape Genuine Leads in {location || 'Location'}
+                <Play size={16} fill="#021C11" /> Scrape {limit} Genuine {targetRole === 'SELLER' ? 'Sellers' : targetRole === 'HYBRID_TRADER' ? 'Traders' : 'Buyers'} in {location || 'Location'}
               </>
             )}
           </button>
@@ -961,7 +1011,61 @@ export default function LeadFinder({
 
                         {/* Company & Website */}
                         <td style={{ padding: '14px 16px' }}>
-                          <div style={{ fontWeight: '600', color: '#E2E8F0' }}>{lead.company || 'Enterprise'}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <div style={{ fontWeight: '600', color: '#E2E8F0' }}>{lead.company || 'Enterprise'}</div>
+                            {lead.entityRole && (
+                              <span
+                                style={{
+                                  fontSize: '0.625rem',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontWeight: '700',
+                                  background:
+                                    lead.entityRole === 'SELLER'
+                                      ? 'rgba(245, 158, 11, 0.2)'
+                                      : lead.entityRole === 'HYBRID_TRADER'
+                                      ? 'rgba(139, 92, 246, 0.2)'
+                                      : lead.entityRole === 'DECISION_MAKER'
+                                      ? 'rgba(59, 130, 246, 0.2)'
+                                      : 'rgba(6, 182, 212, 0.2)',
+                                  color:
+                                    lead.entityRole === 'SELLER'
+                                      ? '#FBBF24'
+                                      : lead.entityRole === 'HYBRID_TRADER'
+                                      ? '#A78BFA'
+                                      : lead.entityRole === 'DECISION_MAKER'
+                                      ? '#60A5FA'
+                                      : '#38BDF8',
+                                  border:
+                                    lead.entityRole === 'SELLER'
+                                      ? '1px solid rgba(245, 158, 11, 0.4)'
+                                      : lead.entityRole === 'HYBRID_TRADER'
+                                      ? '1px solid rgba(139, 92, 246, 0.4)'
+                                      : lead.entityRole === 'DECISION_MAKER'
+                                      ? '1px solid rgba(59, 130, 246, 0.4)'
+                                      : '1px solid rgba(6, 182, 212, 0.4)',
+                                }}
+                              >
+                                {lead.entityRole === 'SELLER'
+                                  ? '🏭 SELLER'
+                                  : lead.entityRole === 'HYBRID_TRADER'
+                                  ? '🌐 TRADER'
+                                  : lead.entityRole === 'DECISION_MAKER'
+                                  ? '👔 C-SUITE'
+                                  : '🛒 BUYER'}
+                              </span>
+                            )}
+                          </div>
+                          {lead.tradeDetails?.verificationAudit && (
+                            <div
+                              style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '2px', lineHeight: '1.2' }}
+                              title={lead.tradeDetails.verificationAudit}
+                            >
+                              {lead.tradeDetails.verificationAudit.length > 50
+                                ? lead.tradeDetails.verificationAudit.substring(0, 50) + '...'
+                                : lead.tradeDetails.verificationAudit}
+                            </div>
+                          )}
                           {lead.website && (
                             <a
                               href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}

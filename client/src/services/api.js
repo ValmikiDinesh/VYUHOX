@@ -866,6 +866,16 @@ export const api = {
     });
     return res.json();
   },
+  evaluateFinOps: async () => {
+    const res = await fetch(`${API_BASE}/billing/finops/evaluate`);
+    return res.json();
+  },
+  applyFinOpsRates: async () => {
+    const res = await fetch(`${API_BASE}/billing/finops/apply-rates`, {
+      method: 'POST',
+    });
+    return res.json();
+  },
 
   // Strategy & Website Scanner
   getStrategy: async (workspaceId) => {

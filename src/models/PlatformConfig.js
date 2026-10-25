@@ -113,6 +113,60 @@ const platformConfigSchema = new mongoose.Schema(
       enableShortVideoForClients: { type: Boolean, default: true },
       maxAiImagesPerWorkspaceMonthly: { type: Number, default: 250 },
     },
+
+    // Multi-LLM Master Gateway & Failover Cascade Architecture
+    llmCascadeConfig: {
+      providers: [
+        {
+          providerId: { type: String, enum: ['gemini', 'openai', 'groq', 'claude', 'deepseek'], default: 'gemini' },
+          modelName: { type: String, default: 'gemini-1.5-flash' },
+          apiKeys: [{ type: String }],
+          priority: { type: Number, default: 1 }, // 1 = Primary, 2 = Secondary, 3 = Tertiary
+          isActive: { type: Boolean, default: true },
+          timeoutMs: { type: Number, default: 6000 },
+          maxRetries: { type: Number, default: 2 },
+        },
+      ],
+      activeExecutionMode: {
+        type: String,
+        enum: ['CASCADE_FAILOVER', 'ROUND_ROBIN', 'COST_OPTIMIZED'],
+        default: 'CASCADE_FAILOVER',
+      },
+      lastFailoverEvent: {
+        timestamp: { type: Date },
+        failedProvider: { type: String },
+        switchedToProvider: { type: String },
+        reason: { type: String },
+      },
+    },
+
+    // Autonomous FinOps & Cost-Plus Dynamic Margin Engine
+    finOpsConfig: {
+      autoMarginPricingEnabled: { type: Boolean, default: false },
+      targetGrossMarginPercent: { type: Number, default: 80 }, // Guaranteed 80% margin
+      wholesaleCostTracking: {
+        geminiInputPerMillionUSD: { type: Number, default: 0.075 },
+        geminiOutputPerMillionUSD: { type: Number, default: 0.30 },
+        openAiInputPerMillionUSD: { type: Number, default: 0.15 },
+        openAiOutputPerMillionUSD: { type: Number, default: 0.60 },
+        blandCallingPerMinuteUSD: { type: Number, default: 0.09 },
+        metaWhatsAppPerMsgINR: { type: Number, default: 0.75 },
+        serverFixedOverheadMonthlyUSD: { type: Number, default: 40.0 },
+      },
+      priceIncreasePolicy: {
+        type: String,
+        enum: ['NEW_SIGNUPS_ONLY', 'NEXT_RENEWAL_WITH_30_DAYS_NOTICE', 'ANNUAL_ANNIVERSARY_ONLY'],
+        default: 'NEW_SIGNUPS_ONLY',
+      },
+      lastCalculatedRecommendations: {
+        calculatedAt: { type: Date },
+        suggestedScrapingPerLeadUSD: { type: Number, default: 0.15 },
+        suggestedScrapingPerLeadINR: { type: Number, default: 12.50 },
+        suggestedVoicePerMinuteUSD: { type: Number, default: 0.35 },
+        suggestedVoicePerMinuteINR: { type: Number, default: 29.0 },
+        marginAchievedPercent: { type: Number, default: 85 },
+      },
+    },
   },
   { timestamps: true }
 );
