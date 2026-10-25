@@ -307,6 +307,7 @@ router.post('/campaigns', async (req, res) => {
 
     // 1. Dispatch through corresponding platform API connector
     let connectorResult = null;
+    const isGoogle = platform.startsWith('GOOGLE');
     if (platform === 'GOOGLE_SHOPPING') {
       connectorResult = await GoogleAdsService.createShoppingCampaign({
         workspaceId,
@@ -315,7 +316,7 @@ router.post('/campaigns', async (req, res) => {
         products: req.body.products || [],
         storeUrl: creative.destinationUrl || 'https://vyuhox.com',
       });
-    } else if (platform === 'GOOGLE_ADS' || platform === 'GOOGLE_SEARCH') {
+    } else if (isGoogle) {
       connectorResult = await GoogleAdsService.createCampaign({
         workspaceId,
         campaignName,
@@ -335,10 +336,10 @@ router.post('/campaigns', async (req, res) => {
       });
     }
 
-    // 2. Persist AdCampaign record
+    // 2. Persist AdCampaign record with exact campaign format
     const campaign = await AdCampaign.create({
       workspaceId,
-      platform: platform === 'GOOGLE_SHOPPING' ? 'GOOGLE_SHOPPING' : (platform === 'GOOGLE_ADS' || platform === 'GOOGLE_SEARCH' ? 'GOOGLE_ADS' : 'META'),
+      platform,
       campaignName,
       objective,
       status: 'ACTIVE',
@@ -363,16 +364,18 @@ router.post('/campaigns', async (req, res) => {
       lastOptimizedAt: new Date(),
     });
 
-    // 3. Persist AdCreative record
+    // 3. Persist AdCreative record with corresponding format
+    const creativeFormat = creative.platformFormat || (isGoogle ? (platform === 'GOOGLE_SHOPPING' ? 'GOOGLE_SHOPPING' : (platform === 'GOOGLE_YOUTUBE' ? 'GOOGLE_YOUTUBE' : (platform === 'GOOGLE_PMAX' ? 'GOOGLE_PMAX' : 'GOOGLE_SEARCH_RESPONSIVE'))) : (platform === 'META_REELS' ? 'META_REELS' : (platform === 'META_LEAD_FORM' ? 'META_LEAD_FORM' : (platform === 'META_WHATSAPP' ? 'META_WHATSAPP' : 'META_FEED'))));
+
     const adCreative = await AdCreative.create({
       workspaceId,
       campaignId: campaign._id,
       headline: creative.headline || campaignName,
-      primaryText: creative.primaryText || 'Execute block orders with verified sub-millisecond precision.',
+      primaryText: creative.primaryText || 'Accelerate operations with verified autonomous execution.',
       ctaText: creative.ctaText || 'Book Strategy Call',
-      destinationUrl: creative.destinationUrl || 'https://growth.hedgex.io',
-      mediaUrl: creative.mediaUrl || '/media/hedgex_reel.jpg',
-      platformFormat: platform === 'GOOGLE_SHOPPING' ? 'GOOGLE_SHOPPING' : (platform === 'GOOGLE_ADS' ? 'GOOGLE_SEARCH_RESPONSIVE' : (creative.platformFormat || 'META_FEED')),
+      destinationUrl: creative.destinationUrl || 'https://vyuhox.com/demo',
+      mediaUrl: creative.mediaUrl || (platform.includes('REELS') ? '/media/hedgex_reel.jpg' : '/media/vyuhox_banner.jpg'),
+      platformFormat: creativeFormat,
       ctrScore: 3.4,
       isFatigued: false,
       complianceStatus: 'APPROVED',

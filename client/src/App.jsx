@@ -877,6 +877,8 @@ export default function App() {
             activeWorkspace={activeWorkspace}
             socket={socket}
             wallet={wallet}
+            currency={currency}
+            exchangeRate={exchangeRate}
           />
         )}
 
