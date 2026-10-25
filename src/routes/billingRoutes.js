@@ -40,8 +40,8 @@ const seedInitialPlans = async () => {
         tagline: 'Full tool suite plus pick 1 specialized autonomous AI employee.',
         category: 'CLIENT_AI',
         targetRegion: 'ALL',
-        priceUSD: { monthly: 89, annualMonthly: 69 },
-        priceINR: { monthly: 6999, annualMonthly: 5499 },
+        priceUSD: { monthly: 99, annualMonthly: 79 },
+        priceINR: { monthly: 7999, annualMonthly: 6399 },
         includedAgents: ['Maya - Voice Closer'],
         features: [
           'All Tool Suite Features Included',
@@ -62,8 +62,8 @@ const seedInitialPlans = async () => {
         tagline: 'Your complete autonomous GTM workforce running 24/7.',
         category: 'CLIENT_AI',
         targetRegion: 'ALL',
-        priceUSD: { monthly: 249, annualMonthly: 199 },
-        priceINR: { monthly: 19999, annualMonthly: 15999 },
+        priceUSD: { monthly: 499, annualMonthly: 399 },
+        priceINR: { monthly: 39999, annualMonthly: 31999 },
         includedAgents: ['Ethan - CMO', 'Sarah - SDR', 'Maya - Voice Closer', 'Marcus - CFO', 'Chloe - CS', 'Avery - CEO'],
         features: [
           'Full 6-Agent C-Suite Workforce Active 24/7',
@@ -85,8 +85,8 @@ const seedInitialPlans = async () => {
         tagline: 'Custom high-volume pipeline, dedicated IP infrastructure & SLA.',
         category: 'ENTERPRISE',
         targetRegion: 'ALL',
-        priceUSD: { monthly: 599, annualMonthly: 479 },
-        priceINR: { monthly: 47999, annualMonthly: 37999 },
+        priceUSD: { monthly: 1499, annualMonthly: 1199 },
+        priceINR: { monthly: 119999, annualMonthly: 95999 },
         includedAgents: ['Ethan - CMO', 'Sarah - SDR', 'Maya - Voice Closer', 'Marcus - CFO', 'Chloe - CS', 'Avery - CEO'],
         features: [
           'Full 6-Agent C-Suite Workforce with Dedicated Throughput',

@@ -941,7 +941,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
               <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#38BDF8', textTransform: 'uppercase' }}>Hire As You Grow</div>
               <h3 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '4px 0 16px', color: '#F8FAFC' }}>Tool + 1 Agent</h3>
               <div style={{ fontSize: '2.5rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
-                {currencySymbol}{getPlanPrice(89, 6999).toLocaleString(isINR ? 'en-IN' : 'en-US')}<span style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>/month</span>
+                {currencySymbol}{getPlanPrice(99, 7999).toLocaleString(isINR ? 'en-IN' : 'en-US')}<span style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>/month</span>
               </div>
               <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 20px', lineHeight: '1.5' }}>
                 Tool Mode base plus 1 dedicated autonomous AI employee (e.g. Maya Voice Closer or Sarah SDR).
@@ -999,7 +999,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
               <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#06B6D4', textTransform: 'uppercase' }}>Autonomous AI Company</div>
               <h3 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '4px 0 16px', color: '#F8FAFC' }}>Full AI Department</h3>
               <div style={{ fontSize: '2.5rem', fontWeight: '900', color: '#38BDF8', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
-                {currencySymbol}{getPlanPrice(249, 19999).toLocaleString(isINR ? 'en-IN' : 'en-US')}<span style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>/month</span>
+                {currencySymbol}{getPlanPrice(499, 39999).toLocaleString(isINR ? 'en-IN' : 'en-US')}<span style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>/month</span>
               </div>
               <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 20px', lineHeight: '1.5' }}>
                 All 6 C-Suite agents deployed 24/7. Marketing, outbound sales, inbound phone dials, finance, and retention run completely on autopilot.
@@ -1032,7 +1032,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
               <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#A78BFA', textTransform: 'uppercase' }}>Enterprise High-Scale</div>
               <h3 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '4px 0 16px', color: '#F8FAFC' }}>Autonomous Enterprise</h3>
               <div style={{ fontSize: '2.5rem', fontWeight: '900', color: '#C4B5FD', fontFamily: 'Outfit, sans-serif', marginBottom: '8px' }}>
-                {currencySymbol}{getPlanPrice(599, 47999).toLocaleString(isINR ? 'en-IN' : 'en-US')}<span style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>/month</span>
+                {currencySymbol}{getPlanPrice(1499, 119999).toLocaleString(isINR ? 'en-IN' : 'en-US')}<span style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>/month</span>
               </div>
               <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 20px', lineHeight: '1.5' }}>
                 Dedicated telecom trunking, high-throughput voice carriers, custom CRM webhooks, and priority 24/7 dedicated engineering support.

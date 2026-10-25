@@ -2961,8 +2961,9 @@ export default function SuperAdminDashboard({
                   style={{ height: '36px', fontSize: '0.825rem' }}
                 >
                   <option value="TOOL_MODE">Tool Mode Core ($49/mo | ₹3,999/mo)</option>
-                  <option value="AI_COMPANY_STARTER">AI Company Starter ($249/mo | ₹19,999/mo)</option>
-                  <option value="AI_COMPANY_SCALE">AI Company Scale ($599/mo | ₹49,999/mo)</option>
+                  <option value="MODULAR_AI">Tool + 1 Agent ($99/mo | ₹7,999/mo)</option>
+                  <option value="AI_COMPANY">Autonomous AI Company ($499/mo | ₹39,999/mo)</option>
+                  <option value="ENTERPRISE">Autonomous Enterprise Suite ($1,499/mo | ₹1,19,999/mo)</option>
                   <option value="CUSTOM">Custom Enterprise Contract</option>
                 </select>
               </div>
