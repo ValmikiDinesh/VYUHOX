@@ -39,7 +39,15 @@ import { api } from './services/api';
 
 export default function App() {
   const [workspaces, setWorkspaces] = useState([]);
-  const [activeWorkspace, setActiveWorkspace] = useState(null);
+  const [activeWorkspace, setActiveWorkspace] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vyuhox_active_workspace');
+      if (saved) return JSON.parse(saved);
+      const savedId = localStorage.getItem('vyuhox_active_ws_id');
+      if (savedId) return { _id: savedId, name: 'Quantum Shield' };
+    } catch (e) {}
+    return null;
+  });
   const [leads, setLeads] = useState([]);
   const [stats, setStats] = useState(null);
   const [wallet, setWallet] = useState(null);
@@ -179,50 +187,45 @@ export default function App() {
     const initApp = async () => {
       try {
         const token = localStorage.getItem('vyuhox_token');
-        if (token) {
-          const meRes = await api.getMe(token);
-          if (meRes.success && meRes.user) {
-            setCurrentUser(meRes.user);
-            localStorage.setItem('vyuhox_user', JSON.stringify(meRes.user));
+        const meRes = await api.getMe(token || undefined);
+        if (meRes.success && meRes.user) {
+          setCurrentUser(meRes.user);
+          localStorage.setItem('vyuhox_user', JSON.stringify(meRes.user));
 
-            const wsList = meRes.workspaces || [];
-            setWorkspaces(wsList);
+          const wsList = meRes.workspaces || [];
+          setWorkspaces(wsList);
 
-            const savedWsId = localStorage.getItem('vyuhox_active_ws_id');
-            let matchedWs = null;
+          const savedWsId = localStorage.getItem('vyuhox_active_ws_id');
+          let matchedWs = null;
 
-            if (savedWsId && wsList.length > 0) {
-              matchedWs = wsList.find((w) => String(w._id) === String(savedWsId));
-            }
-            if (!matchedWs) {
-              matchedWs = meRes.activeWorkspace;
-            }
-            if (!matchedWs && wsList.length > 0) {
-              matchedWs = wsList.find((w) => String(w._id) === String(meRes.user.workspaceId)) || wsList[0];
-            }
+          if (savedWsId && wsList.length > 0) {
+            matchedWs = wsList.find((w) => String(w._id) === String(savedWsId));
+          }
+          if (!matchedWs) {
+            matchedWs = meRes.activeWorkspace;
+          }
+          if (!matchedWs && wsList.length > 0) {
+            matchedWs = wsList.find((w) => String(w._id) === String(meRes.user.workspaceId)) || wsList[0];
+          }
 
-            if (matchedWs) {
-              setActiveWorkspace(matchedWs);
-              localStorage.setItem('vyuhox_active_ws_id', matchedWs._id);
-              setOperatingMode(matchedWs.operatingMode || 'TOOL');
-              if (meRes.user.role === 'superadmin') {
-                setRolePersona('superadmin');
-              } else {
-                setRolePersona('client_ai');
-              }
-              return;
+          if (matchedWs) {
+            setActiveWorkspace(matchedWs);
+            localStorage.setItem('vyuhox_active_ws_id', matchedWs._id);
+            localStorage.setItem('vyuhox_active_workspace', JSON.stringify(matchedWs));
+            setOperatingMode(matchedWs.operatingMode || 'AI_COMPANY');
+            if (meRes.user.role === 'superadmin') {
+              setRolePersona('superadmin');
+            } else {
+              setRolePersona('client_ai');
             }
+            return;
           }
         }
 
         // Fallback if no token, unauthenticated, or activeWorkspace not resolved
         const res = await api.getWorkspaces();
-        if (res.success && res.workspaces.length > 0) {
-          let availableWs = res.workspaces;
-          if (currentUser && currentUser.role !== 'superadmin' && currentUser.workspaceId) {
-            availableWs = res.workspaces.filter((w) => String(w._id) === String(currentUser.workspaceId));
-            if (availableWs.length === 0) availableWs = res.workspaces;
-          }
+        if (res.success && res.workspaces && res.workspaces.length > 0) {
+          const availableWs = res.workspaces;
           setWorkspaces(availableWs);
 
           // Find workspace corresponding to current user or saved workspace ID
@@ -237,20 +240,21 @@ export default function App() {
               (w) => String(w._id) === String(currentUser.workspaceId)
             );
           }
-          if (!matchedWs && currentUser?.email) {
+          if (!matchedWs) {
             matchedWs = availableWs.find(
               (w) =>
-                (currentUser.email.includes('dinesh') && w.name?.toLowerCase().includes('quantum')) ||
-                (w.ownerEmail && w.ownerEmail.toLowerCase() === currentUser.email.toLowerCase()) ||
-                (currentUser.companyName && w.name?.toLowerCase() === currentUser.companyName.toLowerCase())
+                (w.name && w.name.toLowerCase().includes('quantum')) ||
+                (w.ownerEmail && w.ownerEmail.toLowerCase().includes('valmiki')) ||
+                (currentUser?.email && w.ownerEmail && w.ownerEmail.toLowerCase() === currentUser.email.toLowerCase())
             );
           }
 
           const defaultWs = matchedWs || availableWs[0];
-          setActiveWorkspace(defaultWs);
           if (defaultWs) {
+            setActiveWorkspace(defaultWs);
             localStorage.setItem('vyuhox_active_ws_id', defaultWs._id);
-            setOperatingMode(defaultWs.operatingMode || 'TOOL');
+            localStorage.setItem('vyuhox_active_workspace', JSON.stringify(defaultWs));
+            setOperatingMode(defaultWs.operatingMode || 'AI_COMPANY');
             if (!currentUser || !currentUser.email) {
               const fallbackUserData = {
                 name: defaultWs.ownerName || 'Dinesh Valmiki',
@@ -262,7 +266,7 @@ export default function App() {
               localStorage.setItem('vyuhox_user', JSON.stringify(fallbackUserData));
             }
           }
-          if (savedUser?.role === 'superadmin') {
+          if (currentUser?.role === 'superadmin') {
             setRolePersona('superadmin');
           } else {
             setRolePersona('client_ai');

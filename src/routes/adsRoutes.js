@@ -16,7 +16,7 @@ import { GoogleAdsService } from '../services/ads/GoogleAdsService.js';
 import { ConversionTrackingService } from '../services/ads/ConversionTrackingService.js';
 import { AdOptimizerEngine } from '../cron/adOptimizer.js';
 import { AdSelfHealingService } from '../services/ads/AdSelfHealingService.js';
-import { CumulativeContextService } from '../ai/CumulativeContextService.js';
+import { CumulativeContextService } from '../services/ai/CumulativeContextService.js';
 
 const router = express.Router();
 
@@ -112,6 +112,8 @@ async function ensureDefaultCampaigns(workspaceId) {
       ctr: 5.14,
     },
     lastOptimizedAt: new Date(),
+  });
+
   await AdCreative.create({
     workspaceId,
     campaignId: googleWinner._id,

@@ -160,7 +160,27 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
       alert('Please enter your website URL (e.g. https://yourbusiness.com)');
       return;
     }
-    const wsId = activeWorkspace?._id || localStorage.getItem('vyuhox_active_ws_id');
+    let wsId = activeWorkspace?._id || localStorage.getItem('vyuhox_active_ws_id');
+    if (!wsId) {
+      try {
+        const wsRes = await api.getWorkspaces();
+        if (wsRes.success && wsRes.workspaces && wsRes.workspaces.length > 0) {
+          const qs = wsRes.workspaces.find(
+            (w) =>
+              (w.name && w.name.toLowerCase().includes('quantum')) ||
+              (w.ownerEmail && w.ownerEmail.toLowerCase().includes('valmiki'))
+          ) || wsRes.workspaces[0];
+          if (qs) {
+            wsId = qs._id;
+            localStorage.setItem('vyuhox_active_ws_id', qs._id);
+            localStorage.setItem('vyuhox_active_workspace', JSON.stringify(qs));
+          }
+        }
+      } catch (err) {
+        console.warn('Auto-resolve workspace error:', err);
+      }
+    }
+
     if (!wsId) {
       alert('Active workspace is loading. Please select your business workspace from the top menu first.');
       return;

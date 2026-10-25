@@ -12,7 +12,7 @@ import { ImagePostAgent } from '../services/social/ImagePostAgent.js';
 import { PromptContentAgent } from '../services/social/PromptContentAgent.js';
 import { GtmStrategy } from '../models/GtmStrategy.js';
 import { checkAndPublishPendingPosts } from '../cron/socialPublisher.js';
-import { CumulativeContextService } from '../ai/CumulativeContextService.js';
+import { CumulativeContextService } from '../services/ai/CumulativeContextService.js';
 
 const router = express.Router();
 
