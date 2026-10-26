@@ -4,10 +4,13 @@
  * Integrated with Free State-of-the-Art Generative AI Image Engine (Flux.1 / SDXL / Pollinations)
  */
 
+import { MultiProviderVisualGateway } from '../visual/MultiProviderVisualGateway.js';
+
 export class ImagePostAgent {
   /**
    * Free State-of-the-Art Generative AI Image Synthesis
-   * Uses modern Flux.1 neural prompt expansion for hyper-realistic and luxury aesthetic feel.
+   * Connects MultiProviderVisualGateway (Banana, Google Flow, HuggingFace, Pollinations FLUX, Fal, SVG)
+   * with automatic rotating failover to prevent free limit errors.
    */
   static generateAIImageUrl({
     prompt,
@@ -15,21 +18,43 @@ export class ImagePostAgent {
     industry = 'B2B',
     width = 1080,
     height = 1080,
+    headline = '',
+    subtext = '',
+    brandName = 'VYUHOX',
   }) {
-    const styleModifiers = {
-      cinematic: 'cinematic lighting, 8k resolution, photorealistic, dramatic depth of field, octane render, high-end commercial editorial photography',
-      cyberpunk: 'futuristic holographic neon interface, cyberpunk aesthetic, dark obsidian background, glowing cyan and emerald accents, ray tracing',
-      luxury: 'minimalist luxury, gold and silver foil accents, clean modern typography, sleek studio product lighting, architectural elegance',
-      corporate: 'modern executive enterprise office, diverse boardroom leadership, natural sunlight, crisp depth of field, Forbes editorial style',
-    };
-
-    const chosenModifier = styleModifiers[style] || styleModifiers.cinematic;
-    const cleanPrompt = `${prompt}, ${chosenModifier}, masterpiece, trending on artstation, ultra-detailed`.replace(/[\r\n\t]/g, ' ');
-
-    // Free, unlimited, ultra-high-definition generative endpoint (Flux.1 model)
-    const encoded = encodeURIComponent(cleanPrompt.slice(0, 450));
+    // Generate synchronous rotating URL with multi-engine failover
     const seed = Math.floor(Math.random() * 999999);
-    return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true&model=flux`;
+    const engines = ['flux-realism', 'flux-pro', 'flux', 'turbo'];
+    const chosenModel = engines[Math.floor(Math.random() * engines.length)];
+    const cleanPrompt = encodeURIComponent(`${prompt}, ${style} aesthetic, commercial advertising photography, 8k resolution`.slice(0, 400));
+    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true&model=${chosenModel}`;
+  }
+
+  /**
+   * Async multi-engine image generation with full provider rotation logs
+   */
+  static async generateVisualAsset({
+    prompt,
+    style = 'cinematic',
+    platform = 'SOCIAL_POST',
+    headline = '',
+    subtext = '',
+    brandName = 'VYUHOX',
+    width = 1080,
+    height = 1080,
+    preferredProvider = null,
+  }) {
+    return await MultiProviderVisualGateway.generateImage({
+      prompt,
+      width,
+      height,
+      preferredProvider,
+      style,
+      platform,
+      headline,
+      subtext,
+      brandName,
+    });
   }
 
   /**

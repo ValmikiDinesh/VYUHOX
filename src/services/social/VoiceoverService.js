@@ -23,6 +23,20 @@ export class VoiceoverService {
   };
 
   /**
+   * Retrieves all available studio voice personas with profile metadata
+   */
+  static getVoiceCatalog() {
+    return Object.entries(this.VOICE_CATALOG).map(([id, meta]) => ({
+      id,
+      name: meta.name,
+      gender: meta.gender,
+      accent: meta.accent,
+      profile: meta.profile,
+      previewSampleText: `Hello, I am ${meta.name}. I represent your brand across phone calls, reels, and video ads with VYUHOX.`,
+    }));
+  }
+
+  /**
    * Generates a voiceover narration audio file from script text
    * @param {string} text - Script text to speak
    * @param {string} voiceId - Voice persona ID ('maya', 'marcus', 'elena', 'david', 'priya', 'mateo', 'kenji')

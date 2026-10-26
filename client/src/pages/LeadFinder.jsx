@@ -42,6 +42,7 @@ import {
   ArrowUpRight,
   Sliders,
   CheckCheck,
+  X,
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -81,6 +82,8 @@ export default function LeadFinder({
   onOpenNewLeadModal,
   onOpenBulkImportModal,
   socket,
+  onNavigateTab,
+  onOpenChatWithLead,
 }) {
   // Strategy & Business Context State
   const [strategy, setStrategy] = useState(null);
@@ -186,8 +189,20 @@ export default function LeadFinder({
   const [searchTerm, setSearchTerm] = useState('');
   const [stageFilter, setStageFilter] = useState('ALL');
   const [minScore, setMinScore] = useState(0);
-  const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [actionNotice, setActionNotice] = useState('');
+  const [selectedLeadIds, setSelectedLeadIds] = useState([]);
+
+  // Customized AI Script Review & Client Approval State
+  const [selectedLeadForScript, setSelectedLeadForScript] = useState(null);
+  const [scriptModalChannel, setScriptModalChannel] = useState('WHATSAPP');
+  const [scriptModalText, setScriptModalText] = useState('');
+  const [scriptModalSubject, setScriptModalSubject] = useState('');
+  const [isSendingScript, setIsSendingScript] = useState(false);
+  const [isRegeneratingScript, setIsRegeneratingScript] = useState(false);
+  const [isBatchSendModalOpen, setIsBatchSendModalOpen] = useState(false);
+  const [batchChannel, setBatchChannel] = useState('AUTO');
+  const [isBatchSending, setIsBatchSending] = useState(false);
+  const [isGeneratingAllScripts, setIsGeneratingAllScripts] = useState(false);
 
   // Table Pagination State (Default 50 clients per page)
   const [currentPage, setCurrentPage] = useState(1);
@@ -313,16 +328,27 @@ export default function LeadFinder({
       if (onRefreshLeads) onRefreshLeads();
     };
 
+    const handleScriptOrStageEvent = () => {
+      loadLeadsData();
+      if (onRefreshLeads) onRefreshLeads();
+    };
+
     socket.on('scraper:progress', handleProgress);
     socket.on('scraper:lead_found', handleLeadFound);
     socket.on('scraper:complete', handleComplete);
     socket.on('leadsBulkUpdated', handleBulkUpdated);
+    socket.on('leads:scripts_drafted', handleScriptOrStageEvent);
+    socket.on('leadStageChanged', handleScriptOrStageEvent);
+    socket.on('message:sent', handleScriptOrStageEvent);
 
     return () => {
       socket.off('scraper:progress', handleProgress);
       socket.off('scraper:lead_found', handleLeadFound);
       socket.off('scraper:complete', handleComplete);
       socket.off('leadsBulkUpdated', handleBulkUpdated);
+      socket.off('leads:scripts_drafted', handleScriptOrStageEvent);
+      socket.off('leadStageChanged', handleScriptOrStageEvent);
+      socket.off('message:sent', handleScriptOrStageEvent);
     };
   }, [socket, onRefreshLeads]);
 
@@ -365,7 +391,7 @@ export default function LeadFinder({
     }
 
     setIsScraping(true);
-    const businessName = strategy?.businessName || activeWorkspace.name;
+    const businessName = strategy?.businessName || activeWorkspace?.name || 'Your Business';
 
     setProgressData({
       step: 'SOURCE_DISCOVERY',
@@ -490,20 +516,170 @@ export default function LeadFinder({
     }
   };
 
+  // 8. Open Customized Script Review & Edit Modal
+  const handleOpenScriptModal = (lead) => {
+    setSelectedLeadForScript(lead);
+    const drafts = lead.metadata?.outreachDrafts || {};
+    let preferred = 'WHATSAPP';
+    if (!lead.phone && lead.email) preferred = 'EMAIL';
+    else if (lead.channels?.telegram && !lead.phone) preferred = 'TELEGRAM';
+
+    setScriptModalChannel(preferred);
+    setScriptModalSubject(drafts.EMAIL?.subject || `Strategic Expansion for ${lead.company || 'your team'}`);
+    const body = preferred === 'EMAIL' ? drafts.EMAIL?.body : drafts[preferred]?.body || drafts.WHATSAPP?.body || drafts.EMAIL?.body || '';
+    setScriptModalText(body || '');
+  };
+
+  const handleChannelTabChange = (ch) => {
+    setScriptModalChannel(ch);
+    const drafts = selectedLeadForScript?.metadata?.outreachDrafts || {};
+    if (ch === 'EMAIL') {
+      setScriptModalText(drafts.EMAIL?.body || '');
+      setScriptModalSubject(drafts.EMAIL?.subject || `Strategic Expansion for ${selectedLeadForScript?.company || 'your team'}`);
+    } else if (ch === 'WHATSAPP') {
+      setScriptModalText(drafts.WHATSAPP?.body || '');
+    } else if (ch === 'TELEGRAM') {
+      setScriptModalText(drafts.TELEGRAM?.body || '');
+    } else if (ch === 'SMS') {
+      setScriptModalText(drafts.SMS?.body || '');
+    }
+  };
+
+  // 9. Client Approves & Sends Single Customized Script
+  const handleApproveAndSendSingle = async () => {
+    if (!selectedLeadForScript || !activeWorkspace?._id) return;
+    setIsSendingScript(true);
+    try {
+      const res = await api.approveAndSendLead(activeWorkspace._id, selectedLeadForScript._id, {
+        channel: scriptModalChannel,
+        customText: scriptModalText,
+        subject: scriptModalSubject,
+      });
+      if (res.success) {
+        setActionNotice(`🚀 Customized message approved & dispatched to ${selectedLeadForScript.name} via ${scriptModalChannel}! Added to Omnichannel.`);
+        setSelectedLeadForScript(null);
+        await loadLeadsData();
+        if (onRefreshLeads) onRefreshLeads();
+        setTimeout(() => setActionNotice(''), 4500);
+      } else {
+        alert(res.message || 'Failed to dispatch message');
+      }
+    } catch (err) {
+      console.error('Approve and send failed:', err);
+      alert('Error sending: ' + err.message);
+    } finally {
+      setIsSendingScript(false);
+    }
+  };
+
+  // 10. Regenerate Script with AI
+  const handleRegenerateScript = async () => {
+    if (!selectedLeadForScript || !activeWorkspace?._id) return;
+    setIsRegeneratingScript(true);
+    try {
+      const res = await api.generateLeadDraft(activeWorkspace._id, selectedLeadForScript._id);
+      if (res.success && res.drafts) {
+        setSelectedLeadForScript({
+          ...selectedLeadForScript,
+          metadata: { ...(selectedLeadForScript.metadata || {}), outreachDrafts: res.drafts },
+        });
+        const currentChannel = scriptModalChannel;
+        if (currentChannel === 'EMAIL') {
+          setScriptModalText(res.drafts.EMAIL?.body || '');
+          setScriptModalSubject(res.drafts.EMAIL?.subject || '');
+        } else {
+          setScriptModalText(res.drafts[currentChannel]?.body || '');
+        }
+        await loadLeadsData();
+      }
+    } catch (e) {
+      console.warn('Regenerate script error:', e);
+    } finally {
+      setIsRegeneratingScript(false);
+    }
+  };
+
+  // 11. Chat in Omnichannel On Demand
+  const handleChatInOmnichannel = async (lead) => {
+    if (!lead || !activeWorkspace?._id) return;
+    try {
+      const res = await api.startChatWithLead(activeWorkspace._id, lead._id);
+      if (res.success && res.conversationId) {
+        if (onOpenChatWithLead) {
+          onOpenChatWithLead(res.conversationId);
+        } else if (onNavigateTab) {
+          onNavigateTab('inbox');
+        }
+      }
+    } catch (e) {
+      console.error('Start chat error:', e);
+      alert('Failed to initiate Omnichannel conversation: ' + e.message);
+    }
+  };
+
+  // 12. 1-Click Approve and Send All Pending Leads
+  const handleApproveAndSendAll = async () => {
+    if (!activeWorkspace?._id) return;
+    setIsBatchSending(true);
+    try {
+      const targetIds = selectedLeadIds.length > 0 ? selectedLeadIds : [];
+      const res = await api.approveAndSendAllLeads(activeWorkspace._id, {
+        leadIds: targetIds,
+        channel: batchChannel,
+      });
+      if (res.success) {
+        setActionNotice(`✨ 1-Click Send Complete! Dispatched ${res.sentCount} customized messages. All active leads are now synced in Omnichannel.`);
+        setIsBatchSendModalOpen(false);
+        setSelectedLeadIds([]);
+        await loadLeadsData();
+        if (onRefreshLeads) onRefreshLeads();
+        setTimeout(() => setActionNotice(''), 5000);
+      } else {
+        alert(res.message || 'Batch dispatch failed');
+      }
+    } catch (e) {
+      console.error('Batch approve and send failed:', e);
+      alert('Error during batch dispatch: ' + e.message);
+    } finally {
+      setIsBatchSending(false);
+    }
+  };
+
+  // 13. Generate Drafts for All Leads
+  const handleGenerateAllPendingScripts = async () => {
+    if (!activeWorkspace?._id) return;
+    setIsGeneratingAllScripts(true);
+    try {
+      const res = await api.generateDraftsAll(activeWorkspace._id, selectedLeadIds);
+      if (res.success) {
+        setActionNotice(`✨ Synthesized customized scripts for ${res.count} leads! Review and approve whenever ready.`);
+        await loadLeadsData();
+        if (onRefreshLeads) onRefreshLeads();
+        setTimeout(() => setActionNotice(''), 4500);
+      }
+    } catch (e) {
+      console.warn('Generate all drafts error:', e);
+    } finally {
+      setIsGeneratingAllScripts(false);
+    }
+  };
+
   // 8. Filter & Paginate Leads
   const allCurrentLeads = internalLeads && internalLeads.length > 0 ? internalLeads : (Array.isArray(leads) ? leads : []);
-  const filteredLeads = allCurrentLeads.filter((lead) => {
+  const filteredLeads = (allCurrentLeads || []).filter((lead) => {
+    if (!lead || typeof lead !== 'object') return false;
     const matchesStage = stageFilter === 'ALL' || lead.stage === stageFilter;
     const matchesScore = typeof lead.score === 'number' ? lead.score >= minScore : true;
+    const s = (searchTerm || '').trim().toLowerCase();
     const matchesSearch =
-      searchTerm === '' ||
-      lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+      !s ||
+      (lead.name || '').toLowerCase().includes(s) ||
+      (lead.company || '').toLowerCase().includes(s) ||
+      (lead.email || '').toLowerCase().includes(s) ||
+      (lead.title || '').toLowerCase().includes(s) ||
+      (lead.location || '').toLowerCase().includes(s) ||
+      (lead.phone || '').toLowerCase().includes(s) ||
+      (lead.notes || '').toLowerCase().includes(s);
     return matchesStage && matchesScore && matchesSearch;
   });
 
@@ -648,6 +824,27 @@ export default function LeadFinder({
             }}
           >
             <Plus size={15} /> Add Lead
+          </button>
+          <button
+            onClick={() => setIsBatchSendModalOpen(true)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
+              border: 'none',
+              color: '#FFFFFF',
+              fontSize: '0.8rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 16px rgba(139, 92, 246, 0.35)',
+              transition: 'all 0.2s ease',
+            }}
+            title="Review and dispatch customized scripts to all pending prospects in 1 click"
+          >
+            <Send size={14} /> 1-Click Send All ({allCurrentLeads.filter((l) => l.stage !== 'Contacted' && l.metadata?.outreachStatus !== 'SENT').length})
           </button>
         </div>
       </div>
@@ -1299,24 +1496,44 @@ export default function LeadFinder({
             <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>
               🎯 {selectedLeadIds.length} Verified Leads Selected
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => handleBulkAction('PUSH_EMAIL_CAMPAIGN')}
+                onClick={() => setIsBatchSendModalOpen(true)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  background: 'linear-gradient(135deg, #8B5CF6, #3B82F6)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  fontSize: '0.74rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)',
+                }}
+              >
+                <Send size={13} /> Approve &amp; Send Selected ({selectedLeadIds.length})
+              </button>
+              <button
+                onClick={handleGenerateAllPendingScripts}
+                disabled={isGeneratingAllScripts}
                 style={{
                   padding: '6px 12px',
                   borderRadius: '6px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(6, 182, 212, 0.15)',
+                  border: '1px solid rgba(6, 182, 212, 0.35)',
                   color: '#38BDF8',
                   fontSize: '0.74rem',
                   fontWeight: '600',
-                  cursor: 'pointer',
+                  cursor: isGeneratingAllScripts ? 'wait' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
                 }}
               >
-                <Mail size={13} /> Push to Email Outreach
+                <Sparkles size={13} /> {isGeneratingAllScripts ? 'Drafting...' : 'Regenerate Scripts'}
               </button>
               <button
                 onClick={() => handleBulkAction('TRIGGER_VOICE_CALL')}
@@ -1504,6 +1721,7 @@ export default function LeadFinder({
                 <th style={{ padding: '12px 16px' }}>Phone / Location</th>
                 <th style={{ padding: '12px 16px' }}>AI Fit Score</th>
                 <th style={{ padding: '12px 16px' }}>Pipeline Stage</th>
+                <th style={{ padding: '12px 16px' }}>Custom AI Script</th>
                 <th style={{ padding: '12px 16px' }}>Channels</th>
                 <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
               </tr>
@@ -1511,7 +1729,7 @@ export default function LeadFinder({
             <tbody>
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={10} style={{ padding: '54px', textAlign: 'center', color: '#64748B' }}>
+                  <td colSpan={11} style={{ padding: '54px', textAlign: 'center', color: '#64748B' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <Building2 size={36} color="#475569" />
                       <div style={{ fontSize: '0.9rem', color: '#E2E8F0', fontWeight: '600' }}>
@@ -1761,6 +1979,59 @@ export default function LeadFinder({
                           </select>
                         </td>
 
+                        {/* Custom AI Script Status */}
+                        <td style={{ padding: '14px 16px' }}>
+                          {lead.stage === 'Contacted' || lead.metadata?.outreachStatus === 'SENT' ? (
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: '700',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              color: '#34D399',
+                              border: '1px solid rgba(16, 185, 129, 0.3)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              <CheckCircle2 size={11} /> Sent &amp; Synced
+                            </span>
+                          ) : lead.metadata?.outreachDrafts ? (
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: '700',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: 'rgba(245, 158, 11, 0.15)',
+                              color: '#FBBF24',
+                              border: '1px solid rgba(245, 158, 11, 0.3)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              <Sparkles size={11} /> Awaiting Approval
+                            </span>
+                          ) : (
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: '600',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: 'rgba(148, 163, 184, 0.12)',
+                              color: '#94A3B8',
+                              border: '1px solid rgba(148, 163, 184, 0.25)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              Draft Ready
+                            </span>
+                          )}
+                        </td>
+
                         {/* Channels */}
                         <td style={{ padding: '14px 16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1790,6 +2061,46 @@ export default function LeadFinder({
                         {/* Actions */}
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                            <button
+                              onClick={() => handleOpenScriptModal(lead)}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                background: lead.metadata?.outreachStatus === 'SENT' ? 'rgba(16, 185, 129, 0.15)' : 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(16, 185, 129, 0.2))',
+                                border: lead.metadata?.outreachStatus === 'SENT' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(6, 182, 212, 0.4)',
+                                color: lead.metadata?.outreachStatus === 'SENT' ? '#34D399' : '#38BDF8',
+                                fontSize: '0.72rem',
+                                fontWeight: '700',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                              title="Review customized AI script and approve & send"
+                            >
+                              <Send size={11} /> {lead.metadata?.outreachStatus === 'SENT' ? 'View Sent' : 'Review & Send'}
+                            </button>
+                            <button
+                              onClick={() => handleChatInOmnichannel(lead)}
+                              style={{
+                                padding: '5px 8px',
+                                borderRadius: '6px',
+                                background: 'rgba(56, 189, 248, 0.1)',
+                                border: '1px solid rgba(56, 189, 248, 0.25)',
+                                color: '#38BDF8',
+                                fontSize: '0.72rem',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                              title="Start direct Omnichannel chat with this lead"
+                            >
+                              <MessageSquare size={11} /> Chat
+                            </button>
                             <button
                               onClick={() => setExpandedNotesId(isNotesExpanded ? null : lead._id)}
                               style={{
@@ -1831,7 +2142,7 @@ export default function LeadFinder({
                       {/* Expanded Strategy Notes Row */}
                       {isNotesExpanded && (
                         <tr style={{ background: 'rgba(6, 182, 212, 0.04)', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                          <td colSpan={10} style={{ padding: '12px 20px' }}>
+                          <td colSpan={11} style={{ padding: '12px 20px' }}>
                             <div style={{
                               display: 'flex',
                               alignItems: 'flex-start',
@@ -2071,6 +2382,545 @@ export default function LeadFinder({
           </div>
         </div>
       </div>
+
+      {/* MODAL 1: Individual Customized AI Script Review & Client Approval */}
+      {selectedLeadForScript && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(2, 6, 23, 0.85)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSendingScript) {
+              setSelectedLeadForScript(null);
+            }
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '740px',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              background: '#0B132B',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '16px',
+              padding: '24px 28px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.65)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+              color: '#F8FAFC',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: '700',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: 'rgba(6, 182, 212, 0.15)',
+                    color: '#38BDF8',
+                    border: '1px solid rgba(6, 182, 212, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}>
+                    <Sparkles size={11} /> AI Customized Script
+                  </span>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: '600',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    color: '#FBBF24',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                  }}>
+                    Awaiting Your Approval
+                  </span>
+                </div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#FFFFFF' }}>
+                  Review &amp; Approve Outreach Script
+                </h2>
+                <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '4px 0 0' }}>
+                  Tailored for <strong>{selectedLeadForScript.name}</strong> ({selectedLeadForScript.title || 'Executive'}) at <strong>{selectedLeadForScript.company || 'Enterprise'}</strong>
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedLeadForScript(null)}
+                disabled={isSendingScript}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#94A3B8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Context Card: Contact Details + Matched Services */}
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              fontSize: '0.78rem',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Building2 size={13} color="#06B6D4" />
+                  <span style={{ color: '#E2E8F0', fontWeight: '600' }}>{selectedLeadForScript.company || 'Enterprise'}</span>
+                  {selectedLeadForScript.industry && (
+                    <span style={{ color: '#64748B' }}>• {selectedLeadForScript.industry}</span>
+                  )}
+                  {selectedLeadForScript.location && (
+                    <span style={{ color: '#64748B' }}>• {selectedLeadForScript.location}</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {selectedLeadForScript.phone && (
+                    <span style={{ color: '#34D399', fontWeight: '600' }}>📞 {selectedLeadForScript.phone}</span>
+                  )}
+                  {selectedLeadForScript.email && (
+                    <span style={{ color: '#38BDF8' }}>✉️ {selectedLeadForScript.email}</span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{
+                background: 'rgba(6, 182, 212, 0.08)',
+                border: '1px solid rgba(6, 182, 212, 0.18)',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                color: '#CBD5E1',
+                fontSize: '0.74rem',
+              }}>
+                <span style={{ color: '#38BDF8', fontWeight: '700' }}>🎯 Cross-Matched Offerings: </span>
+                {selectedLeadForScript.metadata?.matchedServices?.join(', ') ||
+                  (strategy?.analysisResult?.coreOfferings ? strategy.analysisResult.coreOfferings.slice(0, 3).join(', ') : 'GTM Acceleration & Automation')}
+              </div>
+            </div>
+
+            {/* Channel Selection Tabs */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px' }}>
+              {[
+                { id: 'WHATSAPP', label: 'WhatsApp', icon: MessageSquare, color: '#10B981', available: !!selectedLeadForScript.phone },
+                { id: 'EMAIL', label: 'Email', icon: Mail, color: '#06B6D4', available: !!selectedLeadForScript.email },
+                { id: 'TELEGRAM', label: 'Telegram', icon: Send, color: '#0EA5E9', available: true },
+                { id: 'SMS', label: 'SMS', icon: Smartphone, color: '#A855F7', available: !!selectedLeadForScript.phone },
+              ].map((ch) => {
+                const isActive = scriptModalChannel === ch.id;
+                const IconComponent = ch.icon;
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    onClick={() => handleChannelTabChange(ch.id)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      border: isActive ? `1px solid ${ch.color}` : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: isActive ? `${ch.color}20` : 'rgba(255, 255, 255, 0.03)',
+                      color: isActive ? '#FFFFFF' : '#94A3B8',
+                      fontSize: '0.78rem',
+                      fontWeight: isActive ? '700' : '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <IconComponent size={14} color={isActive ? ch.color : '#94A3B8'} />
+                    <span>{ch.label}</span>
+                    {ch.available && (
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: ch.color }} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Email Subject Input (if Email tab is active) */}
+            {scriptModalChannel === 'EMAIL' && (
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', color: '#94A3B8', marginBottom: '6px', fontWeight: '600' }}>
+                  Email Subject Line:
+                </label>
+                <input
+                  type="text"
+                  value={scriptModalSubject}
+                  onChange={(e) => setScriptModalSubject(e.target.value)}
+                  placeholder="Subject line..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 0, 0, 0.4)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    color: '#F8FAFC',
+                    fontSize: '0.825rem',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Editable Script Textarea */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.74rem', color: '#94A3B8', fontWeight: '600' }}>
+                  {scriptModalChannel} Message Content (Editable):
+                </label>
+                <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
+                  {scriptModalText.length} characters
+                </span>
+              </div>
+              <textarea
+                value={scriptModalText}
+                onChange={(e) => setScriptModalText(e.target.value)}
+                rows={9}
+                placeholder="Customized AI message script..."
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(0, 0, 0, 0.45)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#F8FAFC',
+                  fontSize: '0.825rem',
+                  lineHeight: '1.6',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  resize: 'vertical',
+                }}
+              />
+            </div>
+
+            {/* Safety Guarantee Callout */}
+            <div style={{
+              background: 'rgba(16, 185, 129, 0.08)',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              fontSize: '0.74rem',
+              color: '#A7F3D0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <CheckCircle2 size={16} color="#10B981" style={{ flexShrink: 0 }} />
+              <div>
+                <strong>Client Controlled &amp; Synced:</strong> When you click <em>Approve &amp; Send</em>, this message is dispatched via {scriptModalChannel} and this lead is brought into your <strong>Omnichannel Outreach Inbox</strong> to track replies in real-time.
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', paddingTop: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleRegenerateScript}
+                  disabled={isRegeneratingScript || isSendingScript}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    color: '#CBD5E1',
+                    fontSize: '0.78rem',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: isRegeneratingScript ? 'wait' : 'pointer',
+                  }}
+                >
+                  <RefreshCw size={13} style={{ animation: isRegeneratingScript ? 'spin 1s linear infinite' : 'none' }} />
+                  {isRegeneratingScript ? 'Regenerating...' : 'Regenerate Script'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleChatInOmnichannel(selectedLeadForScript)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(56, 189, 248, 0.1)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    color: '#38BDF8',
+                    fontSize: '0.78rem',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                  }}
+                  title="Open live chat thread for this lead in Omnichannel Inbox"
+                >
+                  <MessageSquare size={13} /> Chat in Omnichannel
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedLeadForScript(null)}
+                  disabled={isSendingScript}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: '8px',
+                    background: 'transparent',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    color: '#94A3B8',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleApproveAndSendSingle}
+                  disabled={isSendingScript || !scriptModalText.trim()}
+                  style={{
+                    padding: '9px 20px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+                    border: 'none',
+                    color: '#021C11',
+                    fontSize: '0.825rem',
+                    fontWeight: '800',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    cursor: isSendingScript ? 'wait' : 'pointer',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                  }}
+                >
+                  <Send size={14} />
+                  {isSendingScript ? 'Sending Message...' : 'Approve & Send Message'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: 1-Click Approve & Send All Pending Leads */}
+      {isBatchSendModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(2, 6, 23, 0.85)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isBatchSending) {
+              setIsBatchSendModalOpen(false);
+            }
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '560px',
+              background: '#0B132B',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '16px',
+              padding: '24px 28px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.65)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+              color: '#F8FAFC',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: '700',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: 'rgba(139, 92, 246, 0.15)',
+                    color: '#C084FC',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}>
+                    <Zap size={11} /> 1-Click Mass Dispatch
+                  </span>
+                </div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#FFFFFF' }}>
+                  Approve &amp; Send All Outreach
+                </h2>
+                <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '4px 0 0' }}>
+                  Dispatch customized AI scripts to all {selectedLeadIds.length > 0 ? `${selectedLeadIds.length} selected` : 'pending'} prospects at once.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsBatchSendModalOpen(false)}
+                disabled={isBatchSending}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#94A3B8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Batch Info Card */}
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '10px',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Target Prospects:</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#38BDF8' }}>
+                  {selectedLeadIds.length > 0
+                    ? `${selectedLeadIds.length} Selected Leads`
+                    : `${allCurrentLeads.filter((l) => l.stage !== 'Contacted' && l.metadata?.outreachStatus !== 'SENT').length} Pending Leads`}
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', color: '#94A3B8', marginBottom: '6px', fontWeight: '600' }}>
+                  Select Outbound Channel Strategy:
+                </label>
+                <select
+                  value={batchChannel}
+                  onChange={(e) => setBatchChannel(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 0, 0, 0.45)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.825rem',
+                    outline: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="AUTO">AUTO (WhatsApp if cellular phone available, otherwise Email)</option>
+                  <option value="WHATSAPP">WhatsApp Only</option>
+                  <option value="EMAIL">Email Only</option>
+                  <option value="TELEGRAM">Telegram Only</option>
+                  <option value="SMS">SMS Only</option>
+                </select>
+              </div>
+
+              <div style={{
+                background: 'rgba(6, 182, 212, 0.06)',
+                border: '1px solid rgba(6, 182, 212, 0.15)',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                fontSize: '0.74rem',
+                color: '#CBD5E1',
+                lineHeight: '1.5',
+              }}>
+                ✨ <strong>Deep Role-Based Customization:</strong> Every contact receives their own bespoke message created from their job title, company, requirements, and your specific offerings. When dispatched, each thread will immediately appear in your Omnichannel Inbox.
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setIsBatchSendModalOpen(false)}
+                disabled={isBatchSending}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: '8px',
+                  background: 'transparent',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#94A3B8',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleApproveAndSendAll}
+                disabled={isBatchSending}
+                style={{
+                  padding: '10px 22px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  fontSize: '0.825rem',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  cursor: isBatchSending ? 'wait' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)',
+                }}
+              >
+                <Send size={14} />
+                {isBatchSending ? 'Dispatching Messages...' : 'Approve & Send All in 1 Click'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

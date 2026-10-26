@@ -13,6 +13,8 @@ import { PromptContentAgent } from '../services/social/PromptContentAgent.js';
 import { GtmStrategy } from '../models/GtmStrategy.js';
 import { checkAndPublishPendingPosts } from '../cron/socialPublisher.js';
 import { CumulativeContextService } from '../services/ai/CumulativeContextService.js';
+import { MultiProviderVisualGateway } from '../services/visual/MultiProviderVisualGateway.js';
+import { authMiddleware, verifyWorkspaceAccess } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -77,10 +79,10 @@ router.post('/upload', upload.single('file'), (req, res) => {
  * Dynamically synthesizes a unique post or reel from business owner's custom prompt,
  * injected with workspace business data & strategy, voice talent, language, and tone.
  */
-router.post('/generate-from-prompt', async (req, res) => {
+router.post('/generate-from-prompt', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
+    const workspaceId = req.workspaceId || req.body.workspaceId;
     const {
-      workspaceId,
       prompt,
       postType = 'REEL',
       platform = 'INSTAGRAM',
@@ -90,6 +92,7 @@ router.post('/generate-from-prompt', async (req, res) => {
       publishImmediately = false,
       scheduledAt = null,
       generateVoice = true,
+      preferredVisualProvider = null,
     } = req.body;
 
     if (!workspaceId) {
@@ -133,10 +136,42 @@ router.post('/generate-from-prompt', async (req, res) => {
       ? new Date(scheduledAt)
       : (isNow ? new Date() : new Date(Date.now() + 1000 * 60 * 60 * 18)); // in 18 hrs
 
-    // 4. Background media selection
+    // 4. Autonomous Generative Visual Engine with multi-provider rotation
     let mediaUrl = '/media/hedgex_reel.jpg';
-    if (postType === 'CAROUSEL') mediaUrl = '/media/hedgex_carousel.jpg';
-    else if (ws?.industry === 'B2B') mediaUrl = '/media/vyuhox_reel.jpg';
+    let thumbnailUrl = '/media/hedgex_reel.jpg';
+    try {
+      const isReel = postType === 'REEL';
+      const visualPrompt = `${ws?.name || 'VYUHOX'} ${content.title}: ${content.scriptHook || prompt}`;
+      if (isReel) {
+        const vidResult = await MultiProviderVisualGateway.generateVideo({
+          prompt: visualPrompt,
+          aspectRatio: '9:16',
+          headline: content.scriptHook || content.title,
+          subtext: ws?.name || 'VYUHOX',
+          brandName: ws?.name || 'VYUHOX',
+        });
+        mediaUrl = vidResult.mediaUrl || mediaUrl;
+        thumbnailUrl = vidResult.thumbnailUrl || mediaUrl;
+      } else {
+        const imgResult = await MultiProviderVisualGateway.generateImage({
+          prompt: visualPrompt,
+          width: postType === 'CAROUSEL' ? 1080 : 1080,
+          height: postType === 'CAROUSEL' ? 1080 : 1350,
+          preferredProvider: preferredVisualProvider,
+          platform: 'INSTAGRAM',
+          headline: content.title,
+          subtext: content.scriptHook || '',
+          brandName: ws?.name || 'VYUHOX',
+        });
+        mediaUrl = imgResult.imageUrl || mediaUrl;
+        thumbnailUrl = imgResult.imageUrl || mediaUrl;
+      }
+    } catch (vErr) {
+      console.warn('[SocialRoutes] Visual generation fallback:', vErr.message);
+      if (postType === 'CAROUSEL') mediaUrl = '/media/hedgex_carousel.jpg';
+      else if (ws?.industry === 'B2B') mediaUrl = '/media/vyuhox_reel.jpg';
+      thumbnailUrl = mediaUrl;
+    }
 
     const newPost = await SocialPost.create({
       workspaceId,
@@ -206,10 +241,10 @@ router.post('/generate-from-prompt', async (req, res) => {
  * POST /api/social/create-custom
  * Creates, schedules, or automatically publishes business owner's custom post/reel
  */
-router.post('/create-custom', async (req, res) => {
+router.post('/create-custom', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
+    const workspaceId = req.workspaceId || req.body.workspaceId;
     const {
-      workspaceId,
       platform = 'INSTAGRAM',
       type = 'REEL',
       title,
@@ -341,9 +376,9 @@ router.post('/create-custom', async (req, res) => {
  * GET /api/social/posts/:workspaceId
  * Fetch posts with platform and status filters + analytics overview
  */
-router.get('/posts/:workspaceId', async (req, res) => {
+router.get('/posts/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.workspaceId || req.params.workspaceId;
     const { platform, status, type, limit = 50 } = req.query;
 
     const filter = { workspaceId };
@@ -398,9 +433,10 @@ router.get('/posts/:workspaceId', async (req, res) => {
  * POST /api/social/generate-reel
  * Generates script, voiceover, and composite vertical video reel preview
  */
-router.post('/generate-reel', async (req, res) => {
+router.post('/generate-reel', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId, topic, platform = 'INSTAGRAM', theme = 'cyber_crypto_matrix' } = req.body;
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+    const { topic, platform = 'INSTAGRAM', theme = 'cyber_crypto_matrix' } = req.body;
 
     const ws = await Workspace.findById(workspaceId);
     const workspaceName = ws?.name || 'VYUHOX';
@@ -475,9 +511,10 @@ router.post('/generate-reel', async (req, res) => {
  * POST /api/social/generate-graphics
  * Generates quote cards and 5-slide carousels
  */
-router.post('/generate-graphics', async (req, res) => {
+router.post('/generate-graphics', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId, format = 'CAROUSEL', platform = 'LINKEDIN', topic } = req.body;
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+    const { format = 'CAROUSEL', platform = 'LINKEDIN', topic } = req.body;
 
     const ws = await Workspace.findById(workspaceId);
     const workspaceName = ws?.name || 'VYUHOX';
@@ -525,9 +562,9 @@ router.post('/generate-graphics', async (req, res) => {
  * POST /api/social/generate-30-days
  * "1-Click 30-Day Batch Generator" creating an entire month of scheduled posts
  */
-router.post('/generate-30-days', async (req, res) => {
+router.post('/generate-30-days', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.body;
+    const workspaceId = req.workspaceId || req.body.workspaceId;
     const ws = await Workspace.findById(workspaceId);
     const workspaceName = ws?.name || 'VYUHOX';
     const industry = ws?.industry || 'Crypto';
@@ -626,15 +663,19 @@ router.post('/generate-30-days', async (req, res) => {
  * POST /api/social/schedule
  * Schedules or updates a social post
  */
-router.post('/schedule', async (req, res) => {
+router.post('/schedule', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { postId, workspaceId, scheduledAt, platform, caption, hashtags } = req.body;
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+    const { postId, scheduledAt, platform, caption, hashtags } = req.body;
 
     let post;
     if (postId) {
       post = await SocialPost.findById(postId);
       if (!post) {
         return res.status(404).json({ success: false, message: 'Post not found' });
+      }
+      if (req.user?.role !== 'superadmin' && post.workspaceId.toString() !== workspaceId.toString()) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Access to another client post is prohibited.' });
       }
       if (scheduledAt) post.scheduledAt = new Date(scheduledAt);
       if (platform) post.platform = platform;
@@ -668,11 +709,15 @@ router.post('/schedule', async (req, res) => {
  * POST /api/social/posts/:id/approve
  * Approves a drafted post for publishing
  */
-router.post('/posts/:id/approve', async (req, res) => {
+router.post('/posts/:id/approve', authMiddleware, async (req, res) => {
   try {
     const post = await SocialPost.findById(req.params.id);
     if (!post) {
       return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    if (req.user?.role !== 'superadmin' && post.workspaceId.toString() !== req.workspaceId?.toString()) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Access to another client post is prohibited.' });
     }
 
     post.status = 'SCHEDULED';
@@ -692,11 +737,15 @@ router.post('/posts/:id/approve', async (req, res) => {
  * POST /api/social/posts/:id/publish-now
  * Dispatches immediate publication
  */
-router.post('/posts/:id/publish-now', async (req, res) => {
+router.post('/posts/:id/publish-now', authMiddleware, async (req, res) => {
   try {
     const post = await SocialPost.findById(req.params.id);
     if (!post) {
       return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    if (req.user?.role !== 'superadmin' && post.workspaceId.toString() !== req.workspaceId?.toString()) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Access to another client post is prohibited.' });
     }
 
     post.status = 'PUBLISHED';
@@ -734,13 +783,18 @@ router.post('/posts/:id/publish-now', async (req, res) => {
  * POST /api/social/posts/:id/reschedule
  * Updates the scheduled publication date/time
  */
-router.post('/posts/:id/reschedule', async (req, res) => {
+router.post('/posts/:id/reschedule', authMiddleware, async (req, res) => {
   try {
     const { scheduledAt } = req.body;
     const post = await SocialPost.findById(req.params.id);
     if (!post) {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
+
+    if (req.user?.role !== 'superadmin' && post.workspaceId.toString() !== req.workspaceId?.toString()) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Access to another client post is prohibited.' });
+    }
+
     if (scheduledAt) {
       post.scheduledAt = new Date(scheduledAt);
       post.status = 'SCHEDULED';
@@ -757,9 +811,9 @@ router.post('/posts/:id/reschedule', async (req, res) => {
  * GET /api/social/config/:workspaceId
  * Fetch workspace social media & autopilot configuration
  */
-router.get('/config/:workspaceId', async (req, res) => {
+router.get('/config/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.workspaceId || req.params.workspaceId;
     let config = await SocialAccountConfig.findOne({ workspaceId });
     if (!config) {
       config = await SocialAccountConfig.create({ workspaceId });
@@ -775,9 +829,9 @@ router.get('/config/:workspaceId', async (req, res) => {
  * PUT /api/social/config/:workspaceId
  * Update workspace social media & autopilot configuration
  */
-router.put('/config/:workspaceId', async (req, res) => {
+router.put('/config/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.workspaceId || req.params.workspaceId;
     const config = await SocialAccountConfig.findOneAndUpdate(
       { workspaceId },
       { $set: req.body },
@@ -786,6 +840,39 @@ router.put('/config/:workspaceId', async (req, res) => {
     return res.json({ success: true, config });
   } catch (error) {
     console.error('[SocialRoutes] Config update error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/social/voices
+ * Fetch all available studio voice personas
+ */
+router.get('/voices', authMiddleware, (req, res) => {
+  try {
+    const voices = VoiceoverService.getVoiceCatalog();
+    return res.json({ success: true, voices });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/social/voices/preview
+ * Generate instant voice preview sample for dashboard audio player
+ */
+router.post('/voices/preview', authMiddleware, async (req, res) => {
+  try {
+    const { voiceId = 'maya', text } = req.body;
+    const sampleText = text || `Hello! This is ${voiceId.toUpperCase()} speaking. I am ready to represent your brand across calls, reels, and video ads.`;
+    const result = await VoiceoverService.generateVoiceover({
+      text: sampleText,
+      voiceId,
+      tone: 'aggressive_challenger',
+      filename: `preview_${voiceId}_${Date.now()}.wav`,
+    });
+    return res.json(result);
+  } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 });

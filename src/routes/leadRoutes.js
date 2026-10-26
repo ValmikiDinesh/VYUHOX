@@ -95,9 +95,9 @@ router.post('/', authMiddleware, async (req, res) => {
       req.app.get('io').to(workspaceId.toString()).emit('leadCreated', lead);
     }
 
-    // Auto-sync into Omnichannel and auto-contact with bespoke AI script
-    AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, { autoDispatch: true, io: req.app.get('io') }).catch((err) => {
-      console.warn('[LeadRoutes] Auto-sync outreach error:', err.message);
+    // Prepare specialized, customized script for newly created lead without auto-dispatching or auto-fetching into Omnichannel
+    AiOutreachDrafter.draftScriptsForLeads(workspaceId, { leadIds: [lead._id], io: req.app.get('io') }).catch((err) => {
+      console.warn('[LeadRoutes] Script draft error:', err.message);
     });
 
     return res.status(201).json({ success: true, lead });
@@ -206,9 +206,10 @@ router.post('/bulk-import', authMiddleware, async (req, res) => {
 
     const inserted = await Lead.insertMany(preparedLeads);
 
-    // Auto-sync into Omnichannel and auto-contact with bespoke AI scripts
-    AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, { autoDispatch: true, io: req.app.get('io') }).catch((err) => {
-      console.warn('[LeadRoutes] Bulk auto-sync outreach error:', err.message);
+    // Prepare specialized, customized scripts for newly bulk-created leads without auto-dispatching
+    const insertedIds = inserted.map((l) => l._id);
+    AiOutreachDrafter.draftScriptsForLeads(workspaceId, { leadIds: insertedIds, io: req.app.get('io') }).catch((err) => {
+      console.warn('[LeadRoutes] Bulk script draft error:', err.message);
     });
 
     return res.status(201).json({ success: true, count: inserted.length, leads: inserted });
@@ -247,9 +248,10 @@ router.post('/import', authMiddleware, async (req, res) => {
 
     const inserted = await Lead.insertMany(preparedLeads);
 
-    // Auto-sync into Omnichannel and auto-contact with bespoke AI scripts
-    AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, { autoDispatch: true, io: req.app.get('io') }).catch((err) => {
-      console.warn('[LeadRoutes] Import auto-sync outreach error:', err.message);
+    // Prepare specialized, customized scripts for newly imported leads without auto-dispatching
+    const importedIds = inserted.map((l) => l._id);
+    AiOutreachDrafter.draftScriptsForLeads(workspaceId, { leadIds: importedIds, io: req.app.get('io') }).catch((err) => {
+      console.warn('[LeadRoutes] Import script draft error:', err.message);
     });
 
     return res.status(201).json({ success: true, count: inserted.length, leads: inserted });
@@ -333,7 +335,93 @@ const handleCsvExport = async (req, res) => {
   }
 };
 
-router.get('/export', authMiddleware, handleCsvExport);
-router.get('/export/csv', authMiddleware, handleCsvExport);
+// POST /api/leads/:id/approve-and-send - Client reviews, edits, and approves sending message to an individual lead
+router.post('/:id/approve-and-send', authMiddleware, async (req, res) => {
+  try {
+    const { channel = 'AUTO', customText = '', subject = '', senderName = '' } = req.body;
+    const workspaceId = req.workspaceId;
+    const leadId = req.params.id;
+
+    const result = await AiOutreachDrafter.approveAndSendLead({
+      workspaceId,
+      leadId,
+      channel,
+      customText,
+      subject,
+      senderName,
+      io: req.app.get('io'),
+    });
+
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('[LeadRoutes] Approve and send single lead error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/leads/approve-and-send-all - 1-Click bulk approve & send all pending/selected leads at once
+router.post('/approve-and-send-all', authMiddleware, async (req, res) => {
+  try {
+    const { leadIds = [], channel = 'AUTO' } = req.body;
+    const workspaceId = req.workspaceId;
+
+    const result = await AiOutreachDrafter.approveAndSendAllLeads({
+      workspaceId,
+      leadIds,
+      channel,
+      io: req.app.get('io'),
+    });
+
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('[LeadRoutes] 1-Click approve and send all error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/leads/:id/generate-draft - Regenerate or update customized script for a single lead
+router.post('/:id/generate-draft', authMiddleware, async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId;
+    const leadId = req.params.id;
+
+    const lead = await Lead.findOne({ _id: leadId, workspaceId });
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+    const catalog = await AiOutreachDrafter.extractOwnerCatalog(workspaceId);
+    const drafts = await AiOutreachDrafter.draftForLead({ lead, catalog, customGoal: req.body?.customGoal || '' });
+
+    lead.metadata = {
+      ...(lead.metadata || {}),
+      outreachDrafts: drafts,
+      outreachStatus: lead.stage === 'Contacted' ? 'SENT' : 'AWAITING_APPROVAL',
+      draftedAt: new Date(),
+    };
+    await lead.save();
+
+    return res.json({ success: true, lead, drafts });
+  } catch (error) {
+    console.error('[LeadRoutes] Generate draft error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/leads/generate-drafts-all - Generate customized scripts for all pending leads
+router.post('/generate-drafts-all', authMiddleware, async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId;
+    const { leadIds = [] } = req.body;
+
+    const result = await AiOutreachDrafter.draftScriptsForLeads(workspaceId, {
+      leadIds,
+      io: req.app.get('io'),
+    });
+
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('[LeadRoutes] Generate drafts all error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 export default router;

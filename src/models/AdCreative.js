@@ -23,17 +23,55 @@ const adCreativeSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    bodyCopy: {
+      type: String,
+    },
+    description: {
+      type: String,
+      default: '',
+    },
     ctaText: {
       type: String,
       default: 'Book Strategy Call',
+    },
+    callToAction: {
+      type: String,
+      default: 'LEARN_MORE',
     },
     destinationUrl: {
       type: String,
       default: 'https://growth.hedgex.io/demo',
     },
+    mediaType: {
+      type: String,
+      enum: ['IMAGE', 'VIDEO', 'CAROUSEL'],
+      default: 'IMAGE',
+    },
     mediaUrl: {
       type: String,
       default: '/media/hedgex_reel.jpg',
+    },
+    thumbnailUrl: {
+      type: String,
+      default: '',
+    },
+    aspectRatio: {
+      type: String,
+      default: '1:1',
+    },
+    status: {
+      type: String,
+      enum: ['DRAFT', 'ACTIVE', 'PAUSED', 'DISAPPROVED', 'HEALING', 'ARCHIVED'],
+      default: 'DRAFT',
+    },
+    approvalStatus: {
+      type: String,
+      enum: ['PENDING_CLIENT_REVIEW', 'CLIENT_APPROVED', 'REJECTED_OR_SKIPPED'],
+      default: 'PENDING_CLIENT_REVIEW',
+    },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     platformFormat: {
       type: String,

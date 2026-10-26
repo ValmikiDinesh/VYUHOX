@@ -234,6 +234,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
   const [promptInjectBusinessData, setPromptInjectBusinessData] = useState(true);
   const [promptPublishMode, setPromptPublishMode] = useState('AUTOMATIC_NOW');
   const [promptScheduledDate, setPromptScheduledDate] = useState('');
+  const [promptPreferredVisualProvider, setPromptPreferredVisualProvider] = useState('AUTO_ROTATE');
   const [isPromptGenerating, setIsPromptGenerating] = useState(false);
 
   const handleFileSelect = (e) => {
@@ -342,6 +343,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
         tone: promptTone,
         publishImmediately: promptPublishMode === 'AUTOMATIC_NOW',
         scheduledAt: promptPublishMode === 'SCHEDULED_AUTOPILOT' && promptScheduledDate ? new Date(promptScheduledDate) : null,
+        preferredVisualProvider: promptPreferredVisualProvider === 'AUTO_ROTATE' ? null : promptPreferredVisualProvider,
       });
 
       if (res.success && res.post) {
@@ -3262,8 +3264,8 @@ export default function SocialStudio({ activeWorkspace, socket }) {
               </div>
             </div>
 
-            {/* Voice Talent, Language, and Tone Selectors */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+            {/* Voice Talent, Language, Tone & Visual Engine Selectors */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
                   🎙️ Studio Voice Talent
@@ -3344,6 +3346,33 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   <option value="visionary_founder">Visionary Founder</option>
                   <option value="educational_breakdown">Educational Breakdown</option>
                   <option value="urgent_fomo">Urgent FOMO</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                  🎨 Visual AI Engine
+                </label>
+                <select
+                  value={promptPreferredVisualProvider}
+                  onChange={(e) => setPromptPreferredVisualProvider(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#0F172A',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    color: '#EC4899',
+                    fontSize: '0.76rem',
+                    fontWeight: '700',
+                  }}
+                >
+                  <option value="AUTO_ROTATE">⚡ Auto-Rotating Engine</option>
+                  <option value="NANO_BANANA_GPU">Nano Banana / SDXL</option>
+                  <option value="GOOGLE_FLOW_IMAGEN">Google Flow / Imagen 3</option>
+                  <option value="POLLINATIONS_FLUX">Pollinations FLUX.1</option>
+                  <option value="HUGGINGFACE_FLUX">HuggingFace Schnell</option>
+                  <option value="DYNAMIC_VECTOR_GRAPHIC">Dynamic Vector SVG</option>
                 </select>
               </div>
             </div>

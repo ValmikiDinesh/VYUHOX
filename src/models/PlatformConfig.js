@@ -97,9 +97,25 @@ const platformConfigSchema = new mongoose.Schema(
         quality: { type: String, default: 'standard' },
         isActive: { type: Boolean, default: false },
       },
+      nanoBananaGpu: {
+        apiKey: { type: String, default: '' },
+        model: { type: String, default: 'sdxl-turbo' },
+        isActive: { type: Boolean, default: true },
+      },
+      googleFlowVision: {
+        apiKey: { type: String, default: '' },
+        model: { type: String, default: 'imagen-3' },
+        isActive: { type: Boolean, default: true },
+      },
+      falAiFlux: {
+        apiKey: { type: String, default: '' },
+        model: { type: String, default: 'fal-ai/flux-pro' },
+        isActive: { type: Boolean, default: true },
+      },
       shortVideoEngine: {
         defaultBrollTheme: { type: String, default: 'cyber_crypto_matrix' },
         renderEngine: { type: String, default: 'HTML5_Canvas_Compositor' },
+        defaultVoiceId: { type: String, default: 'maya' },
         watermarkEnabled: { type: Boolean, default: false },
         isActive: { type: Boolean, default: true },
       },

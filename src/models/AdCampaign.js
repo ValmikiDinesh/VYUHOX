@@ -34,6 +34,10 @@ const adCampaignSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    name: {
+      type: String,
+      trim: true,
+    },
     objective: {
       type: String,
       enum: [
@@ -50,9 +54,25 @@ const adCampaignSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED', 'DISAPPROVED', 'HEALING'],
-      default: 'ACTIVE',
+      enum: ['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED', 'DISAPPROVED', 'HEALING'],
+      default: 'DRAFT',
       index: true,
+    },
+    reviewStatus: {
+      type: String,
+      enum: ['AWAITING_CLIENT_APPROVAL', 'APPROVED_BY_CLIENT', 'REJECTED_BY_CLIENT', 'PUBLISHED'],
+      default: 'AWAITING_CLIENT_APPROVAL',
+      index: true,
+    },
+    approvalDetails: {
+      isApprovedByClient: { type: Boolean, default: false },
+      approvedAt: { type: Date },
+      requiresClientPermission: { type: Boolean, default: true },
+      permissionNote: { type: String },
+    },
+    strategyBrief: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     dailyBudget: {
       type: Number,

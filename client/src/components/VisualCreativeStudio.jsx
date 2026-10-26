@@ -629,8 +629,13 @@ ${slidesHtml}
                 className="input-glass"
                 style={{ height: '36px', fontSize: '0.8rem' }}
               >
+                <option value="auto">⚡ Auto-Rotating Zero-Limit Engine (Multi-Tool Failover)</option>
+                <option value="banana">Nano Banana / Serverless SDXL GPU</option>
+                <option value="google-flow">Google Flow / Imagen 3 Vision Engine</option>
                 <option value="flux">FLUX.1 Schnell (Fast &amp; High Detail - Recommended)</option>
                 <option value="flux-realism">FLUX Photorealism (Commercial Marketing)</option>
+                <option value="flux-pro">HuggingFace FLUX.1 Schnell</option>
+                <option value="fal">Fal.ai / Replicate Fast Flux</option>
                 <option value="turbo">SDXL Turbo (Ultra-Fast)</option>
                 <option value="dall-e-3">OpenAI DALL-E 3 (Requires API Key in Admin)</option>
               </select>

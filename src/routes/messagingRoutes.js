@@ -11,7 +11,7 @@ import { SentimentClassifier } from '../services/messaging/SentimentClassifier.j
 import { dncComplianceService } from '../services/compliance/DNCComplianceService.js';
 import { AiOutreachDrafter } from '../services/messaging/AiOutreachDrafter.js';
 import { AiDealCloser } from '../services/messaging/AiDealCloser.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, verifyWorkspaceAccess } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -19,9 +19,9 @@ const router = express.Router();
  * GET /api/messaging/conversations/:workspaceId
  * List all conversation threads with channel badges, latest messages, sentiment tags, and lead details.
  */
-router.get('/conversations/:workspaceId', async (req, res) => {
+router.get('/conversations/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.workspaceId || req.params.workspaceId;
     const { channel, sentiment, search } = req.query;
 
     const query = { workspaceId };
@@ -37,15 +37,6 @@ router.get('/conversations/:workspaceId', async (req, res) => {
       .sort({ lastMessageAt: -1 })
       .lean();
 
-    // Guarantee that 100% of scraped CRM leads are visible in Omnichannel Inbox
-    const leadsCount = await Lead.countDocuments({ workspaceId });
-    if (conversations.length < leadsCount) {
-      await AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, { autoDispatch: false });
-      conversations = await Conversation.find(query)
-        .populate('leadId')
-        .sort({ lastMessageAt: -1 })
-        .lean();
-    }
 
     if (search) {
       const s = search.toLowerCase();
@@ -73,9 +64,9 @@ router.get('/conversations/:workspaceId', async (req, res) => {
  * POST /api/messaging/sync-scraped-leads/:workspaceId
  * Syncs scraped CRM leads into Omnichannel Outreach and synthesizes bespoke AI drafts for Email, WhatsApp, Telegram & SMS
  */
-router.post('/sync-scraped-leads/:workspaceId', async (req, res) => {
+router.post('/sync-scraped-leads/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.workspaceId || req.params.workspaceId;
     const result = await AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, req.app.get('io'));
     return res.json({ success: true, ...result });
   } catch (error) {
@@ -85,13 +76,105 @@ router.post('/sync-scraped-leads/:workspaceId', async (req, res) => {
 });
 
 /**
+ * POST /api/messaging/start-chat-with-lead
+ * Initiates an Omnichannel conversation with a specific lead from Leads data.
+ * Fetches/creates the thread on demand so the dashboard owner can immediately chat.
+ */
+router.post('/start-chat-with-lead', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+    const { leadId, channel = 'WHATSAPP', initialMessage = '', senderName = '' } = req.body;
+
+    if (!workspaceId || !leadId) {
+      return res.status(400).json({ success: false, message: 'workspaceId and leadId are required' });
+    }
+
+    const lead = await Lead.findOne({ _id: leadId, workspaceId });
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found in this client account' });
+    }
+
+    const targetChannel = (channel || 'WHATSAPP').toUpperCase();
+
+    // 1. Find or create conversation thread on demand
+    let conv = await Conversation.findOne({ workspaceId, leadId });
+    if (!conv) {
+      conv = await Conversation.create({
+        workspaceId,
+        leadId,
+        activeChannel: targetChannel,
+        lastMessageSnippet: initialMessage ? initialMessage.substring(0, 100) : 'Chat initiated',
+        lastMessageAt: new Date(),
+        unreadCount: 0,
+        sentiment: 'NEUTRAL',
+        aiSummary: `Direct conversation with ${lead.name} (${lead.title || 'Decision Maker'}) at ${lead.company}`,
+      });
+    }
+
+    // 2. If initial message was supplied, send it through outbound flow
+    let messageRecord = null;
+    if (initialMessage && initialMessage.trim()) {
+      messageRecord = await Message.create({
+        conversationId: conv._id,
+        workspaceId,
+        leadId,
+        direction: 'OUTBOUND',
+        channel: targetChannel,
+        senderName: senderName || 'Dashboard Owner (You)',
+        content: initialMessage.trim(),
+        status: 'DELIVERED',
+      });
+
+      conv.lastMessageSnippet = initialMessage.trim().substring(0, 100);
+      conv.lastMessageAt = new Date();
+      conv.activeChannel = targetChannel;
+      await conv.save();
+
+      lead.stage = 'Contacted';
+      lead.status = 'CONTACTED';
+      lead.lastContactedAt = new Date();
+      await lead.save();
+    }
+
+    const populatedConv = await Conversation.findById(conv._id).populate('leadId').lean();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(workspaceId.toString()).emit('conversation:updated', { conversation: populatedConv });
+      if (messageRecord) {
+        io.to(workspaceId.toString()).emit('message:sent', { message: messageRecord, conversation: populatedConv });
+      }
+    }
+
+    return res.json({
+      success: true,
+      conversationId: conv._id,
+      conversation: populatedConv,
+      message: messageRecord,
+    });
+  } catch (error) {
+    console.error('[MessagingRoutes] Start chat with lead error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * GET /api/messaging/conversations/:id/messages
  * Returns the full chat history for a thread in chronological order.
  */
-router.get('/conversations/:id/messages', async (req, res) => {
+router.get('/conversations/:id/messages', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const messages = await Message.find({ conversationId: id })
+    const conv = await Conversation.findById(id);
+    if (!conv) {
+      return res.status(404).json({ success: false, message: 'Conversation thread not found' });
+    }
+
+    if (req.user?.role !== 'superadmin' && conv.workspaceId.toString() !== req.workspaceId?.toString()) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Access to another client conversation is prohibited.' });
+    }
+
+    const messages = await Message.find({ conversationId: id, workspaceId: conv.workspaceId })
       .sort({ createdAt: 1 })
       .lean();
 
@@ -113,9 +196,10 @@ router.get('/conversations/:id/messages', async (req, res) => {
  * POST /api/messaging/send
  * Sends outbound message through appropriate gateway (WhatsApp, Telegram, SMS, Email).
  */
-router.post('/send', async (req, res) => {
+router.post('/send', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { conversationId, leadId, workspaceId, channel, content, mediaUrl, senderName } = req.body;
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+    const { conversationId, leadId, channel, content, mediaUrl, senderName } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({ success: false, message: 'Message content cannot be empty' });
@@ -123,13 +207,13 @@ router.post('/send', async (req, res) => {
 
     let conv = null;
     if (conversationId) {
-      conv = await Conversation.findById(conversationId);
+      conv = await Conversation.findOne({ _id: conversationId, workspaceId });
     }
 
     let lead = null;
     const effectiveLeadId = leadId || conv?.leadId;
     if (effectiveLeadId) {
-      lead = await Lead.findById(effectiveLeadId);
+      lead = await Lead.findOne({ _id: effectiveLeadId, workspaceId });
     }
 
     const effectiveWorkspaceId = workspaceId || conv?.workspaceId || lead?.workspaceId;
@@ -398,9 +482,10 @@ async function processInboundMessage({ workspaceId, leadId, channel, content, se
  * POST /api/messaging/bulk-dispatch
  * Bulk dispatch customized AI outreach to selected leads with optional custom campaign pitch
  */
-router.post('/bulk-dispatch', async (req, res) => {
+router.post('/bulk-dispatch', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId, leadIds = [], channel = 'AUTO', customPrompt = '' } = req.body;
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+    const { leadIds = [], channel = 'AUTO', customPrompt = '' } = req.body;
     if (!workspaceId || !Array.isArray(leadIds) || leadIds.length === 0) {
       return res.status(400).json({ success: false, message: 'workspaceId and leadIds array are required' });
     }
@@ -503,9 +588,9 @@ router.post('/ai-suggest', async (req, res) => {
  * Drip Sequence Management
  */
 // GET /api/messaging/sequences/:workspaceId
-router.get('/sequences/:workspaceId', async (req, res) => {
+router.get('/sequences/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.workspaceId || req.params.workspaceId;
     let sequences = await DripSequence.find({ workspaceId }).lean();
     if (sequences.length === 0) {
       // Auto-create initial default email drip sequence
@@ -526,9 +611,9 @@ router.get('/sequences/:workspaceId', async (req, res) => {
 });
 
 // POST /api/messaging/sequences/:workspaceId/enroll
-router.post('/sequences/:workspaceId/enroll', async (req, res) => {
+router.post('/sequences/:workspaceId/enroll', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.workspaceId || req.params.workspaceId;
     const { leadId, sequenceId } = req.body;
     const result = await EmailSequenceService.enrollLead(workspaceId, leadId, sequenceId);
     return res.json(result);

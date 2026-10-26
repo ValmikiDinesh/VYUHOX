@@ -55,6 +55,12 @@ const gtmStrategySchema = new mongoose.Schema(
       enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'],
       default: 'ACTIVE',
     },
+    // Autonomous Growth Engine Mode
+    growthEngine: {
+      type: String,
+      enum: ['OUTBOUND_B2B', 'PAID_ADS_D2C', 'HYBRID', 'AUTO_RECOMMENDED'],
+      default: 'AUTO_RECOMMENDED',
+    },
     // Phase 7: Two-Sided Trade Engine & Dual Pipelines
     tradeMode: {
       type: String,

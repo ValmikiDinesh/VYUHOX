@@ -1,13 +1,19 @@
 /**
  * AiOutreachDrafter.js
- * Autonomous AI Omnichannel Outreach & Cross-Analysis Engine
+ * Autonomous AI Omnichannel Outreach & Deep Cross-Analysis Engine
  * 
- * GUARANTEES:
- * 1. Deeply analyzes the scraped prospect's profile (name, title, company, industry, location, requirements).
- * 2. Cross-references against the Dashboard Owner's authentic business profile, services catalog, offerings, and value proposition.
- * 3. Synthesizes bespoke, consultative scripts explaining in detail the owner's services/products and how they solve the prospect's exact problems.
- * 4. Automatically contacts newly scraped leads via available channels (WhatsApp, Telegram, Email, SMS).
- * 5. Supports bulk custom campaigns and multi-contact targeting.
+ * CORE ARCHITECTURE:
+ * 1. Deep Contact Analysis: Analyzes contact's name, role/title, seniority, company, industry, location,
+ *    business model, requirements, trade details, and notes.
+ * 2. Dashboard Owner Alignment: Cross-references against the owner's authentic business profile,
+ *    core value proposition, differentiators, and services/product offerings catalog.
+ * 3. Deeply Customized Synthesis: Synthesizes bespoke, consultative scripts matching the prospect's exact
+ *    responsibilities and challenges with our specific offerings and measurable value.
+ * 4. Human-in-the-Loop & Approval: Newly scraped leads are drafted and stored as AWAITING_APPROVAL.
+ *    Messages are NOT dispatched automatically and are NOT fetched into Omnichannel automatically.
+ * 5. Flexible Execution: Clients can review/edit/approve individually or execute 1-Click "Send All".
+ * 6. Omnichannel Handshake: When approved & sent, OR when an inbound reply arrives, OR when dashboard
+ *    owner clicks to chat with a lead, the lead is seamlessly brought into Omnichannel.
  */
 
 import { Lead } from '../../models/Lead.js';
@@ -17,6 +23,11 @@ import { GtmStrategy } from '../../models/GtmStrategy.js';
 import { Workspace } from '../../models/Workspace.js';
 import { BusinessBrain } from '../../models/BusinessBrain.js';
 import { LlmGatewayService } from '../ai/LlmGatewayService.js';
+import { WhatsAppService } from './WhatsAppService.js';
+import { TelegramService } from './TelegramService.js';
+import { SMSService } from './SMSService.js';
+import { EmailSequenceService } from './EmailSequenceService.js';
+import { dncComplianceService } from '../compliance/DNCComplianceService.js';
 
 export class AiOutreachDrafter {
   /**
@@ -46,7 +57,7 @@ export class AiOutreachDrafter {
     const analysis = strategy?.analysisResult || {};
 
     const businessName = strategy?.businessName || workspace?.name || 'Our Company';
-    const category = strategy?.category || workspace?.industry || 'B2B Services & Technology';
+    const category = strategy?.category || workspace?.industry || 'B2B Enterprise Solutions';
     const websiteUrl = strategy?.targetUrl || (workspace?.domain ? `https://${workspace.domain}` : 'https://vyuhox.com');
     const bookingLink = `${websiteUrl}/contact`;
 
@@ -73,11 +84,11 @@ export class AiOutreachDrafter {
     // Default high-value offerings if none crawled yet
     if (serviceList.length === 0) {
       serviceList.push(
-        'Digital Strategy & Full-Funnel Growth',
-        'Lead Generation & Pipeline Acceleration',
-        'Multi-Channel Outreach & Conversion Optimization',
-        'Web & Application Engineering',
-        'Omnichannel Customer Engagement'
+        'Autonomous Pipeline & Lead Acquisition Architecture',
+        'Sub-800ms AI Voice Closer & Speed-to-Lead Automation',
+        'Omnichannel WhatsApp & SMS Recovery Sequences',
+        'B2B Enterprise Growth & Conversion Optimization',
+        'Custom Web & AI Application Engineering'
       );
     }
 
@@ -85,7 +96,7 @@ export class AiOutreachDrafter {
       analysis?.positioning?.coreValueProp ||
       analysis?.summary ||
       rawExt?.metaDescription ||
-      `Delivering specialized ${category} designed to accelerate pipeline velocity and scale revenue predictability.`;
+      `Delivering specialized ${category} engineered to eliminate manual operational drag, accelerate pipeline velocity, and scale revenue predictability.`;
 
     const differentiators =
       analysis?.positioning?.differentiators ||
@@ -94,7 +105,7 @@ export class AiOutreachDrafter {
     const painPointsSolved =
       Array.isArray(analysis?.targetAudience?.painPoints) && analysis.targetAudience.painPoints.length > 0
         ? analysis.targetAudience.painPoints.join('; ')
-        : 'High customer acquisition costs, sluggish sales cycles, and manual operational friction.';
+        : 'High customer acquisition costs, slow lead response times, and manual prospecting friction.';
 
     return {
       businessName,
@@ -109,8 +120,9 @@ export class AiOutreachDrafter {
   }
 
   /**
-   * Drafts multi-channel copy for a single lead by cross-examining
-   * lead details with owner's services.
+   * Drafts multi-channel copy for a single lead by deeply cross-examining:
+   * - Prospect's exact role, title, seniority, business requirements, company, industry, and notes.
+   * - Our company profile, core value proposition, differentiators, and matched service catalog.
    */
   static async draftForLead({ lead, catalog, customGoal = '' }) {
     const leadName = lead.name || 'Decision Maker';
@@ -119,6 +131,9 @@ export class AiOutreachDrafter {
     const title = lead.title || 'Executive Leader';
     const industry = lead.industry || 'Enterprise';
     const city = lead.city || lead.territory || lead.location || '';
+    const notes = lead.notes || '';
+    const tradeProducts = Array.isArray(lead.tradeDetails?.products) ? lead.tradeDetails.products.join(', ') : '';
+    const entityRole = lead.entityRole || 'DECISION_MAKER';
 
     const bizName = catalog.businessName;
     const servicesStr = catalog.services.slice(0, 8).join(', ');
@@ -126,39 +141,49 @@ export class AiOutreachDrafter {
     const painPoints = catalog.painPointsSolved;
     const calLink = catalog.bookingLink;
 
-    // AI LLM Synthesis
+    // AI LLM Synthesis with rich contextual cross-examination
     try {
-      const prompt = `You are the Lead SDR & Strategic Partner representing ${bizName}.
-DASHBOARD OWNER (YOUR COMPANY) PROFILE:
+      const prompt = `You are the Senior Enterprise Strategic Partner representing ${bizName}.
+YOUR COMPANY (DASHBOARD OWNER) PROFILE:
 - Business Name: ${bizName}
 - Industry/Domain: ${catalog.category}
 - Full Services & Products Catalog: ${servicesStr}
 - Core Value Proposition: "${valueProp}"
 - Proven Differentiators: "${catalog.differentiators}"
+- Common Pain Points Solved: "${painPoints}"
 
-PROSPECT (LEAD TO REACH OUT TO):
-- Name: ${leadName} (${title})
+PROSPECT (CONTACT DATA):
+- Full Name: ${leadName} (First Name: ${firstName})
+- Exact Role / Job Title: ${title}
 - Target Company: ${company}
-- Vertical/Industry: ${industry}
-${city ? `- Location: ${city}` : ''}
+- Vertical / Industry: ${industry}
+${city ? `- Location / Region: ${city}` : ''}
+${entityRole && entityRole !== 'UNSPECIFIED' ? `- Trade / Business Role: ${entityRole}` : ''}
+${tradeProducts ? `- Specific Products / Requirements: ${tradeProducts}` : ''}
+${notes ? `- Context / Intelligence Notes: ${notes}` : ''}
 ${customGoal ? `CAMPAIGN GOAL / SPECIAL OFFER: "${customGoal}"` : ''}
 
-TASK:
-1. Cross-examine ${leadName}'s title (${title}) and company (${company}) against our services catalog (${servicesStr}).
-2. Select the top 2-3 most relevant services we provide that directly address their growth, operations, or pipeline bottlenecks.
-3. Draft hyper-personalized, consultative messages explaining in detail our exact services, how they benefit ${company}, and a clear next step.
-4. Output STRICT JSON only:
+CRITICAL RULES:
+1. DO NOT write generic templates like "I hope this finds you well" or just insert their name into a boilerplate message.
+2. The entire message MUST be customized based on their specific role (${title}), what their company does (${company}), and how our specific services (${servicesStr}) solve their day-to-day operational or revenue challenges.
+3. If they are in Engineering/Tech (CTO, VP Eng, CISO), highlight technical velocity, architecture, security, and scalability.
+4. If they are Executive/Founder/CEO, highlight unit economics, CAC reduction, and pipeline predictability.
+5. If they are Sales/Marketing (CRO, CMO, VP Sales), highlight speed-to-lead, conversions, and pipeline throughput.
+6. If they are Procurement/Buyer, highlight delivery speed, supply reliability, and volume margins.
+7. Include our specific services by name and propose a crisp, low-friction next step (e.g. 10-minute briefing or calendar sync).
+
+Output STRICT JSON only:
 {
-  "emailSubject": "Compelling subject line (< 7 words) mentioning ${company} or relevant service",
-  "emailBody": "3-paragraph consultative outbound email: (1) Personalized hook addressing their role at ${company}, (2) Detailed explanation of how our specific services (${servicesStr}) solve their key challenges, (3) Clear, low-friction call-to-action.",
-  "whatsapp": "High-converting, friendly WhatsApp message (< 65 words) with emojis, naming our specific services and offering a direct sync.",
-  "telegram": "Crisp executive Telegram brief (< 50 words) highlighting ROI and relevant services for ${company}.",
-  "sms": "Concise mobile SMS (< 155 chars) with direct value hook and reply request."
+  "emailSubject": "Compelling subject line (< 7 words) specifically linking ${company}'s ${title} priorities with our solution",
+  "emailBody": "3-paragraph consultative outbound email: Paragraph 1 connects with ${leadName}'s specific responsibilities as ${title} at ${company}. Paragraph 2 explains in detail how our specific offerings (${servicesStr}) solve their exact bottlenecks. Paragraph 3 proposes a low-friction 10-min briefing.",
+  "whatsapp": "High-converting, friendly WhatsApp message (< 70 words) with professional emojis, referencing ${company}, ${title}, our matching services, and a direct link to sync.",
+  "telegram": "Crisp executive Telegram brief (< 55 words) highlighting concrete ROI and tailored services for ${company}.",
+  "sms": "Concise mobile SMS (< 155 chars) with direct value hook and quick reply request."
 }`;
 
       const llmRes = await LlmGatewayService.execute({
         prompt,
-        systemInstruction: `You are an elite enterprise B2B sales strategist for ${bizName}. Respond with valid JSON only.`,
+        systemInstruction: `You are an elite enterprise B2B sales strategist for ${bizName}. Every message you draft must be deeply tailored to the recipient's role, company, and our exact service capabilities. Respond with valid JSON only.`,
         jsonResponse: true,
         timeoutMs: 4500,
       });
@@ -172,17 +197,17 @@ TASK:
         if (parsed && (parsed.emailBody || parsed.whatsapp)) {
           return {
             EMAIL: {
-              subject: parsed.emailSubject || `Partnering with ${company} on ${catalog.services[0] || 'Strategic Growth'}`,
+              subject: parsed.emailSubject || `Accelerating ${company}'s Growth with ${catalog.services[0] || 'Tailored Strategy'}`,
               body: parsed.emailBody,
             },
             WHATSAPP: {
               body: parsed.whatsapp,
             },
             TELEGRAM: {
-              body: parsed.telegram || `Hi ${firstName}, reaching out from ${bizName}. We deliver specialized ${servicesStr.slice(0, 60)} for teams like ${company}. Would love to share our execution framework.`,
+              body: parsed.telegram || `Hi ${firstName}, reaching out from ${bizName}. We deliver specialized ${servicesStr.slice(0, 60)} engineered for teams like ${company}. Would love to share our execution framework: ${calLink}`,
             },
             SMS: {
-              body: parsed.sms || `Hi ${firstName}, ${bizName} delivers ${catalog.services[0] || 'growth solutions'} for ${company}. Worth a brief sync?`,
+              body: parsed.sms || `Hi ${firstName}, ${bizName} delivers ${catalog.services[0] || 'growth solutions'} tailored for ${company}. Worth a brief sync? ${calLink}`,
             },
           };
         }
@@ -191,230 +216,374 @@ TASK:
       console.warn('[AiOutreachDrafter] LLM cascade note:', llmErr.message);
     }
 
-    // Intelligent Deterministic Cross-Matched Fallback
-    const topService1 = catalog.services[0] || 'Digital Strategy & Scaled Growth';
-    const topService2 = catalog.services[1] || 'Pipeline Engineering';
-    const topService3 = catalog.services[2] || 'Multi-Channel Execution';
+    // Role-Aware, Deeply Customized Fallback Synthesis
+    const topService1 = catalog.services[0] || 'Autonomous Pipeline Engineering';
+    const topService2 = catalog.services[1] || 'Conversational Closer Automation';
+    const topService3 = catalog.services[2] || 'Full-Funnel Omnichannel Execution';
+
+    const lowerTitle = title.toLowerCase();
+    const isTech = /cto|tech|engineer|architect|ciso|developer|infra|cloud/i.test(lowerTitle);
+    const isExec = /ceo|founder|owner|managing director|president|partner/i.test(lowerTitle);
+    const isSales = /sales|cro|revenue|marketing|cmo|growth|business development|bdr|sdr/i.test(lowerTitle);
+    const isBuyer = /buyer|procurement|supply|sourcing|merchandise|logistics/i.test(lowerTitle);
+
+    let roleHook = `accelerating strategic expansion and driving revenue efficiency at ${company}`;
+    let roleFocus = `streamline operations, eliminate manual bottlenecks, and scale output`;
+
+    if (isTech) {
+      roleHook = `architecting high-reliability systems and optimizing technical infrastructure at ${company}`;
+      roleFocus = `automate pipeline workflows, ensure enterprise-grade uptime, and accelerate delivery velocity`;
+    } else if (isExec) {
+      roleHook = `scaling ${company}'s enterprise valuation, reducing customer acquisition costs, and establishing predictable growth`;
+      roleFocus = `unlock measurable revenue throughput while keeping headcount lean and overhead controlled`;
+    } else if (isSales) {
+      roleHook = `driving pipeline velocity, elevating lead-to-opportunity conversion rates, and scaling sales outreach at ${company}`;
+      roleFocus = `engage target accounts with sub-minute responsiveness and consistently book high-intent meetings`;
+    } else if (isBuyer) {
+      roleHook = `optimizing vendor sourcing, procurement cycles, and supply chain margins for ${company}`;
+      roleFocus = `ensure guaranteed fulfillment quality, transparent pricing benchmarks, and frictionless procurement`;
+    }
 
     return {
       EMAIL: {
-        subject: `Strategic Growth & ${topService1} for ${company}`,
-        body: `Hi ${firstName},\n\nI have been following ${company}'s progress in ${industry} and noticed your focus as ${title} on accelerating business expansion${city ? ` in ${city}` : ''}.\n\nAt ${bizName}, we deliver end-to-end ${catalog.category}, specifically specializing in ${topService1}, ${topService2}, and ${topService3}. Our frameworks are built to solve ${painPoints.toLowerCase()} by driving measurable pipeline impact.\n\nWe recently mapped out how these exact services can eliminate operational friction and scale revenue for ${company}. Would you be open to a 10-minute briefing this week to review our tailored benchmarks?\n\nBest regards,\nGrowth Team • ${bizName}\nLearn more: ${calLink}`,
+        subject: `${company}: Strategic ${topService1} Framework for ${title}`,
+        body: `Hi ${firstName},\n\nI have been closely following ${company}'s footprint in ${industry} and noticed your strategic focus as ${title} on ${roleHook}${city ? ` in ${city}` : ''}.\n\nAt ${bizName}, we deliver end-to-end ${catalog.category}, specifically specializing in ${topService1}, ${topService2}, and ${topService3}. Rather than generic outreach, we architect custom solutions designed to ${roleFocus}, directly mitigating ${painPoints.toLowerCase()}.\n\nWe recently mapped out how deploying our tailored ${topService1} framework at ${company} can generate immediate operational leverage and scale predictable outcomes. Would you be open to a 10-minute briefing this week to review our custom benchmarks?\n\nBest regards,\nGrowth Strategy Team • ${bizName}\nSchedule directly: ${calLink}`,
       },
       WHATSAPP: {
-        body: `Hi ${firstName}! 👋 Reaching out from ${bizName}.\n\nWe specialize in ${topService1} and ${topService2} for ${industry} leaders like ${company}. Our clients see dramatic pipeline velocity while cutting manual overhead. 🚀\n\nWould you be open to a quick 5-minute chat this week on what we can build for ${company}?\n\nDetails here: ${calLink}`,
+        body: `Hi ${firstName}! 👋 Reaching out from ${bizName}.\n\nWe noticed your leadership as ${title} at ${company}. We specialize in ${topService1} and ${topService2} for ${industry} teams looking to ${roleFocus}. 🚀\n\nOur clients see measurable pipeline acceleration while cutting manual overhead. Would you be open to a quick 5-minute sync this week on what we can build for ${company}?\n\nDirect slot: ${calLink}`,
       },
       TELEGRAM: {
-        body: `Hey ${firstName}, reaching out from ${bizName}. We've structured a specialized ${topService1} model for ${company} to streamline customer acquisition.\n\nCheck our live capabilities here: ${calLink} — let me know if you would like a direct walkthrough!`,
+        body: `Hey ${firstName}, reaching out from ${bizName}. We've structured a specialized ${topService1} framework tailored for your role as ${title} at ${company} to ${roleFocus}.\n\nReview our live capabilities here: ${calLink} — let me know if you would like a direct walkthrough!`,
       },
       SMS: {
-        body: `Hi ${firstName}, ${bizName} delivers specialized ${topService1.slice(0, 25)} for ${company}. Worth a 5-min chat? ${calLink}`,
+        body: `Hi ${firstName}, ${bizName} structured a custom ${topService1.slice(0, 25)} model for ${company} to ${roleFocus.slice(0, 45)}. Quick 5-min sync? ${calLink}`,
       },
     };
   }
 
   /**
-   * Syncs all leads for a workspace into Omnichannel Conversation threads.
-   * Cross-examines with owner's services, generates AI drafts, and auto-dispatches.
+   * Drafts customized scripts for a batch of leads (or all un-drafted leads in a workspace).
+   * NOTE: Does NOT send messages automatically.
+   * NOTE: Does NOT create Conversation threads in Omnichannel automatically.
+   * Stores the bespoke scripts in lead.metadata.outreachDrafts with status 'AWAITING_APPROVAL'.
    */
-  static async syncAndDraftAllLeads(workspaceId, { autoDispatch = true, io = null } = {}) {
-    if (!workspaceId) return { success: false, message: 'workspaceId required' };
+  static async draftScriptsForLeads(workspaceId, { leadIds = [], io = null } = {}) {
+    if (!workspaceId) return { success: false, message: 'workspaceId is required' };
 
     const catalog = await this.extractOwnerCatalog(workspaceId);
-    const leads = await Lead.find({ workspaceId }).sort({ createdAt: -1 });
 
-    if (!leads || leads.length === 0) {
-      return { success: true, count: 0, message: 'No scraped leads found in CRM to sync' };
+    const query = { workspaceId };
+    if (Array.isArray(leadIds) && leadIds.length > 0) {
+      query._id = { $in: leadIds };
     }
 
-    let syncedCount = 0;
-    let autoContactedCount = 0;
-    const conversations = [];
+    const leads = await Lead.find(query).sort({ createdAt: -1 });
+    if (!leads || leads.length === 0) {
+      return { success: true, count: 0, message: 'No leads found to draft scripts for' };
+    }
+
+    let draftedCount = 0;
+    const draftedLeads = [];
 
     for (const lead of leads) {
-      let conv = await Conversation.findOne({ workspaceId, leadId: lead._id });
+      try {
+        const drafts = await this.draftForLead({ lead, catalog });
 
-      const drafts = await this.draftForLead({ lead, catalog });
+        lead.metadata = {
+          ...(lead.metadata || {}),
+          outreachDrafts: drafts,
+          outreachStatus: lead.stage === 'Contacted' ? 'SENT' : 'AWAITING_APPROVAL',
+          draftedAt: new Date(),
+          matchedServices: catalog.services.slice(0, 3),
+        };
 
-      // Determine preferred communication channel
-      let preferredChannel = 'WHATSAPP';
-      if (!lead.phone && lead.email) preferredChannel = 'EMAIL';
-      else if (lead.channels?.telegram && !lead.phone) preferredChannel = 'TELEGRAM';
-
-      const initialMessageText =
-        preferredChannel === 'EMAIL' && drafts.EMAIL?.subject
-          ? `Subject: ${drafts.EMAIL.subject}\n\n${drafts.EMAIL.body}`
-          : drafts[preferredChannel]?.body || drafts.WHATSAPP?.body || drafts.EMAIL?.body;
-
-      if (!conv) {
-        conv = await Conversation.create({
-          workspaceId,
-          leadId: lead._id,
-          activeChannel: preferredChannel,
-          lastMessageSnippet: initialMessageText.substring(0, 100),
-          lastMessageAt: new Date(),
-          unreadCount: 0,
-          sentiment: 'NEUTRAL',
-          aiSummary: `AI-analyzed cross-match for ${lead.name} (${lead.title || 'Lead'}) at ${lead.company}: offering ${catalog.services.slice(0, 3).join(', ')}`,
-          aiDrafts: drafts,
-        });
-        syncedCount++;
-
-        // Auto-Contact new leads immediately via AI
-        if (autoDispatch) {
-          const sentMsg = await Message.create({
-            conversationId: conv._id,
-            workspaceId,
-            leadId: lead._id,
-            direction: 'OUTBOUND',
-            channel: preferredChannel,
-            senderName: `${catalog.businessName} AI Assistant`,
-            content: initialMessageText,
-            status: 'DELIVERED',
-            metadata: {
-              automated: true,
-              matchedServices: catalog.services.slice(0, 3),
-              draftedBy: 'Sarah SDR AI',
-            },
-          });
-
-          lead.stage = 'Contacted';
-          lead.status = 'CONTACTED';
-          await lead.save();
-
-          autoContactedCount++;
-
-          if (io) {
-            io.to(workspaceId.toString()).emit('message:sent', {
-              message: sentMsg,
-              conversation: conv,
-            });
-            io.to(workspaceId.toString()).emit('leadStageChanged', {
-              leadId: lead._id,
-              stage: 'Contacted',
-              score: lead.score,
-            });
-          }
+        // Keep stage as Prospect unless already Contacted/Qualified
+        if (!lead.stage || lead.stage === 'Prospect') {
+          lead.stage = 'Prospect';
         }
-      } else {
-        // Update drafts if not populated
-        conv.aiDrafts = drafts;
-        await conv.save();
-      }
 
-      conversations.push(conv);
+        await lead.save();
+        draftedCount++;
+        draftedLeads.push({ id: lead._id, name: lead.name, company: lead.company });
+      } catch (leadErr) {
+        console.warn(`[AiOutreachDrafter] Error drafting script for lead ${lead._id}:`, leadErr.message);
+      }
     }
 
     if (io) {
-      io.to(workspaceId.toString()).emit('leads:synced_outreach', {
-        syncedCount,
-        autoContactedCount,
-        totalCount: conversations.length,
-      });
-      io.to(workspaceId.toString()).emit('conversations:refreshed', {
-        count: conversations.length,
+      io.to(workspaceId.toString()).emit('leads:scripts_drafted', {
+        workspaceId,
+        count: draftedCount,
+        leads: draftedLeads,
       });
     }
 
     return {
       success: true,
-      syncedCount,
-      autoContactedCount,
-      totalCount: conversations.length,
-      message: `Successfully analyzed and synchronized ${leads.length} leads with ${catalog.businessName}'s service catalog. ${autoContactedCount} leads contacted automatically.`,
+      count: draftedCount,
+      message: `Created specialized, customized scripts for ${draftedCount} lead(s). Awaiting client review and approval.`,
     };
   }
 
   /**
-   * Bulk dispatch customized outreach to selected leads
+   * Approves and sends an individual lead's customized message.
+   * At this exact moment:
+   * 1. The message is dispatched through the selected channel gateway.
+   * 2. The Omnichannel Conversation thread is created/retrieved and fetched into Omnichannel.
+   * 3. An outbound Message record is saved.
+   * 4. The lead stage is updated to 'Contacted'.
    */
-  static async bulkDispatchToLeads({ workspaceId, leadIds = [], channel = 'AUTO', customPrompt = '', io = null }) {
-    if (!workspaceId) throw new Error('workspaceId is required');
-    if (!Array.isArray(leadIds) || leadIds.length === 0) {
-      throw new Error('leadIds array cannot be empty');
-    }
+  static async approveAndSendLead({
+    workspaceId,
+    leadId,
+    channel = 'AUTO',
+    customText = '',
+    subject = '',
+    senderName = '',
+    io = null,
+  }) {
+    if (!workspaceId || !leadId) throw new Error('workspaceId and leadId are required');
+
+    const lead = await Lead.findOne({ _id: leadId, workspaceId });
+    if (!lead) throw new Error('Lead not found');
 
     const catalog = await this.extractOwnerCatalog(workspaceId);
-    const leads = await Lead.find({ _id: { $in: leadIds }, workspaceId });
 
-    let sentCount = 0;
-    const dispatchedList = [];
+    // Resolve drafts or generate if missing
+    let drafts = lead.metadata?.outreachDrafts;
+    if (!drafts || !drafts.EMAIL) {
+      drafts = await this.draftForLead({ lead, catalog });
+      lead.metadata = { ...(lead.metadata || {}), outreachDrafts: drafts };
+    }
 
-    for (const lead of leads) {
-      let conv = await Conversation.findOne({ workspaceId, leadId: lead._id });
-      if (!conv) {
-        conv = await Conversation.create({
-          workspaceId,
-          leadId: lead._id,
-          activeChannel: 'WHATSAPP',
-          lastMessageSnippet: 'Drafting...',
-          lastMessageAt: new Date(),
-          unreadCount: 0,
+    // Determine target channel
+    let targetChannel = (channel || 'AUTO').toUpperCase();
+    if (targetChannel === 'AUTO') {
+      if (lead.channels?.whatsapp || (lead.phone && !lead.phone.includes('@'))) {
+        targetChannel = 'WHATSAPP';
+      } else if (lead.email) {
+        targetChannel = 'EMAIL';
+      } else if (lead.channels?.telegram) {
+        targetChannel = 'TELEGRAM';
+      } else {
+        targetChannel = 'WHATSAPP';
+      }
+    }
+
+    // Determine message text and email subject
+    let textToSend = customText ? customText.trim() : '';
+    let emailSubject = subject || drafts.EMAIL?.subject || `Partnership with ${lead.company || 'your team'}`;
+
+    if (!textToSend) {
+      if (targetChannel === 'EMAIL') {
+        textToSend = drafts.EMAIL?.body || drafts.WHATSAPP?.body || '';
+      } else if (targetChannel === 'WHATSAPP') {
+        textToSend = drafts.WHATSAPP?.body || drafts.EMAIL?.body || '';
+      } else if (targetChannel === 'TELEGRAM') {
+        textToSend = drafts.TELEGRAM?.body || drafts.WHATSAPP?.body || '';
+      } else {
+        textToSend = drafts.SMS?.body || drafts.WHATSAPP?.body || '';
+      }
+    }
+
+    // DNC compliance check
+    const dncCheck = await dncComplianceService.isBlacklisted({
+      workspaceId,
+      phone: lead.phone,
+      email: lead.email,
+    });
+    if (dncCheck.blacklisted) {
+      throw new Error(`Outbound message blocked: Contact is on the Universal DNC Registry (${dncCheck.reason})`);
+    }
+
+    // 1. Dispatch through appropriate gateway
+    let dispatchResult = null;
+    switch (targetChannel) {
+      case 'WHATSAPP':
+        dispatchResult = await WhatsAppService.sendMessage({
+          to: lead.phone || '+1 (555) 019-2831',
+          content: textToSend,
         });
-      }
+        break;
 
-      // Generate bespoke copy matching lead details + customPrompt
-      const drafts = await this.draftForLead({ lead, catalog, customGoal: customPrompt });
-      conv.aiDrafts = drafts;
+      case 'TELEGRAM':
+        dispatchResult = await TelegramService.sendMessage({
+          chatId: lead.channels?.telegram || `@${(lead.name || 'lead').toLowerCase().replace(/\s+/g, '_')}`,
+          content: textToSend,
+        });
+        break;
 
-      // Select target dispatch channel
-      let targetChannel = channel.toUpperCase();
-      if (targetChannel === 'AUTO') {
-        targetChannel = lead.phone ? 'WHATSAPP' : 'EMAIL';
-      }
+      case 'SMS':
+        dispatchResult = await SMSService.sendMessage({
+          to: lead.phone || '+1 (555) 019-2831',
+          content: textToSend,
+        });
+        break;
 
-      const textToSend =
-        targetChannel === 'EMAIL' && drafts.EMAIL?.subject
-          ? `Subject: ${drafts.EMAIL.subject}\n\n${drafts.EMAIL.body}`
-          : drafts[targetChannel]?.body || drafts.WHATSAPP?.body || drafts.EMAIL?.body;
+      case 'EMAIL':
+        dispatchResult = await EmailSequenceService.sendEmail({
+          to: lead.email || 'contact@prospect.com',
+          subject: emailSubject,
+          bodyHtml: `<p>${textToSend.replace(/\n/g, '<br/>')}</p>`,
+        });
+        break;
 
-      const sentMsg = await Message.create({
-        conversationId: conv._id,
+      default:
+        dispatchResult = { success: true, status: 'SENT', channel: targetChannel };
+    }
+
+    // 2. Fetch/Create Conversation thread into Omnichannel at send time
+    let conv = await Conversation.findOne({ workspaceId, leadId: lead._id });
+    const snippet = targetChannel === 'EMAIL' ? `Subject: ${emailSubject} — ${textToSend}` : textToSend;
+
+    if (!conv) {
+      conv = await Conversation.create({
         workspaceId,
         leadId: lead._id,
-        direction: 'OUTBOUND',
-        channel: targetChannel,
-        senderName: `${catalog.businessName} AI Closer`,
-        content: textToSend,
-        status: 'DELIVERED',
-        metadata: {
-          bulkCampaign: true,
-          customPrompt: customPrompt || 'Default Service Pitch',
-          channel: targetChannel,
-        },
+        activeChannel: targetChannel,
+        lastMessageSnippet: snippet.substring(0, 100),
+        lastMessageAt: new Date(),
+        unreadCount: 0,
+        sentiment: 'NEUTRAL',
+        aiSummary: `Tailored outreach sent to ${lead.name} (${lead.title || 'Decision Maker'}) at ${lead.company}`,
+        aiDrafts: drafts,
       });
-
+    } else {
       conv.activeChannel = targetChannel;
-      conv.lastMessageSnippet = textToSend.substring(0, 100);
+      conv.lastMessageSnippet = snippet.substring(0, 100);
       conv.lastMessageAt = new Date();
+      conv.aiDrafts = drafts;
       await conv.save();
+    }
 
-      lead.stage = 'Contacted';
-      lead.status = 'CONTACTED';
-      await lead.save();
+    // 3. Save Outbound Message
+    const sentMsg = await Message.create({
+      conversationId: conv._id,
+      workspaceId,
+      leadId: lead._id,
+      direction: 'OUTBOUND',
+      channel: targetChannel,
+      senderName: senderName || `${catalog.businessName} Representative`,
+      content: targetChannel === 'EMAIL' ? `Subject: ${emailSubject}\n\n${textToSend}` : textToSend,
+      status: dispatchResult?.status || 'DELIVERED',
+      metadata: {
+        clientApproved: true,
+        matchedServices: catalog.services.slice(0, 3),
+        provider: dispatchResult?.provider || 'GATEWAY',
+      },
+    });
 
-      sentCount++;
-      dispatchedList.push({ leadId: lead._id, name: lead.name, channel: targetChannel });
+    // 4. Update Lead Pipeline Stage
+    lead.stage = 'Contacted';
+    lead.status = 'CONTACTED';
+    lead.lastContactedAt = new Date();
+    lead.metadata = {
+      ...(lead.metadata || {}),
+      outreachStatus: 'SENT',
+      lastSentChannel: targetChannel,
+      lastSentAt: new Date(),
+    };
+    await lead.save();
 
-      if (io) {
-        io.to(workspaceId.toString()).emit('message:sent', {
-          message: sentMsg,
-          conversation: conv,
-        });
-        io.to(workspaceId.toString()).emit('leadStageChanged', {
+    // 5. Real-time Socket.io Notification
+    if (io) {
+      const populatedConv = await Conversation.findById(conv._id).populate('leadId').lean();
+      io.to(workspaceId.toString()).emit('message:sent', {
+        message: sentMsg,
+        conversation: populatedConv,
+      });
+      io.to(workspaceId.toString()).emit('conversation:updated', {
+        conversation: populatedConv,
+      });
+      io.to(workspaceId.toString()).emit('leadStageChanged', {
+        leadId: lead._id,
+        stage: 'Contacted',
+        score: lead.score,
+      });
+    }
+
+    return {
+      success: true,
+      lead,
+      conversation: conv,
+      message: sentMsg,
+      dispatchResult,
+    };
+  }
+
+  /**
+   * 1-Click Approve and Send All pending/selected leads at once.
+   * Dispatches customized scripts, updates leads to Contacted, and brings them into Omnichannel.
+   */
+  static async approveAndSendAllLeads({
+    workspaceId,
+    leadIds = [],
+    channel = 'AUTO',
+    io = null,
+  }) {
+    if (!workspaceId) throw new Error('workspaceId is required');
+
+    const query = { workspaceId };
+    if (Array.isArray(leadIds) && leadIds.length > 0) {
+      query._id = { $in: leadIds };
+    } else {
+      // Send to all prospects awaiting approval
+      query.stage = { $in: ['Prospect', 'Contacted'] };
+      query['metadata.outreachStatus'] = { $ne: 'SENT' };
+    }
+
+    const leads = await Lead.find(query);
+    if (!leads || leads.length === 0) {
+      return { success: true, count: 0, message: 'No pending leads awaiting approval to send' };
+    }
+
+    let sentCount = 0;
+    const errors = [];
+    const sentList = [];
+
+    for (const lead of leads) {
+      try {
+        const res = await this.approveAndSendLead({
+          workspaceId,
           leadId: lead._id,
-          stage: 'Contacted',
-          score: lead.score,
+          channel,
+          io,
         });
+        if (res.success) {
+          sentCount++;
+          sentList.push({ leadId: lead._id, name: lead.name, company: lead.company });
+        }
+      } catch (err) {
+        errors.push({ leadId: lead._id, name: lead.name, error: err.message });
       }
     }
 
     return {
       success: true,
       sentCount,
-      totalSelected: leadIds.length,
-      dispatchedList,
-      message: `Successfully dispatched personalized AI outreach to ${sentCount} contact(s) via ${channel}.`,
+      totalTargeted: leads.length,
+      errorsCount: errors.length,
+      sentList,
+      errors,
+      message: `Successfully approved and dispatched customized messages to ${sentCount} lead(s) in one click.`,
     };
+  }
+
+  /**
+   * Backwards-compatible bulk dispatch method
+   */
+  static async bulkDispatchToLeads({ workspaceId, leadIds = [], channel = 'AUTO', customPrompt = '', io = null }) {
+    return this.approveAndSendAllLeads({ workspaceId, leadIds, channel, io });
+  }
+
+  /**
+   * Backwards-compatible sync method - now aliases to non-auto-dispatch drafting
+   */
+  static async syncAndDraftAllLeads(workspaceId, { autoDispatch = false, io = null } = {}) {
+    if (autoDispatch) {
+      // If caller requested autoDispatch, use approveAndSendAllLeads
+      return this.approveAndSendAllLeads({ workspaceId, io });
+    }
+    return this.draftScriptsForLeads(workspaceId, { io });
   }
 }

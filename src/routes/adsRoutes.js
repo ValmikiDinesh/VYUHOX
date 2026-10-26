@@ -11,26 +11,32 @@ import { AdCreative } from '../models/AdCreative.js';
 import { AdOptimizationLog } from '../models/AdOptimizationLog.js';
 import { Workspace } from '../models/Workspace.js';
 import { Lead } from '../models/Lead.js';
+import { Conversation } from '../models/Conversation.js';
+import { Message } from '../models/Message.js';
 import { MetaMarketingService } from '../services/ads/MetaMarketingService.js';
 import { GoogleAdsService } from '../services/ads/GoogleAdsService.js';
 import { ConversionTrackingService } from '../services/ads/ConversionTrackingService.js';
 import { AdOptimizerEngine } from '../cron/adOptimizer.js';
 import { AdSelfHealingService } from '../services/ads/AdSelfHealingService.js';
 import { CumulativeContextService } from '../services/ai/CumulativeContextService.js';
+import { CreativeDirectorAgent } from '../services/ads/CreativeDirectorAgent.js';
+import { MultiProviderVisualGateway } from '../services/visual/MultiProviderVisualGateway.js';
+import { UniversalBusinessContext } from '../services/ai/UniversalBusinessContext.js';
+import { authMiddleware, verifyWorkspaceAccess } from '../middleware/auth.js';
 
 const router = express.Router();
 
 /**
  * GET /api/ads/campaigns/:workspaceId
- * Returns all campaigns with active creatives and metrics
+ * Returns all campaigns with active creatives and metrics for the authenticated workspace
  */
-router.get('/campaigns/:workspaceId', async (req, res) => {
+router.get('/campaigns/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.workspaceId || req.params.workspaceId;
 
     const campaigns = await AdCampaign.find({ workspaceId }).sort({ createdAt: -1 }).lean();
     const campaignIds = campaigns.map((c) => c._id);
-    const creatives = await AdCreative.find({ campaignId: { $in: campaignIds } }).lean();
+    const creatives = await AdCreative.find({ campaignId: { $in: campaignIds }, workspaceId }).lean();
 
     // Attach creative to campaign
     const populated = campaigns.map((camp) => {
@@ -53,12 +59,232 @@ router.get('/campaigns/:workspaceId', async (req, res) => {
 });
 
 /**
+ * POST /api/ads/generate-campaign-ai
+ * Strategic AI Creative Director: Researches business context, executes SWOT,
+ * drafts platform-native multi-variation ads, generates visual assets,
+ * and leaves campaigns in DRAFT (AWAITING_CLIENT_APPROVAL).
+ */
+router.post('/generate-campaign-ai', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const {
+      workspaceId,
+      platform = 'META_FEED',
+      objective = 'LEAD_GENERATION',
+      productFocus = '',
+      customGoal = '',
+      numVariations = 3,
+      preferredVisualProvider = null,
+    } = req.body;
+
+    if (!workspaceId) {
+      return res.status(400).json({ success: false, message: 'workspaceId is required' });
+    }
+
+    const result = await CreativeDirectorAgent.planAndDraftCampaign({
+      workspaceId,
+      platform,
+      objective,
+      productFocus,
+      customGoal,
+      numVariations: Math.min(Math.max(Number(numVariations) || 3, 1), 5),
+      preferredVisualProvider,
+    });
+
+    // Notify connected UI via socket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(workspaceId.toString()).emit('campaign:ai_draft_created', {
+        campaignId: result.campaign._id,
+        campaignName: result.campaign.campaignName || result.campaign.name,
+        numVariations: result.creatives.length,
+      });
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('[AdsRoutes] generate-campaign-ai error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/ads/approve-and-launch
+ * Client Approval Gate: Explicit client authorization to activate drafted campaign and creatives
+ */
+router.post('/approve-and-launch', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const { campaignId, approvedCreativeIds = [] } = req.body;
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+
+    if (!campaignId || !workspaceId) {
+      return res.status(400).json({ success: false, message: 'campaignId and workspaceId are required' });
+    }
+
+    const result = await CreativeDirectorAgent.approveAndLaunchCampaign({
+      campaignId,
+      approvedCreativeIds,
+      workspaceId,
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(workspaceId.toString()).emit('campaign:approved_and_launched', {
+        campaignId,
+        approvedAt: new Date(),
+      });
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('[AdsRoutes] approve-and-launch error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/ads/generate-visual
+ * Multi-Provider Visual AI Gateway with automatic provider rotation & failover
+ */
+router.post('/generate-visual', authMiddleware, async (req, res) => {
+  try {
+    const {
+      prompt,
+      width = 1080,
+      height = 1080,
+      preferredProvider = null,
+      style = 'cinematic',
+      platform = 'META_FEED',
+      headline = '',
+      subtext = '',
+      brandName = 'VYUHOX',
+      formatType = 'IMAGE',
+    } = req.body;
+
+    if (formatType === 'VIDEO') {
+      const videoResult = await MultiProviderVisualGateway.generateVideo({
+        prompt,
+        aspectRatio: width > height ? '16:9' : height > width ? '9:16' : '1:1',
+        durationSeconds: 15,
+        headline,
+        subtext,
+        brandName,
+      });
+      return res.status(200).json({ success: true, asset: videoResult });
+    }
+
+    const imageResult = await MultiProviderVisualGateway.generateImage({
+      prompt,
+      width,
+      height,
+      preferredProvider,
+      style,
+      platform,
+      headline,
+      subtext,
+      brandName,
+    });
+
+    return res.status(200).json({ success: true, asset: imageResult });
+  } catch (error) {
+    console.error('[AdsRoutes] generate-visual error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/ads/lead-auto-followup
+ * Requirement 9: AI follow-up for leads acquired from ads (sends catalog, executive brief, or calendar booking link)
+ */
+router.post('/lead-auto-followup', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+    const { leadId, action = 'SEND_CATALOG', customMessage = '' } = req.body;
+
+    if (!workspaceId || !leadId) {
+      return res.status(400).json({ success: false, message: 'workspaceId and leadId are required' });
+    }
+
+    const lead = await Lead.findOne({ _id: leadId, workspaceId });
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found in this client workspace' });
+    }
+
+    const intelligence = await UniversalBusinessContext.getCompleteIntelligence(workspaceId);
+
+    let outreachContent = customMessage;
+    if (!outreachContent) {
+      const companyName = intelligence.companyName || 'VYUHOX';
+      const leadName = lead.name || 'there';
+      const leadCompany = lead.company || 'your company';
+
+      if (action === 'SEND_CATALOG') {
+        const catalogList = (intelligence.productsCatalog || [])
+          .map((p) => `• *${p.name}*: ${p.description} (Starting at ${p.price || 'custom quote'})`)
+          .join('\n');
+
+        outreachContent = `Hi ${leadName}! Following up on your interest from our recent ad for ${companyName}.\n\nHere is our executive solution catalog tailored for ${leadCompany}:\n\n${catalogList || '• Autonomous Growth Suite: Complete outbound acquisition pipeline\n• AI Voice Closer Maya: 24/7 calendar booking\n• Omnichannel Orchestrator: Unified multi-channel inbound pipeline'}\n\nWould you like me to reserve a 10-minute implementation walkthrough this week?`;
+      } else if (action === 'SEND_CALENDAR_LINK') {
+        outreachContent = `Hello ${leadName}! We noticed you engaged with our recent campaign for ${companyName}. Would love to share our live interactive demo with you:\n\n📅 Direct Calendar Booking: https://${companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.vyuhox.ai/demo\n\nLooking forward to speaking with you!`;
+      } else {
+        outreachContent = `Hi ${leadName}, thank you for checking out ${companyName}! Here is the executive overview briefing you requested. Let us know if you have any questions or want a customized ROI audit for ${leadCompany}.`;
+      }
+    }
+
+    // Find or create conversation in Omnichannel
+    let conversation = await Conversation.findOne({ workspaceId, leadId });
+    if (!conversation) {
+      conversation = new Conversation({
+        workspaceId,
+        leadId,
+        activeChannel: lead.channelPreference || 'WHATSAPP',
+        lastMessageSnippet: outreachContent.slice(0, 80),
+        lastMessageAt: new Date(),
+        unreadCount: 0,
+        sentiment: 'HIGH_INTENT',
+        aiSummary: `Ad acquisition lead. Automated follow-up sent: ${action}`,
+      });
+      await conversation.save();
+    } else {
+      conversation.lastMessageSnippet = outreachContent.slice(0, 80);
+      conversation.lastMessageAt = new Date();
+      await conversation.save();
+    }
+
+    const message = new Message({
+      conversationId: conversation._id,
+      workspaceId,
+      leadId,
+      direction: 'OUTBOUND',
+      channel: conversation.activeChannel || 'WHATSAPP',
+      senderName: intelligence.companyName || 'AI Growth Director',
+      content: outreachContent,
+    });
+    await message.save();
+
+    // Update lead acquisition tracking
+    lead.status = 'IN_CONVERSATION';
+    lead.source = lead.source || 'PAID_AD_ACQUISITION';
+    await lead.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Automated ad follow-up dispatched successfully.',
+      conversationId: conversation._id,
+      content: outreachContent,
+    });
+  } catch (error) {
+    console.error('[AdsRoutes] lead-auto-followup error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * GET /api/ads/metrics/:workspaceId
  * Returns aggregated financial metrics (Spend, Attributed Revenue, Blended ROAS, Blended CPA)
  */
-router.get('/metrics/:workspaceId', async (req, res) => {
+router.get('/metrics/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.workspaceId || req.params.workspaceId;
 
     const campaigns = await AdCampaign.find({ workspaceId }).lean();
 
@@ -125,10 +351,10 @@ router.get('/metrics/:workspaceId', async (req, res) => {
  * POST /api/ads/campaigns
  * Creates a new campaign across Meta or Google Ads
  */
-router.post('/campaigns', async (req, res) => {
+router.post('/campaigns', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
+    const workspaceId = req.workspaceId || req.body.workspaceId;
     const {
-      workspaceId,
       campaignName,
       platform = 'META',
       objective = 'LEAD_GENERATION',
@@ -244,11 +470,15 @@ router.post('/campaigns', async (req, res) => {
  * POST /api/ads/campaigns/:id/toggle
  * 1-click Pause / Activate campaign
  */
-router.post('/campaigns/:id/toggle', async (req, res) => {
+router.post('/campaigns/:id/toggle', authMiddleware, async (req, res) => {
   try {
     const campaign = await AdCampaign.findById(req.params.id);
     if (!campaign) {
       return res.status(404).json({ success: false, message: 'Campaign not found' });
+    }
+
+    if (req.user?.role !== 'superadmin' && campaign.workspaceId.toString() !== req.workspaceId?.toString()) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Access to another client campaign is prohibited.' });
     }
 
     campaign.status = campaign.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
@@ -272,9 +502,12 @@ router.post('/campaigns/:id/toggle', async (req, res) => {
 });
 
 // Also support PATCH /campaigns/:id/toggle for compatibility
-router.patch('/campaigns/:id/toggle', async (req, res) => {
+router.patch('/campaigns/:id/toggle', authMiddleware, async (req, res) => {
   const campaign = await AdCampaign.findById(req.params.id);
   if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found' });
+  if (req.user?.role !== 'superadmin' && campaign.workspaceId.toString() !== req.workspaceId?.toString()) {
+    return res.status(403).json({ success: false, message: 'Forbidden: Access to another client campaign is prohibited.' });
+  }
   campaign.status = campaign.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
   await campaign.save();
   return res.json({ success: true, campaign, message: `Campaign is now ${campaign.status}!` });
@@ -284,12 +517,16 @@ router.patch('/campaigns/:id/toggle', async (req, res) => {
  * POST /api/ads/campaigns/:id/update-budget
  * Updates daily budget
  */
-router.post('/campaigns/:id/update-budget', async (req, res) => {
+router.post('/campaigns/:id/update-budget', authMiddleware, async (req, res) => {
   try {
     const { dailyBudget } = req.body;
     const campaign = await AdCampaign.findById(req.params.id);
     if (!campaign) {
       return res.status(404).json({ success: false, message: 'Campaign not found' });
+    }
+
+    if (req.user?.role !== 'superadmin' && campaign.workspaceId.toString() !== req.workspaceId?.toString()) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Access to another client campaign is prohibited.' });
     }
 
     if (dailyBudget) {
@@ -314,14 +551,14 @@ router.post('/campaigns/:id/update-budget', async (req, res) => {
  * POST /api/ads/simulate-optimizer
  * Triggers immediate simulation run of Kill, Scale, and Fatigue rules with instant frontend state update
  */
-router.post('/simulate-optimizer', async (req, res) => {
+router.post('/simulate-optimizer', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.body;
+    const workspaceId = req.workspaceId || req.body.workspaceId;
     const io = req.app.get('io');
 
     const result = await AdOptimizerEngine.runOptimizationCycle(workspaceId, io);
-    const updatedCampaigns = await AdCampaign.find(workspaceId ? { workspaceId } : {}).lean();
-    const logs = await AdOptimizationLog.find(workspaceId ? { workspaceId } : {})
+    const updatedCampaigns = await AdCampaign.find({ workspaceId }).lean();
+    const logs = await AdOptimizationLog.find({ workspaceId })
       .sort({ createdAt: -1 })
       .limit(20)
       .lean();
@@ -344,9 +581,9 @@ router.post('/simulate-optimizer', async (req, res) => {
  * GET /api/ads/logs/:workspaceId
  * Lists all automated AI optimization actions
  */
-router.get('/logs/:workspaceId', async (req, res) => {
+router.get('/logs/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
-    const { workspaceId } = req.params;
+    const workspaceId = req.workspaceId || req.params.workspaceId;
     const logs = await AdOptimizationLog.find({ workspaceId })
       .sort({ timestamp: -1, createdAt: -1 })
       .limit(50)
@@ -423,12 +660,16 @@ router.post('/conversions/capi', async (req, res) => {
 });
 
 // Post Boosting from Social Studio
-router.post('/boost-post', async (req, res) => {
+router.post('/boost-post', authMiddleware, async (req, res) => {
   try {
     const { postId, dailyBudget = 100 } = req.body;
     const { SocialPost } = await import('../models/SocialPost.js');
     const post = await SocialPost.findById(postId);
     if (!post) return res.status(404).json({ success: false, message: 'Social post not found' });
+
+    if (req.user?.role !== 'superadmin' && post.workspaceId.toString() !== req.workspaceId?.toString()) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Access to another client post is prohibited.' });
+    }
 
     const campaign = await AdCampaign.create({
       workspaceId: post.workspaceId,
@@ -561,10 +802,15 @@ router.post('/webhooks/rejection', async (req, res) => {
     const { externalAdId, creativeId, rejectionCode, policyDetails, platform = 'META' } = req.body;
     console.log(`[AdsWebhook] Received ${platform} rejection webhook for Ad: ${externalAdId || creativeId}`);
 
-    // Find creative by creativeId or look for active creative
+    // Find creative by creativeId or look for active creative strictly matching external identifier
     let targetCreativeId = creativeId;
     if (!targetCreativeId && externalAdId) {
-      const creative = await AdCreative.findOne().sort({ updatedAt: -1 });
+      const creative = await AdCreative.findOne({
+        $or: [
+          { 'metadata.externalAdId': externalAdId },
+          { externalAdId },
+        ],
+      });
       targetCreativeId = creative?._id;
     }
 

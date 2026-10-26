@@ -5,6 +5,8 @@ import { ScannerService } from '../services/ScannerService.js';
 import { VisualAiService } from '../services/visual/VisualAiService.js';
 import { DailyBriefingJob } from '../cron/dailyBriefingJob.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { BusinessTaxonomyBrain } from '../services/ai/BusinessTaxonomyBrain.js';
+import { EmployeeRoleBrain } from '../services/ai/EmployeeRoleBrain.js';
 
 const router = express.Router();
 
@@ -212,6 +214,9 @@ router.put('/:strategyId', authMiddleware, async (req, res) => {
     if (clientNotes !== undefined) {
       strategy.clientNotes = clientNotes;
     }
+    if (req.body.growthEngine) {
+      strategy.growthEngine = req.body.growthEngine;
+    }
 
     await strategy.save();
 
@@ -369,6 +374,42 @@ router.post('/onboard-no-website', authMiddleware, async (req, res) => {
     return res.json(result);
   } catch (error) {
     console.error('[StrategyRoutes] No-website onboarding error:', error);
+// GET /api/strategy/market-radar - Universal Business Taxonomy & Market Intelligence Radar
+router.get('/market-radar', authMiddleware, async (req, res) => {
+  try {
+    const marketIntelligence = await BusinessTaxonomyBrain.getAllMarketIntelligence();
+    return res.json({
+      success: true,
+      count: marketIntelligence.length,
+      categories: marketIntelligence,
+      lastSwept: new Date(),
+    });
+  } catch (error) {
+    console.error('[StrategyRoutes] Market radar error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/strategy/market-radar/sweep - Trigger Autonomous Trend Discovery & Model Assimilation
+router.post('/market-radar/sweep', authMiddleware, async (req, res) => {
+  try {
+    const result = await BusinessTaxonomyBrain.sweepAutonomousTrends();
+    const updated = await BusinessTaxonomyBrain.getAllMarketIntelligence();
+    return res.json({
+      success: true,
+      message: 'Autonomous Market Radar completed sweep. New viral trends and models assimilated.',
+      categories: updated,
+    });
+// GET /api/strategy/employee-roles - Complete Corporate Roles & Employee Taxonomy
+router.get('/employee-roles', authMiddleware, (req, res) => {
+  try {
+    const roles = EmployeeRoleBrain.getFullRolesEncyclopedia();
+    return res.json({
+      success: true,
+      count: roles.length,
+      roles,
+    });
+  } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 });

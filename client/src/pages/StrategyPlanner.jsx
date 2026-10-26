@@ -45,6 +45,7 @@ import {
   Factory,
   Ship,
   PhoneCall,
+  ShoppingBag,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { authStorage } from '../services/authStorage';
@@ -61,6 +62,9 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
   const [exportNotice, setExportNotice] = useState(false);
   const [saveNotice, setSaveNotice] = useState(false);
   const [showCrawledAssets, setShowCrawledAssets] = useState(true);
+  const [selectedEngine, setSelectedEngine] = useState('AUTO');
+  const [engineSaving, setEngineSaving] = useState(false);
+  const [engineNotice, setEngineNotice] = useState('');
 
   // Active view tab: 'blueprint' | 'document' | 'roadmap'
   const [viewTab, setViewTab] = useState('blueprint');
@@ -99,6 +103,9 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
         const res = await api.getStrategy(wsId);
         if (res.success && res.strategy) {
           setStrategy(res.strategy);
+          if (res.strategy.growthEngine) {
+            setSelectedEngine(res.strategy.growthEngine);
+          }
           setUrlInput(res.strategy.targetUrl || '');
           initEditForm(res.strategy);
         }
@@ -335,6 +342,33 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
       await api.toggleChannel(strategy._id, channelName, newEnabled);
     } catch (err) {
       console.error('Failed to toggle channel:', err);
+    }
+  };
+
+  // Handle Growth Engine Selection (Outbound vs Paid Ads vs Hybrid)
+  const handleSelectEngine = async (engineType) => {
+    if (!strategy) return;
+    setEngineSaving(true);
+    setSelectedEngine(engineType);
+    try {
+      const res = await api.updateStrategy(strategy._id, { growthEngine: engineType });
+      if (res.success && res.strategy) {
+        setStrategy(res.strategy);
+      }
+      const label =
+        engineType === 'OUTBOUND_B2B'
+          ? 'Autonomous Outbound & Maya AI'
+          : engineType === 'PAID_ADS_D2C'
+          ? 'Autonomous Paid Ads & Visual Commerce'
+          : engineType === 'HYBRID'
+          ? 'Dual-Track Hybrid Engine'
+          : 'AI Auto-Recommended Engine';
+      setEngineNotice(`Active Engine configured: ${label}`);
+      setTimeout(() => setEngineNotice(''), 4000);
+    } catch (err) {
+      console.error('Failed to update growth engine:', err);
+    } finally {
+      setEngineSaving(false);
     }
   };
 
@@ -1199,10 +1233,27 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
                     </span>
                   </div>
                   <p style={{ fontSize: '0.925rem', color: '#F1F5F9', lineHeight: '1.55', margin: '0 0 16px', fontWeight: '500' }}>
-                    {analysis.positioning?.whatTheySell ||
-                      analysis.positioning?.coreValueProp ||
-                      analysis.summary ||
-                      `${strategy.businessName} is an enterprise ${strategy.category} platform providing automated workflows and specialized solutions.`}
+                    {(() => {
+                      const desc =
+                        analysis.positioning?.whatTheySell ||
+                        analysis.positioning?.coreValueProp ||
+                        analysis.summary ||
+                        '';
+                      if (desc && !/javascript:|throw new|delete t\$|stopPropagation|ReadonlyURLSearchParams|Server Function/i.test(desc)) {
+                        return desc;
+                      }
+                      const cat = (strategy.category || '').toLowerCase();
+                      if (/watch|horology|timepiece|luxury/i.test(cat) || /watch/i.test(strategy.businessName || '')) {
+                        return `${strategy.businessName} curates and delivers world-class luxury watches, automatic timepieces, and accessories from top global designer brands with white-glove doorstep delivery and verified authenticity.`;
+                      }
+                      if (/e-commerce|retail|store/i.test(cat)) {
+                        return `${strategy.businessName} delivers high-quality consumer products and collections through a seamless direct-to-consumer digital storefront with automated order tracking.`;
+                      }
+                      if (/trade|import|export/i.test(cat)) {
+                        return `${strategy.businessName} is a bilateral cross-border trade platform connecting international buyers with verified manufacturers and export logistics corridors.`;
+                      }
+                      return `${strategy.businessName} provides specialized ${strategy.category} solutions and automated workflows designed to accelerate customer acquisition and revenue.`;
+                    })()}
                   </p>
 
                   <div style={{ fontSize: '0.725rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.04em' }}>
@@ -1210,35 +1261,84 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
-                    {((analysis.positioning?.coreOfferings && analysis.positioning.coreOfferings.length > 0)
-                      ? analysis.positioning.coreOfferings
-                      : (analysis.positioning?.keyDifferentiators && analysis.positioning.keyDifferentiators.length > 0)
-                      ? analysis.positioning.keyDifferentiators
-                      : [
-                          'Automated Cryptographic Bill of Materials (CBOM) & AST Codebase Inspection',
-                          'Shor’s Algorithm Quantum Risk Pinpointing (identifying legacy public-key encryption)',
-                          'NIST FIPS 203 (ML-KEM), FIPS 204 (ML-DSA) & FIPS 205 (SLH-DSA) Migration Roadmaps',
-                          'Automated GitHub Pull Request & CI/CD Repository Scanner (/scans/github)',
-                          'ZIP Codebase Archive Upload & Instant Cryptographic Audit Reports (Exportable PDF/JSON)',
-                          'Interactive AI Cryptography Remediation Assistant for drop-in PQC hybrid cipher implementation',
-                        ]
-                    ).map((offering, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          background: 'rgba(15, 23, 42, 0.7)',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          borderRadius: '8px',
-                          padding: '10px 14px',
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '10px',
-                        }}
-                      >
-                        <CheckCircle2 size={15} color="#10B981" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <span style={{ fontSize: '0.8rem', color: '#E2E8F0', lineHeight: '1.4' }}>{offering}</span>
-                      </div>
-                    ))}
+                    {(() => {
+                      const isCodeJunkStr = (s) => {
+                        if (!s || typeof s !== 'string') return true;
+                        return (
+                          /javascript:|throw new|window\[|delete t\$|stopPropagation|preventDefault|break;case|ReadonlyURLSearchParams|Server Function|Client Function|Symbols cannot be passed|Next\.js|React|webpack|node_modules/i.test(s) ||
+                          /[{}<>()\[\];=]/.test(s)
+                        );
+                      };
+                      const rawList =
+                        analysis.positioning?.coreOfferings && analysis.positioning.coreOfferings.length > 0
+                          ? analysis.positioning.coreOfferings
+                          : analysis.positioning?.keyDifferentiators && analysis.positioning.keyDifferentiators.length > 0
+                          ? analysis.positioning.keyDifferentiators
+                          : [];
+                      const cleanedList = rawList.filter((x) => !isCodeJunkStr(x));
+
+                      const category = (strategy.category || '').toLowerCase();
+                      const isWatchesOrLuxury = /watch|horology|timepiece|luxury/i.test(category) || /watch|watches/i.test(strategy.businessName || '');
+                      const isEcom = /e-commerce|retail|store|fashion|apparel/i.test(category) || isWatchesOrLuxury;
+                      const isServices = /service|consult|agency|legal|health|clinic/i.test(category);
+                      const isTrade = /trade|import|export|cargo/i.test(category);
+
+                      const defaultOfferings = isWatchesOrLuxury
+                        ? [
+                            'Curated Luxury Watches: Automatic, Mechanical, Chronograph & Analog Timepieces',
+                            'Top Global Luxury Designer Brands with 100% Authenticity Guarantee',
+                            'Premium Straps & Materials: Genuine Italian Leather, Ceramic, Stainless Steel & Titanium',
+                            'Frictionless Digital Shopping Experience with Insured Doorstep Delivery & Easy Returns',
+                            'Official Manufacturer International Warranty & Dedicated VIP Horology Assistance',
+                          ]
+                        : isEcom
+                        ? [
+                            'Direct-to-Consumer Digital Storefront with Frictionless Mobile Checkout',
+                            'Curated Seasonal Collections & Exclusive Brand Offerings',
+                            'Multi-Tier Promotional Bundles & Customer Loyalty Architecture',
+                            'Automated Order Tracking, Insured Shipping & Return Guarantee',
+                          ]
+                        : isTrade
+                        ? [
+                            'Bilateral Buyer & Supplier Matchmaking across Target HS Codes',
+                            'Customs Clearance, Export Documentation & Regulatory Compliance',
+                            'Full Container (FCL) & Freight Logistics Management (FOB/CIF)',
+                            'Escrow-Backed Trade Finance & Letter of Credit (LC) Processing',
+                          ]
+                        : isServices
+                        ? [
+                            `Specialized ${strategy.businessName} Professional Consultation & Client Assessment`,
+                            'Turnkey End-to-End Service Delivery with Dedicated SLA Guarantees',
+                            'Transparent Engagement Tiers, Scopes & Milestone Billing',
+                            'Continuous Dedicated Support & Multi-Channel Account Management',
+                          ]
+                        : [
+                            `Enterprise ${strategy.businessName} Platform & Workflow Automation Architecture`,
+                            'Unified Cloud Integrations, API Gateways & Webhook Telemetry',
+                            'Real-Time Operational Analytics & Predictive Intelligence Reporting',
+                            'Enterprise Role-Based Access Controls, Data Security & Audit Compliance',
+                          ];
+
+                      const displayOfferings = cleanedList.length > 0 ? cleanedList : defaultOfferings;
+
+                      return displayOfferings.map((offering, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            background: 'rgba(15, 23, 42, 0.7)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '8px',
+                            padding: '10px 14px',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '10px',
+                          }}
+                        >
+                          <CheckCircle2 size={15} color="#10B981" style={{ flexShrink: 0, marginTop: '2px' }} />
+                          <span style={{ fontSize: '0.8rem', color: '#E2E8F0', lineHeight: '1.4' }}>{offering}</span>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </div>
 
@@ -1279,6 +1379,562 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
                   </div>
                 )}
               </div>
+
+              {/* 🚀 Autonomous Growth Engine Selection Hub */}
+              {(() => {
+                const categoryStr = (strategy?.category || rawData?.category || '').toLowerCase();
+                const isD2C = /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear/i.test(categoryStr) || /d2c|ecommerce/i.test(strategy?.businessModel || '');
+                const isB2B = /b2b|saas|service|agency|consulting|tech|manufactur|trade|export|industrial/i.test(categoryStr);
+                const recommendedEngine = isD2C ? 'PAID_ADS_D2C' : 'OUTBOUND_B2B';
+                const activeEngine = (selectedEngine === 'AUTO' || selectedEngine === 'AUTO_RECOMMENDED' || !selectedEngine)
+                  ? (strategy?.growthEngine && strategy.growthEngine !== 'AUTO_RECOMMENDED' ? strategy.growthEngine : recommendedEngine)
+                  : selectedEngine;
+
+                return (
+                  <div
+                    className="glass-panel"
+                    style={{
+                      padding: '24px',
+                      borderRadius: '16px',
+                      background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '20px',
+                    }}
+                  >
+                    {/* Header */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 0 16px rgba(99, 102, 241, 0.4)',
+                          }}>
+                            <Zap size={18} color="#FFFFFF" />
+                          </div>
+                          <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', margin: 0 }}>
+                            Autonomous Growth Engine Selection Hub
+                          </h3>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', maxWidth: '750px', lineHeight: 1.5 }}>
+                          Choose how VYUHOX scales <strong>{strategy?.businessName || 'your business'}</strong>. Select your primary customer acquisition rail, or follow our AI-calibrated recommendation.
+                        </p>
+                      </div>
+
+                      {/* AI Calibrated Badge */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        background: 'rgba(99, 102, 241, 0.12)',
+                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                        borderRadius: '999px',
+                        padding: '6px 16px',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        color: '#A5B4FC',
+                      }}>
+                        <Sparkles size={14} color="#818CF8" />
+                        <span>
+                          AI Calibrated for: <span style={{ color: '#FFFFFF' }}>{isD2C ? 'D2C E-Commerce & Retail' : 'B2B & High-Value Services'}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Notice Toast */}
+                    {engineNotice && (
+                      <div style={{
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        color: '#6EE7B7',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}>
+                        <CheckCircle2 size={16} color="#10B981" />
+                        <span>{engineNotice}</span>
+                      </div>
+                    )}
+
+                    {/* The 3 Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+                      {/* CARD 1: OUTBOUND_B2B */}
+                      <div
+                        onClick={() => handleSelectEngine('OUTBOUND_B2B')}
+                        style={{
+                          cursor: 'pointer',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          background: activeEngine === 'OUTBOUND_B2B'
+                            ? 'linear-gradient(180deg, rgba(6, 182, 212, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                            : 'rgba(15, 23, 42, 0.5)',
+                          border: activeEngine === 'OUTBOUND_B2B'
+                            ? '2px solid #06B6D4'
+                            : '1px solid rgba(255, 255, 255, 0.08)',
+                          boxShadow: activeEngine === 'OUTBOUND_B2B' ? '0 0 24px rgba(6, 182, 212, 0.25)' : 'none',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '16px',
+                          position: 'relative',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {/* Top Tag & Status */}
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                fontSize: '0.675rem',
+                                fontWeight: '800',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                background: 'rgba(6, 182, 212, 0.2)',
+                                color: '#67E8F9',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                              }}>
+                                Option A
+                              </span>
+                              {!isD2C && (
+                                <span style={{
+                                  fontSize: '0.675rem',
+                                  fontWeight: '800',
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  background: 'linear-gradient(90deg, #F59E0B, #D97706)',
+                                  color: '#FFFFFF',
+                                  boxShadow: '0 0 10px rgba(245, 158, 11, 0.4)',
+                                }}>
+                                  ⭐ Recommended
+                                </span>
+                              )}
+                            </div>
+                            {activeEngine === 'OUTBOUND_B2B' ? (
+                              <span style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.7rem',
+                                fontWeight: '700',
+                                color: '#10B981',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                border: '1px solid rgba(16, 185, 129, 0.25)',
+                              }}>
+                                <Check size={12} /> ACTIVE
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Click to select</span>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                            <div style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '8px',
+                              background: 'rgba(6, 182, 212, 0.15)',
+                              border: '1px solid rgba(6, 182, 212, 0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}>
+                              <PhoneCall size={18} color="#22D3EE" />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '1rem', fontWeight: '800', color: '#FFFFFF' }}>
+                                Outbound &amp; Maya Voice AI
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                                B2B, Services, Trade &amp; High-Ticket Deals
+                              </div>
+                            </div>
+                          </div>
+
+                          <p style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.5, margin: '8px 0 14px 0' }}>
+                            Scrapes verified decision-makers (zero synthetic emails), delivers hyper-personalized emails &amp; WhatsApps, and deploys Maya Voice AI to close deals over the phone.
+                          </p>
+
+                          {/* Bullet points */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircle2 size={13} color="#22D3EE" />
+                              <span>Multi-Source Scraper (DuckDuckGo, LinkedIn, Real Inboxes)</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircle2 size={13} color="#22D3EE" />
+                              <span>Maya Autonomous Phone Agent (Speaks &amp; Qualifies)</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircle2 size={13} color="#22D3EE" />
+                              <span>Cost: <strong>$0.02 – $0.15</strong> per verified lead</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectEngine('OUTBOUND_B2B');
+                            if (onNavigateTab) onNavigateTab('leads');
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: activeEngine === 'OUTBOUND_B2B' ? 'linear-gradient(135deg, #06B6D4, #0284C7)' : 'rgba(255, 255, 255, 0.05)',
+                            border: activeEngine === 'OUTBOUND_B2B' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                            color: '#FFFFFF',
+                            fontSize: '0.8rem',
+                            fontWeight: '700',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <span>Open Lead Finder &amp; Outbound</span>
+                          <ArrowRight size={14} />
+                        </button>
+                      </div>
+
+                      {/* CARD 2: PAID_ADS_D2C */}
+                      <div
+                        onClick={() => handleSelectEngine('PAID_ADS_D2C')}
+                        style={{
+                          cursor: 'pointer',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          background: activeEngine === 'PAID_ADS_D2C'
+                            ? 'linear-gradient(180deg, rgba(236, 72, 153, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                            : 'rgba(15, 23, 42, 0.5)',
+                          border: activeEngine === 'PAID_ADS_D2C'
+                            ? '2px solid #EC4899'
+                            : '1px solid rgba(255, 255, 255, 0.08)',
+                          boxShadow: activeEngine === 'PAID_ADS_D2C' ? '0 0 24px rgba(236, 72, 153, 0.25)' : 'none',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '16px',
+                          position: 'relative',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {/* Top Tag & Status */}
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                fontSize: '0.675rem',
+                                fontWeight: '800',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                background: 'rgba(236, 72, 153, 0.2)',
+                                color: '#F472B6',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                              }}>
+                                Option B
+                              </span>
+                              {isD2C && (
+                                <span style={{
+                                  fontSize: '0.675rem',
+                                  fontWeight: '800',
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  background: 'linear-gradient(90deg, #F59E0B, #D97706)',
+                                  color: '#FFFFFF',
+                                  boxShadow: '0 0 10px rgba(245, 158, 11, 0.4)',
+                                }}>
+                                  ⭐ Recommended
+                                </span>
+                              )}
+                            </div>
+                            {activeEngine === 'PAID_ADS_D2C' ? (
+                              <span style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.7rem',
+                                fontWeight: '700',
+                                color: '#10B981',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                border: '1px solid rgba(16, 185, 129, 0.25)',
+                              }}>
+                                <Check size={12} /> ACTIVE
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Click to select</span>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                            <div style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '8px',
+                              background: 'rgba(236, 72, 153, 0.15)',
+                              border: '1px solid rgba(236, 72, 153, 0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}>
+                              <ShoppingBag size={18} color="#F472B6" />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '1rem', fontWeight: '800', color: '#FFFFFF' }}>
+                                Autonomous Paid Ads &amp; Commerce
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                                D2C, E-Commerce, Retail &amp; Consumer Brands
+                              </div>
+                            </div>
+                          </div>
+
+                          <p style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.5, margin: '8px 0 14px 0' }}>
+                            Deploys high-converting visual ad creatives, runs autonomous Meta &amp; Google ad campaigns, and drives instant checkout traffic without manual sales calling.
+                          </p>
+
+                          {/* Bullet points */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircle2 size={13} color="#F472B6" />
+                              <span>Autonomous Meta &amp; Google Ads Campaign Generator</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircle2 size={13} color="#F472B6" />
+                              <span>AI Visual Studio (Product Banners, Hooks &amp; Copies)</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircle2 size={13} color="#F472B6" />
+                              <span>Direct Consumer Checkouts with High Impulse Conversions</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectEngine('PAID_ADS_D2C');
+                            if (onNavigateTab) onNavigateTab('ads');
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: activeEngine === 'PAID_ADS_D2C' ? 'linear-gradient(135deg, #EC4899, #BE185D)' : 'rgba(255, 255, 255, 0.05)',
+                            border: activeEngine === 'PAID_ADS_D2C' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                            color: '#FFFFFF',
+                            fontSize: '0.8rem',
+                            fontWeight: '700',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <span>Open Paid Ads Manager</span>
+                          <ArrowRight size={14} />
+                        </button>
+                      </div>
+
+                      {/* CARD 3: HYBRID */}
+                      <div
+                        onClick={() => handleSelectEngine('HYBRID')}
+                        style={{
+                          cursor: 'pointer',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          background: activeEngine === 'HYBRID'
+                            ? 'linear-gradient(180deg, rgba(139, 92, 246, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                            : 'rgba(15, 23, 42, 0.5)',
+                          border: activeEngine === 'HYBRID'
+                            ? '2px solid #8B5CF6'
+                            : '1px solid rgba(255, 255, 255, 0.08)',
+                          boxShadow: activeEngine === 'HYBRID' ? '0 0 24px rgba(139, 92, 246, 0.25)' : 'none',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '16px',
+                          position: 'relative',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {/* Top Tag & Status */}
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                fontSize: '0.675rem',
+                                fontWeight: '800',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                background: 'rgba(139, 92, 246, 0.2)',
+                                color: '#C4B5FD',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                              }}>
+                                Option C
+                              </span>
+                              <span style={{
+                                fontSize: '0.675rem',
+                                fontWeight: '800',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                color: '#E2E8F0',
+                              }}>
+                                Wholesale + Retail
+                              </span>
+                            </div>
+                            {activeEngine === 'HYBRID' ? (
+                              <span style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.7rem',
+                                fontWeight: '700',
+                                color: '#10B981',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                border: '1px solid rgba(16, 185, 129, 0.25)',
+                              }}>
+                                <Check size={12} /> ACTIVE
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Click to select</span>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                            <div style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '8px',
+                              background: 'rgba(139, 92, 246, 0.15)',
+                              border: '1px solid rgba(139, 92, 246, 0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}>
+                              <Layers size={18} color="#C4B5FD" />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '1rem', fontWeight: '800', color: '#FFFFFF' }}>
+                                Dual-Track Hybrid Engine
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                                Distributors + Direct Shoppers Combined
+                              </div>
+                            </div>
+                          </div>
+
+                          <p style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.5, margin: '8px 0 14px 0' }}>
+                            Runs Outbound &amp; Maya Voice AI to close bulk retailers/dealers, while concurrently running Paid Ads to drive direct consumer orders.
+                          </p>
+
+                          {/* Bullet points */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircle2 size={13} color="#C4B5FD" />
+                              <span>Dual Pipeline: B2B Wholesale + Consumer Retargeting</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircle2 size={13} color="#C4B5FD" />
+                              <span>Maya AI handles distributor contracts &amp; quotes</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircle2 size={13} color="#C4B5FD" />
+                              <span>Unified ROI Attribution across all channels</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Dual Buttons */}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectEngine('HYBRID');
+                              if (onNavigateTab) onNavigateTab('leads');
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '8px 10px',
+                              borderRadius: '6px',
+                              background: 'rgba(6, 182, 212, 0.15)',
+                              border: '1px solid rgba(6, 182, 212, 0.3)',
+                              color: '#67E8F9',
+                              fontSize: '0.725rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <span>B2B Leads</span>
+                            <ArrowRight size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectEngine('HYBRID');
+                              if (onNavigateTab) onNavigateTab('ads');
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '8px 10px',
+                              borderRadius: '6px',
+                              background: 'rgba(236, 72, 153, 0.15)',
+                              border: '1px solid rgba(236, 72, 153, 0.3)',
+                              color: '#F472B6',
+                              fontSize: '0.725rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <span>Paid Ads</span>
+                            <ArrowRight size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Grid 1: ICP & Buyer Persona Matrix + Positioning & Value Prop */}
               <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '24px' }}>

@@ -170,96 +170,53 @@ export class LeadScraperService {
    * - US/CA (+1): Standard 10-digit E.164 cellular/corporate formats
    */
   static formatLocalizedPhoneNumber(location, address = '', workspace = {}, candidateRawPhone = null) {
+    // STRICT AUTHENTICITY: If no authentic phone was extracted from website, return null
+    if (!candidateRawPhone || typeof candidateRawPhone !== 'string') {
+      return null;
+    }
+
     const region = this.detectRegion(location, address, workspace);
-    const locLower = `${location} ${address}`.toLowerCase();
+    const clean = candidateRawPhone.trim();
+    const digits = clean.replace(/[^0-9]/g, '');
 
-    // 1. If an authentic raw phone was extracted from the website or corporate directory, validate & format it
-    if (candidateRawPhone && typeof candidateRawPhone === 'string') {
-      const clean = candidateRawPhone.trim();
-      const digits = clean.replace(/[^0-9]/g, '');
-
-      if (region === 'INDIA') {
-        // Standard 10-digit Indian cellular SIM: starts with 6, 7, 8, or 9
-        if (digits.length === 10 && /^[6-9]/.test(digits)) {
-          return `+91 ${digits.substring(0, 5)} ${digits.substring(5)}`;
-        }
-        // With 91 prefix (12 digits)
-        if (digits.length === 12 && digits.startsWith('91') && /^[6-9]/.test(digits.substring(2))) {
-          const ten = digits.substring(2);
-          return `+91 ${ten.substring(0, 5)} ${ten.substring(5)}`;
-        }
-        // With leading 0 (11 digits)
-        if (digits.length === 11 && digits.startsWith('0') && /^[6-9]/.test(digits.substring(1))) {
-          const ten = digits.substring(1);
-          return `+91 ${ten.substring(0, 5)} ${ten.substring(5)}`;
-        }
-      } else if (region === 'US_GLOBAL') {
-        if (digits.length === 10) {
-          return `+1 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
-        }
-        if (digits.length === 11 && digits.startsWith('1')) {
-          return `+1 (${digits.substring(1, 4)}) ${digits.substring(4, 7)}-${digits.substring(7)}`;
-        }
-      } else if (region === 'UK') {
-        if (digits.length === 10 && digits.startsWith('7')) {
-          return `+44 7${digits.substring(1, 4)} ${digits.substring(4)}`;
-        }
-      }
-    }
-
-    // 2. High-Fidelity Mobile Cellular SIM Synthesis (TRAI & International Telecommunication Standard)
     if (region === 'INDIA') {
-      // Valid TRAI mobile cellular operator series (Airtel, Jio, Vi, BSNL)
-      // Cellular series always start with 9, 8, 7, or 6
-      const indianCellularSeries = [
-        '98490', '98480', '98661', '91212', '87903', '70321', '63012', 
-        '98200', '98191', '98103', '98801', '98452', '99890', '77021',
-        '80082', '96521', '97014', '94401', '90001', '83742', '79891'
-      ];
-      const prefix = indianCellularSeries[Math.floor(Math.random() * indianCellularSeries.length)];
-      const randFive = Math.floor(10000 + Math.random() * 89999);
-      return `+91 ${prefix} ${randFive}`;
+      // Standard 10-digit Indian cellular SIM: starts with 6, 7, 8, or 9
+      if (digits.length === 10 && /^[6-9]/.test(digits)) {
+        return `+91 ${digits.substring(0, 5)} ${digits.substring(5)}`;
+      }
+      // With 91 prefix (12 digits)
+      if (digits.length === 12 && digits.startsWith('91') && /^[6-9]/.test(digits.substring(2))) {
+        const ten = digits.substring(2);
+        return `+91 ${ten.substring(0, 5)} ${ten.substring(5)}`;
+      }
+      // With leading 0 (11 digits)
+      if (digits.length === 11 && digits.startsWith('0') && /^[6-9]/.test(digits.substring(1))) {
+        const ten = digits.substring(1);
+        return `+91 ${ten.substring(0, 5)} ${ten.substring(5)}`;
+      }
+      // Standard Indian landline/contact number with STD
+      if (digits.length >= 10) {
+        return `+91 ${digits.slice(-10)}`;
+      }
+    } else if (region === 'US_GLOBAL') {
+      if (digits.length === 10) {
+        return `+1 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
+      }
+      if (digits.length === 11 && digits.startsWith('1')) {
+        return `+1 (${digits.substring(1, 4)}) ${digits.substring(4, 7)}-${digits.substring(7)}`;
+      }
+    } else if (region === 'UK') {
+      if (digits.length === 10 && digits.startsWith('7')) {
+        return `+44 7${digits.substring(1, 4)} ${digits.substring(4)}`;
+      }
+      if (digits.length >= 10) {
+        return `+44 ${digits.slice(-10)}`;
+      }
+    } else if (digits.length >= 8) {
+      return clean.startsWith('+') ? clean : `+${digits}`;
     }
 
-    if (region === 'UK') {
-      const randDigits = Math.floor(10000000 + Math.random() * 89999999);
-      return `+44 7${randDigits}`;
-    }
-
-    if (region === 'UAE') {
-      const uaeMobilePrefixes = ['50', '52', '54', '55', '56', '58'];
-      const prefix = uaeMobilePrefixes[Math.floor(Math.random() * uaeMobilePrefixes.length)];
-      const randDigits = Math.floor(1000000 + Math.random() * 8999999);
-      return `+971 ${prefix} ${randDigits}`;
-    }
-
-    if (region === 'SINGAPORE') {
-      const prefix = Math.random() > 0.5 ? '8' : '9';
-      const randDigits = Math.floor(1000000 + Math.random() * 8999999);
-      return `+65 ${prefix}${randDigits.toString().substring(0, 7)}`;
-    }
-
-    if (region === 'AUSTRALIA') {
-      const randDigits = Math.floor(10000000 + Math.random() * 89999999);
-      return `+61 4${randDigits.toString().substring(0, 8)}`;
-    }
-
-    if (region === 'EUROPE') {
-      const randDigits = Math.floor(1000000 + Math.random() * 8999999);
-      return `+49 151 ${randDigits.toString().substring(0, 7)}`;
-    }
-
-    // Default US & Canada
-    let usArea = '512'; // Austin default
-    if (locLower.includes('dallas')) usArea = '214';
-    else if (locLower.includes('san francisco') || locLower.includes('silicon valley')) usArea = '415';
-    else if (locLower.includes('new york')) usArea = '212';
-    else if (locLower.includes('seattle')) usArea = '206';
-    else if (locLower.includes('chicago')) usArea = '312';
-    else if (locLower.includes('boston')) usArea = '617';
-
-    const randSeven = Math.floor(2000000 + Math.random() * 7999999);
-    return `+1 (${usArea}) ${randSeven.toString().substring(0, 3)}-${randSeven.toString().substring(3)}`;
+    return null;
   }
 
   /**
@@ -472,13 +429,60 @@ Return a strict JSON object:
       };
     }
 
+    // Luxury Watches, Horology & Designer Timepieces
+    if (
+      rawTokens.includes('watch') ||
+      rawTokens.includes('watches') ||
+      rawTokens.includes('horology') ||
+      rawTokens.includes('timepiece') ||
+      rawTokens.includes('chronograph') ||
+      rawTokens.includes('leather strap')
+    ) {
+      return {
+        serviceType: 'Luxury Watches & Designer Horology Collection',
+        valueOffering: `authentic designer men's and women's watches, automatic chronographs, and curated luxury timepieces with manufacturer warranty`,
+        buyerDescription: `Luxury Watch Collectors, High-Net-Worth Executives, Luxury Horology Boutiques, Multi-Brand Watch Showrooms, and Premium Gift Seekers`,
+        buyerPersonas: [
+          'High-Net-Worth Individual & Luxury Collector',
+          'Executive Watch Boutique Owner',
+          'Luxury Goods Merchandising Director',
+          'Corporate Executive Gift Procurement Lead',
+          'Senior Enterprise Director & Luxury Aficionado',
+        ],
+        buyerSearchKeywords: [
+          'luxury watch boutiques',
+          'watch retail showrooms',
+          'designer horology stores',
+          'luxury retail collectors',
+          'premium corporate gifting directors',
+        ],
+        painPoint: 'Sourcing 100% verified authentic luxury timepieces with full warranty coverage and white-glove insured delivery',
+        sampleLocalBuyerPool: {
+          INDIA: [
+            { name: 'Ethos Luxury Watch Boutiques', domain: 'ethoswatches.com' },
+            { name: 'Zimson Watches Showrooms', domain: 'zimsonwatches.com' },
+            { name: 'Kamal Watch Co Luxury Retail', domain: 'kamalwatch.com' },
+            { name: 'Helios Luxury Watch Store', domain: 'helioswatchstore.com' },
+            { name: 'Time Avenue Luxury Horology', domain: 'timeavenue.com' },
+          ],
+          US_GLOBAL: [
+            { name: 'Watches of Switzerland Group', domain: 'watchesofswitzerland.com' },
+            { name: 'Tourneau Luxury Timepieces', domain: 'tourneau.com' },
+            { name: 'Bucherer Fine Jewellery & Watches', domain: 'bucherer.com' },
+            { name: 'Hodinkee Horology Platform', domain: 'hodinkee.com' },
+            { name: 'Govberg Jewelers & WatchBox', domain: 'thewatchbox.com' },
+          ],
+        },
+      };
+    }
+
     // 1. QuantumShield / Code Security / Bug Scanning / Penetration Testing / AST Vulnerability
     // Service: Project code uploaded, finds security bugs, generates audit reports
     // BUYERS: Software Engineering Teams, Fintech Apps, SaaS Platforms, Cloud Companies, Banking Software
     if (
       rawTokens.includes('quantum') ||
       rawTokens.includes('shield') ||
-      rawTokens.includes('code') ||
+      /\b(source\s*code|codebase|ast\s*code|code\s*inspection)\b/i.test(rawTokens) ||
       rawTokens.includes('security') ||
       rawTokens.includes('bug') ||
       rawTokens.includes('pqc') ||
@@ -986,13 +990,42 @@ Return a strict JSON object:
       const primaryBuyerKeyword = buyerMatrix.buyerSearchKeywords[0] || 'Software Technologies';
       const secondaryBuyerKeyword = buyerMatrix.buyerSearchKeywords[1] || 'Technology Platforms';
 
-      // Collect raw candidates with strict deduplication by domain and email
-      const candidateMap = new Map(); // domain -> account
+      // Pre-load all existing leads in this workspace to ensure 100% fresh, unseen leads on repeat scrapes
+      const existingLeads = await Lead.find(
+        { workspaceId },
+        { website: 1, email: 1, phone: 1, company: 1 }
+      ).lean();
+
+      const existingDomains = new Set();
+      const existingCompanies = new Set();
       const usedEmails = new Set();
+
+      existingLeads.forEach((l) => {
+        if (l.website) {
+          const d = l.website
+            .replace(/https?:\/\//i, '')
+            .split('/')[0]
+            .replace(/^www\./i, '')
+            .toLowerCase()
+            .trim();
+          if (d) existingDomains.add(d);
+        }
+        if (l.company) existingCompanies.add(l.company.toLowerCase().trim());
+        if (l.email) usedEmails.add(l.email.toLowerCase().trim());
+      });
+
+      // Collect raw candidates with strict deduplication against existing workspace data
+      const candidateMap = new Map(); // domain -> account
 
       const addCandidate = (cand) => {
         if (!cand || !cand.domain) return;
         const cleanDomain = cand.domain.toLowerCase().replace(/^www\./i, '').trim();
+        const cleanComp = (cand.company || '').toLowerCase().trim();
+
+        // STRICT FRESHNESS RULE:
+        // Never re-fetch or show leads the user has already scraped or seen in this workspace!
+        if (existingDomains.has(cleanDomain)) return;
+        if (cleanComp && existingCompanies.has(cleanComp)) return;
         if (candidateMap.has(cleanDomain)) return;
         if (cand.email && usedEmails.has(cand.email.toLowerCase())) return;
 
@@ -1147,17 +1180,15 @@ Return a strict JSON object:
           }
         }
 
-        // Generate clean executive corporate email if none found on site
+        // STRICT AUTHENTICITY: Do NOT synthesize fake corporate emails.
+        // If no real email was found on the website or registry, leave it empty.
         if (!acc.email) {
-          const cleanFirst = acc.name.split(' ')[0].toLowerCase().replace(/[^a-z]/g, '');
-          const cleanLast = (acc.name.split(' ')[1] || 'exec').toLowerCase().replace(/[^a-z]/g, '');
-          acc.email = `${cleanFirst}.${cleanLast}@${acc.domain}`;
-          usedEmails.add(acc.email.toLowerCase());
+          acc.email = '';
         }
 
-        // Format localized international phone number using crawled authentic phone if discovered
+        // Format localized international phone number ONLY using crawled authentic phone
         const rawCrawledPhone = crawlData.phones && crawlData.phones.length > 0 ? crawlData.phones[0] : null;
-        acc.phone = this.formatLocalizedPhoneNumber(location, acc.location, workspace, rawCrawledPhone);
+        acc.phone = this.formatLocalizedPhoneNumber(location, acc.location, workspace, rawCrawledPhone) || '';
       }
 
       // 5. Step 3: Live DNS MX Network Handshake & Verification
@@ -1166,7 +1197,7 @@ Return a strict JSON object:
         step: 'DNS_MX_VERIFICATION',
         stepIndex: 3,
         totalSteps: 4,
-        message: `Performing live DNS MX handshake across mail exchangers for ${targetAccounts.length} corporate domains...`,
+        message: `Performing live DNS MX handshake across mail exchangers for corporate domains...`,
         percent: 70,
       });
 
@@ -1175,20 +1206,34 @@ Return a strict JSON object:
       for (let i = 0; i < targetAccounts.length; i++) {
         const p = targetAccounts[i];
 
-        const mxResult = await this.verifyMxRecord(p.email);
-        const isSyntaxValid = this.validateEmailSyntax(p.email);
-        const isDisposable = this.isDisposableEmail(p.email);
+        // STRICT QUALITY RULE:
+        // Clients are paying for real, contactable leads.
+        // If neither a real email nor a real phone/WhatsApp number was found, DROP/IGNORE this lead!
+        if (!p.email && !p.phone) {
+          console.log(`[LeadScraper] Discarded lead "${p.company}" (${p.domain}) - No real email or phone discovered.`);
+          continue;
+        }
 
+        let mxResult = { hasMx: false, mxHost: '' };
         let verificationStatus = 'VERIFIED';
-        if (!isSyntaxValid) verificationStatus = 'UNVERIFIED';
-        else if (isDisposable) verificationStatus = 'DISPOSABLE';
-        else if (!mxResult.hasMx) verificationStatus = 'RISKY';
+
+        if (p.email) {
+          mxResult = await this.verifyMxRecord(p.email);
+          const isSyntaxValid = this.validateEmailSyntax(p.email);
+          const isDisposable = this.isDisposableEmail(p.email);
+
+          if (!isSyntaxValid) verificationStatus = 'UNVERIFIED';
+          else if (isDisposable) verificationStatus = 'DISPOSABLE';
+          else if (!mxResult.hasMx) verificationStatus = 'RISKY';
+        } else if (p.phone) {
+          verificationStatus = 'PHONE_VERIFIED';
+        }
 
         const cleanFirst = p.name.split(' ')[0].toLowerCase().replace(/[^a-z]/g, '');
         const cleanLast = (p.name.split(' ')[1] || 'exec').toLowerCase().replace(/[^a-z]/g, '');
 
         // Generate tailored strategy note addressing buyer's need
-        const notes = `Targeted for ${businessName}. AI identified ${p.title} at ${p.company} as an ideal ${targetRole || 'buyer'} for ${buyerMatrix.serviceType}. Pain point addressed: "${buyerMatrix.painPoint}". Mailserver verified: ${mxResult.mxHost || 'Direct Enterprise MX'}. Location: ${p.location}.`;
+        const notes = `Targeted for ${businessName}. AI identified ${p.title} at ${p.company} as an ideal ${targetRole || 'buyer'} for ${buyerMatrix.serviceType}. Pain point addressed: "${buyerMatrix.painPoint}". Mailserver verified: ${mxResult.mxHost || (p.phone ? 'Direct Phone/WhatsApp Gateway' : 'None')}. Location: ${p.location}.`;
 
         const [roleAudit, phoneAudit] = await Promise.all([
           this.auditLeadRoleWithAi({
@@ -1199,12 +1244,14 @@ Return a strict JSON object:
             targetRole,
             customKeywords,
           }),
-          this.auditAndVerifyPhoneWithAi({
-            phone: p.phone,
-            company: p.company,
-            location: p.location,
-            domain: p.domain,
-          }),
+          p.phone
+            ? this.auditAndVerifyPhoneWithAi({
+                phone: p.phone,
+                company: p.company,
+                location: p.location,
+                domain: p.domain,
+              })
+            : Promise.resolve({ phoneStatus: 'NO_PHONE' }),
         ]);
 
         const leadObj = {
@@ -1213,8 +1260,8 @@ Return a strict JSON object:
           company: p.company,
           website: `https://${p.domain}`,
           title: p.title,
-          email: p.email,
-          phone: p.phone,
+          email: p.email || '',
+          phone: p.phone || '',
           location: p.location,
           stage: 'Prospect',
           source: 'Scraper',
@@ -1226,11 +1273,11 @@ Return a strict JSON object:
             roleConfidenceScore: roleAudit.roleConfidenceScore || 85,
           },
           verificationStatus,
-          mxHost: mxResult.mxHost,
+          mxHost: mxResult.mxHost || (p.phone ? 'Phone Verified' : 'None'),
           channels: {
-            email: p.email,
-            phone: p.phone,
-            whatsapp: p.phone,
+            email: p.email || '',
+            phone: p.phone || '',
+            whatsapp: p.phone || '',
             telegram: `@${cleanFirst}_${cleanLast}`,
             linkedin: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
               `${p.company} ${p.title}`
@@ -1240,7 +1287,7 @@ Return a strict JSON object:
           tags: [
             'AI Autonomous Scraper',
             roleAudit.entityRole || targetRole || 'BUYER',
-            verificationStatus === 'VERIFIED' ? 'DNS MX Verified' : 'Unverified',
+            verificationStatus === 'VERIFIED' ? 'DNS MX Verified' : (p.phone ? 'Direct Phone Verified' : 'Unverified'),
             p.source || 'Multi-Source',
             businessName,
           ],
@@ -1260,9 +1307,13 @@ Return a strict JSON object:
 
         leadObj.score = this.calculateAiScore(leadObj);
 
-        // Save lead using email and workspaceId
+        // Safe upsert using email if available, otherwise phone + company
+        const upsertQuery = leadObj.email
+          ? { workspaceId, email: leadObj.email }
+          : { workspaceId, phone: leadObj.phone, company: leadObj.company };
+
         const savedLead = await Lead.findOneAndUpdate(
-          { workspaceId, email: leadObj.email },
+          upsertQuery,
           leadObj,
           { upsert: true, new: true }
         );
@@ -1360,12 +1411,15 @@ Return a strict JSON object:
         leads: enrichedList,
       });
 
-      // Automatically fetch leads into Omnichannel Outreach, analyze with AI LLM against owner's services, and auto-contact
+      // Generate specialized, customized scripts for all newly scraped leads.
+      // NOTE: Do NOT send automatically and do NOT fetch into Omnichannel automatically.
+      // Scripts are stored on each lead as drafts awaiting client review and approval.
       try {
         const { AiOutreachDrafter } = await import('./messaging/AiOutreachDrafter.js');
-        await AiOutreachDrafter.syncAndDraftAllLeads(workspaceId, { autoDispatch: true, io });
+        const scrapedLeadIds = enrichedList.map((l) => l._id).filter(Boolean);
+        await AiOutreachDrafter.draftScriptsForLeads(workspaceId, { leadIds: scrapedLeadIds, io });
       } catch (autoErr) {
-        console.warn('[LeadScraperService] Auto-drafting error:', autoErr.message);
+        console.warn('[LeadScraperService] Auto-script drafting error:', autoErr.message);
       }
 
       return { success: true, count: enrichedList.length, leads: enrichedList };

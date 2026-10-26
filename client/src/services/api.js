@@ -4,18 +4,26 @@ const API_BASE = '/api';
 
 export const getAuthHeaders = (extra = {}) => {
   const token = authStorage.getToken();
+  const wsId = authStorage.getActiveWsId();
   const headers = { ...extra };
   if (token && !headers['Authorization'] && !headers['authorization']) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (wsId && !headers['x-workspace-id']) {
+    headers['x-workspace-id'] = String(wsId);
   }
   return headers;
 };
 
 export const authedFetch = (url, options = {}) => {
   const token = authStorage.getToken();
+  const wsId = authStorage.getActiveWsId();
   const headers = { ...(options.headers || {}) };
   if (token && !headers['Authorization'] && !headers['authorization']) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (wsId && !headers['x-workspace-id']) {
+    headers['x-workspace-id'] = String(wsId);
   }
   return fetch(url, { ...options, headers });
 };
@@ -249,6 +257,13 @@ export const api = {
     });
     return res.json();
   },
+  updateStrategy: async (strategyId, payload) => {
+    return safeFetchJson(`${API_BASE}/strategy/${strategyId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
 
   // Scraper & Waterfall Enrichment (Phase 3)
   startScraper: async (workspaceId, params) => {
@@ -268,6 +283,46 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
       body: JSON.stringify({ leadIds, action, targetStage }),
+    });
+    return res.json();
+  },
+  approveAndSendLead: async (workspaceId, leadId, data = {}) => {
+    const res = await authedFetch(`${API_BASE}/leads/${leadId}/approve-and-send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  approveAndSendAllLeads: async (workspaceId, data = {}) => {
+    const res = await authedFetch(`${API_BASE}/leads/approve-and-send-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  generateLeadDraft: async (workspaceId, leadId, customGoal = '') => {
+    const res = await authedFetch(`${API_BASE}/leads/${leadId}/generate-draft`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      body: JSON.stringify({ customGoal }),
+    });
+    return res.json();
+  },
+  generateDraftsAll: async (workspaceId, leadIds = []) => {
+    const res = await authedFetch(`${API_BASE}/leads/generate-drafts-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      body: JSON.stringify({ leadIds }),
+    });
+    return res.json();
+  },
+  startChatWithLead: async (workspaceId, leadId, data = {}) => {
+    const res = await authedFetch(`${API_BASE}/messaging/start-chat-with-lead`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      body: JSON.stringify({ workspaceId, leadId, ...data }),
     });
     return res.json();
   },
@@ -569,6 +624,38 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(boostData),
+    });
+    return res.json();
+  },
+  generateCampaignAi: async (params) => {
+    const res = await authedFetch(`${API_BASE}/ads/generate-campaign-ai`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    return res.json();
+  },
+  approveAndLaunchCampaign: async (params) => {
+    const res = await authedFetch(`${API_BASE}/ads/approve-and-launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    return res.json();
+  },
+  generateVisualAsset: async (params) => {
+    const res = await authedFetch(`${API_BASE}/ads/generate-visual`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    return res.json();
+  },
+  leadAutoFollowup: async (params) => {
+    const res = await authedFetch(`${API_BASE}/ads/lead-auto-followup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
     });
     return res.json();
   },
@@ -1229,6 +1316,28 @@ export const api = {
       body: JSON.stringify({ pitchId, backlinkUrl }),
     });
     return res.json();
+  },
+  // Universal Business Market Intelligence Radar
+  getMarketRadar: async () => {
+    return safeFetchJson(`${API_BASE}/strategy/market-radar`);
+  },
+  sweepMarketRadar: async () => {
+    return safeFetchJson(`${API_BASE}/strategy/market-radar/sweep`, { method: 'POST' });
+  },
+  // Multi-Persona Voiceover Studio
+  getVoices: async () => {
+    return safeFetchJson(`${API_BASE}/social/voices`);
+  },
+  previewVoice: async (voiceId, text = '') => {
+    return safeFetchJson(`${API_BASE}/social/voices/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voiceId, text }),
+    });
+  },
+  // Complete Corporate Roles & Workforce Taxonomy
+  getEmployeeRoles: async () => {
+    return safeFetchJson(`${API_BASE}/strategy/employee-roles`);
   },
 };
 

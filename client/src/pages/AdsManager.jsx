@@ -44,6 +44,11 @@ import {
   Bookmark,
   FileText,
   CheckCircle,
+  Lock,
+  Target,
+  X,
+  Image as ImageIcon,
+  BrainCircuit,
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -139,6 +144,23 @@ export default function AdsManager({
   const [formMediaUrl, setFormMediaUrl] = useState('');
   const [formWhatsappGreeting, setFormWhatsappGreeting] = useState('');
   const [isGeneratingAiCopy, setIsGeneratingAiCopy] = useState(false);
+
+  // Strategic AI Creative Director & SWOT State
+  const [isAiDirectorModalOpen, setIsAiDirectorModalOpen] = useState(false);
+  const [aiDirectorPlatform, setAiDirectorPlatform] = useState('META_FEED');
+  const [aiDirectorObjective, setAiDirectorObjective] = useState('LEAD_GENERATION');
+  const [aiDirectorProductFocus, setAiDirectorProductFocus] = useState('');
+  const [aiDirectorCustomGoal, setAiDirectorCustomGoal] = useState('');
+  const [aiDirectorNumVariations, setAiDirectorNumVariations] = useState(3);
+  const [aiDirectorPreferredVisualProvider, setAiDirectorPreferredVisualProvider] = useState('AUTO_ROTATE');
+  const [aiDirectorLoading, setAiDirectorLoading] = useState(false);
+  const [aiDirectorStepIndex, setAiDirectorStepIndex] = useState(0);
+  const [aiDirectorResult, setAiDirectorResult] = useState(null);
+  const [selectedCreativeIdsToApprove, setSelectedCreativeIdsToApprove] = useState([]);
+  const [approvingCampaign, setApprovingCampaign] = useState(false);
+  const [rerollingIndex, setRerollingIndex] = useState(null);
+  const [viewingSwotModal, setViewingSwotModal] = useState(null);
+  const [followingUpLead, setFollowingUpLead] = useState(false);
 
   // Fetch Campaigns, Metrics & Autonomous Logs
   const loadAdsData = async () => {
@@ -313,64 +335,195 @@ export default function AdsManager({
   };
 
   // AI Copy Generator inside Launch Modal tailored to active format & workspace
-  const handleGenerateAiCopy = () => {
+  const handleGenerateAiCopy = async () => {
+    if (!activeWorkspace) return;
     setIsGeneratingAiCopy(true);
-    setTimeout(() => {
-      const bizName = activeWorkspace?.name || 'Company';
-      const isGoogle = formPlatform === 'GOOGLE_ADS' || formFormat.startsWith('GOOGLE');
+    showToast('🧠 Strategic Creative AI analyzing workspace DNA, offerings & platform schema...');
+    try {
+      const res = await api.generateCampaignAi({
+        workspaceId: activeWorkspace._id,
+        platform: formFormat,
+        objective: formObjective,
+        productFocus: activeWorkspace.industry || 'Core Enterprise Offering',
+        numVariations: 1,
+      });
 
-      if (formFormat === 'META_REELS') {
-        setFormHeadline(`Scale 10x Faster with ${bizName} 🔥`);
-        setFormPrimaryText(`Watch how fast-growing teams automate critical pipelines and outpace competition. Tap below to claim priority onboarding.`);
-        setFormCta('Claim Access Now');
-        setFormMediaUrl('/media/hedgex_reel.jpg');
-      } else if (formFormat === 'META_LEAD_FORM') {
-        setFormHeadline(`Get the 2026 Executive Security & Growth Blueprint`);
-        setFormPrimaryText(`Pre-fill this 10-second instant form to receive our verified architectural benchmarks and ROI audit for ${bizName}.`);
-        setFormCta('Get Instant Access');
-        setFormMediaUrl('/media/vyuhox_banner.jpg');
-      } else if (formFormat === 'META_WHATSAPP') {
-        setFormHeadline(`Direct WhatsApp Access: Chat with Our Solution Desk`);
-        setFormPrimaryText(`Have specific infrastructure or deployment questions? Skip the queue and chat live with an enterprise engineer from ${bizName}.`);
-        setFormCta('Chat on WhatsApp');
-        setFormWhatsappGreeting(`Hi ${bizName} team! I saw your ad on Meta and would like to learn more about your platform.`);
-        setFormMediaUrl('/media/vyuhox_banner.jpg');
-      } else if (formFormat === 'GOOGLE_SEARCH') {
-        setFormHeadline(`${bizName} Enterprise Platform | Accelerated Pipeline Velocity`);
-        setFormPrimaryText(`Deploy ${bizName}'s automated infrastructure to drive qualified pipelines and reduce operational friction from day one. Trusted by global leaders.`);
-        setFormCta('Explore Platform');
-        setFormMediaUrl('/media/vyuhox_banner.jpg');
-      } else if (formFormat === 'GOOGLE_PMAX') {
-        setFormHeadline(`Unified Performance Engine | Omnichannel Scale with ${bizName}`);
-        setFormPrimaryText(`Harness Google AI across Search, YouTube, Gmail, Maps, and Discover to reach high-conviction decision makers at the optimal moment.`);
-        setFormCta('Start Free Trial');
-        setFormMediaUrl('/media/vyuhox_banner.jpg');
-      } else if (formFormat === 'GOOGLE_SHOPPING') {
-        setFormHeadline(`${bizName} Enterprise Suite License (Annual Tier)`);
-        setFormPrimaryText(`Enterprise license with dedicated support, 99.99% uptime SLA, and turnkey API connectors.`);
-        setFormCta('Shop Now');
-        setFormMediaUrl('/media/vyuhox_banner.jpg');
-      } else if (formFormat === 'GOOGLE_YOUTUBE') {
-        setFormHeadline(`See Why Industry Leaders Are Migrating to ${bizName}`);
-        setFormPrimaryText(`Discover the hidden bottlenecks slowing down your operations. Watch our 2-minute walkthrough showing ${bizName} in live action.`);
-        setFormCta('Watch Platform Demo');
-        setFormMediaUrl('/media/vyuhox_banner.jpg');
-      } else if (formFormat === 'GOOGLE_DISPLAY') {
-        setFormHeadline(`Award-Winning Enterprise Infrastructure | ${bizName}`);
-        setFormPrimaryText(`Over 500+ enterprises trust ${bizName} for resilient mission-critical automation.`);
-        setFormCta('Learn More');
-        setFormMediaUrl('/media/vyuhox_banner.jpg');
+      if (res.success && res.creatives?.[0]) {
+        const topCreative = res.creatives[0];
+        setFormHeadline(topCreative.headline);
+        setFormPrimaryText(topCreative.primaryText || topCreative.bodyCopy);
+        setFormCta(topCreative.callToAction || topCreative.ctaText || 'Learn More');
+        if (topCreative.mediaUrl) {
+          setFormMediaUrl(topCreative.mediaUrl);
+        }
+        if (topCreative.metadata?.whatsAppGreeting) {
+          setFormWhatsappGreeting(topCreative.metadata.whatsAppGreeting);
+        }
+        showToast(`✨ Generated authentic ad copy & visual via ${topCreative.metadata?.providerUsed || 'Rotating Engine'}!`);
       } else {
-        // META_FEED or fallback
-        setFormHeadline(`Automate & Scale with ${bizName}`);
-        setFormPrimaryText(`Discover how market-leading organizations modernize and accelerate operations with ${bizName}. Book an executive briefing today.`);
-        setFormCta('Book Strategy Call');
-        setFormMediaUrl('/media/hedgex_reel.jpg');
+        throw new Error('Creative generation returned empty');
       }
-
+    } catch (err) {
+      console.warn('AI generation fallback in wizard:', err.message);
+      const bizName = activeWorkspace?.name || 'Company';
+      setFormHeadline(`Automate & Scale with ${bizName}`);
+      setFormPrimaryText(`Discover how market-leading organizations modernize and accelerate operations with ${bizName}. Book an executive briefing today.`);
+      setFormCta('Book Strategy Call');
+      setFormMediaUrl('/media/vyuhox_banner.jpg');
+      showToast('Generated strategic copy template for workspace.');
+    } finally {
       setIsGeneratingAiCopy(false);
-      showToast(`✨ AI LLM generated copy tailored for ${formFormat.replace(/_/g, ' ')}!`);
-    }, 450);
+    }
+  };
+
+  // Run Full Strategic AI Creative Director & SWOT Analysis
+  const handleRunAiDirector = async () => {
+    if (!activeWorkspace) return;
+    try {
+      setAiDirectorLoading(true);
+      setAiDirectorStepIndex(1);
+      showToast('🧠 Strategic Director AI: Ingesting universal DNA, catalog & customer objections...');
+
+      const stepTimer1 = setTimeout(() => setAiDirectorStepIndex(2), 1200);
+      const stepTimer2 = setTimeout(() => setAiDirectorStepIndex(3), 2500);
+
+      const res = await api.generateCampaignAi({
+        workspaceId: activeWorkspace._id,
+        platform: aiDirectorPlatform,
+        objective: aiDirectorObjective,
+        productFocus: aiDirectorProductFocus || activeWorkspace.name,
+        customGoal: aiDirectorCustomGoal,
+        numVariations: aiDirectorNumVariations,
+        preferredVisualProvider: aiDirectorPreferredVisualProvider === 'AUTO_ROTATE' ? null : aiDirectorPreferredVisualProvider,
+      });
+
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+
+      if (res.success) {
+        setAiDirectorResult(res);
+        setSelectedCreativeIdsToApprove((res.creatives || []).map((c) => c._id));
+        showToast(`🎯 Strategic campaign drafted with ${res.creatives?.length || 0} variations! Review and approve before launch.`);
+        await loadAdsData();
+      } else {
+        showToast(res.message || 'Strategic generation encountered an issue', true);
+      }
+    } catch (err) {
+      console.error('AI Director error:', err);
+      showToast('Failed to run AI Director: ' + err.message, true);
+    } finally {
+      setAiDirectorLoading(false);
+      setAiDirectorStepIndex(0);
+    }
+  };
+
+  // Authorize & Launch live campaign (Client Approval Gate)
+  const handleApproveAndLaunch = async () => {
+    if (!aiDirectorResult?.campaign?._id || !activeWorkspace) return;
+    try {
+      setApprovingCampaign(true);
+      const res = await api.approveAndLaunchCampaign({
+        campaignId: aiDirectorResult.campaign._id,
+        approvedCreativeIds: selectedCreativeIdsToApprove,
+        workspaceId: activeWorkspace._id,
+      });
+
+      if (res.success) {
+        showToast('🚀 Campaign authorized by client and live autonomous ad delivery activated!');
+        setIsAiDirectorModalOpen(false);
+        setAiDirectorResult(null);
+        await loadAdsData();
+      } else {
+        showToast(res.message || 'Approval failed', true);
+      }
+    } catch (err) {
+      console.error('Approval error:', err);
+      showToast('Approval failed: ' + err.message, true);
+    } finally {
+      setApprovingCampaign(false);
+    }
+  };
+
+  // Re-roll visual asset using multi-provider visual gateway
+  const handleRerollVisual = async (creativeIndex, preferredProvider) => {
+    if (!aiDirectorResult?.creatives?.[creativeIndex]) return;
+    const targetCreative = aiDirectorResult.creatives[creativeIndex];
+    try {
+      setRerollingIndex(creativeIndex);
+      showToast(`🎨 Rotating to ${preferredProvider || 'Next Provider'}...`);
+
+      const res = await api.generateVisualAsset({
+        prompt: `${activeWorkspace.name} ad: ${targetCreative.headline}`,
+        platform: aiDirectorPlatform,
+        preferredProvider,
+        headline: targetCreative.headline,
+        subtext: targetCreative.description || targetCreative.primaryText,
+        brandName: activeWorkspace.name || 'VYUHOX',
+        formatType: targetCreative.mediaType || 'IMAGE',
+      });
+
+      if (res.success && res.asset) {
+        const updatedCreatives = [...aiDirectorResult.creatives];
+        updatedCreatives[creativeIndex] = {
+          ...targetCreative,
+          mediaUrl: res.asset.imageUrl || res.asset.mediaUrl,
+          thumbnailUrl: res.asset.thumbnailUrl || res.asset.imageUrl,
+          metadata: {
+            ...targetCreative.metadata,
+            providerUsed: res.asset.providerName,
+          },
+        };
+        setAiDirectorResult({
+          ...aiDirectorResult,
+          creatives: updatedCreatives,
+        });
+        showToast(`✨ Generated fresh creative visual via ${res.asset.providerName}!`);
+      }
+    } catch (err) {
+      console.error('Reroll error:', err);
+      showToast('Visual reroll failed: ' + err.message, true);
+    } finally {
+      setRerollingIndex(null);
+    }
+  };
+
+  // Quick 1-Click Approval from Table Row
+  const handleLaunchDirectFromRow = async (campaignId) => {
+    if (!campaignId || !activeWorkspace) return;
+    try {
+      showToast('🚀 Authorizing campaign and activating live spend...');
+      const res = await api.approveAndLaunchCampaign({
+        campaignId,
+        approvedCreativeIds: [],
+        workspaceId: activeWorkspace._id,
+      });
+      if (res.success) {
+        showToast('✅ Campaign authorized & activated successfully!');
+        await loadAdsData();
+      }
+    } catch (err) {
+      showToast('Activation failed: ' + err.message, true);
+    }
+  };
+
+  // AI Auto-Followup for leads acquired from ads (Requirement 9)
+  const handleLeadAutoFollowup = async (leadId, action = 'SEND_CATALOG') => {
+    if (!activeWorkspace) return;
+    try {
+      setFollowingUpLead(true);
+      const res = await api.leadAutoFollowup({
+        workspaceId: activeWorkspace._id,
+        leadId,
+        action,
+      });
+      if (res.success) {
+        showToast(`💬 Follow-up sent: Solution catalog dispatched to acquired lead!`);
+      }
+    } catch (err) {
+      showToast('Lead follow-up failed: ' + err.message, true);
+    } finally {
+      setFollowingUpLead(false);
+    }
   };
 
   // Launch Campaign Submit
@@ -589,27 +742,51 @@ export default function AdsManager({
             </button>
           </div>
 
-          {/* Primary CTA Button */}
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            style={{
-              padding: '9px 18px',
-              borderRadius: '9px',
-              background: 'linear-gradient(135deg, #1877F2 0%, #06B6D4 100%)',
-              border: 'none',
-              color: '#FFFFFF',
-              fontSize: '0.8rem',
-              fontWeight: '800',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 4px 18px rgba(24, 119, 242, 0.35)',
-              letterSpacing: '0.01em',
-            }}
-          >
-            <Plus size={15} /> Launch AI Campaign
-          </button>
+          {/* AI Creative Director & Launch Buttons */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => setIsAiDirectorModalOpen(true)}
+              style={{
+                padding: '9px 18px',
+                borderRadius: '9px',
+                background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                border: 'none',
+                color: '#FFFFFF',
+                fontSize: '0.8rem',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 18px rgba(236, 72, 153, 0.35)',
+                letterSpacing: '0.01em',
+              }}
+              title="Autonomous CMO & Creative Director: SWOT analysis, psychological hooks, multi-provider visual generation"
+            >
+              <BrainCircuit size={15} /> 🧠 AI Creative Director &amp; SWOT
+            </button>
+
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              style={{
+                padding: '9px 18px',
+                borderRadius: '9px',
+                background: 'linear-gradient(135deg, #1877F2 0%, #06B6D4 100%)',
+                border: 'none',
+                color: '#FFFFFF',
+                fontSize: '0.8rem',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 18px rgba(24, 119, 242, 0.35)',
+                letterSpacing: '0.01em',
+              }}
+            >
+              <Plus size={15} /> Launch AI Campaign
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1805,28 +1982,68 @@ export default function AdsManager({
                     </td>
 
                     <td style={{ padding: '16px 16px' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleCampaign(camp._id);
-                        }}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          fontSize: '0.74rem',
-                          fontWeight: '700',
-                          border: 'none',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          background: camp.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.08)',
-                          color: camp.status === 'ACTIVE' ? '#10B981' : '#94A3B8',
-                        }}
-                      >
-                        {camp.status === 'ACTIVE' ? <Play size={10} fill="#10B981" /> : <Pause size={10} />}
-                        {camp.status}
-                      </button>
+                      {camp.status === 'DRAFT' || camp.reviewStatus === 'AWAITING_CLIENT_APPROVAL' ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            fontSize: '0.7rem',
+                            fontWeight: '800',
+                            background: 'rgba(245, 158, 11, 0.15)',
+                            color: '#FBBF24',
+                            border: '1px solid rgba(245, 158, 11, 0.3)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            <Lock size={10} /> Client Approval Needed
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLaunchDirectFromRow(camp._id);
+                            }}
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: '#10B981',
+                              color: '#FFF',
+                              border: 'none',
+                              fontSize: '0.68rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Play size={9} fill="#FFF" /> Authorize &amp; Launch
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleCampaign(camp._id);
+                          }}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '0.74rem',
+                            fontWeight: '700',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: camp.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                            color: camp.status === 'ACTIVE' ? '#10B981' : '#94A3B8',
+                          }}
+                        >
+                          {camp.status === 'ACTIVE' ? <Play size={10} fill="#10B981" /> : <Pause size={10} />}
+                          {camp.status}
+                        </button>
+                      )}
                     </td>
 
                     <td style={{ padding: '16px 16px', fontWeight: '700', color: '#F8FAFC' }}>
@@ -1867,37 +2084,63 @@ export default function AdsManager({
                     </td>
 
                     <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedCampaignForPreview(camp);
-                          setPreviewPlatform(
-                            isReels
-                              ? 'META_REELS'
-                              : isWhatsapp
-                              ? 'META_WHATSAPP'
-                              : isMeta
-                              ? 'META_FEED'
-                              : isShopping
-                              ? 'GOOGLE_SHOPPING'
-                              : isYoutube
-                              ? 'GOOGLE_YOUTUBE'
-                              : 'GOOGLE_SEARCH'
-                          );
-                        }}
-                        style={{
-                          padding: '5px 10px',
-                          borderRadius: '6px',
-                          background: 'rgba(255, 255, 255, 0.06)',
-                          border: '1px solid rgba(255, 255, 255, 0.12)',
-                          color: '#F8FAFC',
-                          fontSize: '0.74rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Inspect Creative
-                      </button>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                        {camp.strategyBrief?.swotAnalysis && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewingSwotModal(camp.strategyBrief);
+                            }}
+                            style={{
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              background: 'rgba(236, 72, 153, 0.12)',
+                              border: '1px solid rgba(236, 72, 153, 0.3)',
+                              color: '#F472B6',
+                              fontSize: '0.7rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                            title="Inspect SWOT Analysis & Psychological Hooks"
+                          >
+                            <BrainCircuit size={11} /> SWOT
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCampaignForPreview(camp);
+                            setPreviewPlatform(
+                              isReels
+                                ? 'META_REELS'
+                                : isWhatsapp
+                                ? 'META_WHATSAPP'
+                                : isMeta
+                                ? 'META_FEED'
+                                : isShopping
+                                ? 'GOOGLE_SHOPPING'
+                                : isYoutube
+                                ? 'GOOGLE_YOUTUBE'
+                                : 'GOOGLE_SEARCH'
+                            );
+                          }}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            color: '#F8FAFC',
+                            fontSize: '0.74rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Inspect
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -2925,6 +3168,758 @@ export default function AdsManager({
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. STRATEGIC AI CREATIVE DIRECTOR & MULTI-ENGINE STUDIO MODAL */}
+      {isAiDirectorModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(2, 6, 23, 0.92)',
+          backdropFilter: 'blur(16px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+        }}>
+          <div style={{
+            background: 'linear-gradient(180deg, #0B1120 0%, #030712 100%)',
+            border: '1px solid rgba(236, 72, 153, 0.3)',
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '1180px',
+            maxHeight: '92vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 60px -15px rgba(236, 72, 153, 0.25), 0 0 40px rgba(139, 92, 246, 0.15)',
+            overflow: 'hidden',
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 26px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'rgba(236, 72, 153, 0.04)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(236, 72, 153, 0.4)',
+                }}>
+                  <BrainCircuit size={20} color="#FFFFFF" />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
+                    Strategic AI Creative Director &amp; Multi-Engine Studio
+                  </h2>
+                  <div style={{ fontSize: '0.74rem', color: '#CBD5E1', marginTop: '2px' }}>
+                    Universal Business Context • SWOT Research • Multi-Provider Visual Rotation (Nano Banana, Google Flow, Flux) • Client Approval Gate
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAiDirectorModalOpen(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#94A3B8',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div style={{ padding: '24px 26px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '22px' }}>
+              {/* Strategic Control Parameters */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                borderRadius: '14px',
+                padding: '18px 20px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '16px',
+                alignItems: 'end',
+              }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                    Target Platform &amp; Specs
+                  </label>
+                  <select
+                    value={aiDirectorPlatform}
+                    onChange={(e) => setAiDirectorPlatform(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: '#0F172A',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#F8FAFC',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <option value="META_FEED">Meta Feed (1:1 Square - 1080x1080)</option>
+                    <option value="META_REEL">Meta Stories &amp; Reels (9:16 Video/Vertical)</option>
+                    <option value="GOOGLE_DISPLAY">Google Display &amp; PMax (1.91:1 - 1200x628)</option>
+                    <option value="GOOGLE_SEARCH">Google Responsive Search (Text RSA)</option>
+                    <option value="LINKEDIN_SPONSORED">LinkedIn Sponsored Content (1.91:1 Landscape)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                    Campaign Objective
+                  </label>
+                  <select
+                    value={aiDirectorObjective}
+                    onChange={(e) => setAiDirectorObjective(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: '#0F172A',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#F8FAFC',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <option value="LEAD_GENERATION">Direct Lead Generation</option>
+                    <option value="BRAND_AWARENESS">Brand Authority &amp; Reach</option>
+                    <option value="CONVERSIONS">High-Ticket Sales Conversions</option>
+                    <option value="WHATSAPP_LEADS">WhatsApp Click-to-Chat Leads</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                    Offer / Product Focus
+                  </label>
+                  <input
+                    type="text"
+                    value={aiDirectorProductFocus}
+                    onChange={(e) => setAiDirectorProductFocus(e.target.value)}
+                    placeholder={activeWorkspace?.industry || 'Core Enterprise Product'}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#F8FAFC',
+                      fontSize: '0.8rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                    Visual AI Engine Preference
+                  </label>
+                  <select
+                    value={aiDirectorPreferredVisualProvider}
+                    onChange={(e) => setAiDirectorPreferredVisualProvider(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: '#0F172A',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#F8FAFC',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <option value="AUTO_ROTATE">⚡ Auto-Rotating Zero-Limit Engine</option>
+                    <option value="NANO_BANANA_GPU">Nano Banana / Serverless SDXL</option>
+                    <option value="GOOGLE_FLOW_IMAGEN">Google Flow / Imagen 3 Pipeline</option>
+                    <option value="POLLINATIONS_FLUX">Pollinations FLUX.1 Neural Engine</option>
+                    <option value="HUGGINGFACE_FLUX">HuggingFace FLUX.1 Schnell</option>
+                    <option value="REPLICATE_FAL_FLUX">Fal.ai / Replicate Fast Flux</option>
+                    <option value="DYNAMIC_VECTOR_GRAPHIC">High-Definition Dynamic Creative SVG</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                    Variations to Draft
+                  </label>
+                  <select
+                    value={aiDirectorNumVariations}
+                    onChange={(e) => setAiDirectorNumVariations(Number(e.target.value))}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: '#0F172A',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#F8FAFC',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <option value={3}>3 Distinct Strategic Variations</option>
+                    <option value={4}>4 Distinct Strategic Variations</option>
+                    <option value={5}>5 Maximum Multi-Angle Variations</option>
+                  </select>
+                </div>
+
+                <div>
+                  <button
+                    onClick={handleRunAiDirector}
+                    disabled={aiDirectorLoading}
+                    style={{
+                      width: '100%',
+                      padding: '11px 18px',
+                      borderRadius: '9px',
+                      background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                      border: 'none',
+                      color: '#FFF',
+                      fontWeight: '800',
+                      fontSize: '0.82rem',
+                      cursor: aiDirectorLoading ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 18px rgba(236, 72, 153, 0.4)',
+                    }}
+                  >
+                    <Sparkles size={16} className={aiDirectorLoading ? 'animate-spin' : ''} />
+                    {aiDirectorLoading ? 'Synthesizing...' : '🧠 Execute SWOT & Draft Ads'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Real-time Step Progress Ticker during Generation */}
+              {aiDirectorLoading && (
+                <div style={{
+                  padding: '24px',
+                  borderRadius: '14px',
+                  background: 'rgba(236, 72, 153, 0.08)',
+                  border: '1px solid rgba(236, 72, 153, 0.25)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    border: '3px solid rgba(236, 72, 153, 0.2)',
+                    borderTop: '3px solid #EC4899',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                  }} />
+                  <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#F472B6' }}>
+                    {aiDirectorStepIndex === 1 && '1/3: Ingesting Unified Business DNA, Catalog & Customer Objections...'}
+                    {aiDirectorStepIndex === 2 && '2/3: Formulating World-Class SWOT, Psychological Hooks & Platform Boxes...'}
+                    {aiDirectorStepIndex === 3 && '3/3: Synthesizing Multi-Provider Visual Assets via Rotating AI Gateway...'}
+                    {aiDirectorStepIndex === 0 && 'Executing Autonomous Creative Director Pipeline...'}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#94A3B8' }}>
+                    Calibrating imagery style, resolution safe-zones, and copy persuasion angles pin-to-pin...
+                  </div>
+                </div>
+              )}
+
+              {/* Generated Result Container */}
+              {aiDirectorResult && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+                  {/* Strategic Research & SWOT Drawer */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '16px',
+                    padding: '20px 24px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: '800', color: '#F472B6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Strategic Campaign Research &amp; SWOT Intelligence
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#10B981', fontWeight: '700', padding: '3px 8px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.12)' }}>
+                        CMO Audit Verified
+                      </span>
+                    </div>
+
+                    {/* SWOT 4-Box Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+                      {/* Strengths */}
+                      <div style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '10px', padding: '12px' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#34D399', marginBottom: '6px' }}>
+                          🟢 Strengths &amp; Proprietary Moat
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.72rem', color: '#E2E8F0', lineHeight: '1.45' }}>
+                          {(aiDirectorResult.strategy?.swotAnalysis?.strengths || []).map((s, idx) => (
+                            <li key={idx}>{s}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Weaknesses */}
+                      <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '10px', padding: '12px' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#FBBF24', marginBottom: '6px' }}>
+                          🟡 Buyer Objections Addressed
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.72rem', color: '#E2E8F0', lineHeight: '1.45' }}>
+                          {(aiDirectorResult.strategy?.swotAnalysis?.weaknesses || []).map((w, idx) => (
+                            <li key={idx}>{w}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Opportunities */}
+                      <div style={{ background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '10px', padding: '12px' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#38BDF8', marginBottom: '6px' }}>
+                          🔵 High-Converting Opportunities
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.72rem', color: '#E2E8F0', lineHeight: '1.45' }}>
+                          {(aiDirectorResult.strategy?.swotAnalysis?.opportunities || []).map((o, idx) => (
+                            <li key={idx}>{o}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Threats */}
+                      <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '10px', padding: '12px' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#F87171', marginBottom: '6px' }}>
+                          🔴 Fatigue Threats &amp; Mitigations
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.72rem', color: '#E2E8F0', lineHeight: '1.45' }}>
+                          {(aiDirectorResult.strategy?.swotAnalysis?.threats || []).map((t, idx) => (
+                            <li key={idx}>{t}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '0.74rem', color: '#94A3B8', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '10px' }}>
+                      <strong>Target Audience Persona:</strong> {aiDirectorResult.strategy?.targetAudienceSummary || 'Growth decision makers'}
+                    </div>
+                  </div>
+
+                  {/* Multi-Variation Generated Ad Creatives Grid */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
+                        Generated Strategic Ad Variations ({aiDirectorResult.creatives?.length || 0})
+                      </h3>
+                      <span style={{ fontSize: '0.72rem', color: '#F472B6' }}>
+                        Select variations you want to approve for live launch
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '18px' }}>
+                      {(aiDirectorResult.creatives || []).map((creative, cIdx) => {
+                        const isApproved = selectedCreativeIdsToApprove.includes(creative._id);
+                        const isVideo = creative.mediaType === 'VIDEO';
+
+                        return (
+                          <div
+                            key={creative._id || cIdx}
+                            style={{
+                              background: '#040710',
+                              border: isApproved ? '2px solid #10B981' : '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '16px',
+                              overflow: 'hidden',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              boxShadow: isApproved ? '0 8px 24px rgba(16, 185, 129, 0.15)' : 'none',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            {/* Variation Top Bar */}
+                            <div style={{
+                              padding: '12px 16px',
+                              background: 'rgba(255, 255, 255, 0.03)',
+                              borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isApproved}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedCreativeIdsToApprove([...selectedCreativeIdsToApprove, creative._id]);
+                                    } else {
+                                      setSelectedCreativeIdsToApprove(selectedCreativeIdsToApprove.filter((id) => id !== creative._id));
+                                    }
+                                  }}
+                                  style={{ cursor: 'pointer', accentColor: '#10B981' }}
+                                />
+                                <span style={{ fontSize: '0.76rem', fontWeight: '800', color: '#F8FAFC' }}>
+                                  Variation #{cIdx + 1}
+                                </span>
+                              </div>
+                              <span style={{
+                                fontSize: '0.66rem',
+                                fontWeight: '800',
+                                color: '#A855F7',
+                                background: 'rgba(168, 85, 247, 0.15)',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                              }}>
+                                {creative.metadata?.strategicAngle || 'PAIN_AGITATE_SOLVE'}
+                              </span>
+                            </div>
+
+                            {/* Visual Asset Preview (Exact Aspect Ratio) */}
+                            <div style={{ position: 'relative', width: '100%', background: '#000', overflow: 'hidden' }}>
+                              {isVideo ? (
+                                <div style={{
+                                  width: '100%',
+                                  aspectRatio: '9/16',
+                                  maxHeight: '340px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  background: '#0a0a0a',
+                                  position: 'relative',
+                                }}>
+                                  <img
+                                    src={creative.thumbnailUrl || creative.mediaUrl}
+                                    alt="Video thumbnail"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }}
+                                  />
+                                  <div style={{
+                                    position: 'absolute',
+                                    padding: '8px 14px',
+                                    borderRadius: '20px',
+                                    background: 'rgba(0,0,0,0.65)',
+                                    color: '#FFF',
+                                    fontSize: '0.72rem',
+                                    fontWeight: '700',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    backdropFilter: 'blur(6px)',
+                                  }}>
+                                    <Video size={13} color="#EC4899" />
+                                    <span>Motion Reel Creative (9:16)</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{
+                                  width: '100%',
+                                  aspectRatio: creative.aspectRatio === '1.91:1' ? '1.91/1' : '1/1',
+                                  maxHeight: '260px',
+                                  overflow: 'hidden',
+                                  background: '#090D16',
+                                }}>
+                                  <img
+                                    src={creative.mediaUrl}
+                                    alt="Generated Ad Creative"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = '/media/vyuhox_banner.jpg';
+                                    }}
+                                  />
+                                </div>
+                              )}
+
+                              {/* Provider Badge Overlay */}
+                              <div style={{
+                                position: 'absolute',
+                                bottom: '8px',
+                                left: '8px',
+                                padding: '3px 8px',
+                                borderRadius: '5px',
+                                background: 'rgba(3, 7, 18, 0.85)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                color: '#38BDF8',
+                                fontSize: '0.64rem',
+                                fontWeight: '700',
+                                backdropFilter: 'blur(4px)',
+                              }}>
+                                ⚡ {creative.metadata?.providerUsed || 'Multi-Provider Rotating Engine'}
+                              </div>
+                            </div>
+
+                            {/* Re-Roll Visual Controls */}
+                            <div style={{
+                              padding: '8px 12px',
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              fontSize: '0.7rem',
+                            }}>
+                              <span style={{ color: '#94A3B8' }}>Rotate visual engine:</span>
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRerollVisual(cIdx, 'NANO_BANANA_GPU')}
+                                  disabled={rerollingIndex === cIdx}
+                                  style={{ padding: '3px 6px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#FBBF24', fontSize: '0.65rem', cursor: 'pointer' }}
+                                >
+                                  Banana
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRerollVisual(cIdx, 'GOOGLE_FLOW_IMAGEN')}
+                                  disabled={rerollingIndex === cIdx}
+                                  style={{ padding: '3px 6px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#38BDF8', fontSize: '0.65rem', cursor: 'pointer' }}
+                                >
+                                  Google Flow
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRerollVisual(cIdx, 'HUGGINGFACE_FLUX')}
+                                  disabled={rerollingIndex === cIdx}
+                                  style={{ padding: '3px 6px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#A855F7', fontSize: '0.65rem', cursor: 'pointer' }}
+                                >
+                                  Flux Pro
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Authentic Platform Schema Boxes */}
+                            <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+                              <div>
+                                <span style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>
+                                  Headline
+                                </span>
+                                <div style={{ fontSize: '0.84rem', fontWeight: '800', color: '#F8FAFC', marginTop: '2px' }}>
+                                  {creative.headline}
+                                </div>
+                              </div>
+
+                              <div>
+                                <span style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>
+                                  Primary Text / Copy Hook
+                                </span>
+                                <div style={{ fontSize: '0.76rem', color: '#CBD5E1', lineHeight: '1.4', marginTop: '2px', whiteSpace: 'pre-line' }}>
+                                  {creative.primaryText || creative.bodyCopy}
+                                </div>
+                              </div>
+
+                              {creative.description && (
+                                <div>
+                                  <span style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>
+                                    Urgency Description
+                                  </span>
+                                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
+                                    {creative.description}
+                                  </div>
+                                </div>
+                              )}
+
+                              {creative.metadata?.whatsAppGreeting && (
+                                <div style={{ padding: '8px 10px', borderRadius: '6px', background: 'rgba(37, 211, 102, 0.08)', border: '1px solid rgba(37, 211, 102, 0.25)' }}>
+                                  <span style={{ fontSize: '0.64rem', color: '#25D366', fontWeight: '800', display: 'block' }}>
+                                    💬 WhatsApp Click-To-Chat Pre-Filled Greeting:
+                                  </span>
+                                  <span style={{ fontSize: '0.7rem', color: '#E2E8F0', fontStyle: 'italic' }}>
+                                    "{creative.metadata.whatsAppGreeting}"
+                                  </span>
+                                </div>
+                              )}
+
+                              <div style={{ marginTop: 'auto', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.7rem', color: '#64748B' }}>CTA Button:</span>
+                                <span style={{ padding: '4px 10px', borderRadius: '6px', background: '#1877F2', color: '#FFF', fontSize: '0.7rem', fontWeight: '700' }}>
+                                  {creative.callToAction || creative.ctaText || 'LEARN_MORE'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Client Permission Authorization Gate (Requirement 8) */}
+                  <div style={{
+                    padding: '18px 24px',
+                    borderRadius: '14px',
+                    background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '16px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '10px',
+                        background: 'rgba(245, 158, 11, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#FBBF24',
+                      }}>
+                        <Lock size={18} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.84rem', fontWeight: '800', color: '#F8FAFC' }}>
+                          Client Permission &amp; Approval Safeguard
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#CBD5E1', marginTop: '2px' }}>
+                          Campaign is currently saved as DRAFT in MongoDB. Ad spend will NOT be activated until you click Authorize below.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <button
+                        onClick={() => setIsAiDirectorModalOpen(false)}
+                        style={{
+                          padding: '10px 18px',
+                          borderRadius: '8px',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: 'none',
+                          color: '#CBD5E1',
+                          fontWeight: '600',
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Keep Drafts &amp; Close
+                      </button>
+
+                      <button
+                        onClick={handleApproveAndLaunch}
+                        disabled={approvingCampaign || selectedCreativeIdsToApprove.length === 0}
+                        style={{
+                          padding: '11px 24px',
+                          borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)',
+                          border: 'none',
+                          color: '#FFFFFF',
+                          fontWeight: '800',
+                          fontSize: '0.84rem',
+                          cursor: approvingCampaign ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          boxShadow: '0 4px 18px rgba(16, 185, 129, 0.4)',
+                        }}
+                      >
+                        <ShieldCheck size={16} />
+                        {approvingCampaign ? 'Authorizing...' : `🚀 Authorize & Launch Live (${selectedCreativeIdsToApprove.length} Approved)`}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. STANDALONE SWOT STRATEGY INSPECTION MODAL */}
+      {viewingSwotModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(2, 6, 23, 0.88)',
+          backdropFilter: 'blur(12px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+          padding: '20px',
+        }}>
+          <div style={{
+            background: '#0B1120',
+            border: '1px solid rgba(236, 72, 153, 0.35)',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '750px',
+            maxHeight: '85vh',
+            overflowY: 'auto',
+            padding: '24px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#F472B6', fontWeight: '800', fontSize: '0.95rem' }}>
+                <BrainCircuit size={18} /> Pre-Campaign Strategic SWOT &amp; Market Moat
+              </div>
+              <button
+                onClick={() => setViewingSwotModal(null)}
+                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#34D399', marginBottom: '6px' }}>🟢 Strengths</div>
+                <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.74rem', color: '#CBD5E1', lineHeight: '1.45' }}>
+                  {(viewingSwotModal.swotAnalysis?.strengths || []).map((s, idx) => (
+                    <li key={idx}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div style={{ background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#FBBF24', marginBottom: '6px' }}>🟡 Objections Addressed</div>
+                <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.74rem', color: '#CBD5E1', lineHeight: '1.45' }}>
+                  {(viewingSwotModal.swotAnalysis?.weaknesses || []).map((w, idx) => (
+                    <li key={idx}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div style={{ background: 'rgba(56, 189, 248, 0.06)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#38BDF8', marginBottom: '6px' }}>🔵 Growth Opportunities</div>
+                <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.74rem', color: '#CBD5E1', lineHeight: '1.45' }}>
+                  {(viewingSwotModal.swotAnalysis?.opportunities || []).map((o, idx) => (
+                    <li key={idx}>{o}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div style={{ background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#F87171', marginBottom: '6px' }}>🔴 Fatigue &amp; Competitor Threats</div>
+                <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.74rem', color: '#CBD5E1', lineHeight: '1.45' }}>
+                  {(viewingSwotModal.swotAnalysis?.threats || []).map((t, idx) => (
+                    <li key={idx}>{t}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {viewingSwotModal.competitiveMoat && (
+              <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.78rem', color: '#E2E8F0', marginBottom: '14px' }}>
+                <strong style={{ color: '#F472B6' }}>Competitive Moat:</strong> {viewingSwotModal.competitiveMoat}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setViewingSwotModal(null)}
+                style={{ padding: '8px 18px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.08)', border: 'none', color: '#FFF', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer' }}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

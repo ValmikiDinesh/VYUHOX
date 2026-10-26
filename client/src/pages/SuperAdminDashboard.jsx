@@ -94,6 +94,17 @@ export default function SuperAdminDashboard({
   const [askingBrain, setAskingBrain] = useState(false);
   const [advancingRoundId, setAdvancingRoundId] = useState(null);
 
+  // Market Intelligence Radar & Voice Studio State
+  const [marketRadarData, setMarketRadarData] = useState([]);
+  const [loadingRadar, setLoadingRadar] = useState(false);
+  const [sweepingRadar, setSweepingRadar] = useState(false);
+  const [selectedRadarCategory, setSelectedRadarCategory] = useState(null);
+  const [radarSubView, setRadarSubView] = useState('ARCHETYPES'); // 'ARCHETYPES' | 'ROLES'
+  const [employeeRoles, setEmployeeRoles] = useState([]);
+  const [roleEchelonFilter, setRoleEchelonFilter] = useState('ALL');
+  const [voicesList, setVoicesList] = useState([]);
+  const [playingVoiceId, setPlayingVoiceId] = useState(null);
+
   const isINR = currency === 'INR';
   const currencySymbol = isINR ? '₹' : '$';
 
@@ -139,10 +150,86 @@ export default function SuperAdminDashboard({
     }
   };
 
+  const fetchMarketRadar = async () => {
+    try {
+      setLoadingRadar(true);
+      const res = await api.getMarketRadar();
+      if (res.success && res.categories) {
+        setMarketRadarData(res.categories);
+        if (res.categories.length > 0 && !selectedRadarCategory) {
+          setSelectedRadarCategory(res.categories[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch market radar:', err);
+    } finally {
+      setLoadingRadar(false);
+    }
+  };
+
+  const fetchVoices = async () => {
+    try {
+      const res = await api.getVoices();
+      if (res.success && res.voices) {
+        setVoicesList(res.voices);
+      }
+    } catch (err) {
+      console.error('Failed to fetch voices:', err);
+    }
+  };
+
+  const handleSweepRadar = async () => {
+    try {
+      setSweepingRadar(true);
+      const res = await api.sweepMarketRadar();
+      if (res.success && res.categories) {
+        setMarketRadarData(res.categories);
+        showToast('Autonomous Trend Radar swept! New viral models assimilated into VYUHOX.');
+      }
+    } catch (err) {
+      console.error('Sweep radar error:', err);
+      showToast('Sweep failed');
+    } finally {
+      setSweepingRadar(false);
+    }
+  };
+
+  const handlePlayVoicePreview = async (voiceId) => {
+    try {
+      setPlayingVoiceId(voiceId);
+      const res = await api.previewVoice(voiceId);
+      if (res.success && res.audioUrl) {
+        const audio = new Audio(res.audioUrl);
+        audio.play();
+        audio.onended = () => setPlayingVoiceId(null);
+        audio.onerror = () => setPlayingVoiceId(null);
+      } else {
+        setPlayingVoiceId(null);
+      }
+    } catch (err) {
+      console.error('Voice preview error:', err);
+      setPlayingVoiceId(null);
+    }
+  };
+
+  const fetchEmployeeRoles = async () => {
+    try {
+      const res = await api.getEmployeeRoles();
+      if (res.success && res.roles) {
+        setEmployeeRoles(res.roles);
+      }
+    } catch (err) {
+      console.error('Failed to fetch employee roles:', err);
+    }
+  };
+
   useEffect(() => {
     fetchPlans();
     fetchPlatformConfig();
     fetchBrainOverview();
+    fetchMarketRadar();
+    fetchVoices();
+    fetchEmployeeRoles();
   }, []);
 
   const handleAskTestQuestion = async () => {
@@ -474,7 +561,8 @@ export default function SuperAdminDashboard({
           { id: 'rates', label: 'Utility Rates (Calling, WhatsApp, Email, SMS)', icon: Zap },
           { id: 'llmFinops', label: '⚡ Multi-LLM Master Gateway & FinOps Pricing', icon: Cpu },
           { id: 'integrations', label: 'Master Carrier & Tool Integrations (Twilio, AiSensy, etc.)', icon: Radio },
-          { id: 'visualTools', label: '🎨 Visual AI & PowerPoint Presentation Tools', icon: Presentation },
+          { id: 'marketRadar', label: '🌐 Autonomous Market Brain & Radar (All Business Models)', icon: Globe },
+          { id: 'visualTools', label: '🎨 Visual AI, Reel Video & Voice Studio Hub', icon: Presentation },
           { id: 'brainEvolution', label: '🧠 AI Compounding Brain & Client Growth (Rounds 1→N, L1→L6)', icon: Sparkles },
           { id: 'tenants', label: 'Active Business Workspaces & Actual Features', icon: Building2 },
         ].map((tab) => {
@@ -2106,8 +2194,736 @@ export default function SuperAdminDashboard({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB: AI COMPOUNDING BRAIN & CLIENT GROWTH (ROUNDS 1->N, LEVELS 1->6) */}
+      {/* TAB: AUTONOMOUS MARKET BRAIN & RADAR (ALL BUSINESS MODELS) */}
       {/* ========================================================================= */}
+      {activeTab === 'marketRadar' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span className="badge badge-cyan" style={{ fontSize: '0.72rem' }}>
+                  PERPETUAL BUSINESS RADAR
+                </span>
+                <span className="badge badge-purple" style={{ fontSize: '0.72rem' }}>
+                  UNIVERSAL MULTI-CATEGORY INTELLIGENCE
+                </span>
+              </div>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.45rem', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px' }}>
+                🌐 Autonomous Business Model &amp; Market Intelligence Radar
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', maxWidth: '900px' }}>
+                Continuously tracks, analyzes, executes SWOT analysis, and trains VYUHOX on global business models, viral startups, and diverse niche industries (SaaS, D2C Apparel, Beauty, Dental Clinics, Chit Funds, Real Estate, Restaurants, Manufacturing, Gyms, EdTech, etc.). VYUHOX uses this cumulative knowledge base to instantly understand ANY client's business model and craft high-converting campaigns.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button
+                onClick={fetchMarketRadar}
+                disabled={loadingRadar}
+                className="btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', fontSize: '0.8rem' }}
+              >
+                <RefreshCw size={14} className={loadingRadar ? 'animate-spin' : ''} />
+                <span>Refresh Radar</span>
+              </button>
+
+              <button
+                onClick={handleSweepRadar}
+                disabled={sweepingRadar}
+                className="btn-cyan"
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', fontWeight: '700', fontSize: '0.825rem' }}
+              >
+                <Sparkles size={15} className={sweepingRadar ? 'animate-spin' : ''} />
+                <span>{sweepingRadar ? 'Sweeping Trends...' : '⚡ Sweep & Train VYUHOX Brain'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* KPI Summary Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+              <div style={{ fontSize: '0.725rem', fontWeight: '700', color: '#38BDF8', textTransform: 'uppercase' }}>STUDIED ARCHETYPES</div>
+              <div style={{ fontSize: '1.7rem', fontWeight: '800', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', marginTop: '4px' }}>
+                {marketRadarData.length || 12} Global Categories
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Pre-trained in VYUHOX Memory</div>
+            </div>
+
+            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+              <div style={{ fontSize: '0.725rem', fontWeight: '700', color: '#34D399', textTransform: 'uppercase' }}>SWOT ANALYSIS ENGINE</div>
+              <div style={{ fontSize: '1.7rem', fontWeight: '800', color: '#34D399', fontFamily: 'Outfit, sans-serif', marginTop: '4px' }}>
+                100% Comprehensive
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Strengths, Weaknesses, Opps, Threats</div>
+            </div>
+
+            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+              <div style={{ fontSize: '0.725rem', fontWeight: '700', color: '#A78BFA', textTransform: 'uppercase' }}>TOTAL CASE STUDIES</div>
+              <div style={{ fontSize: '1.7rem', fontWeight: '800', color: '#DDD6FE', fontFamily: 'Outfit, sans-serif', marginTop: '4px' }}>
+                {marketRadarData.reduce((acc, c) => acc + (c.learnedCaseStudiesCount || 15), 0)}+ Live Studies
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Assimilated into Brain</div>
+            </div>
+
+            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+              <div style={{ fontSize: '0.725rem', fontWeight: '700', color: '#FBBF24', textTransform: 'uppercase' }}>RADAR STATUS</div>
+              <div style={{ fontSize: '1.7rem', fontWeight: '800', color: '#FCD34D', fontFamily: 'Outfit, sans-serif', marginTop: '4px' }}>
+                Active &amp; Autonomous
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Zero-friction link crawling</div>
+            </div>
+          </div>
+
+          {/* Sub-View Navigation Switcher */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'rgba(255, 255, 255, 0.03)',
+            padding: '6px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setRadarSubView('ARCHETYPES')}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  background: radarSubView === 'ARCHETYPES' ? 'linear-gradient(135deg, #06B6D4, #8B5CF6)' : 'transparent',
+                  color: radarSubView === 'ARCHETYPES' ? '#FFF' : '#94A3B8',
+                  fontWeight: '700',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Layers size={14} />
+                <span>Studied Business Archetypes &amp; SWOT ({marketRadarData.length || 12})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRadarSubView('ROLES')}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  background: radarSubView === 'ROLES' ? 'linear-gradient(135deg, #06B6D4, #8B5CF6)' : 'transparent',
+                  color: radarSubView === 'ROLES' ? '#FFF' : '#94A3B8',
+                  fontWeight: '700',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Users size={14} />
+                <span>👥 Corporate Roles &amp; Dynamic Workforce Matrix ({employeeRoles.length || '50+'})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Master Two-Column Explorer: Archetypes */}
+          {radarSubView === 'ARCHETYPES' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 340px) 1fr', gap: '20px', alignItems: 'start' }}>
+            {/* Left: Category Selector List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '720px', overflowY: 'auto', paddingRight: '6px' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px' }}>
+                Studied Business Archetypes ({marketRadarData.length})
+              </div>
+              {marketRadarData.map((cat) => {
+                const isSelected = selectedRadarCategory?._id === cat._id || selectedRadarCategory?.categoryKey === cat.categoryKey;
+                return (
+                  <div
+                    key={cat._id || cat.categoryKey}
+                    onClick={() => setSelectedRadarCategory(cat)}
+                    style={{
+                      padding: '14px',
+                      borderRadius: '10px',
+                      background: isSelected ? 'rgba(6, 182, 212, 0.15)' : 'rgba(15, 23, 42, 0.65)',
+                      border: isSelected ? '1px solid #06B6D4' : '1px solid rgba(255, 255, 255, 0.08)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '0.875rem', fontWeight: '700', color: isSelected ? '#38BDF8' : '#F8FAFC' }}>
+                        {cat.categoryName}
+                      </span>
+                      <span className="badge badge-purple" style={{ fontSize: '0.62rem' }}>
+                        {cat.businessModel?.split('_')[0] || 'ARCHETYPE'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '8px', lineHeight: '1.3' }}>
+                      {cat.targetAudience?.primaryPersona?.slice(0, 75)}...
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748B' }}>
+                      <span>📚 {cat.learnedCaseStudiesCount || 18} Studies</span>
+                      <span>Signal: {cat.trendingSignals?.length || 1} Trends</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Right: Selected Category Deep Dossier */}
+            {selectedRadarCategory ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Archetype Overview Banner */}
+                <div className="card" style={{ padding: '22px', background: '#0D1527', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
+                    <div>
+                      <span className="badge badge-cyan" style={{ fontSize: '0.68rem', marginBottom: '6px' }}>
+                        {selectedRadarCategory.categoryKey}
+                      </span>
+                      <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.35rem', fontWeight: '800', color: '#F8FAFC' }}>
+                        {selectedRadarCategory.categoryName}
+                      </h3>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>TYPICAL DEAL SIZE / ACV</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#34D399' }}>
+                        {selectedRadarCategory.targetAudience?.typicalACV || '$50 - $5,000'}
+                      </div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '0.825rem', color: '#CBD5E1', margin: '0 0 12px' }}>
+                    Target Customer Profile: <strong style={{ color: '#F8FAFC' }}>{selectedRadarCategory.targetAudience?.primaryPersona}</strong>
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {(selectedRadarCategory.industryKeywords || []).slice(0, 8).map((kw, idx) => (
+                      <span key={idx} style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#94A3B8', fontSize: '0.7rem', padding: '3px 8px', borderRadius: '4px' }}>
+                        #{kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* SWOT Analysis Matrix (4 Quadrants) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#F8FAFC' }}>
+                    📊 Universal SWOT Matrix (Trained into VYUHOX Brain)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                    {/* Strengths */}
+                    <div className="card" style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#34D399', fontWeight: '700', fontSize: '0.825rem' }}>
+                        <CheckCircle2 size={16} />
+                        <span>STRENGTHS</span>
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {(selectedRadarCategory.swotMatrix?.strengths || []).map((s, idx) => (
+                          <li key={idx}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Weaknesses */}
+                    <div className="card" style={{ padding: '16px', background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#FBBF24', fontWeight: '700', fontSize: '0.825rem' }}>
+                        <AlertCircle size={16} />
+                        <span>WEAKNESSES</span>
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {(selectedRadarCategory.swotMatrix?.weaknesses || []).map((w, idx) => (
+                          <li key={idx}>{w}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Opportunities */}
+                    <div className="card" style={{ padding: '16px', background: 'rgba(6, 182, 212, 0.06)', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#38BDF8', fontWeight: '700', fontSize: '0.825rem' }}>
+                        <TrendingUp size={16} />
+                        <span>OPPORTUNITIES</span>
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {(selectedRadarCategory.swotMatrix?.opportunities || []).map((o, idx) => (
+                          <li key={idx}>{o}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Threats */}
+                    <div className="card" style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#F87171', fontWeight: '700', fontSize: '0.825rem' }}>
+                        <ShieldAlert size={16} />
+                        <span>THREATS</span>
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {(selectedRadarCategory.swotMatrix?.threats || []).map((t, idx) => (
+                          <li key={idx}>{t}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Creative Ad Angles & Hooks */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#F8FAFC' }}>
+                    🎯 Proven Creative Ad Hooks &amp; 8K Visual Directives
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+                    {(selectedRadarCategory.creativeAdStrategies || []).map((ad, idx) => (
+                      <div key={idx} className="card" style={{ padding: '16px', background: '#0D1527', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>{ad.platform || 'META_FEED'}</span>
+                          <span style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '700' }}>{ad.angleName || 'Angle'}</span>
+                        </div>
+                        <h4 style={{ margin: '0 0 8px', fontSize: '0.9rem', color: '#F8FAFC', fontWeight: '700' }}>
+                          "{ad.headlineHook}"
+                        </h4>
+                        <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '10px', whiteSpace: 'pre-line' }}>
+                          {ad.primaryTextTemplate}
+                        </p>
+                        <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '8px 10px', borderRadius: '6px', fontSize: '0.7rem', color: '#A78BFA' }}>
+                          <strong>📸 8K Visual Directive:</strong> {ad.visualDirective}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Trending Signals */}
+                {(selectedRadarCategory.trendingSignals || []).length > 0 && (
+                  <div className="card" style={{ padding: '16px', background: 'rgba(6, 182, 212, 0.05)', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#38BDF8', fontWeight: '700', fontSize: '0.825rem' }}>
+                      <Radio size={16} />
+                      <span>LIVE DISCOVERED TREND SIGNALS</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {selectedRadarCategory.trendingSignals.map((ts, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: '#F8FAFC' }}>
+                          <span>🔥 {ts.trendTitle}</span>
+                          <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>Score {ts.momentumScore || 92}/100</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="card" style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>
+                Select a business archetype from the left to inspect its SWOT and creative directives.
+              </div>
+            )}
+          </div>
+          )}
+
+          {/* Master View: Corporate Roles & Dynamic Workforce Matrix */}
+          {radarSubView === 'ROLES' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Echelon Filter Tabs */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: '700' }}>Filter Echelon:</span>
+                  {[
+                    { id: 'ALL', label: 'All Corporate Echelons' },
+                    { id: 'EXECUTIVE_LEADERSHIP', label: '👑 C-Suite & Founders' },
+                    { id: 'SALES_REVENUE', label: '💼 Sales & Closers' },
+                    { id: 'STRATEGY_GROWTH', label: '🎯 Strategy & Growth' },
+                    { id: 'MARKETING_CREATIVE', label: '🚀 Marketing & Media' },
+                    { id: 'OPERATIONS_SUPPORT', label: '🛡️ Operations & CSM' },
+                    { id: 'INDUSTRY_SPECIALISTS', label: '🏥 Industry Specialists' },
+                  ].map((ech) => (
+                    <button
+                      key={ech.id}
+                      type="button"
+                      onClick={() => setRoleEchelonFilter(ech.id)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: roleEchelonFilter === ech.id ? 'rgba(6, 182, 212, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                        color: roleEchelonFilter === ech.id ? '#38BDF8' : '#94A3B8',
+                        fontSize: '0.74rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {ech.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Roles Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
+                {employeeRoles
+                  .filter((r) => roleEchelonFilter === 'ALL' || r.echelon === roleEchelonFilter)
+                  .map((role) => (
+                    <div
+                      key={role.id}
+                      className="card"
+                      style={{
+                        padding: '18px',
+                        background: '#0D1527',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>{role.echelon}</span>
+                          <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '700' }}>
+                            ⚡ {role.aiAgentMapping?.name} ({role.aiAgentMapping?.role})
+                          </span>
+                        </div>
+                        <h4 style={{ margin: '0 0 8px', fontSize: '0.95rem', fontWeight: '800', color: '#F8FAFC' }}>
+                          {role.title}
+                        </h4>
+                        <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginBottom: '10px' }}>
+                          <strong>Core Corporate Responsibilities:</strong>
+                          <ul style={{ margin: '4px 0 0', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            {(role.coreResponsibilities || []).map((resp, idx) => (
+                              <li key={idx}>{resp}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div style={{ background: 'rgba(6, 182, 212, 0.05)', padding: '8px 12px', borderRadius: '6px', fontSize: '0.72rem', color: '#38BDF8', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
+                        <strong>📈 Quantified Impact:</strong> {role.expectedImpact}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: VISUAL AI, REEL VIDEO & VOICE STUDIO CREDENTIALS HUB */}
+      {/* ========================================================================= */}
+      {activeTab === 'visualTools' && platformConfig && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span className="badge badge-purple" style={{ fontSize: '0.72rem' }}>
+                  VISUAL &amp; VOICE CREATIVE HUB
+                </span>
+                <span className="badge badge-cyan" style={{ fontSize: '0.72rem' }}>
+                  AVAILABLE TO ALL CLIENT ACCOUNTS
+                </span>
+              </div>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.45rem', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px' }}>
+                🎨 Generative Visual AI, Video Reels &amp; Voice Studio
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', maxWidth: '850px' }}>
+                Super Admin credential hub for Nano Banana GPU, Google Flow, Fal.ai, Pollinations, and Multi-Persona Voiceover Narration. Configured credentials cascade automatically to every client workspace with zero rate-limit crashes.
+              </p>
+            </div>
+
+            <button
+              onClick={handleSavePlatformConfig}
+              disabled={savingConfig}
+              className="btn-emerald"
+              style={{ padding: '10px 24px', fontWeight: '700', fontSize: '0.85rem' }}
+            >
+              {savingConfig ? 'Saving Settings...' : 'Save Visual & Voice Engine Settings'}
+            </button>
+          </div>
+
+          {/* Visual AI Engines Credentials Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+            {/* 1. Nano Banana Serverless GPU */}
+            <div className="card" style={{ padding: '20px', background: '#0D1527', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Zap size={18} color="#FBBF24" />
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Nano Banana / Serverless GPU</h4>
+                </div>
+                <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>SDXL Turbo</span>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
+                Ultra-fast serverless SDXL image inference pipeline for product ads and studio lighting.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="Banana API Key / Token"
+                  value={platformConfig.integrations?.nanoBananaGpu?.apiKey || ''}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    integrations: {
+                      ...platformConfig.integrations,
+                      nanoBananaGpu: { ...platformConfig.integrations?.nanoBananaGpu, apiKey: e.target.value },
+                    },
+                  })}
+                  className="input-glass"
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                />
+                <select
+                  value={platformConfig.integrations?.nanoBananaGpu?.model || 'sdxl-turbo'}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    integrations: {
+                      ...platformConfig.integrations,
+                      nanoBananaGpu: { ...platformConfig.integrations?.nanoBananaGpu, model: e.target.value },
+                    },
+                  })}
+                  className="input-glass"
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                >
+                  <option value="sdxl-turbo">SDXL Turbo (High Velocity)</option>
+                  <option value="sdxl-lightning">SDXL Lightning (4-Step 8K)</option>
+                  <option value="banana-photoreal">Photoreal Studio Mode</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 2. Google Flow & Imagen 3 */}
+            <div className="card" style={{ padding: '20px', background: '#0D1527', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Globe size={18} color="#38BDF8" />
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Google Flow &amp; Imagen 3</h4>
+                </div>
+                <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>Imagen 3</span>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
+                Google's premier photorealistic vision model with rich typography and brand asset composition.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="Google Cloud / Gemini API Key"
+                  value={platformConfig.integrations?.googleFlowVision?.apiKey || ''}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    integrations: {
+                      ...platformConfig.integrations,
+                      googleFlowVision: { ...platformConfig.integrations?.googleFlowVision, apiKey: e.target.value },
+                    },
+                  })}
+                  className="input-glass"
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                />
+                <select
+                  value={platformConfig.integrations?.googleFlowVision?.model || 'imagen-3'}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    integrations: {
+                      ...platformConfig.integrations,
+                      googleFlowVision: { ...platformConfig.integrations?.googleFlowVision, model: e.target.value },
+                    },
+                  })}
+                  className="input-glass"
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                >
+                  <option value="imagen-3">Imagen 3 Commercial Standard</option>
+                  <option value="imagen-3-fast">Imagen 3 Fast (Sub-2s)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 3. Fal.ai / Flux Pro */}
+            <div className="card" style={{ padding: '20px', background: '#0D1527', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Sparkles size={18} color="#A78BFA" />
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Fal.ai / Flux Pro Engine</h4>
+                </div>
+                <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>FLUX.1 Pro</span>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
+                Award-winning text-to-image engine delivering sharp commercial product ads and typography.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="Fal.ai Key (fal_key_...)"
+                  value={platformConfig.integrations?.falAiFlux?.apiKey || ''}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    integrations: {
+                      ...platformConfig.integrations,
+                      falAiFlux: { ...platformConfig.integrations?.falAiFlux, apiKey: e.target.value },
+                    },
+                  })}
+                  className="input-glass"
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                />
+                <select
+                  value={platformConfig.integrations?.falAiFlux?.model || 'fal-ai/flux-pro'}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    integrations: {
+                      ...platformConfig.integrations,
+                      falAiFlux: { ...platformConfig.integrations?.falAiFlux, model: e.target.value },
+                    },
+                  })}
+                  className="input-glass"
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                >
+                  <option value="fal-ai/flux-pro">FLUX.1 Pro (Commercial Master)</option>
+                  <option value="fal-ai/flux-realism">FLUX Realism Studio</option>
+                  <option value="fal-ai/flux/schnell">FLUX Schnell (Instant Preview)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 4. Pollinations Neural & DALL-E 3 */}
+            <div className="card" style={{ padding: '20px', background: '#0D1527', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Palette size={18} color="#34D399" />
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Pollinations &amp; DALL-E 3</h4>
+                </div>
+                <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Auto-Rotated</span>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
+                Zero-cost neural engine mirror with automatic multi-node rotation preventing free limit exhaustion.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <select
+                  value={platformConfig.integrations?.pollinationsVisualAi?.defaultModel || 'flux'}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    integrations: {
+                      ...platformConfig.integrations,
+                      pollinationsVisualAi: { ...platformConfig.integrations?.pollinationsVisualAi, defaultModel: e.target.value },
+                    },
+                  })}
+                  className="input-glass"
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                >
+                  <option value="flux">FLUX Neural Engine (Default)</option>
+                  <option value="flux-realism">FLUX Realism / Octane Render</option>
+                  <option value="turbo">Turbo Speed (Sub-1s)</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="OpenAI API Key (Optional sk-...)"
+                  value={platformConfig.integrations?.dalleVisualAi?.apiKey || ''}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    integrations: {
+                      ...platformConfig.integrations,
+                      dalleVisualAi: { ...platformConfig.integrations?.dalleVisualAi, apiKey: e.target.value },
+                    },
+                  })}
+                  className="input-glass"
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Voice Narration & Studio Engine (Requirement 9) */}
+          <div className="card" style={{ padding: '24px', background: '#0D1527', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', color: '#F8FAFC' }}>
+                  🎙️ Multi-Voice Studio Engine &amp; Audio Persona Switchboard
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94A3B8' }}>
+                  Multiple distinct voice personalities for phone closers, reels narration, and video ads. Preview any voice with 1 click.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.78rem', color: '#94A3B8' }}>Default Video Voice:</span>
+                <select
+                  value={platformConfig.integrations?.shortVideoEngine?.defaultVoiceId || 'maya'}
+                  onChange={(e) => setPlatformConfig({
+                    ...platformConfig,
+                    integrations: {
+                      ...platformConfig.integrations,
+                      shortVideoEngine: { ...platformConfig.integrations?.shortVideoEngine, defaultVoiceId: e.target.value },
+                    },
+                  })}
+                  className="input-glass"
+                  style={{ height: '32px', fontSize: '0.78rem', minWidth: '130px' }}
+                >
+                  <option value="maya">Maya (US Female)</option>
+                  <option value="marcus">Marcus (US Male Baritone)</option>
+                  <option value="elena">Elena (UK Female)</option>
+                  <option value="david">David (UK Male)</option>
+                  <option value="priya">Priya (India Global Female)</option>
+                  <option value="mateo">Mateo (LatAm Male)</option>
+                  <option value="kenji">Kenji (Global Male)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Voices Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+              {[
+                { id: 'maya', name: 'Maya Vance', gender: 'Female', accent: 'US', profile: 'Energetic, High-Conversion Female Closer' },
+                { id: 'marcus', name: 'Marcus Kane', gender: 'Male', accent: 'US Baritone', profile: 'Deep Baritone, Institutional Authority' },
+                { id: 'elena', name: 'Elena Rostova', gender: 'Female', accent: 'UK Executive', profile: 'Sharp, Sophisticated Executive Female' },
+                { id: 'david', name: 'David Sterling', gender: 'Male', accent: 'UK Founder', profile: 'Confident Tech Founder & Strategist' },
+                { id: 'priya', name: 'Priya Sharma', gender: 'Female', accent: 'India Global', profile: 'Fast, High-Energy Tech Executive' },
+                { id: 'mateo', name: 'Mateo Alvarez', gender: 'Male', accent: 'ES/LatAm', profile: 'Warm, Charismatic High-Energy Male' },
+                { id: 'kenji', name: 'Kenji Sato', gender: 'Male', accent: 'JP/Global', profile: 'Calm, Precision Quant Specialist' },
+              ].map((v) => {
+                const isPlaying = playingVoiceId === v.id;
+                return (
+                  <div
+                    key={v.id}
+                    style={{
+                      padding: '14px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#F8FAFC' }}>{v.name}</span>
+                        <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>{v.accent}</span>
+                      </div>
+                      <div style={{ fontSize: '0.73rem', color: '#94A3B8' }}>{v.profile}</div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handlePlayVoicePreview(v.id)}
+                      disabled={isPlaying}
+                      className="btn-secondary"
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        background: isPlaying ? 'rgba(6, 182, 212, 0.3)' : 'rgba(255, 255, 255, 0.05)',
+                        borderColor: isPlaying ? '#06B6D4' : 'rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      <Radio size={13} className={isPlaying ? 'animate-pulse' : ''} />
+                      <span>{isPlaying ? 'Synthesizing Audio...' : '▶ Listen Voice Preview'}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       {activeTab === 'brainEvolution' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Header */}
@@ -2702,6 +3518,29 @@ export default function SuperAdminDashboard({
                           {/* Actions */}
                           <td style={{ padding: '14px 18px', textAlign: 'right' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                              <button
+                                onClick={() => {
+                                  if (onInspectWorkspace) onInspectWorkspace(ws);
+                                  else if (onSwitchWorkspace) onSwitchWorkspace(ws);
+                                }}
+                                className="btn-secondary"
+                                style={{
+                                  padding: '5px 10px',
+                                  fontSize: '0.725rem',
+                                  background: 'rgba(139, 92, 246, 0.15)',
+                                  border: '1px solid rgba(139, 92, 246, 0.35)',
+                                  color: '#C084FC',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontWeight: '700',
+                                }}
+                                title="Inspect this client account with full Universal AI Creative Director, SWOT, and Omnichannel capabilities"
+                              >
+                                <Sparkles size={12} color="#C084FC" />
+                                <span>AI Creative &amp; SWOT</span>
+                              </button>
+
                               <button
                                 onClick={() => {
                                   if (onInspectWorkspace) onInspectWorkspace(ws);

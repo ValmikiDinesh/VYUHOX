@@ -1,9 +1,10 @@
 import pptxgen from 'pptxgenjs';
+import { MultiProviderVisualGateway } from './MultiProviderVisualGateway.js';
 
 /**
  * VisualAiService.js
  * Visual Representation & Autonomous Presentation Engine for VYUHOX:
- * - Free / Best AI Image Generation (Pollinations FLUX.1 & DALL-E 3)
+ * - Free / Best AI Image Generation (Rotating Multi-Engine Gateway: Banana, Google Flow, Flux, DALL-E)
  * - Microsoft PowerPoint (.pptx) Generator from Crawled Business Strategy Data
  * - Executive In-Dashboard Slide Presentation Viewer
  * - Interactive GTM Funnel Flowchart synthesis
@@ -12,7 +13,7 @@ import pptxgen from 'pptxgenjs';
 export class VisualAiService {
   /**
    * Generate high-quality marketing visual / ad creative image
-   * Uses Pollinations.ai FLUX.1 (Free, instant, no key required) with DALL-E 3 fallback
+   * Uses MultiProviderVisualGateway with rotating providers and zero-failure fallbacks
    */
   static async generateImage({
     prompt,
@@ -21,58 +22,45 @@ export class VisualAiService {
     model = 'flux',
     seed = null,
     apiKey = null,
+    preferredProvider = null,
+    platform = 'DESKTOP_BANNER',
+    headline = '',
+    subtext = '',
+    brandName = 'VYUHOX',
   }) {
-    const cleanPrompt = prompt.trim();
-    const finalSeed = seed || Math.floor(Math.random() * 1000000);
+    const providerMap = {
+      banana: 'NANO_BANANA_GPU',
+      'google-flow': 'GOOGLE_FLOW_IMAGEN',
+      'google-imagen': 'GOOGLE_FLOW_IMAGEN',
+      flux: 'POLLINATIONS_FLUX',
+      'flux-pro': 'HUGGINGFACE_FLUX',
+      fal: 'REPLICATE_FAL_FLUX',
+      'dall-e-3': 'OPENAI_DALLE_3',
+    };
 
-    // 1. If OpenAI DALL-E key is explicitly provided and selected
-    if (apiKey && apiKey.startsWith('sk-') && model === 'dall-e-3') {
-      try {
-        const res = await fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'dall-e-3',
-            prompt: cleanPrompt,
-            n: 1,
-            size: width > height ? '1792x1024' : height > width ? '1024x1792' : '1024x1024',
-            quality: 'standard',
-          }),
-        });
-        const data = await res.json();
-        if (data.data && data.data[0]?.url) {
-          return {
-            success: true,
-            imageUrl: data.data[0].url,
-            provider: 'OpenAI_DALLE_3',
-            prompt: cleanPrompt,
-            dimensions: { width, height },
-          };
-        }
-      } catch (err) {
-        console.warn('[VisualAiService] DALL-E 3 error, falling back to Pollinations FLUX:', err.message);
-      }
-    }
+    const mappedProvider = preferredProvider || providerMap[model] || null;
 
-    // 2. Pollinations AI: FLUX.1 High-Performance Free Visual Engine
-    const enhancedPrompt = `${cleanPrompt}, modern sleek aesthetic, high-resolution commercial photography, 8k render, cinematic lighting, ultra detailed`;
-    const encoded = encodeURIComponent(enhancedPrompt);
-    const selectedModel = model === 'flux-realism' ? 'flux-realism' : model === 'turbo' ? 'turbo' : 'flux';
-    const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&model=${selectedModel}&nologo=true&seed=${finalSeed}`;
+    const result = await MultiProviderVisualGateway.generateImage({
+      prompt,
+      width,
+      height,
+      preferredProvider: mappedProvider,
+      style: 'cinematic',
+      platform,
+      headline,
+      subtext,
+      brandName,
+      apiKey,
+    });
 
     return {
       success: true,
-      imageUrl,
-      provider: 'Pollinations_FLUX_1_AI',
-      prompt: cleanPrompt,
-      enhancedPrompt,
-      dimensions: { width, height },
-      model: selectedModel,
-      seed: finalSeed,
-      isFreeUnlimited: true,
+      imageUrl: result.imageUrl,
+      provider: result.provider,
+      providerName: result.providerName,
+      prompt,
+      dimensions: { width: result.width || width, height: result.height || height },
+      rotationLogs: result.rotationLogs || [],
     };
   }
 

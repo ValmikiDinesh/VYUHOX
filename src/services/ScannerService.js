@@ -1,5 +1,7 @@
 import * as cheerio from 'cheerio';
 import { LlmGatewayService } from './ai/LlmGatewayService.js';
+import { BusinessTaxonomyBrain } from './ai/BusinessTaxonomyBrain.js';
+import { EmployeeRoleBrain } from './ai/EmployeeRoleBrain.js';
 
 /**
  * Service to deep-crawl websites end-to-end and synthesize authentic,
@@ -377,16 +379,27 @@ export class ScannerService {
               // Extract user-facing string literals
               const strRegex = /"([^"\\]{15,250})"|'([^'\\]{15,250})'|`([^`\\]{15,250})`/g;
               let sm;
+              // Ironclad Code Junk & Technical Error Sanitizer
               const isCodeJunk = (str) => {
                 if (!str || typeof str !== 'string') return true;
                 const trimmed = str.trim();
-                if (trimmed.includes('=>') || trimmed.includes('{') || trimmed.includes('}') || trimmed.includes('===') || trimmed.includes('!==')) return true;
-                if (/\b(function|class|return|const|let|var|import|export|typeof|instanceof)\b/.test(trimmed) && trimmed.includes(';')) return true;
-                if (trimmed.includes('node_modules') || trimmed.includes('webpack') || trimmed.includes('linear-gradient') || trimmed.includes('rgba(')) return true;
-                if (/\b(mousedown|mouseup|touchstart|touchend|keydown|keypress|durationchange|timeupdate)\b/i.test(trimmed)) return true;
-                if (/\b(dangerouslySetInnerHTML|forceFrameRate|minified\s+dev|React\.Children|suppressHydrationWarning|defaultChecked|defaultValue|innerHTML)\b/i.test(trimmed)) return true;
-                if (/^Warning:\s*/i.test(trimmed) || /^Error:\s*/i.test(trimmed)) return true;
-                if (!/[a-zA-Z]{2,}\s+[a-zA-Z]{2,}/.test(trimmed) && !/^(PQC|NIST|FIPS|CBOM|AST|SDR|AE|CRM|API)$/i.test(trimmed)) return true;
+                // Reject too short or overly long strings
+                if (trimmed.length < 12 || trimmed.length > 250) return true;
+                // Reject technical code punctuation & syntax
+                if (/[{}<>()\[\];=]/.test(trimmed)) return true;
+                if (trimmed.includes('=>') || trimmed.includes('===') || trimmed.includes('!==') || trimmed.includes('||') || trimmed.includes('&&')) return true;
+                // Reject JS runtime errors, framework internal strings and URL protocols
+                if (/^(javascript:|Warning:|Error:|TypeError|ReferenceError|EvalError)/i.test(trimmed)) return true;
+                if (/(\bthrow new\b|\bdelete\b|stopPropagation|preventDefault|window\[|\bbreak\b|\bcase\b|minified|webpack|node_modules|linear-gradient|rgba\(|var\(--)/i.test(trimmed)) return true;
+                if (/(ReadonlyURLSearchParams|TemporaryReferenceSet|Server Function|Client Function|Next\.js|React\.Children|suppressHydrationWarning|dangerouslySetInnerHTML)/i.test(trimmed)) return true;
+                if (/\b(function|class|return|const|let|var|import|export|typeof|instanceof|defaultChecked|defaultValue|innerHTML)\b/i.test(trimmed)) return true;
+                if (/\b(mousedown|mouseup|touchstart|touchend|keydown|keypress|durationchange|timeupdate|animationend|animationstart|animationiteration)\b/i.test(trimmed)) return true;
+                if (/http[s]?:\/\/[^\s]+/i.test(trimmed)) return true; // URLs are not commercial offering titles
+                // Must have human sentence-like word structure (at least 3 genuine English/human words)
+                const words = trimmed.split(/\s+/).filter((w) => /^[a-zA-Z0-9'’–—\-]+$/.test(w));
+                if (words.length < 3) return true;
+                // If words look like minified JS identifiers (e.g. n5, tQ, nG)
+                if (words.some((w) => w.length <= 2 && !/^(in|on|at|to|for|of|by|and|or|the|a|an|up|is|we|our|all|top|new|men|buy)$/i.test(w))) return true;
                 return false;
               };
 
@@ -398,12 +411,12 @@ export class ScannerService {
                 }
               }
 
-              // Prioritize domain-rich strings that describe features, compliance, and products
+              // Prioritize substantive commercial phrases (products, collections, benefits, quality)
               validStrings.sort((a, b) => {
-                const aDomain = /quantum|crypt|pqc|fips|nist|ciso|security|vulnerability|scan|shield|inventory|algorithm|ast|harvest|codebase|repository|readiness|platform|workflow|compliance|integration|migration/i.test(a);
-                const bDomain = /quantum|crypt|pqc|fips|nist|ciso|security|vulnerability|scan|shield|inventory|algorithm|ast|harvest|codebase|repository|readiness|platform|workflow|compliance|integration|migration/i.test(b);
-                if (aDomain && !bDomain) return -1;
-                if (!aDomain && bDomain) return 1;
+                const aCommercial = /product|watch|luxury|collection|brand|delivery|warranty|quality|service|solution|platform|craftsmanship|guarantee/i.test(a);
+                const bCommercial = /product|watch|luxury|collection|brand|delivery|warranty|quality|service|solution|platform|craftsmanship|guarantee/i.test(b);
+                if (aCommercial && !bCommercial) return -1;
+                if (!aCommercial && bCommercial) return 1;
                 return b.length - a.length;
               });
 
@@ -418,7 +431,7 @@ export class ScannerService {
                 }
 
                 // Discover pricing signals inside script
-                const pMatch = s.match(/(\$\s*\d+|free\s+trial|custom\s+pricing|tier|starter|pro|enterprise)/gi);
+                const pMatch = s.match(/(\$\s*\d+|₹\s*[\d,]+|free\s+trial|custom\s+pricing|tier|starter|pro|enterprise)/gi);
                 if (pMatch) {
                   for (const pm of pMatch) {
                     if (!pricingMatches.includes(pm)) pricingMatches.push(pm);
@@ -633,71 +646,24 @@ export class ScannerService {
    * Synthesize genuine entity intelligence from Google Maps / Local business profile
    */
   static generateGoogleMapsBusinessIntelligence(url, businessName) {
-    const isChitFund = /chit\s*funds?|chit\s*scheme/i.test(businessName);
-    const isFinance = /finance|wealth|invest|credit|loan|bank|capital/i.test(businessName);
-    const isHealthcare = /clinic|hospital|dental|care|pharma|dr\b|doctor/i.test(businessName);
-    const isFood = /restaurant|cafe|kitchen|sweets|bakery|dine/i.test(businessName);
-
-    let detectedFeatures = [];
-    let detectedPricing = [];
-    let category = 'Local & Regional Enterprise';
-
-    if (isChitFund) {
-      category = 'Financial Services, Chit Funds & Micro-Savings Collective';
-      detectedFeatures = [
-        'State & RBI Regulated Monthly Chit Savings Schemes & Dividend Distribution',
-        'Transparent Monthly e-Auctions for Low-Cost Emergency Liquidity & Borrowing',
-        'Collateral-Free Working Capital & Business Expansion Credit for Local Merchants',
-        'Automated WhatsApp Balance Notifications, Digital Payment Receipts & Passbook',
-        'Direct Bank Transfer (NEFT/IMPS) Prize Money Disbursement & KYC Verification',
-      ];
-      detectedPricing = ['Monthly Chit Instalments from ₹2,500 to ₹1,00,000+', 'Fixed Regulatory Commission (5%)'];
-    } else if (isFinance) {
-      category = 'Financial Services & Investment Advisory';
-      detectedFeatures = [
-        'Personal & Commercial Financial Advisory and Flexible Credit Solutions',
-        'Secure Transaction Processing and High-Trust Client Documentation',
-        'Rapid Underwriting and Responsive Direct Consultation',
-      ];
-      detectedPricing = ['Flexible Loan & Investment Tiers', 'Low Processing Fee'];
-    } else if (isHealthcare) {
-      category = 'Healthcare, Medical & Wellness Services';
-      detectedFeatures = [
-        'Comprehensive Patient Diagnosis, Specialized Treatment & Consultations',
-        'Digital Appointment Scheduling and Follow-Up Patient Care Sequences',
-        'Modern Clinical Equipment and Certified Healthcare Specialists',
-      ];
-      detectedPricing = ['Standard Consultation Fee', 'Custom Treatment Packages'];
-    } else if (isFood) {
-      category = 'Food & Beverage, Hospitality & Dining';
-      detectedFeatures = [
-        'Artisanal Recipe Preparation with Fresh, Locally-Sourced Ingredients',
-        'Dine-In, Takeaway, and Hyperlocal Online Delivery Fulfillment',
-        'Corporate Catering and Event Booking Packages',
-      ];
-      detectedPricing = ['A La Carte Menu Pricing', 'Catering Event Packages'];
-    } else {
-      detectedFeatures = [
-        `${businessName} verified local operations and direct customer consultation`,
-        'End-to-end client service delivery with transparent pricing and warranty',
-        'Dedicated customer support and multi-channel booking/inquiry management',
-      ];
-      detectedPricing = ['Custom Quotation Based on Scope', 'Flexible Payment Options'];
-    }
+    const archetype = BusinessTaxonomyBrain.identifyArchetype(businessName, url);
+    const category = archetype.categoryName;
+    const detectedFeatures = archetype.offeringsTemplate(businessName);
+    const detectedPricing = [archetype.targetAudience?.typicalACV || 'Custom Quotation Based on Scope'];
 
     return {
       url,
       domainName: `${businessName.toLowerCase().replace(/[^a-z0-9]/g, '')}.local`,
       businessName,
-      title: `${businessName} • Verified Business Profile & Services`,
-      metaDescription: `${businessName} provides verified ${category} solutions and trusted customer services.`,
+      title: `${businessName} • Verified ${category} & Services`,
+      metaDescription: `${businessName} provides premier ${category} solutions and verified customer services.`,
       ogImage: '',
       h1List: [`Welcome to ${businessName}`],
       h2List: ['Services & Offerings', 'Customer Trust & Testimonials', 'Contact & Location'],
       detectedFeatures,
       detectedPricing,
       keyParagraphs: [
-        `${businessName} is a verified business offering premier ${category} solutions designed to serve local individuals, families, and commercial clients with utmost trust and transparency.`,
+        `${businessName} is a verified business offering premier ${category} solutions designed to serve clients with utmost trust and transparency.`,
       ],
       ctas: ['Call Now', 'Visit Business', 'Schedule Consultation'],
       socialLinks: [],
@@ -710,6 +676,7 @@ export class ScannerService {
       extractedAt: new Date().toISOString(),
       isLiveCrawl: true,
       inferredCategory: category,
+      archetype,
     };
   }
 
@@ -722,11 +689,14 @@ export class ScannerService {
       .replace(/[^a-zA-Z0-9]/g, ' ')
       .replace(/\b\w/g, (c) => c.toUpperCase());
 
+    const archetype = BusinessTaxonomyBrain.identifyArchetype(domainName, url);
+    const detectedFeatures = archetype.offeringsTemplate(cleanName);
+
     return {
       url,
       domainName,
       businessName: cleanName,
-      title: `${cleanName} — Autonomous Platform`,
+      title: `${cleanName} — ${archetype.categoryName}`,
       metaDescription: `Accelerate revenue, customer acquisition, and scale operations with ${cleanName}.`,
       ogImage: '',
       h1List: [`Transform How Your Industry Scales with ${cleanName}`],
@@ -735,19 +705,17 @@ export class ScannerService {
         'Built for Modern High-Growth Organizations',
         'End-to-End Operational Excellence',
       ],
-      detectedFeatures: [
-        'Multi-channel real-time customer onboarding',
-        'High-velocity automated pipeline acceleration',
-        'Automated workflows and enterprise integration support',
-      ],
-      detectedPricing: ['Free Trial Available', 'Contact for Enterprise Tier'],
-      keyParagraphs: [`${cleanName} delivers high-performance solutions engineered to drive modern market adoption and customer success.`],
+      detectedFeatures,
+      detectedPricing: [archetype.targetAudience?.typicalACV || 'Free Trial Available / Contact Team'],
+      keyParagraphs: [`${cleanName} delivers high-performance ${archetype.categoryName} engineered to drive market adoption and customer success.`],
       ctas: ['Start Free Trial', 'Book Demo', 'Contact Team'],
       socialLinks: [`https://linkedin.com/company/${cleanName.toLowerCase()}`],
       detectedTech: [],
       pagesCrawled: [{ url, type: 'FALLBACK_SYNTHESIS' }],
       extractedAt: new Date().toISOString(),
       isLiveCrawl: false,
+      inferredCategory: archetype.categoryName,
+      archetype,
     };
   }
 
@@ -875,7 +843,7 @@ Output strictly valid JSON with this schema:
 
     const recommendedChannels = this.buildTailoredChannels(category);
     const adAngles = this.buildBespokeAdAngles(name, industryProfile, extractedData);
-    const recommendedAITeam = this.buildAITeamArchitecture(category, name);
+    const recommendedAITeam = this.buildAITeamArchitecture(category, name, extractedData);
     const stepByStepRoadmap = this.buildStepByStepRoadmap(name, industryProfile, targetAudience);
 
     const businessPlanDocument = this.buildFullBusinessPlanDocument({
@@ -895,15 +863,21 @@ Output strictly valid JSON with this schema:
       pagesCrawledCount: (extractedData.pagesCrawled || []).length,
     });
 
+    const bespokeTaxonomy = BusinessTaxonomyBrain.generateBespokeIntelligence(extractedData);
+
     return {
       businessName: name,
       websiteUrl: extractedData.url,
       category,
+      categoryKey: bespokeTaxonomy.categoryKey,
+      businessModel: bespokeTaxonomy.businessModel,
       summary,
       whatTheySell,
       coreOfferings,
       positioning,
       targetAudience,
+      swotAnalysis: bespokeTaxonomy.swotAnalysis,
+      creativeAdStrategies: bespokeTaxonomy.creativeAdStrategies,
       recommendedChannels,
       adAngles,
       recommendedAITeam,
@@ -951,27 +925,34 @@ Output strictly valid JSON with this schema:
     // 2. Extract or Synthesize Authentic Value Proposition from Crawled Headings
     const primaryHeading = (data.h1List && data.h1List[0]) || data.title || `${name} Platform`;
     const secondaryHeading = (data.h2List && data.h2List[0]) || '';
-    const featureSample = (data.detectedFeatures && data.detectedFeatures.slice(0, 8)) || [];
+    // Clean and sanitize any extracted features (reject code garbage or minified tokens)
+    const cleanOffering = (str) => {
+      if (!str || typeof str !== 'string') return null;
+      const t = str.trim();
+      if (t.length < 10 || t.length > 200) return null;
+      if (/[{}<>()\[\];=]/.test(t)) return null;
+      if (/javascript:|throw new|window\[|delete |stopPropagation|preventDefault|break;case|ReadonlyURLSearchParams|Server Function|Client Function|Next\.js|React|minified|webpack|animationend/i.test(t)) return null;
+      const words = t.split(/\s+/).filter((w) => /^[a-zA-Z0-9'’–—\-]+$/.test(w));
+      if (words.length < 3) return null;
+      return t;
+    };
+    const cleanFeatures = (data.detectedFeatures || []).map(cleanOffering).filter(Boolean);
+    const featureSample = cleanFeatures.slice(0, 8);
 
-    // Synthesize What the Business Actually Sells & Discovered Core Offerings
-    let whatTheySell = '';
-    let coreOfferings = [];
+    // Synthesize What the Business Actually Sells & Discovered Core Offerings via BusinessTaxonomyBrain
+    const bespokeTaxonomy = BusinessTaxonomyBrain.generateBespokeIntelligence(data);
+
+    let whatTheySell = bespokeTaxonomy.whatTheySell;
+    let coreOfferings = featureSample.length >= 3 ? featureSample : bespokeTaxonomy.coreOfferings;
 
     const isChitFund = industryProfile.category.includes('Chit Fund') || /chit\s*funds?|chit\s*scheme/i.test(corpus) || /chit\s*funds?/i.test(name);
     const isPqcSecurity = industryProfile.category.includes('Post-Quantum') || corpus.includes('quantum') || corpus.includes('pqc') || corpus.includes('cryptograph');
-    const isEcom = industryProfile.category.includes('E-Commerce') || industryProfile.category.includes('Retail');
-    const isLocal = industryProfile.category.includes('Local') || industryProfile.category.includes('SMB');
+    const isWatchOrLuxury = /(watch|watches|wrist\s*watch|chronograph|automatic\s*watch|leather\s*strap|horology|timepiece|luxury\s*brand)/i.test(corpus) ||
+      /(watch|watches|wrist\s*watch|chronograph|horology|timepiece)/i.test(data.title || '') ||
+      /(watch|watches|wrist\s*watch|chronograph|horology|timepiece)/i.test(data.metaDescription || '');
+    const isCrossBorderTrade = industryProfile.category.includes('Trade') || /(import\s*export|cross-border\s*trade|customs\s*clearance|bilateral\s*trade|hs\s*code|container\s*shipment)/i.test(corpus);
 
-    if (isChitFund) {
-      whatTheySell = `${name} is a licensed financial services and chit fund institution offering regulated monthly chit savings schemes, transparent prize money auctions, and accessible credit facilities for local individuals, families, and SME business owners.`;
-      coreOfferings = [
-        'Regulated Monthly Chit Savings Schemes with Guaranteed Dividend Sharing',
-        'Transparent Monthly e-Auctions for Emergency Collateral-Free Liquidity',
-        'Working Capital Credit & Short-Term Financing for Local Merchants',
-        'Automated WhatsApp Payment Confirmations & Digital Passbook Statements',
-        'Direct Bank Transfer (NEFT/IMPS) Prize Money Disbursement & KYC Compliance',
-      ];
-    } else if (isPqcSecurity) {
+    if (isPqcSecurity) {
       whatTheySell = `${name} is an enterprise Post-Quantum Cryptography (PQC) Security Readiness & Vulnerability Discovery Platform. It scans developer codebases, software repositories, and cloud microservices to discover cryptographic debt, pinpoint algorithms vulnerable to Shor's quantum computing attacks (RSA, ECC, Diffie-Hellman), and automate migration to NIST-approved post-quantum encryption standards (ML-KEM, ML-DSA, SLH-DSA).`;
       coreOfferings = [
         'Automated Cryptographic Bill of Materials (CBOM) & AST Codebase Inspection across Node.js, Python, Java, Go, OpenSSL & SSH configs',
@@ -981,30 +962,29 @@ Output strictly valid JSON with this schema:
         'ZIP Codebase Archive Upload & Instant Cryptographic Audit Reports (Exportable PDF & machine-readable JSON)',
         'Interactive AI Cryptography Remediation Assistant for drop-in PQC hybrid cipher implementation without code exposure',
       ];
-    } else if (isEcom) {
-      whatTheySell = `${name} is a high-growth e-commerce brand selling premium consumer products with direct-to-consumer digital storefronts and automated order fulfillment.`;
-      coreOfferings = featureSample.length >= 3 ? featureSample : [
-        'Curated Direct-to-Consumer Digital Storefront with Frictionless Mobile Checkout',
-        'Multi-Tier Promotional Bundles, High-AOV Upsells & Customer Loyalty Architecture',
-        'Sub-45s Conversational WhatsApp & SMS Cart Abandonment Recovery Sequences',
-        'Automated Inventory Replenishment, Order Tracking & Cross-Border Logistics Integration',
+    } else if (isWatchOrLuxury) {
+      whatTheySell = data.metaDescription && data.metaDescription.length > 35 && /(watch|shop|luxury|strap|chronograph|men)/i.test(data.metaDescription)
+        ? `${name} is an elite luxury retail and horology e-commerce destination. ${data.metaDescription}`
+        : `${name} is a premier luxury retail and e-commerce destination curating world-class designer men's and women's watches, automatic timepieces, chronographs, and accessories from top global luxury houses.`;
+      coreOfferings = [
+        'Curated Luxury Watches: Automatic, Mechanical, Chronograph & Analog Timepieces',
+        'Top Global Luxury Designer Brands with 100% Authenticity Guarantee',
+        'Premium Straps & Materials: Genuine Italian Leather, Ceramic, Stainless Steel & Titanium',
+        'Frictionless Digital Shopping Experience with Insured Doorstep Delivery & Easy Returns',
+        'Official Manufacturer International Warranty & Dedicated VIP Horology Assistance',
       ];
-    } else if (isLocal) {
-      whatTheySell = `${name} is a premier ${industryProfile.category} business offering high-quality products and specialized local services to regional customers with personalized support.`;
-      coreOfferings = featureSample.length >= 3 ? featureSample : [
-        `Specialized ${name} Local Services & Client Consultation`,
-        'End-to-End Service Delivery with Quality Assurance',
-        'Direct Customer Support & WhatsApp Booking Assistance',
-        'Transparent Pricing & Flexible Payment Options',
+    } else if (isCrossBorderTrade) {
+      whatTheySell = `${name} is a specialized cross-border bilateral trade and import-export platform connecting verified international buyers with overseas suppliers and manufacturers across target HS codes and logistics corridors.`;
+      coreOfferings = [
+        'Bilateral International Buyer & Seller Matching across Verified HS Codes & Product Tiers',
+        'End-to-End Customs Tariffs, Export Documentation & Regulatory Compliance Clearance',
+        'Full Container Load (FCL) & Less than Container Load (LCL) Ocean Freight Logistics (FOB/CIF)',
+        'Escrow-Protected Cross-Border Trade Finance & Irrevocable Letter of Credit (LC) Processing',
+        'Pre-Shipment Factory Quality Inspection & Third-Party Cargo Certification',
       ];
-    } else {
-      whatTheySell = `${name} delivers specialized ${industryProfile.category} platforms engineered to streamline complex operational workflows, reduce administrative friction, and drive predictable customer growth.`;
-      coreOfferings = featureSample.length >= 3 ? featureSample : [
-        `Turnkey ${industryProfile.category} Automated Workflow Engine with zero manual friction`,
-        'Unified Cloud Microservice APIs, Webhooks & Seamless Third-Party Integrations',
-        'Real-Time Predictive Intelligence Dashboards & Operational Telemetry',
-        'Enterprise Single Sign-On (SSO), Role-Based Access Controls & SOC2 Compliance Architecture',
-      ];
+    } else if (featureSample.length > 0) {
+      // Blend discovered features with archetype core offerings
+      coreOfferings = [...new Set([...featureSample, ...bespokeTaxonomy.coreOfferings])].slice(0, 6);
     }
 
     const coreValueProp = data.metaDescription && data.metaDescription.length > 40
@@ -1049,7 +1029,7 @@ Output strictly valid JSON with this schema:
     const adAngles = this.buildBespokeAdAngles(name, industryProfile, data);
 
     // 7. Tailored AI Agent C-Suite Team
-    const recommendedAITeam = this.buildAITeamArchitecture(industryProfile.category, name);
+    const recommendedAITeam = this.buildAITeamArchitecture(industryProfile.category, name, data);
 
     // 8. 30-Day Step-by-Step Launch Blueprint with VYUHOX
     const stepByStepRoadmap = this.buildStepByStepRoadmap(name, industryProfile, targetAudience);
@@ -1082,6 +1062,8 @@ Output strictly valid JSON with this schema:
       businessName: name,
       websiteUrl: data.url,
       category: industryProfile.category,
+      categoryKey: bespokeTaxonomy.categoryKey,
+      businessModel: bespokeTaxonomy.businessModel,
       summary: coreValueProp,
       whatTheySell,
       coreOfferings,
@@ -1093,6 +1075,8 @@ Output strictly valid JSON with this schema:
         keyDifferentiators,
       },
       targetAudience,
+      swotAnalysis: bespokeTaxonomy.swotAnalysis,
+      creativeAdStrategies: bespokeTaxonomy.creativeAdStrategies,
       recommendedChannels,
       adAngles,
       recommendedAITeam,
@@ -1178,9 +1162,21 @@ Output strictly valid JSON with this schema:
       scores.cybersecurity_pqc += 15;
     }
 
-    // E-Commerce & Retail signals
-    if (/(apparel|clothing|shoes|outfit|workout\s*clothes|gym\s*clothes|activewear|hoodie|leggings|tees|fashion|jewelry|cosmetics|skincare|perfume|handbag)/i.test(text)) scores.ecommerce += 8;
-    if (/(add to cart|bag|basket|free shipping|discount code|order tracking|checkout|shopify|storefront|return policy)/i.test(text)) scores.ecommerce += 6;
+    // E-Commerce, Luxury Watches, Fashion & Consumer Goods
+    if (/(watch|watches|wrist\s*watch|chronograph|automatic\s*watch|leather\s*strap|horology|timepiece|timepieces|mens\s*watches|womens\s*watches)/i.test(text)) {
+      scores.ecommerce += 25;
+    }
+    if (/(apparel|clothing|shoes|outfit|workout\s*clothes|gym\s*clothes|activewear|hoodie|leggings|tees|fashion|jewelry|cosmetics|skincare|perfume|handbag|eyewear|sunglasses|luxury\s*brand|designer\s*collection|menswear|womenswear)/i.test(text)) {
+      scores.ecommerce += 15;
+    }
+    if (/(add to cart|bag|basket|free shipping|discount code|order tracking|checkout|shopify|storefront|return policy|buy now|shop now|in stock|product details|sale\s*price|wishlist)/i.test(text)) {
+      scores.ecommerce += 10;
+    }
+
+    // Cross-Border Trade & Import/Export
+    if (/(import\s*export|cross-border\s*trade|customs\s*clearance|freight\s*forward|bilateral\s*trade|international\s*sourcing|hs\s*code|port\s*logistics|ocean\s*cargo|export\s*house|merchant\s*exporter)/i.test(text)) {
+      scores.logistics += 20;
+    }
 
     // Developer Tools & Cloud Infrastructure
     if (/(developer\s*(api|tools|platform|sdk)|api\s*(documentation|reference|endpoints|gateway)|graphql\s*api|postgres|database\s*cluster|kubernetes|docker\s*container|devops\s*pipeline|ci\/cd|sdk\s*for|code\s*editor|github\s*action)/i.test(text)) scores.devtools += 8;
@@ -1189,13 +1185,15 @@ Output strictly valid JSON with this schema:
     // Cybersecurity & RegTech (general compliance)
     if (/(soc2|soc\s*2|hipaa\s*compliance|iso\s*27001|vulnerability\s*scanner|penetration\s*testing|zero-trust|iam\s*identity|firewall|endpoint\s*protection|governance\s*risk)/i.test(text)) scores.cybersecurity += 8;
 
-    // Fintech, Web3 & Payments (ensure crypto does NOT match cryptography or cryptographic!)
+    // Fintech, Web3 & Payments (ensure standard e-com checkout buttons don't falsely trigger fintech!)
     if (/\b(cryptocurrency|crypto\s*(asset|trading|exchange|token|wallet|fund|market|liquidity))\b|web3|blockchain|solana|ethereum|\btoken\b|defi|otc\s*trading|dex|liquidity\s*pool|yield\s*farming|staking|custody/i.test(text)) {
       if (!/cryptograph|pqc|post-quantum/i.test(text) || /\b(trading|token|solana|ethereum|dex)\b/i.test(text)) {
         scores.fintech_web3 += 8;
       }
     }
-    if (/(payment\s*gateway|accept\s*payments|money\s*movement|billing\s*engine|financial\s*infrastructure|merchant\s*account|cross-border\s*payout)/i.test(text)) scores.fintech_web3 += 7;
+    if (scores.ecommerce === 0 && /(payment\s*gateway|accept\s*payments|money\s*movement|billing\s*engine|financial\s*infrastructure|merchant\s*account|cross-border\s*payout)/i.test(text)) {
+      scores.fintech_web3 += 7;
+    }
 
     // Healthcare
     if (/(patient|telehealth|telemedicine|clinical\s*trials|ehr|emr|medical\s*practice|doctor|hospital|healthcare|hipaa\s*compliant\s*care)/i.test(text)) scores.healthcare += 8;
@@ -1284,17 +1282,31 @@ Output strictly valid JSON with this schema:
     }
 
     if (bestCat === 'ecommerce') {
+      const isWatchesOrLuxury = /(watch|watches|wrist\s*watch|chronograph|horology|timepiece|luxury\s*brand|leather\s*strap)/i.test(text);
       return {
-        category: 'D2C E-Commerce & Retail Brands',
-        primaryPersona: 'E-Commerce Brand Founders, VP of Growth & Chief Marketing Officers',
-        decisionMakers: ['Brand Founder', 'Chief Marketing Officer', 'Head of Performance Media'],
-        painPoints: [
-          'Rising Meta and TikTok ad CPMs eroding net profit margins and ROAS below 2.0x',
-          'High cart abandonment (70%+) without immediate conversational recovery on WhatsApp/SMS',
-          'Low 90-day repeat purchase rate leading to unsustainable reliance on cold traffic',
-        ],
-        buyingTriggers: ['Q4 holiday season scale', 'Product collection drop', 'Declining blended ROAS'],
-        estimatedBudgetTier: '$5,000 – $35,000 / month ad allocation',
+        category: isWatchesOrLuxury ? 'D2C Luxury E-Commerce & Designer Timepieces' : 'D2C E-Commerce & Retail Brands',
+        primaryPersona: isWatchesOrLuxury
+          ? 'Luxury Watch Buyers, High-Net-Worth Collectors, Executive Professionals & Premium Gift Seekers'
+          : 'E-Commerce Brand Founders, VP of Growth & Chief Marketing Officers',
+        decisionMakers: isWatchesOrLuxury
+          ? ['Individual Luxury Buyer', 'Collectors', 'Executive Gift Buyers']
+          : ['Brand Founder', 'Chief Marketing Officer', 'Head of Performance Media'],
+        painPoints: isWatchesOrLuxury
+          ? [
+              'Fear of counterfeit or gray-market luxury timepieces without verified manufacturer warranty',
+              'Lack of local boutique availability for exclusive international designer horology editions',
+              'High cross-border customs duties, slow overseas delivery, and transit damage risks',
+              'Lack of transparent post-sales servicing, warranty registration, and strap adjustment support',
+            ]
+          : [
+              'Rising Meta and TikTok ad CPMs eroding net profit margins and ROAS below 2.0x',
+              'High cart abandonment (70%+) without immediate conversational recovery on WhatsApp/SMS',
+              'Low 90-day repeat purchase rate leading to unsustainable reliance on cold traffic',
+            ],
+        buyingTriggers: isWatchesOrLuxury
+          ? ['Career milestones & promotions', 'Exclusive luxury watch drops & seasonal releases', 'Luxury gifting for weddings & festivals']
+          : ['Q4 holiday season scale', 'Product collection drop', 'Declining blended ROAS'],
+        estimatedBudgetTier: isWatchesOrLuxury ? '₹15,000 – ₹5,00,000+ Average Order Value (AOV)' : '$5,000 – $35,000 / month ad allocation',
       };
     }
 
@@ -1559,42 +1571,39 @@ Output strictly valid JSON with this schema:
   }
 
   /**
-   * Recommend AI Agent team structure tailored to the company
+   * Recommend authentic AI Workforce Team structure dynamically allocated to the company
    */
-  static buildAITeamArchitecture(category, name) {
-    const isPqc = category.includes('PQC') || category.includes('Cybersecurity');
-    const isD2C = category.includes('D2C') || category.includes('E-Commerce');
-
-    let roles = [];
+  static buildAITeamArchitecture(category, name, crawledData = {}) {
+    const isPqc = (category || '').includes('PQC') || (category || '').includes('Post-Quantum');
     if (isPqc) {
-      roles = [
+      const roles = [
         { role: 'AI CISO Strategist (Vigil)', purpose: `Maps NIST FIPS 203/204/205 compliance standards and crafts executive risk assessments for ${name}` },
         { role: 'AI Security SDR (Sarah)', purpose: `Runs targeted outbound prospecting across enterprise CISOs and VP of AppSec for ${name}` },
         { role: 'AI Technical Closer (Maya)', purpose: 'Conducts sub-second conversational security qualification on inbound demo requests' },
         { role: 'AI Security CMO (Sophia)', purpose: 'Authors cryptographic migration whitepapers and orchestrates targeted ABM campaigns' },
         { role: 'AI Security CFO (Julian)', purpose: 'Analyzes enterprise ACV, multi-year contracts, and safeguards security sales margins' },
       ];
-    } else if (isD2C) {
-      roles = [
-        { role: 'AI CMO (Sophia)', purpose: 'Iterates 15+ TikTok/Meta creative variations daily and optimizes ROAS 24/7' },
-        { role: 'AI WhatsApp Concierge', purpose: 'Recovers abandoned carts within 90 seconds and drives VIP re-orders' },
-        { role: 'AI Ad Optimizer', purpose: 'Halts losing ad adsets within 2 hours and scales high-converting campaigns' },
-        { role: 'AI CFO (Julian)', purpose: 'Audits payment fees, monitors blended CAC, and safeguards margins' },
-      ];
-    } else {
-      roles = [
-        { role: 'AI SDR (Sarah)', purpose: `Runs targeted multi-channel cold email and WhatsApp prospecting for ${name}` },
-        { role: 'AI Voice Closer (Maya)', purpose: 'Dials hot inbound demo leads in under 45 seconds with sub-800ms speech' },
-        { role: 'AI CMO (Sophia)', purpose: 'Architects social thought leadership and automated ad creative testing' },
-        { role: 'AI CFO (Julian)', purpose: 'Guards customer acquisition unit economics and enforces target CAC bounds' },
-      ];
+      return {
+        roles: roles.map((r) => `${r.role}: ${r.purpose}`),
+        teamMembers: roles,
+        estimatedMonthlyROI: '6.8x – 11.2x Enterprise Pipeline ROI',
+        recommendedPlan: 'Enterprise Autonomous Security & GTM Mode',
+        coreBottleneckSolved: 'Cryptographic quantum debt discovery & NIST algorithmic migration roadmaps',
+      };
     }
 
+    const dynamicAllocation = EmployeeRoleBrain.allocateDynamicTeam(category, null, crawledData, name);
     return {
-      roles: roles.map((r) => `${r.role}: ${r.purpose}`),
-      teamMembers: roles,
-      estimatedMonthlyROI: isPqc ? '6.8x – 11.2x Enterprise Pipeline ROI' : '5.4x – 9.1x Projected Pipeline ROI',
-      recommendedPlan: isPqc ? 'Enterprise Autonomous Security & GTM Mode' : 'Autonomous Multi-Agent Company Mode',
+      roles: dynamicAllocation.roles,
+      teamMembers: dynamicAllocation.teamMembers.map((m) => ({
+        role: m.title,
+        purpose: m.purpose,
+        monthlyEquivalentValue: m.monthlyEquivalentValue,
+      })),
+      estimatedMonthlyROI: dynamicAllocation.projectedMonthlyRoi,
+      recommendedPlan: dynamicAllocation.vyuhoxAutonomousPlan,
+      coreBottleneckSolved: dynamicAllocation.coreBottleneckSolved,
+      monthlyHumanEquivalentCost: dynamicAllocation.monthlyHumanEquivalentCost,
     };
   }
 

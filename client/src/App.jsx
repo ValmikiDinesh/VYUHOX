@@ -53,6 +53,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [socket, setSocket] = useState(null);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [targetChatConversationId, setTargetChatConversationId] = useState(null);
 
   // Dedicated URL Route Detection:
   // - '#admin', '#admin-login', '/admin' -> 'admin_login' (Super Admin Master Portal)
@@ -838,6 +839,11 @@ export default function App() {
             onOpenNewLeadModal={() => setIsNewLeadModalOpen(true)}
             onOpenBulkImportModal={() => setIsBulkImportModalOpen(true)}
             socket={socket}
+            onNavigateTab={setActiveTab}
+            onOpenChatWithLead={(conversationId) => {
+              setTargetChatConversationId(conversationId);
+              setActiveTab('inbox');
+            }}
           />
         )}
 
@@ -870,6 +876,8 @@ export default function App() {
           <OmnichannelInbox
             activeWorkspace={activeWorkspace}
             socket={socket}
+            initialConversationId={targetChatConversationId}
+            onClearInitialConversation={() => setTargetChatConversationId(null)}
           />
         )}
 

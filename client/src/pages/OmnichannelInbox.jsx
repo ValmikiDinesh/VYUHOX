@@ -122,7 +122,12 @@ const QUICK_TEMPLATES = [
   },
 ];
 
-export default function OmnichannelInbox({ activeWorkspace, socket }) {
+export default function OmnichannelInbox({
+  activeWorkspace,
+  socket,
+  initialConversationId,
+  onClearInitialConversation,
+}) {
   // State
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -249,8 +254,17 @@ export default function OmnichannelInbox({ activeWorkspace, socket }) {
       const res = await api.getConversations(activeWorkspace._id, params);
       if (res.success) {
         setConversations(res.conversations || []);
-        // Select first if none selected
-        if (!selectedConversation && res.conversations?.length > 0) {
+        if (initialConversationId) {
+          const match = (res.conversations || []).find(
+            (c) => String(c._id) === String(initialConversationId) || String(c.leadId?._id) === String(initialConversationId)
+          );
+          if (match) {
+            selectThread(match);
+            if (onClearInitialConversation) onClearInitialConversation();
+          } else if (!selectedConversation && res.conversations?.length > 0) {
+            selectThread(res.conversations[0]);
+          }
+        } else if (!selectedConversation && res.conversations?.length > 0) {
           selectThread(res.conversations[0]);
         } else if (selectedConversation) {
           const updatedSelected = res.conversations.find((c) => c._id === selectedConversation._id);
