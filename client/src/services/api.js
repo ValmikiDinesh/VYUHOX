@@ -1105,18 +1105,6 @@ export const api = {
     const res = await authedFetch(`${API_BASE}/strategy/${workspaceId}`, { headers });
     return res.json();
   },
-  scanWebsite: async (workspaceId, url) => {
-    const token = authStorage.getToken();
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    if (workspaceId) headers['x-workspace-id'] = workspaceId;
-
-    return safeFetchJson(`${API_BASE}/strategy/scan`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ workspaceId, url }),
-    });
-  },
   updateStrategy: async (strategyId, data) => {
     const token = authStorage.getToken();
     const headers = { 'Content-Type': 'application/json' };

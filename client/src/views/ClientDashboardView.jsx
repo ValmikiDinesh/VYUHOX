@@ -104,9 +104,6 @@ export default function ClientDashboardView({
     businessUrl: '',
     businessName: activeWorkspace?.name || activeWorkspace?.branding?.companyName || currentUser?.companyName || '',
     category: '',
-    tagLine: '',
-    description: '',
-    offeringType: 'PRODUCT', // 'PRODUCT' | 'SERVICE'
   });
   const [onboardingError, setOnboardingError] = useState(null);
   const [isOnboardingSaving, setIsOnboardingSaving] = useState(false);
@@ -342,12 +339,9 @@ export default function ClientDashboardView({
     if (e && e.preventDefault) e.preventDefault();
     setOnboardingError(null);
 
-    const businessUrl = onboardingForm.businessUrl.trim();
-    const businessName = onboardingForm.businessName.trim();
-    const category = onboardingForm.category.trim();
-    const description = onboardingForm.description.trim();
-    const tagLine = onboardingForm.tagLine.trim();
-    const offeringType = onboardingForm.offeringType || 'PRODUCT';
+    const businessUrl = (onboardingForm.businessUrl || '').trim();
+    const businessName = (onboardingForm.businessName || '').trim();
+    const category = (onboardingForm.category || '').trim();
 
     if (!businessUrl) {
       setOnboardingError('Business URL or Google Maps URL is required.');
@@ -355,14 +349,6 @@ export default function ClientDashboardView({
     }
     if (!businessName) {
       setOnboardingError('Business Name is required.');
-      return;
-    }
-    if (!category) {
-      setOnboardingError('Category of Business is required.');
-      return;
-    }
-    if (!description) {
-      setOnboardingError('Business Description is required.');
       return;
     }
 
@@ -390,10 +376,7 @@ export default function ClientDashboardView({
       const res = await api.scanWebsite(wsId, {
         url: businessUrl,
         businessName,
-        businessCategory: category,
-        businessModelDescription: description,
-        tagLine,
-        offeringType,
+        businessCategory: category || 'General Business',
       });
 
       if (res.success && res.strategy) {
@@ -714,14 +697,14 @@ export default function ClientDashboardView({
                   </div>
                 </div>
 
+                {/* Optional Category Hint */}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
-                    Category of Business <span style={{ color: '#F87171' }}>*</span>
+                    Category of Business <span style={{ color: '#94A3B8', fontWeight: '400' }}>(Optional)</span>
                   </label>
                   <input
                     type="text"
-                    required
-                    placeholder="e.g. Cybersecurity & PQC, Legaltech SaaS, Dental Clinic, Manufacturing"
+                    placeholder="Leave blank to auto-detect from your website or Google Maps profile"
                     value={onboardingForm.category}
                     onChange={(e) => setOnboardingForm({ ...onboardingForm, category: e.target.value })}
                     className="input-glass"
@@ -730,53 +713,20 @@ export default function ClientDashboardView({
                 </div>
               </div>
 
-              {/* Field 4 & Offering Type (Product vs Service) */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
-                    Tagline of Business <span style={{ color: '#94A3B8', fontWeight: '400' }}>(Optional - Single line)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Autonomous Post-Quantum Cryptographic Defense in 60s"
-                    value={onboardingForm.tagLine}
-                    onChange={(e) => setOnboardingForm({ ...onboardingForm, tagLine: e.target.value })}
-                    className="input-glass"
-                    style={{ width: '100%', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
+              {/* AI Autonomous Crawler Intelligence Badge */}
+              <div style={{
+                background: 'rgba(6, 182, 212, 0.08)',
+                border: '1px solid rgba(6, 182, 212, 0.25)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              }}>
+                <Sparkles size={20} color="#06B6D4" />
+                <div style={{ fontSize: '0.8rem', color: '#CBD5E1', lineHeight: '1.4' }}>
+                  <strong style={{ color: '#38BDF8' }}>Automated Deep Crawl Active:</strong> Your business description, offerings, tagline, and product/service taxonomy are fetched and synthesized automatically from your submitted website or Google Maps link.
                 </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
-                    Offering Type <span style={{ color: '#94A3B8', fontWeight: '400' }}>(Optional)</span>
-                  </label>
-                  <select
-                    value={onboardingForm.offeringType}
-                    onChange={(e) => setOnboardingForm({ ...onboardingForm, offeringType: e.target.value })}
-                    className="input-glass"
-                    style={{ width: '100%', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box', background: '#0F172A', color: '#F8FAFC' }}
-                  >
-                    <option value="PRODUCT">📦 Product / Software / Hardware</option>
-                    <option value="SERVICE">💼 Service / Agency / Consulting</option>
-                    <option value="BOTH">🌐 Both Product &amp; Service</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Field 5: Description */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
-                  Business Description &amp; Offerings <span style={{ color: '#F87171' }}>*</span>
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Describe what your business offers, who your primary customers are, how you deliver value, and your pricing model..."
-                  value={onboardingForm.description}
-                  onChange={(e) => setOnboardingForm({ ...onboardingForm, description: e.target.value })}
-                  className="input-glass"
-                  style={{ width: '100%', fontSize: '0.875rem', boxSizing: 'border-box', resize: 'vertical', minHeight: '80px', fontFamily: 'inherit', lineHeight: 1.5 }}
-                />
               </div>
 
               {/* Save Button */}
@@ -1885,8 +1835,6 @@ export default function ClientDashboardView({
               <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#94A3B8' }}>
                 Enter your verified business URL &amp; details to synthesize an autonomous GTM strategy and lock your workspace.
               </p>
-            </div>
-          </div>
           <button
             type="button"
             onClick={() => setShowOnboardingModal(true)}

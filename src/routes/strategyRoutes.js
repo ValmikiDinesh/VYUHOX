@@ -28,8 +28,12 @@ const emitProgress = (req, workspaceId, step, message, progressPercent) => {
 // POST /api/strategy/scan - Deep Crawl Website & Generate Complete GTM Intelligence
 router.post('/scan', authMiddleware, async (req, res) => {
   try {
+    const rawUrl = (typeof req.body?.url === 'object' && req.body.url !== null)
+      ? (req.body.url.url || '')
+      : (req.body?.url || '');
+    const url = String(rawUrl || '').trim();
+
     const {
-      url,
       workspaceId: bodyWsId,
       businessName: inputBusinessName,
       businessCategory: inputCategory,

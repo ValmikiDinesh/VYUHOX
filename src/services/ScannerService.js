@@ -12,7 +12,7 @@ export class ScannerService {
    * Deep multi-page crawler discovering internal pages (/pricing, /about, /features, /solutions, etc.)
    */
   static async scanWebsite(rawUrl, onProgress = null) {
-    let url = rawUrl.trim();
+    let url = String(typeof rawUrl === 'object' && rawUrl !== null ? (rawUrl.url || '') : (rawUrl || '')).trim();
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `https://${url}`;
     }
