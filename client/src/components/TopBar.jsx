@@ -213,31 +213,6 @@ export default function TopBar({
           </span>
         </button>
 
-        {/* 2.5 Prominent Live Public Site Button */}
-        <button
-          onClick={onViewLanding}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            background: 'rgba(6, 182, 212, 0.12)',
-            border: '1px solid rgba(6, 182, 212, 0.35)',
-            color: '#38BDF8',
-            fontSize: '0.78rem',
-            fontWeight: '700',
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-            boxShadow: '0 0 12px rgba(6, 182, 212, 0.15)',
-          }}
-          title="Switch to public live website"
-        >
-          <Globe size={13} color="#38BDF8" />
-          <span>Public Site</span>
-          <ExternalLink size={12} color="#38BDF8" />
-        </button>
-
         {/* 3. Consolidated '+ Action' Dropdown Button */}
         <div ref={actionMenuRef} style={{ position: 'relative' }}>
           <button
