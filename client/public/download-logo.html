@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download Official VYUHOX Brand Assets & Logo</title>
+  <link rel="icon" type="image/svg+xml" href="/vyuhox-logo.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070C18;
+      --card-bg: rgba(15, 23, 42, 0.7);
+      --border: rgba(6, 182, 212, 0.25);
+      --cyan: #06B6D4;
+      --cyan-light: #38BDF8;
+      --emerald: #10B981;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.18) 0%, transparent 60%),
+        radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+    }
+    .header {
+      text-align: center;
+      max-width: 680px;
+      margin-bottom: 36px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      color: var(--cyan-light);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #FFFFFF 0%, #38BDF8 60%, #06B6D4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: minmax(320px, 460px) minmax(320px, 520px);
+      gap: 32px;
+      max-width: 1040px;
+      width: 100%;
+    }
+    @media (max-width: 860px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    .preview-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 50px rgba(6, 182, 212, 0.1);
+    }
+    .logo-frame {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      background: #000;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .logo-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .preview-meta {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    .actions-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .download-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: #FFF;
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);
+      box-shadow: 0 4px 16px rgba(6, 182, 212, 0.35);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 24px rgba(6, 182, 212, 0.5);
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #E2E8F0;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(6, 182, 212, 0.4);
+      color: #38BDF8;
+      transform: translateY(-2px);
+    }
+    .btn-badge {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #E2E8F0;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .color-swatches {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .swatch {
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .swatch-hex {
+      font-family: monospace;
+      margin-top: 4px;
+      font-size: 0.65rem;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge">Official Brand Asset</div>
+    <h1>VYUHOX Brand Identity &amp; Logo</h1>
+    <p>Ultra-premium visual emblem fusing the tactical strategic vortex (चक्रव्यूह) with an autonomous energetic 'X'. Available in high-res raster &amp; vector formats.</p>
+  </div>
+
+  <div class="container">
+    <!-- Preview Column -->
+    <div class="preview-card">
+      <div class="logo-frame">
+        <img src="/vyuhox-logo.png" alt="VYUHOX Official Logo Emblem" id="mainLogoImg">
+      </div>
+      <div class="preview-meta">
+        <span>Format: <strong>PNG / JPG (1024x1024)</strong></span>
+        <span>Resolution: <strong>8K Vector Master</strong></span>
+      </div>
+    </div>
+
+    <!-- Actions & Download Column -->
+    <div class="actions-card">
+      <div>
+        <div class="section-title">📥 Instant Logo Downloads</div>
+        <p style="font-size: 0.8rem; margin-top: 4px;">Click any button below to download the official VYUHOX asset directly to your computer.</p>
+      </div>
+
+      <div class="download-grid">
+        <!-- 1. Master PNG (1024x1024) -->
+        <a href="/vyuhox-logo.png" download="vyuhox-logo-master.png" class="btn-download btn-primary">
+          <span>💎 Download Master PNG (1024 × 1024)</span>
+          <span class="btn-badge">HD PNG</span>
+        </a>
+
+        <!-- 2. Master JPG (1024x1024) -->
+        <a href="/vyuhox-logo.jpg" download="vyuhox-logo-master.jpg" class="btn-download btn-secondary">
+          <span>🖼️ Download High-Res JPG (Web &amp; Print)</span>
+          <span class="btn-badge">JPG</span>
+        </a>
+
+        <!-- 3. Scalable Vector SVG -->
+        <a href="/vyuhox-logo.svg" download="vyuhox-logo.svg" class="btn-download btn-secondary">
+          <span>📐 Download Vector SVG (Infinite Scaling)</span>
+          <span class="btn-badge">SVG Vector</span>
+        </a>
+      </div>
+
+      <!-- Brand Palette -->
+      <div style="margin-top: 8px;">
+        <div class="section-title" style="font-size: 1rem;">🎨 Brand Color System</div>
+        <div class="color-swatches">
+          <div class="swatch" style="background: #06B6D4; color: #04101A;">
+            Cyan
+            <div class="swatch-hex">#06B6D4</div>
+          </div>
+          <div class="swatch" style="background: #3B82F6; color: #FFFFFF;">
+            Sapphire
+            <div class="swatch-hex">#3B82F6</div>
+          </div>
+          <div class="swatch" style="background: #10B981; color: #04101A;">
+            Emerald
+            <div class="swatch-hex">#10B981</div>
+          </div>
+          <div class="swatch" style="background: #070C18; color: #94A3B8; border-color: rgba(255,255,255,0.2);">
+            Obsidian
+            <div class="swatch-hex">#070C18</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Back to App Link -->
+      <div style="margin-top: 10px; text-align: center;">
+        <a href="/#app" style="color: var(--cyan-light); font-size: 0.85rem; text-decoration: none; font-weight: 600;">
+          ← Return to VYUHOX Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
