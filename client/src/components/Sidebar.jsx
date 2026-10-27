@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   LayoutDashboard,
-  Target,
   Users,
   MessageSquare,
   Mic,
@@ -10,12 +9,7 @@ import {
   Calendar,
   Bot,
   Settings,
-  ChevronDown,
-  Plus,
-  Zap,
   Shield,
-  CreditCard,
-  Building2,
   Sparkles,
   Cpu,
   ShoppingBag,
@@ -41,22 +35,7 @@ export default function Sidebar({
   onViewLanding,
   currentUser,
 }) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  // Multi-tenant defense: superadmin can switch workspaces, clients only see their own workspace
   const isSuperadmin = rolePersona === 'superadmin' || currentUser?.role === 'superadmin';
-  const visibleWorkspaces = isSuperadmin
-    ? (workspaces || [])
-    : (() => {
-        const filtered = (workspaces || []).filter((w) =>
-          currentUser?.workspaceId
-            ? String(w._id) === String(currentUser.workspaceId)
-            : activeWorkspace
-            ? String(w._id) === String(activeWorkspace._id)
-            : true
-        );
-        return filtered.length > 0 ? filtered : (workspaces || []);
-      })();
 
   // Filter navigation items dynamically based on user role / package
   const allNavItems = [
@@ -155,203 +134,7 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Workspace Card (Locked for Clients: 1 User = 1 Dashboard = 1 Business) */}
-        <div style={{ position: 'relative', marginTop: '16px' }}>
-          <button
-            onClick={() => {
-              if (isSuperadmin) setDropdownOpen(!dropdownOpen);
-            }}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '10px 12px',
-              borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.09)',
-              color: '#F8FAFC',
-              cursor: isSuperadmin ? 'pointer' : 'default',
-              textAlign: 'left',
-              transition: 'all 0.2s',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
-              <div style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '7px',
-                background: 'rgba(6, 182, 212, 0.15)',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#38BDF8',
-                fontSize: '0.8rem',
-                fontWeight: '700',
-              }}>
-                {activeWorkspace ? activeWorkspace.name.substring(0, 1).toUpperCase() : 'W'}
-              </div>
-              <div style={{ overflow: 'hidden' }}>
-                <div style={{
-                  fontSize: '0.8125rem',
-                  fontWeight: '600',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '150px',
-                }}>
-                  {activeWorkspace ? activeWorkspace.name : 'Your Business'}
-                </div>
-                <div style={{ fontSize: '0.675rem', color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px' }}>
-                  {activeWorkspace?.businessCategory || activeWorkspace?.industry || 'Active Business'}
-                </div>
-              </div>
-            </div>
-            {isSuperadmin ? (
-              <ChevronDown size={16} color="#94A3B8" />
-            ) : (
-              <span className="badge badge-cyan" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
-                Locked
-              </span>
-            )}
-          </button>
 
-          {/* Dropdown Menu */}
-          {dropdownOpen && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: '6px',
-              background: '#0D1527',
-              border: '1px solid rgba(6, 182, 212, 0.25)',
-              borderRadius: '12px',
-              padding: '6px',
-              zIndex: 50,
-              boxShadow: '0 12px 30px rgba(0,0,0,0.6)',
-            }}>
-              <div style={{
-                padding: '6px 8px',
-                fontSize: '0.7rem',
-                color: 'var(--text-dim)',
-                textTransform: 'uppercase',
-                fontWeight: '700',
-                letterSpacing: '0.05em',
-              }}>
-                Active Workspaces
-              </div>
-              {visibleWorkspaces.map((ws) => (
-                <div
-                  key={ws._id}
-                  onClick={() => {
-                    onSelectWorkspace(ws);
-                    setDropdownOpen(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: ws._id === activeWorkspace?._id ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
-                    color: ws._id === activeWorkspace?._id ? '#38BDF8' : '#CBD5E1',
-                    fontSize: '0.8125rem',
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)')}
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background =
-                      ws._id === activeWorkspace?._id ? 'rgba(6, 182, 212, 0.12)' : 'transparent')
-                  }
-                >
-                  <span style={{ fontWeight: ws._id === activeWorkspace?._id ? '600' : '400' }}>
-                    {ws.name}
-                  </span>
-                  <span style={{
-                    fontSize: '0.675rem',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: '#94A3B8',
-                  }}>
-                    {ws.industry}
-                  </span>
-                </div>
-              ))}
-              {isSuperadmin && (
-                <>
-                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />
-                  <button
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      onOpenNewWorkspaceModal();
-                    }}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#10B981',
-                      cursor: 'pointer',
-                      fontSize: '0.8125rem',
-                      fontWeight: '600',
-                    }}
-                  >
-                    <Plus size={16} /> Create Workspace
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Autonomous AI GTM Engine Badge */}
-        <div style={{ marginTop: '14px' }}>
-          <div
-            style={{
-              padding: '10px 12px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%)',
-              border: '1px solid rgba(6, 182, 212, 0.35)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: '0 0 16px rgba(6, 182, 212, 0.15)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span
-                className="live-dot"
-                style={{
-                  background: '#10B981',
-                  boxShadow: '0 0 10px #10B981',
-                }}
-              />
-              <div>
-                <div style={{
-                  fontSize: '0.75rem',
-                  fontWeight: '700',
-                  letterSpacing: '0.04em',
-                  color: '#38BDF8',
-                  textTransform: 'uppercase',
-                }}>
-                  Autonomous AI GTM
-                </div>
-                <div style={{ fontSize: '0.65rem', color: '#94A3B8' }}>
-                  24/7 AI Multi-Agent Engine
-                </div>
-              </div>
-            </div>
-            <Sparkles size={16} color="#06B6D4" />
-          </div>
-        </div>
       </div>
 
       {/* Navigation List */}
