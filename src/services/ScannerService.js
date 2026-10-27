@@ -781,7 +781,8 @@ Output strictly valid JSON with this schema:
     "painPoints": ["3 to 4 genuine customer pain points"],
     "buyingTriggers": ["Key buying triggers"],
     "estimatedACV": "Estimated transaction value / scheme size"
-  }
+  },
+  "growthEngine": "Optimal acquisition rail: 'OUTBOUND_B2B' (for high-ticket services, B2B software, agencies, consulting), 'PAID_ADS_D2C' (for e-commerce, consumer brands, retail products), or 'HYBRID' (for businesses with both wholesale and direct retail)"
 }`;
 
       const llmResult = await LlmGatewayService.execute({
@@ -910,10 +911,21 @@ Output strictly valid JSON with this schema:
         : ['Regulatory compliance deadline', 'Legacy system performance bottleneck', 'Audit finding & compliance mandate', 'High-priority competitive upgrade'],
     };
 
+    const categoryLower = (category || '').toLowerCase();
+    const isD2C = /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear/i.test(categoryLower) ||
+                  /d2c|ecommerce/i.test(bespokeTaxonomy.businessModel || '');
+    const isWholesaleAndRetail = /wholesale|distributor/i.test(categoryLower) && /retail|direct|consumer/i.test(categoryLower);
+    
+    let growthEngine = llmResult.growthEngine;
+    if (!growthEngine || !['OUTBOUND_B2B', 'PAID_ADS_D2C', 'HYBRID'].includes(growthEngine)) {
+      growthEngine = isWholesaleAndRetail ? 'HYBRID' : (isD2C ? 'PAID_ADS_D2C' : 'OUTBOUND_B2B');
+    }
+
     return {
       businessName: name,
       websiteUrl: extractedData.url,
       category,
+      growthEngine,
       categoryKey: bespokeTaxonomy.categoryKey,
       businessModel: bespokeTaxonomy.businessModel,
       businessModelType: bespokeTaxonomy.businessModelType || 'ONLINE',
@@ -1146,10 +1158,17 @@ Output strictly valid JSON with this schema:
         : ['Regulatory compliance deadline', 'Legacy system performance bottleneck', 'Audit finding & compliance mandate', 'High-priority competitive upgrade'],
     };
 
+    const semanticCategory = (bespokeTaxonomy.category || industryProfile.category || '').toLowerCase();
+    const isSemanticD2C = /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear/i.test(semanticCategory) ||
+                          /d2c|ecommerce/i.test(bespokeTaxonomy.businessModel || '');
+    const isSemanticHybrid = /wholesale|distributor/i.test(semanticCategory) && /retail|direct|consumer/i.test(semanticCategory);
+    const semanticGrowthEngine = isSemanticHybrid ? 'HYBRID' : (isSemanticD2C ? 'PAID_ADS_D2C' : 'OUTBOUND_B2B');
+
     return {
       businessName: name,
       websiteUrl: data.url,
       category: bespokeTaxonomy.category || industryProfile.category,
+      growthEngine: semanticGrowthEngine,
       categoryKey: bespokeTaxonomy.categoryKey,
       businessModel: bespokeTaxonomy.businessModel,
       businessModelType: bespokeTaxonomy.businessModelType || 'ONLINE',
