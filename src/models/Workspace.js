@@ -46,7 +46,7 @@ const workspaceSchema = new mongoose.Schema(
     },
     operatingMode: {
       type: String,
-      enum: ['AI_COMPANY'],
+      enum: ['TOOL', 'AI_COMPANY'],
       default: 'AI_COMPANY',
     },
     logo: {
