@@ -67,6 +67,7 @@ export default function ClientDashboardView({
   const [scanStatus, setScanStatus] = useState('');
   const [activeStrategy, setActiveStrategy] = useState(null);
   const [showReCrawl, setShowReCrawl] = useState(false);
+  const [saveNotice, setSaveNotice] = useState(null);
 
   // Briefing State
   const [briefing, setBriefing] = useState(null);
