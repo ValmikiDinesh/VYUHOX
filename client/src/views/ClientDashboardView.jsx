@@ -37,6 +37,8 @@ import {
   Plus,
   Edit2,
   Trash2,
+  Building,
+  AlertCircle,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { authStorage } from '../services/authStorage';
@@ -100,7 +102,7 @@ export default function ClientDashboardView({
   // One-time Setup & Onboarding State
   const [onboardingForm, setOnboardingForm] = useState({
     businessUrl: '',
-    businessName: activeWorkspace?.name || '',
+    businessName: activeWorkspace?.name || activeWorkspace?.branding?.companyName || currentUser?.companyName || '',
     category: '',
     tagLine: '',
     description: '',
@@ -111,14 +113,15 @@ export default function ClientDashboardView({
 
   // Sync activeWorkspace name into onboardingForm
   useEffect(() => {
-    if (activeWorkspace?.name && !onboardingForm.businessName) {
+    const compName = activeWorkspace?.name || activeWorkspace?.branding?.companyName || currentUser?.companyName || '';
+    if (compName && !onboardingForm.businessName) {
       setOnboardingForm((prev) => ({
         ...prev,
-        businessName: activeWorkspace.name,
-        category: activeWorkspace.businessCategory || activeWorkspace.industry || '',
+        businessName: compName,
+        category: prev.category || activeWorkspace?.businessCategory || (activeWorkspace?.industry && activeWorkspace.industry !== 'Pending Business Onboarding' ? activeWorkspace.industry : '') || '',
       }));
     }
-  }, [activeWorkspace]);
+  }, [activeWorkspace, currentUser]);
 
   const loadBrainStatus = async () => {
     if (!activeWorkspace?._id) return;
@@ -395,6 +398,7 @@ export default function ClientDashboardView({
 
       if (res.success && res.strategy) {
         setActiveStrategy(res.strategy);
+        setShowOnboardingModal(false);
         if (res.workspace) {
           authStorage.setActiveWorkspace(res.workspace);
           if (onUpdateActiveWorkspace) {
@@ -406,7 +410,7 @@ export default function ClientDashboardView({
         // Redirect directly to Strategy & Business Plan page
         setTimeout(() => {
           onNavigateTab('strategy');
-        }, 700);
+        }, 500);
       } else {
         setOnboardingError(res.message || 'Setup could not complete. Please check the URL and try again.');
       }
@@ -431,6 +435,27 @@ export default function ClientDashboardView({
     activeWorkspace?.currentStrategyId
   );
   const hasStrategy = hasCompletedOnboarding;
+
+  // Immediate Pop-Up Modal State (automatically opens for uncompleted setup)
+  const [showOnboardingModal, setShowOnboardingModal] = useState(!hasCompletedOnboarding);
+
+  useEffect(() => {
+    if (activeWorkspace && !hasCompletedOnboarding) {
+      setShowOnboardingModal(true);
+    }
+  }, [activeWorkspace?._id, hasCompletedOnboarding]);
+
+  // Lock background scroll when onboarding modal is open
+  useEffect(() => {
+    if (showOnboardingModal && !hasCompletedOnboarding) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showOnboardingModal, hasCompletedOnboarding]);
   const workflowSteps = [
     {
       step: '01',
@@ -524,6 +549,277 @@ export default function ClientDashboardView({
 
   return (
     <div style={{ padding: '28px', maxWidth: '1400px', margin: '0 auto', color: '#F8FAFC' }}>
+      {/* IMMEDIATE ONE-TIME ONBOARDING MODAL POPUP */}
+      {showOnboardingModal && !hasCompletedOnboarding && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(3, 7, 18, 0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+          onClick={(e) => {
+            if (isOnboardingSaving) return;
+            if (e.target === e.currentTarget) {
+              setShowOnboardingModal(false);
+            }
+          }}
+        >
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(11, 17, 32, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%)',
+              border: '1px solid rgba(6, 182, 212, 0.45)',
+              borderRadius: '20px',
+              padding: '32px 36px',
+              maxWidth: '780px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 70px rgba(0, 0, 0, 0.85), 0 0 40px rgba(6, 182, 212, 0.2)',
+              position: 'relative',
+            }}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowOnboardingModal(false)}
+              disabled={isOnboardingSaving}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '8px',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#94A3B8',
+                cursor: isOnboardingSaving ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              title="Close Dialog"
+            >
+              <X size={16} />
+            </button>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '24px', paddingRight: '40px' }}>
+              <div style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 20px rgba(6, 182, 212, 0.45)',
+                flexShrink: 0,
+              }}>
+                <Globe size={26} color="#030712" strokeWidth={2.5} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span className="badge badge-cyan" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
+                    ⚡ One-Time Setup • Tour
+                  </span>
+                  <span className="badge badge-emerald" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
+                    🔒 1 User = 1 Dashboard = 1 Business
+                  </span>
+                </div>
+                <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.45rem', fontWeight: '800', margin: '6px 0 4px', color: '#F8FAFC' }}>
+                  Configure Your Dedicated Business Profile
+                </h2>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.5 }}>
+                  Welcome to VYUHOX! Complete this one-time setup with your verified business details. Once submitted, your dashboard will permanently lock to your business and synthesize an end-to-end autonomous business strategy.
+                </p>
+              </div>
+            </div>
+
+            {/* Error Alert */}
+            {onboardingError && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 16px',
+                borderRadius: '10px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                color: '#F87171',
+                fontSize: '0.85rem',
+                marginBottom: '20px',
+              }}>
+                <AlertCircle size={18} />
+                <span>{onboardingError}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSaveOnboarding} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {/* Field 1: Business URL / Maps URL */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700' }}>
+                    Business URL or Google Maps URL <span style={{ color: '#F87171' }}>*</span>
+                  </label>
+                  <span style={{ fontSize: '0.7rem', color: '#38BDF8' }}>
+                    Locked after save (No synthetic/dummy URLs)
+                  </span>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <Globe size={16} color="#06B6D4" style={{ position: 'absolute', left: '14px', top: '13px' }} />
+                  <input
+                    type="url"
+                    required
+                    placeholder="https://yourbusiness.com or https://maps.app.goo.gl/..."
+                    value={onboardingForm.businessUrl}
+                    onChange={(e) => setOnboardingForm({ ...onboardingForm, businessUrl: e.target.value })}
+                    className="input-glass"
+                    style={{ width: '100%', paddingLeft: '40px', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                    autoFocus
+                  />
+                </div>
+                <span style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '4px', display: 'block' }}>
+                  For online companies, provide your website URL. For local businesses, you can paste your Google Maps link.
+                </span>
+              </div>
+
+              {/* Field 2 & 3: Business Name and Category */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
+                    Business Name <span style={{ color: '#F87171' }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Building size={16} color="#64748B" style={{ position: 'absolute', left: '14px', top: '13px' }} />
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Apex Quantum Shield"
+                      value={onboardingForm.businessName}
+                      onChange={(e) => setOnboardingForm({ ...onboardingForm, businessName: e.target.value })}
+                      className="input-glass"
+                      style={{ width: '100%', paddingLeft: '40px', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
+                    Category of Business <span style={{ color: '#F87171' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Cybersecurity & PQC, Legaltech SaaS, Dental Clinic, Manufacturing"
+                    value={onboardingForm.category}
+                    onChange={(e) => setOnboardingForm({ ...onboardingForm, category: e.target.value })}
+                    className="input-glass"
+                    style={{ width: '100%', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {/* Field 4 & Offering Type (Product vs Service) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
+                    Tagline of Business <span style={{ color: '#94A3B8', fontWeight: '400' }}>(Optional - Single line)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Autonomous Post-Quantum Cryptographic Defense in 60s"
+                    value={onboardingForm.tagLine}
+                    onChange={(e) => setOnboardingForm({ ...onboardingForm, tagLine: e.target.value })}
+                    className="input-glass"
+                    style={{ width: '100%', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
+                    Offering Type <span style={{ color: '#94A3B8', fontWeight: '400' }}>(Optional)</span>
+                  </label>
+                  <select
+                    value={onboardingForm.offeringType}
+                    onChange={(e) => setOnboardingForm({ ...onboardingForm, offeringType: e.target.value })}
+                    className="input-glass"
+                    style={{ width: '100%', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box', background: '#0F172A', color: '#F8FAFC' }}
+                  >
+                    <option value="PRODUCT">📦 Product / Software / Hardware</option>
+                    <option value="SERVICE">💼 Service / Agency / Consulting</option>
+                    <option value="BOTH">🌐 Both Product &amp; Service</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Field 5: Description */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
+                  Business Description &amp; Offerings <span style={{ color: '#F87171' }}>*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Describe what your business offers, who your primary customers are, how you deliver value, and your pricing model..."
+                  value={onboardingForm.description}
+                  onChange={(e) => setOnboardingForm({ ...onboardingForm, description: e.target.value })}
+                  className="input-glass"
+                  style={{ width: '100%', fontSize: '0.875rem', boxSizing: 'border-box', resize: 'vertical', minHeight: '80px', fontFamily: 'inherit', lineHeight: 1.5 }}
+                />
+              </div>
+
+              {/* Save Button */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', paddingTop: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#94A3B8' }}>
+                  <ShieldCheck size={16} color="#10B981" />
+                  <span>Submitting will deep crawl your URL, synthesize your strategy, and lock this workspace.</span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isOnboardingSaving}
+                  className="btn btn-primary"
+                  style={{
+                    padding: '12px 28px',
+                    fontSize: '0.9rem',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: isOnboardingSaving ? 0.7 : 1,
+                    cursor: isOnboardingSaving ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {isOnboardingSaving ? (
+                    <>
+                      <RefreshCw size={16} className="spin-slow" />
+                      <span>Analyzing &amp; Synthesizing Strategy...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      <span>Save &amp; Generate Powerful Business Strategy</span>
+                      <ArrowRight size={16} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(16, 185, 129, 0.12) 100%)',
@@ -1546,33 +1842,36 @@ export default function ClientDashboardView({
           </div>
         </div>
       ) : (
-        /* ONE-TIME ONBOARDING SETUP: LOCKED BUSINESS PROFILE & STRATEGY GENERATOR */
+        /* ONE-TIME ONBOARDING SETUP BANNER (DASHBOARD) */
         <div style={{
-          background: 'linear-gradient(135deg, rgba(11, 17, 32, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%)',
-          border: '1px solid rgba(6, 182, 212, 0.4)',
-          borderRadius: '18px',
-          padding: '32px 36px',
+          background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(16, 185, 129, 0.08) 100%)',
+          border: '1px solid rgba(6, 182, 212, 0.35)',
+          borderRadius: '16px',
+          padding: '24px 28px',
           marginBottom: '28px',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65), 0 0 30px rgba(6, 182, 212, 0.12)',
-          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
         }}>
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '14px',
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
               background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 0 20px rgba(6, 182, 212, 0.45)',
+              boxShadow: '0 0 16px rgba(6, 182, 212, 0.4)',
               flexShrink: 0,
             }}>
-              <Globe size={26} color="#030712" strokeWidth={2.5} />
+              <Globe size={24} color="#030712" strokeWidth={2.5} />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <span className="badge badge-cyan" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
                   ⚡ One-Time Setup • Tour
                 </span>
@@ -1580,185 +1879,24 @@ export default function ClientDashboardView({
                   🔒 1 User = 1 Dashboard = 1 Business
                 </span>
               </div>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.45rem', fontWeight: '800', margin: '6px 0 4px', color: '#F8FAFC' }}>
+              <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
                 Configure Your Dedicated Business Profile
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.5, maxWidth: '800px' }}>
-                Welcome to VYUHOX! Complete this one-time setup with your verified business details. Once submitted, your dashboard will permanently lock to your business and synthesize an end-to-end autonomous business strategy.
+              </h3>
+              <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#94A3B8' }}>
+                Enter your verified business URL &amp; details to synthesize an autonomous GTM strategy and lock your workspace.
               </p>
             </div>
           </div>
-
-          {/* Error Alert */}
-          {onboardingError && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '12px 16px',
-              borderRadius: '10px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.35)',
-              color: '#F87171',
-              fontSize: '0.85rem',
-              marginBottom: '20px',
-            }}>
-              <AlertCircle size={18} />
-              <span>{onboardingError}</span>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSaveOnboarding} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            {/* Field 1: Business URL / Maps URL */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <label style={{ fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700' }}>
-                  Business URL or Google Maps URL <span style={{ color: '#F87171' }}>*</span>
-                </label>
-                <span style={{ fontSize: '0.7rem', color: '#38BDF8' }}>
-                  Locked after save (No synthetic/dummy URLs)
-                </span>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <Globe size={16} color="#06B6D4" style={{ position: 'absolute', left: '14px', top: '13px' }} />
-                <input
-                  type="url"
-                  required
-                  placeholder="https://yourbusiness.com or https://maps.app.goo.gl/..."
-                  value={onboardingForm.businessUrl}
-                  onChange={(e) => setOnboardingForm({ ...onboardingForm, businessUrl: e.target.value })}
-                  className="input-glass"
-                  style={{ width: '100%', paddingLeft: '40px', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                />
-              </div>
-              <span style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '4px', display: 'block' }}>
-                For online companies, provide your website URL. For local businesses, you can paste your Google Maps link.
-              </span>
-            </div>
-
-            {/* Field 2 & 3: Business Name and Category */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
-                  Business Name <span style={{ color: '#F87171' }}>*</span>
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Building size={16} color="#64748B" style={{ position: 'absolute', left: '14px', top: '13px' }} />
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Apex Quantum Shield"
-                    value={onboardingForm.businessName}
-                    onChange={(e) => setOnboardingForm({ ...onboardingForm, businessName: e.target.value })}
-                    className="input-glass"
-                    style={{ width: '100%', paddingLeft: '40px', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
-                  Category of Business <span style={{ color: '#F87171' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Cybersecurity & PQC, Legaltech SaaS, Dental Clinic, Manufacturing"
-                  value={onboardingForm.category}
-                  onChange={(e) => setOnboardingForm({ ...onboardingForm, category: e.target.value })}
-                  className="input-glass"
-                  style={{ width: '100%', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                />
-              </div>
-            </div>
-
-            {/* Field 4 & Offering Type (Product vs Service) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
-                  Tagline of Business <span style={{ color: '#94A3B8', fontWeight: '400' }}>(Optional - Single line)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Autonomous Post-Quantum Cryptographic Defense in 60s"
-                  value={onboardingForm.tagLine}
-                  onChange={(e) => setOnboardingForm({ ...onboardingForm, tagLine: e.target.value })}
-                  className="input-glass"
-                  style={{ width: '100%', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
-                  Offering Type <span style={{ color: '#94A3B8', fontWeight: '400' }}>(Optional)</span>
-                </label>
-                <select
-                  value={onboardingForm.offeringType}
-                  onChange={(e) => setOnboardingForm({ ...onboardingForm, offeringType: e.target.value })}
-                  className="input-glass"
-                  style={{ width: '100%', height: '42px', fontSize: '0.875rem', boxSizing: 'border-box', background: '#0F172A', color: '#F8FAFC' }}
-                >
-                  <option value="PRODUCT">📦 Product / Software / Hardware</option>
-                  <option value="SERVICE">💼 Service / Agency / Consulting</option>
-                  <option value="BOTH">🌐 Both Product &amp; Service</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Field 5: Description */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#F1F5F9', fontWeight: '700', marginBottom: '6px' }}>
-                Business Description &amp; Offerings <span style={{ color: '#F87171' }}>*</span>
-              </label>
-              <textarea
-                required
-                rows={3}
-                placeholder="Describe what your business offers, who your primary customers are, how you deliver value, and your pricing model..."
-                value={onboardingForm.description}
-                onChange={(e) => setOnboardingForm({ ...onboardingForm, description: e.target.value })}
-                className="input-glass"
-                style={{ width: '100%', fontSize: '0.875rem', boxSizing: 'border-box', resize: 'vertical', minHeight: '80px', fontFamily: 'inherit', lineHeight: 1.5 }}
-              />
-            </div>
-
-            {/* Save Button */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', paddingTop: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#94A3B8' }}>
-                <ShieldCheck size={16} color="#10B981" />
-                <span>Submitting will deep crawl your URL, synthesize your strategy, and lock this workspace.</span>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isOnboardingSaving}
-                className="btn btn-primary"
-                style={{
-                  padding: '12px 28px',
-                  fontSize: '0.9rem',
-                  fontWeight: '700',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  opacity: isOnboardingSaving ? 0.7 : 1,
-                  cursor: isOnboardingSaving ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {isOnboardingSaving ? (
-                  <>
-                    <RefreshCw size={16} className="spin-slow" />
-                    <span>Analyzing &amp; Synthesizing Strategy...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={16} />
-                    <span>Save &amp; Generate Powerful Business Strategy</span>
-                    <ArrowRight size={16} />
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+          <button
+            type="button"
+            onClick={() => setShowOnboardingModal(true)}
+            className="btn btn-primary"
+            style={{ padding: '12px 24px', fontSize: '0.875rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Sparkles size={16} />
+            <span>Open Setup Dialog</span>
+            <ArrowRight size={16} />
+          </button>
         </div>
       )}
 
@@ -1832,7 +1970,13 @@ export default function ClientDashboardView({
               Crawl your website, Instagram, or voice brief. VYUHOX extracts exact offerings and automatically partitions data into Ads Manager, SEO &amp; AEO Studio, and Maya Voice AE.
             </p>
             <button
-              onClick={() => onNavigateTab('strategy')}
+              onClick={() => {
+                if (!hasStrategy) {
+                  setShowOnboardingModal(true);
+                } else {
+                  onNavigateTab('strategy');
+                }
+              }}
               style={{
                 padding: '6px 14px',
                 borderRadius: '8px',
@@ -1848,7 +1992,7 @@ export default function ClientDashboardView({
               }}
             >
               <Globe size={13} />
-              <span>{hasStrategy ? 'Review Crawl & Strategy Engine →' : 'Launch Crawler Now →'}</span>
+              <span>{hasStrategy ? 'Review Crawl & Strategy Engine →' : 'Configure Business Profile →'}</span>
             </button>
           </div>
 
@@ -2319,7 +2463,13 @@ export default function ClientDashboardView({
             return (
               <div
                 key={step.step}
-                onClick={() => onNavigateTab && onNavigateTab(step.tab)}
+                onClick={() => {
+                  if (step.step === '01' && !hasStrategy) {
+                    setShowOnboardingModal(true);
+                  } else if (onNavigateTab) {
+                    onNavigateTab(step.tab);
+                  }
+                }}
                 style={{
                   padding: '16px',
                   background: isCurrent ? 'rgba(6, 182, 212, 0.08)' : '#0D1527',

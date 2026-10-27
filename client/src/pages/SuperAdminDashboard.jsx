@@ -34,6 +34,7 @@ import {
   CheckCircle2,
   Server,
   ArrowRight,
+  ShieldAlert,
 } from 'lucide-react';
 import { api } from '../services/api';
 import VisualCreativeStudio from '../components/VisualCreativeStudio';

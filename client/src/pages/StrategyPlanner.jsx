@@ -1001,7 +1001,7 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
                 📊 <strong>{strategy.microSite.visitorBookingsCount || 0}</strong> Bookings Captured
               </span>
               <a
-                href={`http://localhost:5000/api/microsite/${strategy.microSite.slug}`}
+                href={`/api/microsite/${strategy.microSite.slug}`}
                 target="_blank"
                 rel="noreferrer"
                 className="btn-primary"
