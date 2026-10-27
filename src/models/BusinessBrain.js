@@ -105,6 +105,55 @@ const businessBrainSchema = new mongoose.Schema(
       L5_socialAds: { type: mongoose.Schema.Types.Mixed, default: {} },
       L6_growthDemos: { type: mongoose.Schema.Types.Mixed, default: {} },
     },
+    // Multi-Dimensional Autonomous Strategy Training Pillars
+    operatingModelType: {
+      type: String,
+      enum: ['ONLINE', 'OFFLINE', 'HYBRID', 'B2B_SERVICES'],
+      default: 'ONLINE',
+    },
+    brainTrainingStatus: {
+      type: String,
+      default: 'TRAINED',
+    },
+    trainedProfile: { type: mongoose.Schema.Types.Mixed, default: {} },
+    swotAnalysis: { type: mongoose.Schema.Types.Mixed, default: {} },
+    companyCreationStrategy: { type: mongoose.Schema.Types.Mixed, default: {} },
+    companyManagementStrategy: { type: mongoose.Schema.Types.Mixed, default: {} },
+    offlinePlaybook: { type: mongoose.Schema.Types.Mixed, default: {} },
+    onlinePlaybook: { type: mongoose.Schema.Types.Mixed, default: {} },
+    businessWorkflows: { type: mongoose.Schema.Types.Mixed, default: {} },
+    businessTargets: { type: mongoose.Schema.Types.Mixed, default: {} },
+    googleAdsPlan: { type: mongoose.Schema.Types.Mixed, default: {} },
+    metaAdsPlan: { type: mongoose.Schema.Types.Mixed, default: {} },
+    seoAeoPlan: { type: mongoose.Schema.Types.Mixed, default: {} },
+    socialPostingPlan: { type: mongoose.Schema.Types.Mixed, default: {} },
+    // VYUHOX Master Multi-Intelligence Brain Link
+    masterBrainSyncStatus: {
+      type: String,
+      default: 'CONNECTED_TO_VYUHOX_MASTER',
+    },
+    filteredNoiseList: [{ type: String }],
+    lastTelemetryPushedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    // Exact Discovered Products & Services (Directly Editable by Client on Dashboard)
+    identifiedServices: [
+      {
+        name: { type: String, required: true },
+        description: { type: String, default: '' },
+        category: { type: String, default: 'Core Offering' },
+        deliverable: { type: String, default: '' },
+      },
+    ],
+    // High-Precision Buyer Targeting Matrix
+    buyerTargeting: {
+      whoWillBuy: { type: String, default: '' },
+      whoCanBuy: { type: String, default: '' },
+      toWhomToSell: [{ type: String }],
+      whoWillBeInterested: { type: String, default: '' },
+      buyingTriggers: [{ type: String }],
+    },
     // Historical Knowledge Preserved Across All Rounds (R1, R2, R3...)
     roundsHistory: [roundHistorySchema],
     // Immutable Q&A Ledger: Every question ever asked by any lead and the exact business answer provided

@@ -26,6 +26,17 @@ import {
   ChevronUp,
   Cpu,
   Shield,
+  Brain,
+  Sliders,
+  Store,
+  Briefcase,
+  FileText,
+  BarChart3,
+  Check,
+  X,
+  Plus,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { authStorage } from '../services/authStorage';
@@ -60,6 +71,150 @@ export default function ClientDashboardView({
   // Briefing State
   const [briefing, setBriefing] = useState(null);
 
+  // Trained Business Brain State
+  const [brainStatus, setBrainStatus] = useState(null);
+  const [showBrainTuneModal, setShowBrainTuneModal] = useState(false);
+  const [isTuningBrain, setIsTuningBrain] = useState(false);
+  const [brainTuneForm, setBrainTuneForm] = useState({
+    operatingModelType: 'ONLINE',
+    customServices: '',
+    targetAudience: '',
+    target30Day: '',
+    customGuidelines: '',
+  });
+
+  // Identified Services & Buyer Targeting State
+  const [servicesList, setServicesList] = useState([]);
+  const [targetingState, setTargetingState] = useState(null);
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  const [serviceEditForm, setServiceEditForm] = useState({ index: null, name: '', category: 'CORE_SERVICE', description: '', deliverable: '' });
+  const [targetingModalOpen, setTargetingModalOpen] = useState(false);
+  const [targetingForm, setTargetingForm] = useState({
+    whoWillBuy: '',
+    whoCanBuy: '',
+    toWhomToSell: '',
+    whoWillBeInterested: '',
+    buyingTriggers: '',
+  });
+  const [savingServices, setSavingServices] = useState(false);
+  const [saveNotice, setSaveNotice] = useState(null);
+
+  const loadBrainStatus = async () => {
+    if (!activeWorkspace?._id) return;
+    try {
+      const res = await api.getBrainStatus(activeWorkspace._id);
+      if (res && res.success) {
+        setBrainStatus(res);
+        if (res.identifiedServices && Array.isArray(res.identifiedServices) && res.identifiedServices.length > 0) {
+          setServicesList(res.identifiedServices);
+        } else if (res.brain?.identifiedServices && res.brain.identifiedServices.length > 0) {
+          setServicesList(res.brain.identifiedServices);
+        } else if (res.strategy?.analysisResult?.identifiedServices && res.strategy.analysisResult.identifiedServices.length > 0) {
+          setServicesList(res.strategy.analysisResult.identifiedServices);
+        }
+
+        if (res.buyerTargeting) {
+          setTargetingState(res.buyerTargeting);
+          setTargetingForm(res.buyerTargeting);
+        } else if (res.brain?.buyerTargeting) {
+          setTargetingState(res.brain.buyerTargeting);
+          setTargetingForm(res.brain.buyerTargeting);
+        } else if (res.strategy?.analysisResult?.buyerTargeting) {
+          setTargetingState(res.strategy.analysisResult.buyerTargeting);
+          setTargetingForm(res.strategy.analysisResult.buyerTargeting);
+        }
+
+        if (res.brain?.trainedProfile || res.strategy?.analysisResult) {
+          const profile = res.brain?.trainedProfile || {};
+          const analysis = res.strategy?.analysisResult || {};
+          setBrainTuneForm({
+            operatingModelType: res.operatingModelType || 'ONLINE',
+            customServices: (profile.coreOfferings || analysis.coreOfferings || []).join(', '),
+            targetAudience: profile.targetAudience?.primaryPersona || analysis.targetAudience?.primaryPersona || '',
+            target30Day: res.targets?.day30?.targetRevenue || '$15,000 MRR',
+            customGuidelines: profile.customGuidelines || '',
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load brain status:', e);
+    }
+  };
+
+  const handleOpenAddService = () => {
+    setServiceEditForm({ index: null, name: '', category: 'CORE_SERVICE', description: '', deliverable: '' });
+    setServiceModalOpen(true);
+  };
+
+  const handleOpenEditService = (service, index) => {
+    setServiceEditForm({
+      index,
+      name: service.name || '',
+      category: service.category || 'CORE_SERVICE',
+      description: service.description || '',
+      deliverable: service.deliverable || '',
+    });
+    setServiceModalOpen(true);
+  };
+
+  const handleDeleteService = async (index) => {
+    const updated = servicesList.filter((_, i) => i !== index);
+    setServicesList(updated);
+    await handleSaveServices(updated, targetingState);
+  };
+
+  const handleSaveServiceItem = async (e) => {
+    e.preventDefault();
+    let updated;
+    if (serviceEditForm.index !== null) {
+      updated = servicesList.map((s, idx) => idx === serviceEditForm.index ? {
+        name: serviceEditForm.name,
+        category: serviceEditForm.category,
+        description: serviceEditForm.description,
+        deliverable: serviceEditForm.deliverable,
+      } : s);
+    } else {
+      updated = [...servicesList, {
+        name: serviceEditForm.name,
+        category: serviceEditForm.category,
+        description: serviceEditForm.description,
+        deliverable: serviceEditForm.deliverable,
+      }];
+    }
+    setServicesList(updated);
+    setServiceModalOpen(false);
+    await handleSaveServices(updated, targetingState);
+  };
+
+  const handleSaveTargeting = async (e) => {
+    e.preventDefault();
+    setTargetingState(targetingForm);
+    setTargetingModalOpen(false);
+    await handleSaveServices(servicesList, targetingForm);
+  };
+
+  const handleSaveServices = async (updatedServices, updatedTargeting) => {
+    if (!activeWorkspace?._id) return;
+    setSavingServices(true);
+    try {
+      const res = await api.updateServices(activeWorkspace._id, {
+        services: updatedServices || servicesList,
+        buyerTargeting: updatedTargeting || targetingState,
+      });
+      if (res && res.success) {
+        if (res.identifiedServices) setServicesList(res.identifiedServices);
+        if (res.buyerTargeting) setTargetingState(res.buyerTargeting);
+        setSaveNotice('Services & Buyer Targeting updated! Brain recalibrated.');
+        setTimeout(() => setSaveNotice(null), 4000);
+      }
+    } catch (err) {
+      console.error('Update services error:', err);
+      alert('Failed to update services: ' + err.message);
+    } finally {
+      setSavingServices(false);
+    }
+  };
+
   const loadBriefing = async () => {
     if (!activeWorkspace?._id) return;
     try {
@@ -72,7 +227,7 @@ export default function ClientDashboardView({
     }
   };
 
-  // Load active strategy & briefing on mount or workspace change
+  // Load active strategy, brain & briefing on mount or workspace change
   useEffect(() => {
     if (!activeWorkspace?._id) return;
     const loadStrategy = async () => {
@@ -89,6 +244,7 @@ export default function ClientDashboardView({
       }
     };
     loadStrategy();
+    loadBrainStatus();
     loadBriefing();
 
     // Check if client arrived from website landing page with a queued crawl URL
@@ -140,8 +296,9 @@ export default function ClientDashboardView({
             onUpdateActiveWorkspace(res.workspace);
           }
         }
+        await loadBrainStatus();
         await loadBriefing();
-        setScanStatus('Strategy synthesized! Redirecting to GTM Blueprint...');
+        setScanStatus('Strategy synthesized! Brain fully trained!');
         setTimeout(() => {
           onNavigateTab('strategy');
         }, 800);
@@ -361,6 +518,131 @@ export default function ClientDashboardView({
         </div>
       </div>
 
+      {/* 2-STEP CLIENT ONBOARDING & AUTONOMOUS ENGINE FLOW */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%)',
+        border: '1px solid rgba(6, 182, 212, 0.3)',
+        borderRadius: '14px',
+        padding: '18px 22px',
+        marginBottom: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+      }}>
+        {/* Step 1 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            background: hasStrategy ? 'rgba(16, 185, 129, 0.2)' : 'rgba(6, 182, 212, 0.2)',
+            border: hasStrategy ? '2px solid #10B981' : '2px solid #06B6D4',
+            color: hasStrategy ? '#10B981' : '#38BDF8',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '800',
+            fontSize: '0.9rem',
+          }}>
+            {hasStrategy ? '✓' : '1'}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: '800', color: hasStrategy ? '#34D399' : '#38BDF8' }}>
+                Step 1: Website &amp; Channel Ingestion
+              </span>
+              <span className={hasStrategy ? 'badge badge-emerald' : 'badge badge-cyan'} style={{ fontSize: '0.65rem' }}>
+                {hasStrategy ? 'Data Dispatched to Pages' : 'Ingest URL'}
+              </span>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: '2px 0 0' }}>
+              {hasStrategy
+                ? 'Website crawled & analyzed. Strategy, Ad copy & SEO schemas automatically routed to respective hubs.'
+                : 'Enter your website URL or Instagram to extract offerings and build your autonomous strategy.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Step Divider */}
+        <div style={{ color: '#475569', display: 'flex', alignItems: 'center' }}>
+          <ArrowRight size={20} />
+        </div>
+
+        {/* Step 2 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1.2, minWidth: '320px' }}>
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            background: hasStrategy ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+            border: hasStrategy ? '2px solid #8B5CF6' : '2px solid rgba(255, 255, 255, 0.2)',
+            color: hasStrategy ? '#A78BFA' : '#64748B',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '800',
+            fontSize: '0.9rem',
+          }}>
+            2
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: '800', color: hasStrategy ? '#F8FAFC' : '#94A3B8' }}>
+                Step 2: Autonomous Dashboard &amp; Growth Modules Ready
+              </span>
+              <span className={hasStrategy ? 'badge badge-purple' : 'badge badge-gray'} style={{ fontSize: '0.65rem' }}>
+                {hasStrategy ? 'All Modules Unlocked' : 'Locked Until Crawled'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('leads')}
+                disabled={!hasStrategy}
+                style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(6, 182, 212, 0.15)', border: '1px solid rgba(6, 182, 212, 0.35)', color: '#38BDF8', fontSize: '0.72rem', fontWeight: '700', cursor: hasStrategy ? 'pointer' : 'not-allowed' }}
+              >
+                🎯 1. Lead Prospecting
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('ads')}
+                disabled={!hasStrategy}
+                style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(236, 72, 153, 0.15)', border: '1px solid rgba(236, 72, 153, 0.35)', color: '#F472B6', fontSize: '0.72rem', fontWeight: '700', cursor: hasStrategy ? 'pointer' : 'not-allowed' }}
+              >
+                📢 2. Ads Manager
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('inbox')}
+                disabled={!hasStrategy}
+                style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.35)', color: '#34D399', fontSize: '0.72rem', fontWeight: '700', cursor: hasStrategy ? 'pointer' : 'not-allowed' }}
+              >
+                💬 3. Omnichannel
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('voice')}
+                disabled={!hasStrategy}
+                style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.35)', color: '#A78BFA', fontSize: '0.72rem', fontWeight: '700', cursor: hasStrategy ? 'pointer' : 'not-allowed' }}
+              >
+                📞 4. Voice Closer
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('seo-aeo')}
+                disabled={!hasStrategy}
+                style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.35)', color: '#7DD3FC', fontSize: '0.72rem', fontWeight: '700', cursor: hasStrategy ? 'pointer' : 'not-allowed' }}
+              >
+                🤖 5. SEO &amp; AEO
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* PHASE 5: AUTONOMOUS MORNING EXECUTIVE BRIEFING & 1-CLICK ACTION CARDS */}
       {briefing && (
         <ExecutiveBriefingCard
@@ -370,6 +652,585 @@ export default function ClientDashboardView({
           onRefresh={loadBriefing}
         />
       )}
+
+      {/* VYUHOX TRAINED BUSINESS BRAIN INTELLIGENCE & EXECUTION HUB */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
+        border: '1px solid rgba(6, 182, 212, 0.35)',
+        borderRadius: '16px',
+        padding: '24px 28px',
+        marginBottom: '28px',
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Top Banner */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', marginBottom: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #06B6D4 0%, #8B5CF6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)',
+            }}>
+              <Brain size={26} color="#FFFFFF" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span className="live-dot" style={{ background: '#10B981', boxShadow: '0 0 8px #10B981' }} />
+                <span style={{ fontSize: '0.725rem', fontWeight: '800', color: '#34D399', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  VYUHOX Multi-Intelligence Master Brain: Supplying Bespoke Intelligence
+                </span>
+                <span className="badge badge-purple" style={{ fontSize: '0.675rem' }}>
+                  {brainStatus?.category || activeStrategy?.category || 'B2B Enterprise SaaS'}
+                </span>
+                <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
+                  Model: {brainStatus?.operatingModelType === 'OFFLINE' ? '🏢 Local Offline Store' : brainStatus?.operatingModelType === 'HYBRID' ? '🌐 Hybrid (Store + Digital)' : brainStatus?.operatingModelType === 'B2B_SERVICES' ? '🤝 B2B Professional Services' : '💻 Online Digital / SaaS'}
+                </span>
+              </div>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.35rem', fontWeight: '800', margin: '4px 0 0', color: '#F8FAFC' }}>
+                {activeStrategy?.businessName || activeWorkspace?.name || 'Your Enterprise'} Business Brain
+              </h2>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setShowBrainTuneModal(true)}
+              className="btn btn-secondary"
+              style={{ padding: '8px 16px', fontSize: '0.8rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Sliders size={14} color="#38BDF8" />
+              <span>Tune / Retrain AI Brain</span>
+            </button>
+            <button
+              onClick={() => onNavigateTab('strategy')}
+              className="btn btn-primary"
+              style={{ padding: '8px 16px', fontSize: '0.8rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <span>Full Strategy Hub</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Noise-Free Assurance Banner: Proves unwanted models were purged by VYUHOX */}
+        {brainStatus?.filteredNoiseList && brainStatus.filteredNoiseList.length > 0 && (
+          <div style={{
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            borderRadius: '10px',
+            padding: '10px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.75rem',
+            color: '#34D399',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldCheck size={16} color="#10B981" />
+              <span><strong>VYUHOX Tailored Intelligence:</strong> Client brain contains strictly your business operations.</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#CBD5E1', fontSize: '0.72rem' }}>
+              <span style={{ color: '#F59E0B', fontWeight: '700' }}>⚡ Unwanted Clutter Filtered Out:</span>
+              <span>{brainStatus.filteredNoiseList.slice(0, 2).map(n => n.replace('(Suppressed)', '').trim()).join(' • ')}</span>
+            </div>
+          </div>
+        )}
+
+        {/* 4-Pillar Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '16px',
+          marginBottom: '16px',
+        }}>
+          {/* Pillar 1: Offerings & ICP */}
+          <div style={{ background: 'rgba(11, 17, 32, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <Target size={16} color="#06B6D4" />
+              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#38BDF8', textTransform: 'uppercase' }}>
+                Trained Services &amp; Target ICP
+              </span>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#E2E8F0', marginBottom: '6px' }}>
+              <strong>Target Persona:</strong> {brainStatus?.brain?.trainedProfile?.targetAudience?.primaryPersona || activeStrategy?.analysisResult?.targetAudience?.primaryPersona || 'Key Decision Makers & Commercial Buyers'}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+              {(brainStatus?.brain?.trainedProfile?.coreOfferings || activeStrategy?.analysisResult?.coreOfferings || ['Enterprise Platform', 'Autonomous Closer', 'Omnichannel Ingestion']).slice(0, 4).map((off, i) => (
+                <span key={i} style={{ fontSize: '0.675rem', background: 'rgba(6, 182, 212, 0.12)', border: '1px solid rgba(6, 182, 212, 0.25)', color: '#38BDF8', padding: '3px 8px', borderRadius: '6px' }}>
+                  ✓ {typeof off === 'string' ? off.slice(0, 32) : 'Service'}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Pillar 2: 30/60/90 Day Quantitative Targets */}
+          <div style={{ background: 'rgba(11, 17, 32, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <TrendingUp size={16} color="#10B981" />
+              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#34D399', textTransform: 'uppercase' }}>
+                Business Targets &amp; Milestones
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.75rem' }}>
+              <span style={{ color: '#94A3B8' }}>30-Day Milestone:</span>
+              <strong style={{ color: '#10B981' }}>{brainStatus?.targets?.day30?.targetRevenue || activeStrategy?.analysisResult?.businessTargets?.day30?.targetRevenue || '$15,000 Revenue'}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.75rem' }}>
+              <span style={{ color: '#94A3B8' }}>60-Day Scaling:</span>
+              <strong style={{ color: '#38BDF8' }}>{brainStatus?.targets?.day60?.targetRevenue || activeStrategy?.analysisResult?.businessTargets?.day60?.targetRevenue || '$35,000 Revenue'}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+              <span style={{ color: '#94A3B8' }}>90-Day ARR Scale:</span>
+              <strong style={{ color: '#A78BFA' }}>{brainStatus?.targets?.day90?.targetRevenue || activeStrategy?.analysisResult?.businessTargets?.day90?.targetRevenue || '$85,000 Revenue'}</strong>
+            </div>
+          </div>
+
+          {/* Pillar 3: Company Life-Cycle SOPs */}
+          <div style={{ background: 'rgba(11, 17, 32, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <Briefcase size={16} color="#8B5CF6" />
+              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#A78BFA', textTransform: 'uppercase' }}>
+                Company Creation vs Management SOPs
+              </span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#E2E8F0', marginBottom: '6px' }}>
+              <strong style={{ color: '#CBD5E1' }}>Creation &amp; Launch:</strong> {activeStrategy?.analysisResult?.companyCreationStrategy?.entityType || 'Registered Commercial Entity'} (Compliance &amp; Initial 50 Customers)
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#94A3B8', lineHeight: '1.4' }}>
+              <strong style={{ color: '#CBD5E1' }}>Daily Operations:</strong> {activeStrategy?.analysisResult?.companyManagementStrategy?.dailyOperations?.slice(0, 100) || 'Morning pipeline review, customer ticket triage, cashflow review & autonomous execution.'}...
+            </div>
+          </div>
+
+          {/* Pillar 4: Tailored Playbook (Filtered based on Operating Model) */}
+          <div style={{ background: 'rgba(11, 17, 32, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px' }}>
+            {(() => {
+              const model = brainStatus?.operatingModelType || activeStrategy?.analysisResult?.businessModelType || 'ONLINE';
+              if (model === 'OFFLINE') {
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <Store size={16} color="#F59E0B" />
+                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#FBBF24', textTransform: 'uppercase' }}>
+                        Local Store &amp; Footfall Playbook
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#E2E8F0', marginBottom: '4px' }}>
+                      <strong style={{ color: '#FBBF24' }}>Local Storefront:</strong> {activeStrategy?.analysisResult?.offlineStrategy?.summary?.slice(0, 100) || 'Local Google Map Pack dominance, walk-in consultation, and community authority.'}...
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#10B981', marginTop: '6px' }}>
+                      ⚡ Filtered by VYUHOX: Suppressed SaaS PLG &amp; developer API clutter
+                    </div>
+                  </>
+                );
+              } else if (model === 'HYBRID') {
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <Store size={16} color="#10B981" />
+                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#34D399', textTransform: 'uppercase' }}>
+                        Omnichannel Store + Online Bridge
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#E2E8F0', marginBottom: '4px' }}>
+                      <strong style={{ color: '#34D399' }}>Omnichannel Engine:</strong> Digital showroom driving scheduled in-store VIP consultations and click-and-collect fulfillment.
+                    </div>
+                  </>
+                );
+              } else if (model === 'B2B_SERVICES') {
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <Briefcase size={16} color="#A78BFA" />
+                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#C084FC', textTransform: 'uppercase' }}>
+                        B2B Enterprise Authority Engine
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#E2E8F0', marginBottom: '4px' }}>
+                      <strong style={{ color: '#C084FC' }}>Corporate Execution:</strong> LinkedIn executive outreach, high-ticket retainer proposals, and C-level discovery calls.
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#10B981', marginTop: '6px' }}>
+                      ⚡ Filtered by VYUHOX: Suppressed mass retail consumer flash sales
+                    </div>
+                  </>
+                );
+              } else {
+                // ONLINE MODEL
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <Globe size={16} color="#06B6D4" />
+                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#38BDF8', textTransform: 'uppercase' }}>
+                        Online Digital Funnel Playbook
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#E2E8F0', marginBottom: '4px' }}>
+                      <strong style={{ color: '#38BDF8' }}>Online Funnel:</strong> {activeStrategy?.analysisResult?.onlineStrategy?.summary?.slice(0, 100) || 'Full-funnel digital pipeline, sub-45s AI voice speed-to-lead, and multi-channel retargeting.'}...
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#10B981', marginTop: '6px' }}>
+                      ⚡ Filtered by VYUHOX: Suppressed offline store footfall &amp; POS clutter
+                    </div>
+                  </>
+                );
+              }
+            })()}
+          </div>
+        </div>
+
+        {/* Save Notice */}
+        {saveNotice && (
+          <div style={{
+            background: 'rgba(16, 185, 129, 0.15)',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
+            borderRadius: '10px',
+            padding: '10px 16px',
+            marginBottom: '16px',
+            fontSize: '0.8rem',
+            color: '#34D399',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+            <CheckCircle2 size={16} />
+            <span>{saveNotice}</span>
+          </div>
+        )}
+
+        {/* SECTION 1: EXACT IDENTIFIED SERVICES & PRODUCTS (EDITABLE) */}
+        <div style={{
+          background: 'rgba(11, 17, 32, 0.85)',
+          border: '1px solid rgba(6, 182, 212, 0.25)',
+          borderRadius: '14px',
+          padding: '20px 24px',
+          marginBottom: '20px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: 'rgba(6, 182, 212, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#38BDF8',
+              }}>
+                <Layers size={18} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    Identified Client Services &amp; Products
+                  </h3>
+                  <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
+                    {servicesList.length} Active Services
+                  </span>
+                </div>
+                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Exact offerings discovered by VYUHOX Crawler. If anything is missing or changed, edit or add services below to calibrate your AI closer &amp; ads.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenAddService}
+              className="btn-primary"
+              style={{ padding: '6px 14px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <span>+ Add Missing Service</span>
+            </button>
+          </div>
+
+          {/* Services Grid */}
+          {servicesList.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+              {servicesList.map((srv, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '10px',
+                    padding: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span className="badge badge-purple" style={{ fontSize: '0.625rem', padding: '1px 6px' }}>
+                        {srv.category || 'SERVICE'}
+                      </span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditService(srv, idx)}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '5px',
+                            color: '#38BDF8',
+                            fontSize: '0.7rem',
+                            padding: '2px 6px',
+                            cursor: 'pointer',
+                          }}
+                          title="Edit Service"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteService(idx)}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            borderRadius: '5px',
+                            color: '#F87171',
+                            fontSize: '0.7rem',
+                            padding: '2px 6px',
+                            cursor: 'pointer',
+                          }}
+                          title="Delete Service"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#F8FAFC', marginBottom: '4px' }}>
+                      {srv.name}
+                    </div>
+
+                    <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: '0 0 8px', lineHeight: '1.4' }}>
+                      {srv.description || 'Verified commercial solution delivered to client requirements.'}
+                    </p>
+                  </div>
+
+                  {srv.deliverable && (
+                    <div style={{
+                      fontSize: '0.7rem',
+                      color: '#34D399',
+                      background: 'rgba(16, 185, 129, 0.08)',
+                      padding: '4px 8px',
+                      borderRadius: '5px',
+                      border: '1px solid rgba(16, 185, 129, 0.2)',
+                    }}>
+                      ⚡ <strong>Deliverable:</strong> {srv.deliverable}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{
+              textAlign: 'center',
+              padding: '24px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              borderRadius: '10px',
+              border: '1px dashed rgba(255, 255, 255, 0.15)',
+            }}>
+              <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: '#94A3B8' }}>
+                No custom services saved yet. Click below to add the exact services your business provides.
+              </p>
+              <button
+                type="button"
+                onClick={handleOpenAddService}
+                className="btn-primary"
+                style={{ padding: '6px 14px', fontSize: '0.75rem' }}
+              >
+                + Add First Service
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* SECTION 2: HIGH-PRECISION BUYER TARGETING MATRIX */}
+        <div style={{
+          background: 'rgba(11, 17, 32, 0.85)',
+          border: '1px solid rgba(139, 92, 246, 0.25)',
+          borderRadius: '14px',
+          padding: '20px 24px',
+          marginBottom: '20px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: 'rgba(139, 92, 246, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#A78BFA',
+              }}>
+                <Target size={18} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    High-Precision Buyer Targeting Matrix
+                  </h3>
+                  <span className="badge badge-purple" style={{ fontSize: '0.675rem' }}>
+                    Synthesized from Offerings
+                  </span>
+                </div>
+                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Derived from your business services: answers who will buy, who can buy, to whom you must sell, who is interested, and critical buying triggers.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setTargetingForm(targetingState || {
+                  whoWillBuy: 'Enterprise organizations with immediate operational needs and allocated budget.',
+                  whoCanBuy: 'Managing Directors, CISOs, Procurement Heads, and Authorized Signatories.',
+                  toWhomToSell: 'Mid-Market to Enterprise accounts (50-5000 headcount) facing transition deadlines.',
+                  whoWillBeInterested: 'Technical leads, department heads, and operational managers evaluating solutions.',
+                  buyingTriggers: 'Compliance audits, contract renewals, revenue leaks, and competitor modernization.',
+                });
+                setTargetingModalOpen(true);
+              }}
+              className="btn-secondary"
+              style={{ padding: '6px 14px', fontSize: '0.75rem' }}
+            >
+              <span>Edit Targeting Matrix</span>
+            </button>
+          </div>
+
+          {/* 5-Quadrant Matrix Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+            {/* 1. Who Will Buy */}
+            <div style={{ background: 'rgba(6, 182, 212, 0.05)', border: '1px solid rgba(6, 182, 212, 0.25)', borderRadius: '10px', padding: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.9rem' }}>🎯</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#38BDF8', textTransform: 'uppercase' }}>
+                  Who Will Buy (High Urgency)
+                </span>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#E2E8F0', margin: 0, lineHeight: '1.45' }}>
+                {targetingState?.whoWillBuy || 'Clients experiencing active pain points, upcoming audit deadlines, or acute operational bottlenecks with immediately authorized budget.'}
+              </p>
+            </div>
+
+            {/* 2. Who Can Buy */}
+            <div style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '10px', padding: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.9rem' }}>💼</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#34D399', textTransform: 'uppercase' }}>
+                  Who Can Buy (Budget Authority)
+                </span>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#E2E8F0', margin: 0, lineHeight: '1.45' }}>
+                {targetingState?.whoCanBuy || 'Designated economic buyers: Managing Directors, Chief Information Officers, Procurement Leads, or Business Owners who control purchase orders.'}
+              </p>
+            </div>
+
+            {/* 3. To Whom You Have to Sell */}
+            <div style={{ background: 'rgba(139, 92, 246, 0.05)', border: '1px solid rgba(139, 92, 246, 0.25)', borderRadius: '10px', padding: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.9rem' }}>🚀</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#A78BFA', textTransform: 'uppercase' }}>
+                  To Whom to Sell (Primary ICP)
+                </span>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#E2E8F0', margin: 0, lineHeight: '1.45' }}>
+                {targetingState?.toWhomToSell || 'Tier-1 commercial accounts in regulated industries (Fintech, Telecom, Defense, Healthcare, Manufacturing) with >$5M ARR.'}
+              </p>
+            </div>
+
+            {/* 4. Who Will Be Interested */}
+            <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '10px', padding: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.9rem' }}>💡</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#FBBF24', textTransform: 'uppercase' }}>
+                  Who Will Be Interested (Influencers)
+                </span>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#E2E8F0', margin: 0, lineHeight: '1.45' }}>
+                {targetingState?.whoWillBeInterested || 'Security engineers, technical architects, and department operators who evaluate feature specs, trial demos, and recommend solutions to leadership.'}
+              </p>
+            </div>
+
+            {/* 5. Buying Triggers & Objections */}
+            <div style={{ background: 'rgba(236, 72, 153, 0.05)', border: '1px solid rgba(236, 72, 153, 0.25)', borderRadius: '10px', padding: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.9rem' }}>⚡</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#F472B6', textTransform: 'uppercase' }}>
+                  Buying Triggers &amp; Catalysts
+                </span>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#E2E8F0', margin: 0, lineHeight: '1.45' }}>
+                {targetingState?.buyingTriggers || 'Mandatory regulatory compliance deadlines, annual vendor contract renewals, painful legacy downtime, or high competitor pricing.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Navigation Pills for the 8 Pillars */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          flexWrap: 'wrap',
+          paddingTop: '12px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+        }}>
+          <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>
+            Explore Synthesized Modules:
+          </span>
+          <button
+            onClick={() => onNavigateTab('strategy')}
+            style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.25)', color: '#38BDF8', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+          >
+            📄 Business Plan
+          </button>
+          <button
+            onClick={() => onNavigateTab('strategy')}
+            style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#34D399', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+          >
+            🎯 SWOT Analysis
+          </button>
+          <button
+            onClick={() => onNavigateTab('strategy')}
+            style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.25)', color: '#A78BFA', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+          >
+            ⚙️ Workflows &amp; Team
+          </button>
+          <button
+            onClick={() => onNavigateTab('strategy')}
+            style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#FBBF24', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+          >
+            📊 Targets &amp; Milestones
+          </button>
+          <button
+            onClick={() => onNavigateTab('ads')}
+            style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(236, 72, 153, 0.1)', border: '1px solid rgba(236, 72, 153, 0.25)', color: '#F472B6', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+          >
+            📢 Google &amp; Meta Ads
+          </button>
+          <button
+            onClick={() => onNavigateTab('seo-aeo')}
+            style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)', color: '#7DD3FC', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+          >
+            🤖 SEO &amp; AEO Engine
+          </button>
+        </div>
+      </div>
 
       {/* STEP 1: INTERACTIVE WEBSITE SCANNER & DYNAMIC AI STRATEGY HUB */}
       {hasStrategy && activeStrategy ? (
@@ -783,6 +1644,432 @@ export default function ClientDashboardView({
         </div>
       )}
 
+      {/* Real-time Save / Update Notification */}
+      {saveNotice && (
+        <div style={{
+          marginBottom: '20px',
+          padding: '12px 18px',
+          borderRadius: '10px',
+          background: 'rgba(16, 185, 129, 0.15)',
+          border: '1px solid rgba(16, 185, 129, 0.35)',
+          color: '#34D399',
+          fontSize: '0.85rem',
+          fontWeight: '600',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}>
+          <CheckCircle2 size={18} />
+          <span>{saveNotice}</span>
+        </div>
+      )}
+
+      {/* SIMPLE 2-STEP CLIENT JOURNEY FLOW */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.5) 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '16px',
+        padding: '20px 24px',
+        marginBottom: '28px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <span style={{ fontSize: '0.725rem', fontWeight: '800', color: '#06B6D4', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              VYUHOX Autonomous Operating Architecture
+            </span>
+            <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800', margin: '3px 0 0', color: '#F8FAFC' }}>
+              Simple 2-Step Client Journey
+            </h3>
+          </div>
+          <span className={`badge ${hasStrategy ? 'badge-emerald' : 'badge-amber'}`}>
+            {hasStrategy ? '✓ Step 1 Complete • Step 2 Unlocked' : '⚡ Step 1 Pending Crawl'}
+          </span>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '16px',
+        }}>
+          {/* Step 1 Card */}
+          <div style={{
+            padding: '18px',
+            borderRadius: '12px',
+            background: hasStrategy ? 'rgba(16, 185, 129, 0.05)' : 'rgba(6, 182, 212, 0.08)',
+            border: hasStrategy ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(6, 182, 212, 0.4)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.8rem', fontWeight: '800', color: hasStrategy ? '#34D399' : '#38BDF8' }}>
+                STEP 1: WEBSITE &amp; SOCIAL INGESTION
+              </span>
+              {hasStrategy ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.725rem', color: '#34D399', fontWeight: '700' }}>
+                  <CheckCircle2 size={13} /> Active &amp; Partitioned
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.725rem', color: '#38BDF8', fontWeight: '700' }}>Action Required</span>
+              )}
+            </div>
+            <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 12px', lineHeight: '1.4' }}>
+              Crawl your website, Instagram, or voice brief. VYUHOX extracts exact offerings and automatically partitions data into Ads Manager, SEO &amp; AEO Studio, and Maya Voice AE.
+            </p>
+            <button
+              onClick={() => onNavigateTab('strategy')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                background: 'rgba(6, 182, 212, 0.15)',
+                border: '1px solid rgba(6, 182, 212, 0.35)',
+                color: '#38BDF8',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Globe size={13} />
+              <span>{hasStrategy ? 'Review Crawl & Strategy Engine →' : 'Launch Crawler Now →'}</span>
+            </button>
+          </div>
+
+          {/* Step 2 Card */}
+          <div style={{
+            padding: '18px',
+            borderRadius: '12px',
+            background: hasStrategy ? 'rgba(139, 92, 246, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+            border: hasStrategy ? '1px solid rgba(139, 92, 246, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+            opacity: hasStrategy ? 1 : 0.6,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.8rem', fontWeight: '800', color: hasStrategy ? '#C4B5FD' : '#64748B' }}>
+                STEP 2: FULL AUTONOMOUS REVENUE SUITE UNLOCKED
+              </span>
+              <span style={{ fontSize: '0.725rem', color: hasStrategy ? '#A78BFA' : '#64748B', fontWeight: '700' }}>
+                {hasStrategy ? 'Ready for Execution' : 'Locked until Step 1'}
+              </span>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 12px', lineHeight: '1.4' }}>
+              Direct 1-click execution across all revenue engines configured specifically with your verified services and buyer ICP:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <button
+                onClick={() => onNavigateTab('leads')}
+                disabled={!hasStrategy}
+                style={{ padding: '5px 10px', borderRadius: '6px', background: 'rgba(6, 182, 212, 0.15)', border: '1px solid rgba(6, 182, 212, 0.3)', color: '#38BDF8', fontSize: '0.725rem', fontWeight: '700', cursor: hasStrategy ? 'pointer' : 'not-allowed' }}
+              >
+                🎯 Lead Scraping
+              </button>
+              <button
+                onClick={() => onNavigateTab('ads')}
+                disabled={!hasStrategy}
+                style={{ padding: '5px 10px', borderRadius: '6px', background: 'rgba(236, 72, 153, 0.15)', border: '1px solid rgba(236, 72, 153, 0.3)', color: '#F472B6', fontSize: '0.725rem', fontWeight: '700', cursor: hasStrategy ? 'pointer' : 'not-allowed' }}
+              >
+                📢 Ads Manager (FB, IG &amp; Google)
+              </button>
+              <button
+                onClick={() => onNavigateTab('seo-aeo')}
+                disabled={!hasStrategy}
+                style={{ padding: '5px 10px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#34D399', fontSize: '0.725rem', fontWeight: '700', cursor: hasStrategy ? 'pointer' : 'not-allowed' }}
+              >
+                🤖 SEO &amp; AEO (24/7 Auto-Pilot)
+              </button>
+              <button
+                onClick={() => onNavigateTab('voice')}
+                disabled={!hasStrategy}
+                style={{ padding: '5px 10px', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#FBBF24', fontSize: '0.725rem', fontWeight: '700', cursor: hasStrategy ? 'pointer' : 'not-allowed' }}
+              >
+                📞 Maya Voice Closer (&lt;45s)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* IDENTIFIED CLIENT SERVICES & PRODUCTS (EDITABLE) */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.6) 100%)',
+        border: '1px solid rgba(6, 182, 212, 0.3)',
+        borderRadius: '16px',
+        padding: '24px 28px',
+        marginBottom: '28px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Briefcase size={20} color="#06B6D4" />
+              <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
+                Verified Client Business Offerings &amp; Services ({servicesList.length})
+              </h3>
+              <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
+                🧠 AI Brain Synced
+              </span>
+            </div>
+            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94A3B8' }}>
+              The exact products and services extracted from your business. Missing anything? Edit or add services below so your AI sales agents represent your exact catalog.
+            </p>
+          </div>
+
+          <button
+            onClick={handleOpenAddService}
+            className="btn btn-primary"
+            style={{ padding: '7px 16px', fontSize: '0.775rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Plus size={14} />
+            <span>Add Service / Product</span>
+          </button>
+        </div>
+
+        {servicesList.length === 0 ? (
+          <div style={{
+            padding: '28px',
+            borderRadius: '12px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px dashed rgba(255, 255, 255, 0.15)',
+            textAlign: 'center',
+          }}>
+            <p style={{ margin: '0 0 12px', fontSize: '0.875rem', color: '#94A3B8' }}>
+              No individual services parsed yet. Crawl your website or click below to define what your business offers.
+            </p>
+            <button
+              onClick={handleOpenAddService}
+              className="btn btn-primary"
+              style={{ padding: '8px 18px', fontSize: '0.8rem', fontWeight: '700' }}
+            >
+              + Add First Service
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '14px',
+          }}>
+            {servicesList.map((service, idx) => (
+              <div
+                key={idx}
+                style={{
+                  padding: '16px 18px',
+                  borderRadius: '12px',
+                  background: 'rgba(11, 17, 32, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.675rem',
+                      fontWeight: '700',
+                      background: 'rgba(6, 182, 212, 0.15)',
+                      color: '#38BDF8',
+                      textTransform: 'uppercase',
+                    }}>
+                      {service.category || 'CORE_SERVICE'}
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        onClick={() => handleOpenEditService(service, idx)}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.06)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          color: '#CBD5E1',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.7rem',
+                        }}
+                        title="Edit Service"
+                      >
+                        <Edit2 size={12} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteService(idx)}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          color: '#F87171',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.7rem',
+                        }}
+                        title="Delete Service"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.95rem', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px' }}>
+                    {service.name}
+                  </h4>
+
+                  <p style={{ margin: '0 0 8px', fontSize: '0.775rem', color: '#94A3B8', lineHeight: '1.45' }}>
+                    {service.description || 'Full solution deliverable mapped to client pain points.'}
+                  </p>
+                </div>
+
+                {service.deliverable && (
+                  <div style={{
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    fontSize: '0.725rem',
+                    color: '#CBD5E1',
+                  }}>
+                    <strong style={{ color: '#10B981' }}>Deliverable:</strong> {service.deliverable}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* HIGH-PRECISION BUYER TARGETING ARCHITECTURE (5 QUADRANTS) */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.6) 100%)',
+        border: '1px solid rgba(139, 92, 246, 0.3)',
+        borderRadius: '16px',
+        padding: '24px 28px',
+        marginBottom: '28px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Target size={20} color="#A78BFA" />
+              <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
+                High-Precision Buyer Targeting Matrix
+              </h3>
+              <span className="badge badge-purple" style={{ fontSize: '0.675rem' }}>
+                🎯 Verified Buying Persona
+              </span>
+            </div>
+            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94A3B8' }}>
+              Synthesized directly from your offerings: Who will buy, who can buy, to whom you must sell, who is interested, and compelling buying triggers.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setTargetingForm({
+                whoWillBuy: targetingState?.whoWillBuy || '',
+                whoCanBuy: targetingState?.whoCanBuy || '',
+                toWhomToSell: targetingState?.toWhomToSell || '',
+                whoWillBeInterested: targetingState?.whoWillBeInterested || '',
+                buyingTriggers: targetingState?.buyingTriggers || '',
+              });
+              setTargetingModalOpen(true);
+            }}
+            className="btn btn-secondary"
+            style={{ padding: '7px 16px', fontSize: '0.775rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Edit2 size={13} />
+            <span>Fine-Tune Buyer Targeting</span>
+          </button>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '14px',
+        }}>
+          {/* 1. Who Will Buy */}
+          <div style={{
+            padding: '16px',
+            borderRadius: '12px',
+            background: 'rgba(11, 17, 32, 0.75)',
+            border: '1px solid rgba(6, 182, 212, 0.25)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#38BDF8', fontSize: '0.75rem', fontWeight: '800' }}>
+              <Target size={14} />
+              <span>1. WHO WILL BUY (ICP NEED)</span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#E2E8F0', lineHeight: '1.45' }}>
+              {targetingState?.whoWillBuy || (activeStrategy?.analysisResult?.targetAudience?.primaryPersona ? `Enterprises & clients matching: ${activeStrategy.analysisResult.targetAudience.primaryPersona}` : 'Organizations seeking immediate performance optimization and verified enterprise deliverables.')}
+            </p>
+          </div>
+
+          {/* 2. Who Can Buy */}
+          <div style={{
+            padding: '16px',
+            borderRadius: '12px',
+            background: 'rgba(11, 17, 32, 0.75)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#34D399', fontSize: '0.75rem', fontWeight: '800' }}>
+              <DollarSign size={14} />
+              <span>2. WHO CAN BUY (FINANCIAL POWER)</span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#E2E8F0', lineHeight: '1.45' }}>
+              {targetingState?.whoCanBuy || (activeStrategy?.targetAudience?.estimatedBudgetTier ? `Budget Tier: ${activeStrategy.targetAudience.estimatedBudgetTier} (ACV: ${activeStrategy.targetAudience?.estimatedACV || 'Mid-Market / Enterprise'})` : 'Funded businesses and growing mid-market accounts with dedicated annual operational budgets.')}
+            </p>
+          </div>
+
+          {/* 3. To Whom To Sell */}
+          <div style={{
+            padding: '16px',
+            borderRadius: '12px',
+            background: 'rgba(11, 17, 32, 0.75)',
+            border: '1px solid rgba(139, 92, 246, 0.25)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#C4B5FD', fontSize: '0.75rem', fontWeight: '800' }}>
+              <Users size={14} />
+              <span>3. TO WHOM TO SELL (DECISION MAKERS)</span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#E2E8F0', lineHeight: '1.45' }}>
+              {targetingState?.toWhomToSell || (activeStrategy?.targetAudience?.decisionMakers && activeStrategy.targetAudience.decisionMakers.length > 0 ? activeStrategy.targetAudience.decisionMakers.join(', ') : 'Founders, Chief Executive Officers, CISOs, CTOs, and VP of Operations.')}
+            </p>
+          </div>
+
+          {/* 4. Who Will Be Interested */}
+          <div style={{
+            padding: '16px',
+            borderRadius: '12px',
+            background: 'rgba(11, 17, 32, 0.75)',
+            border: '1px solid rgba(245, 158, 11, 0.25)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#FBBF24', fontSize: '0.75rem', fontWeight: '800' }}>
+              <Sparkles size={14} />
+              <span>4. WHO WILL BE INTERESTED (CHAMPIONS)</span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#E2E8F0', lineHeight: '1.45' }}>
+              {targetingState?.whoWillBeInterested || 'Department heads, senior engineers, and growth strategists championing modern automated solutions internally.'}
+            </p>
+          </div>
+
+          {/* 5. Compelling Buying Triggers */}
+          <div style={{
+            padding: '16px',
+            borderRadius: '12px',
+            background: 'rgba(11, 17, 32, 0.75)',
+            border: '1px solid rgba(236, 72, 153, 0.25)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#F472B6', fontSize: '0.75rem', fontWeight: '800' }}>
+              <Zap size={14} />
+              <span>5. COMPELLING BUYING TRIGGERS</span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#E2E8F0', lineHeight: '1.45' }}>
+              {targetingState?.buyingTriggers || (activeStrategy?.targetAudience?.buyingTriggers && activeStrategy.targetAudience.buyingTriggers.length > 0 ? activeStrategy.targetAudience.buyingTriggers.join('; ') : 'Regulatory compliance deadlines, quarterly budget expiration, failed manual processes, urgent scaling mandates.')}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* 4 Clean Vital Signs (KPIs) - Dynamic AI Accurate Calculations */}
       <div style={{
         display: 'grid',
@@ -1141,6 +2428,545 @@ export default function ClientDashboardView({
           </div>
         </div>
       </div>
+
+      {/* INTERACTIVE MODAL: TUNE / RETRAIN VYUHOX BUSINESS BRAIN */}
+      {showBrainTuneModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(3, 7, 18, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px',
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+            border: '1px solid rgba(6, 182, 212, 0.4)',
+            borderRadius: '16px',
+            maxWidth: '620px',
+            width: '100%',
+            padding: '24px 28px',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Brain size={24} color="#06B6D4" />
+                <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', color: '#F8FAFC' }}>
+                  Tune &amp; Retrain VYUHOX Business Brain
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowBrainTuneModal(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: '#94A3B8' }}>
+              Customize your business model, services catalog, monthly targets, and AI instructions. All AI agents (Maya Voice Closer, Sarah SDR, Ethan CMO) instantly adapt to these parameters.
+            </p>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!activeWorkspace?._id) return;
+              setIsTuningBrain(true);
+              try {
+                const servicesArray = brainTuneForm.customServices.split(',').map((s) => s.trim()).filter(Boolean);
+                const res = await api.trainBrain(activeWorkspace._id, {
+                  operatingModelType: brainTuneForm.operatingModelType,
+                  customServices: servicesArray,
+                  targetAudience: { primaryPersona: brainTuneForm.targetAudience },
+                  businessTargets: {
+                    day30: { targetRevenue: brainTuneForm.target30Day, focus: 'Accelerate Core Customer Acquisition' },
+                  },
+                  customGuidelines: brainTuneForm.customGuidelines,
+                });
+                if (res.success) {
+                  await loadBrainStatus();
+                  setShowBrainTuneModal(false);
+                  alert('🧠 VYUHOX Business Brain successfully retrained and tuned!');
+                } else {
+                  alert(res.message || 'Brain tuning failed');
+                }
+              } catch (err) {
+                alert('Brain tuning failed: ' + err.message);
+              } finally {
+                setIsTuningBrain(false);
+              }
+            }}>
+              {/* Operating Model Type */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  Business Operating Model Type
+                </label>
+                <select
+                  value={brainTuneForm.operatingModelType}
+                  onChange={(e) => setBrainTuneForm({ ...brainTuneForm, operatingModelType: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  <option value="ONLINE">💻 Online Business (SaaS / D2C / Digital Funnel)</option>
+                  <option value="OFFLINE">🏢 Offline Physical Business (Retail Store / Showroom / Clinic)</option>
+                  <option value="HYBRID">🌐 Hybrid Model (Physical Location + Online Acquisition)</option>
+                  <option value="B2B_SERVICES">🤝 B2B Professional Services / Agency / Exim</option>
+                </select>
+              </div>
+
+              {/* Services & Products */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  Services / Products Catalog (comma-separated)
+                </label>
+                <textarea
+                  rows={2}
+                  value={brainTuneForm.customServices}
+                  onChange={(e) => setBrainTuneForm({ ...brainTuneForm, customServices: e.target.value })}
+                  placeholder="e.g. 3D Dental Implants, Invisalign Clear Aligners, Emergency Walk-in Care"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              {/* Target Customer ICP */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  Primary Target Customer / Decision Maker Persona
+                </label>
+                <input
+                  type="text"
+                  value={brainTuneForm.targetAudience}
+                  onChange={(e) => setBrainTuneForm({ ...brainTuneForm, targetAudience: e.target.value })}
+                  placeholder="e.g. Local Families, Working Mothers & Self-Care Adults (25-55)"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              </div>
+
+              {/* 30-Day Target Goal */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  30-Day Quantitative Milestone Goal
+                </label>
+                <input
+                  type="text"
+                  value={brainTuneForm.target30Day}
+                  onChange={(e) => setBrainTuneForm({ ...brainTuneForm, target30Day: e.target.value })}
+                  placeholder="e.g. ₹15,00,000 / $25,000 Monthly Revenue"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              </div>
+
+              {/* Custom Guidelines */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  Custom Business Directives &amp; Tone Instructions for AI
+                </label>
+                <textarea
+                  rows={3}
+                  value={brainTuneForm.customGuidelines}
+                  onChange={(e) => setBrainTuneForm({ ...brainTuneForm, customGuidelines: e.target.value })}
+                  placeholder="e.g. Always emphasize our 100% money-back guarantee, highlight 0% EMI financing, and mention free parking."
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowBrainTuneModal(false)}
+                  className="btn btn-secondary"
+                  style={{ padding: '8px 16px', fontSize: '0.8rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isTuningBrain}
+                  className="btn btn-primary"
+                  style={{ padding: '8px 20px', fontSize: '0.8rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {isTuningBrain ? 'Retraining Brain...' : '⚡ Save & Retrain AI Brain'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD / EDIT IDENTIFIED SERVICE */}
+      {serviceModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(3, 7, 18, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px',
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+            border: '1px solid rgba(6, 182, 212, 0.4)',
+            borderRadius: '16px',
+            maxWidth: '560px',
+            width: '100%',
+            padding: '24px 28px',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Briefcase size={22} color="#06B6D4" />
+                <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', color: '#F8FAFC' }}>
+                  {serviceEditForm.index !== null ? 'Edit Business Service / Product' : 'Add New Service / Product'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setServiceModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: '#94A3B8' }}>
+              Ensure your business offerings are 100% accurate. AI Outreach, Maya Voice Closer, and Meta/Google ad copies are generated directly from these deliverables.
+            </p>
+
+            <form onSubmit={handleSaveServiceItem}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  Service / Product Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={serviceEditForm.name}
+                  onChange={(e) => setServiceEditForm({ ...serviceEditForm, name: e.target.value })}
+                  placeholder="e.g. Post-Quantum Cryptography Migration Audit"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  Offering Category
+                </label>
+                <select
+                  value={serviceEditForm.category}
+                  onChange={(e) => setServiceEditForm({ ...serviceEditForm, category: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  <option value="CORE_SERVICE">Core Service / Main Offering</option>
+                  <option value="CONSULTING">Advisory / Consultation</option>
+                  <option value="PACKAGE">Turnkey Package / Bundle</option>
+                  <option value="RETAINER">Ongoing Retainer / Subscription</option>
+                  <option value="PRODUCT">Physical / Digital Product</option>
+                  <option value="CUSTOM">Bespoke Custom Solution</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  Description &amp; Problem Solved
+                </label>
+                <textarea
+                  rows={3}
+                  value={serviceEditForm.description}
+                  onChange={(e) => setServiceEditForm({ ...serviceEditForm, description: e.target.value })}
+                  placeholder="What does this service accomplish and what critical pain point does it eliminate for your client?"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  Key Deliverable / Scope
+                </label>
+                <input
+                  type="text"
+                  value={serviceEditForm.deliverable}
+                  onChange={(e) => setServiceEditForm({ ...serviceEditForm, deliverable: e.target.value })}
+                  placeholder="e.g. NIST FIPS 203 Cryptographic Remediation Roadmap + Executive Report"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setServiceModalOpen(false)}
+                  className="btn btn-secondary"
+                  style={{ padding: '8px 16px', fontSize: '0.8rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingServices}
+                  className="btn btn-primary"
+                  style={{ padding: '8px 20px', fontSize: '0.8rem', fontWeight: '700' }}
+                >
+                  {savingServices ? 'Saving Offering...' : '✓ Save Offering'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: FINE-TUNE HIGH-PRECISION BUYER TARGETING */}
+      {targetingModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(3, 7, 18, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px',
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+            border: '1px solid rgba(139, 92, 246, 0.45)',
+            borderRadius: '16px',
+            maxWidth: '680px',
+            width: '100%',
+            padding: '24px 28px',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Target size={22} color="#A78BFA" />
+                <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', color: '#F8FAFC' }}>
+                  Fine-Tune High-Precision Buyer Targeting
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTargetingModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: '#94A3B8' }}>
+              VYUHOX engine uses these 5 buyer dimensions to filter leads in Lead Finder, construct Meta FB/IG custom audiences, and guide Maya closer phone conversations.
+            </p>
+
+            <form onSubmit={handleSaveTargeting}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  🎯 1. Who Will Buy (Immediate Need / ICP Profile)
+                </label>
+                <textarea
+                  rows={2}
+                  value={targetingForm.whoWillBuy}
+                  onChange={(e) => setTargetingForm({ ...targetingForm, whoWillBuy: e.target.value })}
+                  placeholder="e.g. Enterprises preparing for quantum decryption threats, fintechs, government defense contractors."
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  💳 2. Who Can Buy (Financial / Purchasing Power)
+                </label>
+                <textarea
+                  rows={2}
+                  value={targetingForm.whoCanBuy}
+                  onChange={(e) => setTargetingForm({ ...targetingForm, whoCanBuy: e.target.value })}
+                  placeholder="e.g. Companies with $10M+ ARR, dedicated annual cybersecurity budget of $50k+, or compliance mandate."
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  🏢 3. To Whom You Have To Sell (Exact Decision Makers &amp; Job Titles)
+                </label>
+                <textarea
+                  rows={2}
+                  value={targetingForm.toWhomToSell}
+                  onChange={(e) => setTargetingForm({ ...targetingForm, toWhomToSell: e.target.value })}
+                  placeholder="e.g. Chief Information Security Officer (CISO), Chief Technology Officer (CTO), Head of Security Architecture."
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  💡 4. Who Will Be Interested (Aspirants, Innovators &amp; Champions)
+                </label>
+                <textarea
+                  rows={2}
+                  value={targetingForm.whoWillBeInterested}
+                  onChange={(e) => setTargetingForm({ ...targetingForm, whoWillBeInterested: e.target.value })}
+                  placeholder="e.g. Lead Cryptographers, DevOps Engineers, Enterprise Architects evaluating post-quantum algorithms."
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', marginBottom: '6px' }}>
+                  ⚡ 5. Compelling Buying Triggers (Catalysts for Fast Closing)
+                </label>
+                <textarea
+                  rows={2}
+                  value={targetingForm.buyingTriggers}
+                  onChange={(e) => setTargetingForm({ ...targetingForm, buyingTriggers: e.target.value })}
+                  placeholder="e.g. NIST CNSA 2.0 regulatory deadlines, failed audit findings, quarterly budget cycle expiries."
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(11, 17, 32, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setTargetingModalOpen(false)}
+                  className="btn btn-secondary"
+                  style={{ padding: '8px 16px', fontSize: '0.8rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingServices}
+                  className="btn btn-primary"
+                  style={{ padding: '8px 20px', fontSize: '0.8rem', fontWeight: '700' }}
+                >
+                  {savingServices ? 'Calibrating Targeting...' : '⚡ Save & Calibrate Targeting'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

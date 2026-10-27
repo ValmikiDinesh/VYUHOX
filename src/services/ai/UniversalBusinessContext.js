@@ -153,6 +153,21 @@ export class UniversalBusinessContext {
       targetPersonas,
       targetLocations,
       topObjections,
+      operatingModelType: brain?.operatingModelType || analysis?.businessModelType || 'ONLINE',
+      swotAnalysis: brain?.swotAnalysis || analysis?.swotAnalysis || {},
+      companyCreationStrategy: brain?.companyCreationStrategy || analysis?.companyCreationStrategy || {},
+      companyManagementStrategy: brain?.companyManagementStrategy || analysis?.companyManagementStrategy || {},
+      businessWorkflow: brain?.businessWorkflows || analysis?.businessWorkflow || {},
+      businessTargets: brain?.businessTargets || analysis?.businessTargets || {},
+      googleAdsPlan: brain?.googleAdsPlan || analysis?.googleAdsCampaigns || {},
+      metaAdsPlan: brain?.metaAdsPlan || analysis?.metaAdsCampaigns || {},
+      seoAeoPlan: brain?.seoAeoPlan || {
+        seo: analysis?.seoStrategy,
+        aeo: analysis?.aeoStrategy,
+      },
+      offlinePlaybook: brain?.offlinePlaybook || analysis?.offlineStrategy || {},
+      onlinePlaybook: brain?.onlinePlaybook || analysis?.onlineStrategy || {},
+      socialPostingPlan: brain?.socialPostingPlan || analysis?.socialPostingPerPlatform || {},
       telemetry: {
         totalLeads: leadsCount,
         recentLeads: recentLeads.map((l) => ({ id: l._id, name: l.name, title: l.title, company: l.company, stage: l.stage })),
@@ -176,8 +191,13 @@ export class UniversalBusinessContext {
   static async getPromptContextString(workspaceId, moduleName = 'GENERAL') {
     const data = await this.getCompleteIntelligence(workspaceId);
 
+    const targetsSummary = data.businessTargets?.day30
+      ? `30-Day: ${data.businessTargets.day30.targetRevenue || '$10k'} | 60-Day: ${data.businessTargets?.day60?.targetRevenue || '$25k'} | 90-Day: ${data.businessTargets?.day90?.targetRevenue || '$60k'}`
+      : '30-Day Milestone: Accelerate Pipeline & Achieve 3.5x Blended ROAS';
+
     return `=== UNIFIED BUSINESS INTELLIGENCE FOR ${data.businessName.toUpperCase()} ===
 Business Domain/Vertical: ${data.category}
+Operating Model: ${data.operatingModelType} (Online/Offline/Hybrid)
 Website URL: ${data.domain}
 Core Value Proposition: "${data.valueProp}"
 Proven Differentiators: "${data.differentiators}"
@@ -187,6 +207,11 @@ Target Customer Personas: ${data.targetPersonas.join(', ')}
 Key Pain Points Solved: ${data.painPoints.join('; ')}
 Target Markets & Territories: ${data.targetLocations.join(', ')}
 Primary Booking/Contact URL: ${data.bookingLink}
+Active Quantitative Targets: ${targetsSummary}
+Operational Directives:
+- Company Management SOP: ${data.companyManagementStrategy?.dailyOperations || 'Execute high-velocity customer triage & verified delivery'}
+- Footfall / In-Person Strategy: ${data.offlinePlaybook?.summary || 'Local Map Pack dominance, walk-in consultations, and community authority'}
+- Online Digital Funnel: ${data.onlinePlaybook?.summary || 'Rapid inbound lead conversion, sub-45s AI voice speed-to-lead, and multi-channel retargeting'}
 Active Live Telemetry:
 - Total Prospect Pipeline: ${data.telemetry.totalLeads} verified leads
 - Blended Ad ROAS: ${data.telemetry.blendedRoas}x across active paid campaigns

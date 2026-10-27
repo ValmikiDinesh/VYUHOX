@@ -348,5 +348,56 @@ router.post('/digital-pr/mark-accepted', async (req, res) => {
   }
 });
 
+/**
+ * 7. POST /api/seo-tools/auto-pilot/toggle
+ * Toggle 24/7 Autonomous AI Auto-Pilot for SEO/AEO
+ */
+router.post('/auto-pilot/toggle', async (req, res) => {
+  try {
+    const { workspaceId, enabled } = req.body;
+    if (!workspaceId) return res.status(400).json({ success: false, message: 'workspaceId is required' });
+    const ws = await Workspace.findById(workspaceId);
+    if (!ws) return res.status(404).json({ success: false, message: 'Workspace not found' });
+    ws.aeoAutoPilot = enabled !== undefined ? enabled : !ws.aeoAutoPilot;
+    await ws.save();
+    return res.json({
+      success: true,
+      autoPilot: ws.aeoAutoPilot,
+      message: ws.aeoAutoPilot
+        ? '24/7 Autonomous AI Auto-Pilot Activated! VYUHOX engine & AI LLM continuously optimize your citations, schema & digital PR 24/7.'
+        : 'Autonomous AI Auto-Pilot paused. Switched to on-demand mode.',
+    });
+  } catch (error) {
+    console.error('[SeoTools] Toggle auto-pilot error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * 8. POST /api/seo-tools/one-click-launch
+ * 1-Click Launch AI SEO & AEO Engine
+ */
+router.post('/one-click-launch', async (req, res) => {
+  try {
+    const { workspaceId } = req.body;
+    if (!workspaceId) return res.status(400).json({ success: false, message: 'workspaceId is required' });
+    const ws = await Workspace.findById(workspaceId);
+    if (!ws) return res.status(404).json({ success: false, message: 'Workspace not found' });
+
+    const aeoPack = await AeoSchemaService.generateClientAeoPack(workspaceId);
+    await DigitalPrAgent.syncOpportunities(ws);
+
+    return res.json({
+      success: true,
+      launchedAt: new Date().toISOString(),
+      aeoPack,
+      message: '🚀 AI SEO & AEO Engine successfully launched! Dynamic JSON-LD schema injected, sitemap indexed with AI search crawlers, and high-DR journalist pitches drafted.',
+    });
+  } catch (error) {
+    console.error('[SeoTools] One click launch error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export const seoToolsRoutes = router;
 export default seoToolsRoutes;

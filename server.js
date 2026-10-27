@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import http from 'http';
+import fs from 'fs';
 import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -132,6 +133,18 @@ app.use('/api/briefings', briefingRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/microsite', microSiteRoutes);
 app.use('/api/seo-tools', seoToolsRoutes);
+
+// Serve static client production build & SPA fallback (Render / Production)
+const distPath = path.resolve(process.cwd(), 'client', 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/socket.io')) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 // Global Error Handler
 app.use((err, req, res, next) => {

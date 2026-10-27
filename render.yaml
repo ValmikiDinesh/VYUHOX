@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: vyuhox-platform
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false # Set your MongoDB Atlas connection string in Render Dashboard
+      - key: CLIENT_URL
+        sync: false # e.g. https://vyuhox-platform.onrender.com (or leave blank to use same origin)
+      - key: GEMINI_API_KEY
+        sync: false # Optional: for live Google Gemini LLM synthesis
+      - key: OPENAI_API_KEY
+        sync: false # Optional: for live OpenAI fallback

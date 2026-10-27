@@ -257,6 +257,28 @@ export const api = {
     });
     return res.json();
   },
+  getBrainStatus: async (workspaceId) => {
+    return safeFetchJson(`${API_BASE}/strategy/brain-status?workspaceId=${workspaceId}`, {
+      headers: { 'x-workspace-id': workspaceId },
+    });
+  },
+  trainBrain: async (workspaceId, payload) => {
+    return safeFetchJson(`${API_BASE}/strategy/train-brain`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      body: JSON.stringify({ ...payload, workspaceId }),
+    });
+  },
+  getMasterBrainStatus: async () => {
+    return safeFetchJson(`${API_BASE}/strategy/master-brain/status`);
+  },
+  updateServices: async (workspaceId, payload) => {
+    return safeFetchJson(`${API_BASE}/strategy/update-services`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      body: JSON.stringify({ ...payload, workspaceId }),
+    });
+  },
   updateStrategy: async (strategyId, payload) => {
     return safeFetchJson(`${API_BASE}/strategy/${strategyId}`, {
       method: 'PUT',
@@ -1314,6 +1336,22 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pitchId, backlinkUrl }),
+    });
+    return res.json();
+  },
+  toggleAeoAutoPilot: async (workspaceId, enabled) => {
+    const res = await authedFetch(`${API_BASE}/seo-tools/auto-pilot/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId, enabled }),
+    });
+    return res.json();
+  },
+  oneClickLaunchSeo: async (workspaceId) => {
+    const res = await authedFetch(`${API_BASE}/seo-tools/one-click-launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId }),
     });
     return res.json();
   },

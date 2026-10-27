@@ -46,6 +46,12 @@ import {
   Ship,
   PhoneCall,
   ShoppingBag,
+  Brain,
+  Megaphone,
+  Store,
+  BarChart3,
+  CheckCircle,
+  HelpCircle,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { authStorage } from '../services/authStorage';
@@ -66,8 +72,17 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
   const [engineSaving, setEngineSaving] = useState(false);
   const [engineNotice, setEngineNotice] = useState('');
 
-  // Active view tab: 'blueprint' | 'document' | 'roadmap'
+  // Active view tab: 'blueprint' | 'document' | 'swot_analysis' | 'workflows_team' | 'business_targets' | 'paid_ads' | 'seo_aeo' | 'offline_online' | 'roadmap' | 'visuals'
   const [viewTab, setViewTab] = useState('blueprint');
+  const [adPlatformTab, setAdPlatformTab] = useState('google');
+  const [copiedAdField, setCopiedAdField] = useState(null);
+  const handleCopyAd = (text, field) => {
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedAdField(field);
+      setTimeout(() => setCopiedAdField(null), 2000);
+    } catch (e) {}
+  };
 
   // Phase 7: Two-Sided Trade Engine & No-Website Onboarding State
   const [onboardingSource, setOnboardingSource] = useState('WEBSITE'); // 'WEBSITE' | 'GOOGLE_MAPS' | 'INSTAGRAM' | 'VOICE_PROMPT'
@@ -538,48 +553,35 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
         </div>
 
         {analysis && (
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               onClick={handleCopyFullPlan}
               className="btn-secondary"
-              style={{ padding: '8px 14px', fontSize: '0.8rem' }}
-              title="Copy complete markdown business plan to clipboard"
+              style={{ padding: '7px 12px', fontSize: '0.775rem' }}
+              title="Copy markdown business plan to clipboard"
             >
-              {copiedDoc ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
-              {copiedDoc ? 'Copied Full Document!' : 'Copy Plan'}
+              {copiedDoc ? <Check size={13} color="#10B981" /> : <Copy size={13} />}
+              <span>{copiedDoc ? 'Copied' : 'Copy'}</span>
             </button>
 
             <button
               onClick={handleExportMarkdown}
               className="btn-secondary"
-              style={{ padding: '8px 14px', fontSize: '0.8rem' }}
-              title="Export formatted Markdown document"
+              style={{ padding: '7px 12px', fontSize: '0.775rem' }}
+              title="Export Markdown document"
             >
-              <Download size={14} /> Export .MD
+              <Download size={13} />
+              <span>Export .MD</span>
             </button>
 
             <button
               onClick={handlePrintDocument}
               className="btn-secondary"
-              style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+              style={{ padding: '7px 12px', fontSize: '0.775rem' }}
               title="Print or Save as PDF"
             >
-              <Printer size={14} /> Print / PDF
-            </button>
-
-            <button
-              onClick={() => setViewTab('visuals')}
-              className="btn-secondary"
-              style={{
-                padding: '8px 14px',
-                fontSize: '0.8rem',
-                background: viewTab === 'visuals' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(6, 182, 212, 0.08)',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
-                color: '#38BDF8',
-              }}
-              title="Open Autonomous PowerPoint (.PPTX) Presentation Deck & AI Visual Creatives"
-            >
-              <Presentation size={14} /> 🖥️ PowerPoint &amp; Visuals
+              <Printer size={13} />
+              <span>Print / PDF</span>
             </button>
 
             <button
@@ -592,10 +594,10 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
                 }
               }}
               className="btn-primary"
-              style={{ padding: '8px 18px', fontSize: '0.8rem', background: isEditing ? '#10B981' : undefined }}
+              style={{ padding: '7px 16px', fontSize: '0.775rem', background: isEditing ? '#10B981' : undefined }}
             >
-              {isEditing ? <Save size={15} /> : <Edit3 size={15} />}
-              {isEditing ? 'Save All Changes' : 'Edit Plan Document'}
+              {isEditing ? <Save size={14} /> : <Edit3 size={14} />}
+              <span>{isEditing ? 'Save All Changes' : 'Edit Plan Document'}</span>
             </button>
           </div>
         )}
@@ -975,85 +977,174 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
 
       {/* Main View Mode Selector Tabs */}
       {analysis && (
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setViewTab('blueprint')}
             style={{
-              padding: '10px 18px',
+              padding: '9px 15px',
               borderRadius: '8px',
-              background: viewTab === 'blueprint' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
-              border: viewTab === 'blueprint' ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid transparent',
+              background: viewTab === 'blueprint' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              border: viewTab === 'blueprint' ? '1px solid rgba(6, 182, 212, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
               color: viewTab === 'blueprint' ? '#38BDF8' : '#94A3B8',
-              fontSize: '0.875rem',
+              fontSize: '0.8rem',
               fontWeight: '700',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.15s ease',
+              gap: '6px',
             }}
           >
-            <Compass size={16} /> GTM Command Blueprint
+            <Compass size={14} /> GTM Blueprint
           </button>
 
           <button
             onClick={() => setViewTab('document')}
             style={{
-              padding: '10px 18px',
+              padding: '9px 15px',
               borderRadius: '8px',
-              background: viewTab === 'document' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-              border: viewTab === 'document' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
+              background: viewTab === 'document' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              border: viewTab === 'document' ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
               color: viewTab === 'document' ? '#34D399' : '#94A3B8',
-              fontSize: '0.875rem',
+              fontSize: '0.8rem',
               fontWeight: '700',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.15s ease',
+              gap: '6px',
             }}
           >
-            <FileText size={16} /> Complete Business Plan Document {isEditing && <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>Editing</span>}
+            <FileText size={14} /> 📄 Business Plan
           </button>
+
+          <button
+            onClick={() => setViewTab('swot_analysis')}
+            style={{
+              padding: '9px 15px',
+              borderRadius: '8px',
+              background: viewTab === 'swot_analysis' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              border: viewTab === 'swot_analysis' ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+              color: viewTab === 'swot_analysis' ? '#FBBF24' : '#94A3B8',
+              fontSize: '0.8rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Target size={14} /> 🎯 SWOT Analysis
+          </button>
+
+          <button
+            onClick={() => setViewTab('workflows_team')}
+            style={{
+              padding: '9px 15px',
+              borderRadius: '8px',
+              background: viewTab === 'workflows_team' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              border: viewTab === 'workflows_team' ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+              color: viewTab === 'workflows_team' ? '#A78BFA' : '#94A3B8',
+              fontSize: '0.8rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Cpu size={14} /> ⚙️ Workflows &amp; Team
+          </button>
+
+          <button
+            onClick={() => setViewTab('business_targets')}
+            style={{
+              padding: '9px 15px',
+              borderRadius: '8px',
+              background: viewTab === 'business_targets' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              border: viewTab === 'business_targets' ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+              color: viewTab === 'business_targets' ? '#10B981' : '#94A3B8',
+              fontSize: '0.8rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <TrendingUp size={14} /> 📊 Business Targets
+          </button>
+
+          {(() => {
+            const bizModel = analysis?.businessModelType || 'ONLINE';
+            const isOffline = bizModel === 'OFFLINE';
+            const isHybrid = bizModel === 'HYBRID';
+            const isB2B = bizModel === 'B2B_SERVICES';
+            const tabTitle = isOffline
+              ? '🏢 Local Store Playbook'
+              : isHybrid
+              ? '🌐 Omnichannel Playbook'
+              : isB2B
+              ? '🤝 B2B Enterprise Playbook'
+              : '💻 Digital Funnel Playbook';
+            const TabIcon = isOffline ? Store : isHybrid ? Store : isB2B ? Briefcase : Globe;
+
+            return (
+              <button
+                onClick={() => setViewTab('offline_online')}
+                style={{
+                  padding: '9px 15px',
+                  borderRadius: '8px',
+                  background: viewTab === 'offline_online' ? 'rgba(251, 146, 60, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                  border: viewTab === 'offline_online' ? '1px solid rgba(251, 146, 60, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+                  color: viewTab === 'offline_online' ? '#FB923C' : '#94A3B8',
+                  fontSize: '0.8rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <TabIcon size={14} /> {tabTitle}
+              </button>
+            );
+          })()}
 
           <button
             onClick={() => setViewTab('roadmap')}
             style={{
-              padding: '10px 18px',
+              padding: '9px 15px',
               borderRadius: '8px',
-              background: viewTab === 'roadmap' ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
-              border: viewTab === 'roadmap' ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid transparent',
+              background: viewTab === 'roadmap' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              border: viewTab === 'roadmap' ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
               color: viewTab === 'roadmap' ? '#A78BFA' : '#94A3B8',
-              fontSize: '0.875rem',
+              fontSize: '0.8rem',
               fontWeight: '700',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.15s ease',
+              gap: '6px',
             }}
           >
-            <Calendar size={16} /> 30-Day VYUHOX Launch Roadmap ({roadmap.filter((r) => r.status === 'COMPLETED').length}/{roadmap.length} Done)
+            <Calendar size={14} /> 📅 30-Day Roadmap
           </button>
 
           <button
             onClick={() => setViewTab('visuals')}
             style={{
-              padding: '10px 18px',
+              padding: '9px 15px',
               borderRadius: '8px',
-              background: viewTab === 'visuals' ? 'rgba(236, 72, 153, 0.15)' : 'transparent',
-              border: viewTab === 'visuals' ? '1px solid rgba(236, 72, 153, 0.4)' : '1px solid transparent',
+              background: viewTab === 'visuals' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+              border: viewTab === 'visuals' ? '1px solid rgba(236, 72, 153, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
               color: viewTab === 'visuals' ? '#F472B6' : '#94A3B8',
-              fontSize: '0.875rem',
+              fontSize: '0.8rem',
               fontWeight: '700',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.15s ease',
+              gap: '6px',
             }}
           >
-            <Presentation size={16} /> 🖥️ PowerPoint Presentation &amp; Visuals
+            <Presentation size={14} /> 🖥️ Deck &amp; Visuals
           </button>
         </div>
       )}
@@ -1166,6 +1257,130 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
                     <div style={{ fontSize: '0.725rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', marginTop: '4px' }}>
                       <Bot size={13} /> {analysis.recommendedAITeam?.recommendedPlan || 'AI Company Mode'}
                     </div>
+                  </div>
+                </div>
+
+                {/* Autonomous Pipeline Routing & Dispatch Hub */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+                  gap: '16px',
+                  marginTop: '18px',
+                  paddingTop: '18px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                }}>
+                  {/* Card 1: Ads Manager Dispatch */}
+                  <div style={{
+                    background: 'rgba(236, 72, 153, 0.06)',
+                    border: '1px solid rgba(236, 72, 153, 0.3)',
+                    borderRadius: '12px',
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '14px',
+                    flexWrap: 'wrap',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '220px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        background: 'rgba(236, 72, 153, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#EC4899',
+                      }}>
+                        <Megaphone size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#F8FAFC' }}>
+                          Google &amp; Meta Ads Dispatched
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#CBD5E1', marginTop: '2px' }}>
+                          9:16 Reels scripts, FB/IG feed ad copy &amp; keywords routed to Ads Manager.
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateTab ? onNavigateTab('ads') : null}
+                      style={{
+                        padding: '7px 14px',
+                        borderRadius: '8px',
+                        background: '#EC4899',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span>Open Ads Manager</span>
+                      <ArrowRight size={13} />
+                    </button>
+                  </div>
+
+                  {/* Card 2: SEO & AEO Studio Dispatch */}
+                  <div style={{
+                    background: 'rgba(56, 189, 248, 0.06)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    borderRadius: '12px',
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '14px',
+                    flexWrap: 'wrap',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '220px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        background: 'rgba(6, 182, 212, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#38BDF8',
+                      }}>
+                        <Bot size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#F8FAFC' }}>
+                          AEO &amp; SEO Engine Dispatched
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#CBD5E1', marginTop: '2px' }}>
+                          Perplexity/ChatGPT Q&amp;As, JSON-LD &amp; 24/7 AI Auto-Pilot routed to Studio.
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateTab ? onNavigateTab('seo-aeo') : null}
+                      style={{
+                        padding: '7px 14px',
+                        borderRadius: '8px',
+                        background: '#06B6D4',
+                        color: '#030712',
+                        border: 'none',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span>Open SEO/AEO Studio</span>
+                      <ArrowRight size={13} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2775,6 +2990,682 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
               </div>
             </div>
           )}
+
+          {/* TAB: COMPREHENSIVE SWOT ANALYSIS */}
+          {viewTab === 'swot_analysis' && (() => {
+            const analysis = strategy.analysisResult || {};
+            const swot = strategy.swotAnalysis || analysis.swotAnalysis || {};
+            const strengths = swot.strengths || ['High gross profit margins', 'Strong customer loyalty and repeat demand', 'Differentiated proprietary solution'];
+            const weaknesses = swot.weaknesses || ['Manual customer qualification bottleneck', 'Geographic catchment limits', 'Sales cycle friction'];
+            const opportunities = swot.opportunities || ['Autonomous AI speed-to-lead capturing after-hours inquiries', 'Expanding into high-margin recurring subscriptions', 'Multi-channel digital ad optimization'];
+            const threats = swot.threats || ['Aggressive low-cost copycat competitors', 'Rising advertising acquisition costs', 'Macroeconomic spending caution'];
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div className="glass-panel" style={{ padding: '24px 28px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Target size={22} color="#F59E0B" />
+                      <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', color: '#F8FAFC' }}>
+                        Autonomous SWOT Analysis: {strategy.businessName}
+                      </h3>
+                    </div>
+                    <span className="badge badge-amber" style={{ fontSize: '0.75rem' }}>
+                      Category: {strategy.category || 'Specialized Enterprise'}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8' }}>
+                    Deep strategic evaluation synthesized from crawled website DNA, industry benchmarks, and market competitor telemetry.
+                  </p>
+                </div>
+
+                {/* 4-Quadrant Matrix */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                  {/* Strengths */}
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.06)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <CheckCircle2 size={20} color="#10B981" />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#34D399', fontWeight: '800' }}>Strengths (Internal Advantages)</h4>
+                        <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Core Differentiators &amp; Assets</span>
+                      </div>
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {strengths.map((item, idx) => (
+                        <li key={idx} style={{ fontSize: '0.85rem', color: '#E2E8F0', lineHeight: '1.5' }}>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Weaknesses */}
+                  <div style={{
+                    background: 'rgba(245, 158, 11, 0.06)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <AlertCircle size={20} color="#F59E0B" />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#FBBF24', fontWeight: '800' }}>Weaknesses (Internal Bottlenecks)</h4>
+                        <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Vulnerabilities Neutralized by VYUHOX</span>
+                      </div>
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {weaknesses.map((item, idx) => (
+                        <li key={idx} style={{ fontSize: '0.85rem', color: '#E2E8F0', lineHeight: '1.5' }}>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Opportunities */}
+                  <div style={{
+                    background: 'rgba(6, 182, 212, 0.06)',
+                    border: '1px solid rgba(6, 182, 212, 0.35)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(6, 182, 212, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Sparkles size={20} color="#06B6D4" />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#38BDF8', fontWeight: '800' }}>Opportunities (Market Expansion)</h4>
+                        <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>High-Yield Growth Vectors</span>
+                      </div>
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {opportunities.map((item, idx) => (
+                        <li key={idx} style={{ fontSize: '0.85rem', color: '#E2E8F0', lineHeight: '1.5' }}>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Threats */}
+                  <div style={{
+                    background: 'rgba(239, 68, 68, 0.06)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Shield size={20} color="#EF4444" />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#F87171', fontWeight: '800' }}>Threats (External Risks)</h4>
+                        <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Competitive Moats &amp; Safeguards</span>
+                      </div>
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {threats.map((item, idx) => (
+                        <li key={idx} style={{ fontSize: '0.85rem', color: '#E2E8F0', lineHeight: '1.5' }}>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* TAB: WORKFLOWS & REQUIRED TEAM */}
+          {viewTab === 'workflows_team' && (() => {
+            const analysis = strategy.analysisResult || {};
+            const workflows = strategy.businessWorkflow || analysis.businessWorkflow || {};
+            const creation = strategy.companyCreationStrategy || analysis.companyCreationStrategy || {};
+            const mgmt = strategy.companyManagementStrategy || analysis.companyManagementStrategy || {};
+            const team = strategy.businessRequiredTeam || analysis.businessRequiredTeam || {};
+            const humanRoles = team.humanRoles || [
+              { title: 'Managing Director / Founder', focus: 'Strategic direction, capital allocation & key client relations' },
+              { title: 'Operations Lead', focus: 'Day-to-day service delivery, quality assurance & staff coordination' },
+              { title: 'Sales & Client Executive', focus: 'Inbound demo consultations, proposal delivery & contract closing' },
+            ];
+            const aiTeam = team.aiAgentTeam || [
+              { agent: 'Maya Vance', role: 'Speed-to-Lead Inbound Closer (calls web leads in <45s, handles objections, books slots)' },
+              { agent: 'Sarah SDR', role: 'Omnichannel Outreach (dispatches personalized WhatsApp & Email sequences)' },
+              { agent: 'Ethan CMO', role: 'Autonomous Ad & Content Architect (manages Google & Meta ads)' },
+              { agent: 'Alex Analyst', role: 'Telemetry & Churn Watchdog (identifies drop-offs and triggers retention)' },
+            ];
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {/* Header */}
+                <div className="glass-panel" style={{ padding: '24px 28px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <Cpu size={22} color="#8B5CF6" />
+                    <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', color: '#F8FAFC' }}>
+                      Company Life-Cycle Workflows &amp; Team Architecture
+                    </h3>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8' }}>
+                    Engineered operational workflows for company creation, daily management SOPs, and allocated human + autonomous AI workforce.
+                  </p>
+                </div>
+
+                {/* Workflows Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
+                  {/* Company Creation & Launch Workflow */}
+                  <div className="glass-panel" style={{ padding: '22px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                      <Briefcase size={18} color="#06B6D4" />
+                      <h4 style={{ margin: 0, fontSize: '1rem', color: '#38BDF8', fontWeight: '800' }}>
+                        1. Company Creation &amp; Launch Workflow
+                      </h4>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#CBD5E1', marginBottom: '10px' }}>
+                      <strong>Entity Type:</strong> {creation.entityType || 'Private Limited / Commercial SPV'}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {(workflows.creationWorkflow || [
+                        'Step 1: Validate problem-solution fit with 30 target customer interviews',
+                        'Step 2: Complete commercial entity registration and statutory regulatory licenses',
+                        'Step 3: Setup high-converting digital storefront / web presence & payment rails',
+                        'Step 4: Launch initial VIP promotional campaign capturing first 50 customer accounts',
+                        'Step 5: Synthesize initial customer feedback into standardized delivery SOPs',
+                      ]).map((step, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.8rem', color: '#E2E8F0', background: 'rgba(255, 255, 255, 0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                          <span style={{ color: '#06B6D4', fontWeight: '700' }}>#{idx + 1}</span>
+                          <span>{typeof step === 'string' ? step.replace(/^Step \d+:\s*/, '') : step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Company Management & Daily SOPs */}
+                  <div className="glass-panel" style={{ padding: '22px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                      <Calendar size={18} color="#10B981" />
+                      <h4 style={{ margin: 0, fontSize: '1rem', color: '#34D399', fontWeight: '800' }}>
+                        2. Ongoing Operations &amp; Management SOPs
+                      </h4>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                        <div style={{ fontSize: '0.725rem', fontWeight: '800', color: '#34D399', textTransform: 'uppercase', marginBottom: '4px' }}>Daily Cadence:</div>
+                        <div style={{ fontSize: '0.8rem', color: '#E2E8F0', lineHeight: '1.4' }}>
+                          {mgmt.dailyOperations || workflows.managementWorkflow?.daily || 'Review open customer orders, triage inbound leads in <15m, balance cash drawers, and conduct 10-minute standup.'}
+                        </div>
+                      </div>
+                      <div style={{ background: 'rgba(6, 182, 212, 0.08)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
+                        <div style={{ fontSize: '0.725rem', fontWeight: '800', color: '#38BDF8', textTransform: 'uppercase', marginBottom: '4px' }}>Weekly Reviews:</div>
+                        <div style={{ fontSize: '0.8rem', color: '#E2E8F0', lineHeight: '1.4' }}>
+                          {workflows.managementWorkflow?.weekly || 'Reconcile weekly bank deposits, inspect inventory levels, review ad campaign blended ROAS, and audit customer satisfaction.'}
+                        </div>
+                      </div>
+                      <div style={{ background: 'rgba(139, 92, 246, 0.08)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                        <div style={{ fontSize: '0.725rem', fontWeight: '800', color: '#A78BFA', textTransform: 'uppercase', marginBottom: '4px' }}>Monthly Governance:</div>
+                        <div style={{ fontSize: '0.8rem', color: '#E2E8F0', lineHeight: '1.4' }}>
+                          {mgmt.cashflowManagement || workflows.managementWorkflow?.monthly || 'Audit Net Margins, evaluate customer retention rates, review supplier contracts, and file tax compliance.'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Team Architecture: Human Roles vs Autonomous AI Workforce */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
+                  {/* Human Core Team */}
+                  <div className="glass-panel" style={{ padding: '22px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                      <Users size={18} color="#F59E0B" />
+                      <h4 style={{ margin: 0, fontSize: '1rem', color: '#FBBF24', fontWeight: '800' }}>
+                        Essential Human Team Roles
+                      </h4>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {humanRoles.map((role, idx) => (
+                        <div key={idx} style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#F8FAFC' }}>{role.title || role.role}</div>
+                          <div style={{ fontSize: '0.775rem', color: '#94A3B8', marginTop: '2px' }}>{role.focus || role.purpose}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Autonomous AI Agent Team */}
+                  <div className="glass-panel" style={{ padding: '22px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                      <Bot size={18} color="#38BDF8" />
+                      <h4 style={{ margin: 0, fontSize: '1rem', color: '#38BDF8', fontWeight: '800' }}>
+                        Assigned Autonomous AI Agents (Included in VYUHOX)
+                      </h4>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {aiTeam.map((agent, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(6, 182, 212, 0.05)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
+                          <span className="live-dot" style={{ background: '#10B981', width: '8px', height: '8px' }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#38BDF8' }}>{agent.agent || agent.role}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#CBD5E1', marginTop: '1px' }}>{agent.role || agent.purpose}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* TAB: BUSINESS TARGETS & MILESTONES */}
+          {viewTab === 'business_targets' && (() => {
+            const analysis = strategy.analysisResult || {};
+            const targets = strategy.businessTargets || analysis.businessTargets || {};
+            const day30 = targets.day30 || { leads: 150, targetRevenue: '$15,000 Revenue', focus: 'Acquire first 30 paying clients & achieve 3x ROAS' };
+            const day60 = targets.day60 || { leads: 450, targetRevenue: '$40,000 Revenue', focus: 'Scale inbound paid ads & activate automated WhatsApp drips' };
+            const day90 = targets.day90 || { leads: 1200, targetRevenue: '$90,000 Revenue', focus: 'Expand referral flywheel & establish market authority' };
+            const year1 = targets.year1 || { targetRevenue: '$1,000,000 Revenue', focus: 'Establish regional market leadership & automated operations' };
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div className="glass-panel" style={{ padding: '24px 28px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <TrendingUp size={22} color="#10B981" />
+                    <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', color: '#F8FAFC' }}>
+                      Quantitative Business Targets &amp; Milestones: {strategy.businessName}
+                    </h3>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8' }}>
+                    Clear 30/60/90-Day and Year-1 quantitative benchmarks engineered specifically for this business model.
+                  </p>
+                </div>
+
+                {/* 4 Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px' }}>
+                  <div style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.35)', borderRadius: '16px', padding: '22px' }}>
+                    <div style={{ fontSize: '0.725rem', fontWeight: '800', color: '#06B6D4', textTransform: 'uppercase', marginBottom: '8px' }}>
+                      Phase 1 • 30-Day Launch
+                    </div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', marginBottom: '4px' }}>
+                      {day30.targetRevenue}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#38BDF8', marginBottom: '10px' }}>
+                      Target Leads: {day30.leads || 100}+
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#CBD5E1', lineHeight: '1.4' }}>
+                      {day30.focus}
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '16px', padding: '22px' }}>
+                    <div style={{ fontSize: '0.725rem', fontWeight: '800', color: '#10B981', textTransform: 'uppercase', marginBottom: '8px' }}>
+                      Phase 2 • 60-Day Scaling
+                    </div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', marginBottom: '4px' }}>
+                      {day60.targetRevenue}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#34D399', marginBottom: '10px' }}>
+                      Target Leads: {day60.leads || 350}+
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#CBD5E1', lineHeight: '1.4' }}>
+                      {day60.focus}
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.35)', borderRadius: '16px', padding: '22px' }}>
+                    <div style={{ fontSize: '0.725rem', fontWeight: '800', color: '#8B5CF6', textTransform: 'uppercase', marginBottom: '8px' }}>
+                      Phase 3 • 90-Day Expansion
+                    </div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', marginBottom: '4px' }}>
+                      {day90.targetRevenue}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#A78BFA', marginBottom: '10px' }}>
+                      Target Leads: {day90.leads || 800}+
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#CBD5E1', lineHeight: '1.4' }}>
+                      {day90.focus}
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '16px', padding: '22px' }}>
+                    <div style={{ fontSize: '0.725rem', fontWeight: '800', color: '#F59E0B', textTransform: 'uppercase', marginBottom: '8px' }}>
+                      Year 1 • Institutional Scale
+                    </div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', marginBottom: '4px' }}>
+                      {year1.targetRevenue}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#FBBF24', marginBottom: '10px' }}>
+                      Market Dominance
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#CBD5E1', lineHeight: '1.4' }}>
+                      {year1.focus}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* TAB: GOOGLE & META ADS DISPATCH */}
+          {viewTab === 'paid_ads' && (
+            <div className="glass-panel" style={{ padding: '36px', textAlign: 'center', maxWidth: '640px', margin: '20px auto' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                background: 'rgba(236, 72, 153, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                color: '#EC4899',
+              }}>
+                <Megaphone size={28} />
+              </div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#F8FAFC', marginBottom: '8px' }}>
+                Paid Ads Engine Dispatched to Ads Manager
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: '#94A3B8', lineHeight: '1.5', marginBottom: '20px' }}>
+                All synthesized Google &amp; Meta ad creatives, negative keywords, 9:16 reels, and instant lead forms have been dispatched directly to your dedicated Autonomous Paid Ads Manager.
+              </p>
+              <button
+                type="button"
+                onClick={() => onNavigateTab ? onNavigateTab('ads') : null}
+                className="btn-primary"
+                style={{ padding: '10px 24px', fontSize: '0.875rem' }}
+              >
+                Open Dedicated Ads Manager →
+              </button>
+            </div>
+          )}
+
+          {/* TAB: SEO & AEO DISPATCH */}
+          {viewTab === 'seo_aeo' && (
+            <div className="glass-panel" style={{ padding: '36px', textAlign: 'center', maxWidth: '640px', margin: '20px auto' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                background: 'rgba(56, 189, 248, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                color: '#38BDF8',
+              }}>
+                <Bot size={28} />
+              </div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#F8FAFC', marginBottom: '8px' }}>
+                SEO &amp; AEO Engine Dispatched to SEO/AEO Studio
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: '#94A3B8', lineHeight: '1.5', marginBottom: '20px' }}>
+                All JSON-LD schemas, Perplexity citation Q&amp;As, 24/7 AI Auto-Pilot, and DR 85+ Digital PR pitching have been dispatched directly to your dedicated Answer Engine Optimization Studio.
+              </p>
+              <button
+                type="button"
+                onClick={() => onNavigateTab ? onNavigateTab('seo-aeo') : null}
+                className="btn-primary"
+                style={{ padding: '10px 24px', fontSize: '0.875rem' }}
+              >
+                Open Dedicated SEO &amp; AEO Studio →
+              </button>
+            </div>
+          )}
+
+          {/* TAB: TAILORED BUSINESS PLAYBOOK (FILTERED BASED ON OPERATING MODEL) */}
+          {viewTab === 'offline_online' && (() => {
+            const analysis = strategy.analysisResult || {};
+            const bizModel = analysis.businessModelType || 'ONLINE';
+            const offline = strategy.offlineStrategy || analysis.offlineStrategy || {};
+            const online = strategy.onlineStrategy || analysis.onlineStrategy || {};
+
+            if (bizModel === 'OFFLINE') {
+              // 1. OFFLINE PHYSICAL BUSINESS PLAYBOOK (ZERO SAAS/ONLINE BLOAT)
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="glass-panel" style={{ padding: '24px 28px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Store size={22} color="#FB923C" />
+                        <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', color: '#F8FAFC' }}>
+                          Local Physical Store &amp; Footfall Playbook
+                        </h3>
+                      </div>
+                      <span className="badge badge-amber" style={{ fontSize: '0.75rem' }}>🏢 Local Physical Storefront</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#CBD5E1', lineHeight: '1.5' }}>
+                      Tailored by VYUHOX Master Brain for physical retail &amp; local service storefronts. Dominates your 5km local radius, footfall visual conversion, and Google Maps Local 3-Pack.
+                    </p>
+                    <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '6px', fontSize: '0.75rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>⚡</span>
+                      <span><strong>Noise-Free Guarantee:</strong> SaaS PLG self-serve funnels, developer APIs, and cloud DevOps have been purged by VYUHOX.</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+                    <div className="glass-panel" style={{ padding: '24px' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#F8FAFC', fontWeight: '700', marginBottom: '8px' }}>
+                        📍 Footfall Generation &amp; In-Store Conversions:
+                      </div>
+                      <p style={{ fontSize: '0.825rem', color: '#CBD5E1', lineHeight: '1.5', marginBottom: '16px' }}>
+                        {offline.summary || 'Dominate local 5km footfall radius using prominent store visual displays, weekend flash promotions, and Local Google Map Pack authority.'}
+                      </p>
+                      <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#FBBF24', textTransform: 'uppercase', marginBottom: '8px' }}>
+                        Proven Local Store Tactics:
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {(offline.tactics || [
+                          'Google Business Profile (GBP) Local 3-Pack optimization with automated review prompts',
+                          'Storefront visual banners & weekend footfall flash promotions',
+                          'Neighborhood WhatsApp broadcast VIP club with exclusive in-store perks',
+                          'In-person walk-in consultation script with high-conversion closing workflow',
+                        ]).map((t, i) => (
+                          <li key={i} style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>{t}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: '24px' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#F8FAFC', fontWeight: '700', marginBottom: '8px' }}>
+                        ⭐ Local Authority &amp; Reputation Engine:
+                      </div>
+                      <p style={{ fontSize: '0.825rem', color: '#CBD5E1', lineHeight: '1.5', marginBottom: '16px' }}>
+                        Turn local walk-in customers into lifelong advocates through automated SMS review collection, Google Maps photo check-ins, and local community loyalty cards.
+                      </p>
+                      <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#34D399', textTransform: 'uppercase', marginBottom: '8px' }}>
+                        In-Store Conversion Levers:
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>On-the-spot 0% EMI financing &amp; instant digital payment QR counters</li>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Maya AI Voice callback to past walk-ins with customized VIP re-visit invitations</li>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Local festive hampers &amp; neighborhood corporate tie-up discounts</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              );
+            } else if (bizModel === 'HYBRID') {
+              // 2. HYBRID OMNICHANNEL PLAYBOOK (STORE + ONLINE BRIDGE)
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="glass-panel" style={{ padding: '24px 28px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Store size={22} color="#10B981" />
+                        <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', color: '#F8FAFC' }}>
+                          Omnichannel Store &amp; Digital Bridge Playbook
+                        </h3>
+                      </div>
+                      <span className="badge badge-green" style={{ fontSize: '0.75rem' }}>🌐 Hybrid Omnichannel</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#CBD5E1', lineHeight: '1.5' }}>
+                      Unifies your digital catalog with in-store pickup, physical showroom consultations, and local inventory delivery.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+                    <div className="glass-panel" style={{ padding: '24px' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#F8FAFC', fontWeight: '700', marginBottom: '8px' }}>
+                        🏬 In-Store Pickup &amp; Experience Centre:
+                      </div>
+                      <p style={{ fontSize: '0.825rem', color: '#CBD5E1', lineHeight: '1.5', marginBottom: '14px' }}>
+                        {offline.summary || 'Drive online shoppers into your physical store for VIP touch-and-feel trials and express click-and-collect.'}
+                      </p>
+                      <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {(offline.tactics || ['Express 2-hour store pickup counters', 'In-store VIP consultation booking']).map((t, i) => (
+                          <li key={i} style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>{t}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: '24px' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#F8FAFC', fontWeight: '700', marginBottom: '8px' }}>
+                        💻 Online Digital Catalog &amp; Fast Booking:
+                      </div>
+                      <p style={{ fontSize: '0.825rem', color: '#CBD5E1', lineHeight: '1.5', marginBottom: '14px' }}>
+                        {online.summary || 'Full-funnel digital pipeline capturing high-intent search and retargeting with store appointment booking.'}
+                      </p>
+                      <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {(online.tactics || ['Online-to-store consultation calendar', 'Local stock availability checker']).map((t, i) => (
+                          <li key={i} style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>{t}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              );
+            } else if (bizModel === 'B2B_SERVICES') {
+              // 3. B2B PROFESSIONAL SERVICES PLAYBOOK
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="glass-panel" style={{ padding: '24px 28px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Briefcase size={22} color="#A78BFA" />
+                        <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', color: '#F8FAFC' }}>
+                          B2B Enterprise Authority &amp; Retainer Playbook
+                        </h3>
+                      </div>
+                      <span className="badge badge-purple" style={{ fontSize: '0.75rem' }}>🤝 B2B Corporate Services</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#CBD5E1', lineHeight: '1.5' }}>
+                      Tailored by VYUHOX Master Brain for high-ticket consulting, agency, and enterprise services. Mass retail consumer flash sales have been purged.
+                    </p>
+                    <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '6px', fontSize: '0.75rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>⚡</span>
+                      <span><strong>Noise-Free Guarantee:</strong> Mass consumer retail sales, paper flyers, and counter check-ins have been purged by VYUHOX.</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+                    <div className="glass-panel" style={{ padding: '24px' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#F8FAFC', fontWeight: '700', marginBottom: '8px' }}>
+                        🎯 Executive SDR Prospecting &amp; Authority:
+                      </div>
+                      <p style={{ fontSize: '0.825rem', color: '#CBD5E1', lineHeight: '1.5', marginBottom: '14px' }}>
+                        Direct outreach to verified Managing Directors, Founders, and Heads of Procurement with tailored problem-solution angles.
+                      </p>
+                      <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Personalized LinkedIn thought-leadership sequences &amp; C-level intro emails</li>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Sub-45s inbound qualification calls via Maya Vance</li>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Executive case study whitepapers addressing specific compliance &amp; ROI benchmarks</li>
+                      </ul>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: '24px' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#F8FAFC', fontWeight: '700', marginBottom: '8px' }}>
+                        💼 High-Ticket Proposal &amp; Contract Closing:
+                      </div>
+                      <p style={{ fontSize: '0.825rem', color: '#CBD5E1', lineHeight: '1.5', marginBottom: '14px' }}>
+                        Structured discovery call framework and automated multi-stakeholder contract approval workflows.
+                      </p>
+                      <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Value-based pricing retainer proposals with milestone-linked deliverables</li>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Quarterly Business Reviews (QBR) and executive sponsorship check-ins</li>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Zero-friction digital contract signing &amp; enterprise invoice terms</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              );
+            } else {
+              // 4. ONLINE BUSINESS PLAYBOOK (ZERO OFFLINE STORE BLOAT)
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="glass-panel" style={{ padding: '24px 28px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Globe size={22} color="#06B6D4" />
+                        <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', color: '#F8FAFC' }}>
+                          Online Digital Funnel &amp; Growth Playbook
+                        </h3>
+                      </div>
+                      <span className="badge badge-cyan" style={{ fontSize: '0.75rem' }}>💻 100% Online Digital Engine</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#CBD5E1', lineHeight: '1.5' }}>
+                      Tailored by VYUHOX Master Brain for internet-first software, D2C, and digital platforms. Operates with zero marginal fulfillment friction.
+                    </p>
+                    <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '6px', fontSize: '0.75rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>⚡</span>
+                      <span><strong>Noise-Free Guarantee:</strong> Offline retail store footfall, cashier POS, and paper leaflet models have been purged by VYUHOX.</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+                    <div className="glass-panel" style={{ padding: '24px' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#F8FAFC', fontWeight: '700', marginBottom: '8px' }}>
+                        🚀 Full-Funnel Digital Conversion (CRO) &amp; Retargeting:
+                      </div>
+                      <p style={{ fontSize: '0.825rem', color: '#CBD5E1', lineHeight: '1.5', marginBottom: '14px' }}>
+                        {online.summary || 'Full-funnel digital pipeline combining paid ad traffic with sub-45s AI voice caller response and automated cart/inquiry recovery sequences.'}
+                      </p>
+                      <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#38BDF8', textTransform: 'uppercase', marginBottom: '8px' }}>
+                        Proven Digital Tactics:
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {(online.tactics || [
+                          'Sub-45s automated voice call on all web inquiries via Maya Vance',
+                          'WhatsApp cart & booking recovery drip sequence with personalized incentives',
+                          'Dynamic retargeting pixel matrices across Meta Reels & Google Search',
+                          'Exit-intent interactive ROI savings calculator on key landing pages',
+                        ]).map((t, i) => (
+                          <li key={i} style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>{t}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: '24px' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#F8FAFC', fontWeight: '700', marginBottom: '8px' }}>
+                        ⚡ Sub-45s AI Inbound Speed-to-Lead &amp; Recovery:
+                      </div>
+                      <p style={{ fontSize: '0.825rem', color: '#CBD5E1', lineHeight: '1.5', marginBottom: '14px' }}>
+                        Dials demo inquiries in under 45 seconds while buyer intent is at peak. Handles questions with the trained Business Brain before scheduling the deal.
+                      </p>
+                      <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#34D399', textTransform: 'uppercase', marginBottom: '8px' }}>
+                        Automated Conversion Drivers:
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Instant WhatsApp welcome card with interactive product video preview</li>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Maya AI voice dialing with live vocal objection rebuttals</li>
+                        <li style={{ fontSize: '0.8rem', color: '#E2E8F0' }}>Automated Google Calendar &amp; Zoom demo link confirmation sync</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+          })()}
 
           {/* TAB 3: 30-DAY VYUHOX STEP-BY-STEP LAUNCH ROADMAP */}
           {viewTab === 'roadmap' && (

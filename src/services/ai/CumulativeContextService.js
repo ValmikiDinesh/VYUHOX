@@ -8,6 +8,7 @@ import { AdCampaign } from '../../models/AdCampaign.js';
 import { Appointment } from '../../models/Appointment.js';
 import { BusinessBrain } from '../../models/BusinessBrain.js';
 import { LlmGatewayService } from './LlmGatewayService.js';
+import { vyuhoxMasterBrain } from './VyuhoxMasterBrainService.js';
 
 /**
  * CumulativeContextService
@@ -569,6 +570,13 @@ REQUIREMENTS:
       }
     ).catch(() => null);
 
+    // Bidirectional Learning: Send Q&A telemetry back to VYUHOX Master Brain
+    vyuhoxMasterBrain.assimilateClientTelemetry(workspaceId, {
+      eventType: 'QA_LEARNED',
+      businessName: ctx.businessName,
+      payload: { question, exactAnswer: answer, channel },
+    }).catch(() => null);
+
     return {
       answer,
       confidenceScore,
@@ -631,6 +639,13 @@ REQUIREMENTS:
       },
       { new: true }
     );
+
+    // Bidirectional Learning: Send round evolution telemetry back to VYUHOX Master Brain
+    vyuhoxMasterBrain.assimilateClientTelemetry(workspaceId, {
+      eventType: 'CONVERSION_WON',
+      businessName: ctx.businessName,
+      payload: { roundSummary, scheduledCount: ctx.scheduledCount },
+    }).catch(() => null);
 
     return {
       success: true,

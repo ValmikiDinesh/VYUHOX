@@ -63,6 +63,10 @@ const workspaceSchema = new mongoose.Schema(
       ref: 'GtmStrategy',
       default: null,
     },
+    aeoAutoPilot: {
+      type: Boolean,
+      default: false,
+    },
     hiredAgents: [
       {
         agentRole: {

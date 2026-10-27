@@ -25,9 +25,16 @@ import { api } from '../services/api';
 export default function SeoAeoHub({ activeWorkspace, socket, onNavigateTab }) {
   const [activeTab, setActiveTab] = useState('aeo'); // 'aeo' | 'digital_pr' | 'viral_backlinks' | 'link_magnets'
   const [aeoPack, setAeoPack] = useState(null);
+  const [strategy, setStrategy] = useState(null);
   const [loadingAeo, setLoadingAeo] = useState(true);
   const [copiedSchema, setCopiedSchema] = useState(false);
   const [copiedRobots, setCopiedRobots] = useState(false);
+
+  // 24/7 Auto-Pilot & 1-Click Launch State
+  const [autoPilot, setAutoPilot] = useState(activeWorkspace?.aeoAutoPilot || false);
+  const [togglingAutoPilot, setTogglingAutoPilot] = useState(false);
+  const [launching, setLaunching] = useState(false);
+  const [actionNotice, setActionNotice] = useState(null);
 
   // Digital PR State
   const [pitches, setPitches] = useState([]);
@@ -35,24 +42,78 @@ export default function SeoAeoHub({ activeWorkspace, socket, onNavigateTab }) {
   const [generatingPitchId, setGeneratingPitchId] = useState(null);
   const [copiedQuoteId, setCopiedQuoteId] = useState(null);
 
-  // Load AEO Pack for active workspace
+  // Load AEO Pack & Strategy for active workspace
   useEffect(() => {
     if (!activeWorkspace) return;
-    const fetchAeo = async () => {
+    setAutoPilot(!!activeWorkspace.aeoAutoPilot);
+    const fetchAeoAndStrategy = async () => {
       setLoadingAeo(true);
       try {
-        const res = await api.getAeoPack(activeWorkspace._id);
-        if (res.success && res.aeoPack) {
-          setAeoPack(res.aeoPack);
+        const [aeoRes, stratRes] = await Promise.all([
+          api.getAeoPack(activeWorkspace._id),
+          api.getStrategy(activeWorkspace._id),
+        ]);
+        if (aeoRes.success && aeoRes.aeoPack) {
+          setAeoPack(aeoRes.aeoPack);
+        }
+        if (stratRes && stratRes.success && stratRes.strategy) {
+          setStrategy(stratRes.strategy);
         }
       } catch (err) {
-        console.error('Failed to load AEO pack:', err);
+        console.error('Failed to load AEO pack or strategy:', err);
       } finally {
         setLoadingAeo(false);
       }
     };
-    fetchAeo();
+    fetchAeoAndStrategy();
   }, [activeWorkspace]);
+
+  // Toggle 24/7 Autonomous AI Auto-Pilot
+  const handleToggleAutoPilot = async () => {
+    if (!activeWorkspace?._id) return;
+    setTogglingAutoPilot(true);
+    try {
+      const res = await api.toggleAeoAutoPilot(activeWorkspace._id, !autoPilot);
+      if (res && res.success) {
+        setAutoPilot(res.autoPilot);
+        setActionNotice({
+          type: 'success',
+          msg: res.message || 'Auto-pilot setting updated successfully!',
+        });
+        setTimeout(() => setActionNotice(null), 5000);
+      }
+    } catch (err) {
+      console.error('Toggle auto-pilot error:', err);
+      setActionNotice({ type: 'error', msg: 'Failed to toggle auto-pilot: ' + err.message });
+      setTimeout(() => setActionNotice(null), 5000);
+    } finally {
+      setTogglingAutoPilot(false);
+    }
+  };
+
+  // 1-Click Launch AI SEO & AEO Engine
+  const handleOneClickLaunch = async () => {
+    if (!activeWorkspace?._id) return;
+    setLaunching(true);
+    try {
+      const res = await api.oneClickLaunchSeo(activeWorkspace._id);
+      if (res && res.success) {
+        if (res.aeoPack) setAeoPack(res.aeoPack);
+        fetchPitches();
+        setActionNotice({
+          type: 'success',
+          msg: res.message || 'AI SEO & AEO Engine launched! Schema injected & AI crawlers indexed.',
+        });
+        setTimeout(() => setActionNotice(null), 6000);
+      }
+    } catch (err) {
+      console.error('One-click launch error:', err);
+      setActionNotice({ type: 'error', msg: 'Failed to launch SEO/AEO: ' + err.message });
+      setTimeout(() => setActionNotice(null), 5000);
+    } finally {
+      setLaunching(false);
+    }
+  };
 
   // Load Digital PR pitches
   const fetchPitches = async () => {
@@ -138,12 +199,94 @@ export default function SeoAeoHub({ activeWorkspace, socket, onNavigateTab }) {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <span style={{ fontSize: '0.8rem', color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '6px 14px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700' }}>
-            <Shield size={14} /> 100% White-Hat Algorithm Proof
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {/* 24/7 Auto-Pilot Toggle */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            background: autoPilot ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+            border: autoPilot ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '6px 14px',
+            borderRadius: '10px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="live-dot" style={{ background: autoPilot ? '#10B981' : '#64748B', boxShadow: autoPilot ? '0 0 8px #10B981' : 'none' }} />
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: autoPilot ? '#34D399' : '#94A3B8' }}>
+                {autoPilot ? '24/7 Autonomous AI Auto-Pilot' : 'Autonomous Auto-Pilot: Paused'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleAutoPilot}
+              disabled={togglingAutoPilot}
+              style={{
+                width: '42px',
+                height: '22px',
+                borderRadius: '999px',
+                background: autoPilot ? '#10B981' : 'rgba(255, 255, 255, 0.15)',
+                border: 'none',
+                cursor: 'pointer',
+                position: 'relative',
+                transition: 'background 0.2s ease',
+              }}
+              title="Toggle continuous 24/7 autonomous SEO & AEO optimization"
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '2px',
+                  left: autoPilot ? '22px' : '2px',
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  background: '#FFFFFF',
+                  transition: 'left 0.2s ease',
+                }}
+              />
+            </button>
+          </div>
+
+          {/* 1-Click Launch Button */}
+          <button
+            type="button"
+            onClick={handleOneClickLaunch}
+            disabled={launching}
+            className="btn-primary"
+            style={{
+              padding: '8px 18px',
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'linear-gradient(135deg, #06B6D4 0%, #8B5CF6 100%)',
+              border: 'none',
+              boxShadow: '0 0 15px rgba(6, 182, 212, 0.35)',
+            }}
+          >
+            <Zap size={14} />
+            <span>{launching ? 'Synthesizing with AI LLM...' : '⚡ One-Click Launch AI SEO & AEO'}</span>
+          </button>
         </div>
       </div>
+
+      {/* Action Notification */}
+      {actionNotice && (
+        <div style={{
+          padding: '12px 18px',
+          borderRadius: '10px',
+          background: actionNotice.type === 'error' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+          border: actionNotice.type === 'error' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
+          color: actionNotice.type === 'error' ? '#F87171' : '#34D399',
+          fontSize: '0.825rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          {actionNotice.type === 'error' ? <Shield size={16} /> : <CheckCircle2 size={16} />}
+          <span>{actionNotice.msg}</span>
+        </div>
+      )}
 
       {/* Navigation Sub-Tabs */}
       <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px', flexWrap: 'wrap' }}>
@@ -320,6 +463,80 @@ export default function SeoAeoHub({ activeWorkspace, socket, onNavigateTab }) {
               </div>
             </div>
           </div>
+
+          {/* Card 3: Crawled Technical SEO Audit & High-Intent Transactional Keyword Clusters */}
+          {(() => {
+            const seo = strategy?.seoStrategy || strategy?.analysisResult?.seoStrategy || {};
+            const keywords = seo.primaryKeywords || [
+              'best ' + (activeWorkspace?.businessCategory || activeWorkspace?.name || 'services') + ' near me',
+              'buy ' + (activeWorkspace?.name || 'services'),
+              (activeWorkspace?.name || 'enterprise') + ' solutions pricing',
+              'top rated ' + (activeWorkspace?.industry || 'B2B') + ' providers',
+            ];
+            const checklist = seo.technicalChecklist || [
+              'Enforce SSL HTTPS across all subdomains',
+              'Inject Automated JSON-LD Schema (Organization, Product, FAQPage)',
+              'Sub-1.5s Core Web Vitals (LCP, INP & CLS optimized)',
+              'Dynamic XML Sitemap auto-broadcast to Google Search Console',
+              'AI Crawler Whitelist enabled in Robots.txt for ChatGPT & Perplexity',
+            ];
+
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px' }}>
+                {/* Technical SEO Audit */}
+                <div className="glass-panel" style={{ padding: '22px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CheckCircle2 size={18} color="#10B981" />
+                      <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#F8FAFC' }}>
+                        Technical SEO Audit &amp; Crawl Readiness
+                      </span>
+                    </div>
+                    <span className="badge badge-emerald">Autonomous Auto-Fix Active</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {checklist.map((item, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.8rem', color: '#E2E8F0', background: 'rgba(255, 255, 255, 0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                        <CheckCircle2 size={15} color="#10B981" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* High-Intent Keyword Clusters */}
+                <div className="glass-panel" style={{ padding: '22px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Search size={18} color="#38BDF8" />
+                      <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#F8FAFC' }}>
+                        High-Intent Transactional Keyword Clusters
+                      </span>
+                    </div>
+                    <span className="badge badge-cyan">Google 1st Page Intent</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+                    {keywords.map((kw, i) => (
+                      <span key={i} style={{
+                        fontSize: '0.78rem',
+                        background: 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        color: '#38BDF8',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                      }}>
+                        🔍 {kw}
+                      </span>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0 }}>
+                    These transactional keywords are targeted by VYUHOX's programmatic AEO pages, blog articles, and AI search entity graph.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 

@@ -388,12 +388,22 @@ export class ScannerService {
                 // Reject technical code punctuation & syntax
                 if (/[{}<>()\[\];=]/.test(trimmed)) return true;
                 if (trimmed.includes('=>') || trimmed.includes('===') || trimmed.includes('!==') || trimmed.includes('||') || trimmed.includes('&&')) return true;
+                // Reject CSS class attribute strings (Tailwind / Bootstrap / CSS utilities)
+                if (/\b(bg-|text-|border-|flex|grid|p-|m-|px-|py-|mx-|my-|rounded|hover:|focus:|items-|justify-|shadow-|font-|w-|h-|space-|transition-|inline-flex|col-|sm:|md:|lg:|xl:)\b/i.test(trimmed)) {
+                  const cssMatches = trimmed.match(/\b(bg-|text-|border-|flex|grid|p-|m-|px-|py-|mx-|my-|rounded|hover:|focus:|items-|justify-|shadow-|font-|w-|h-|space-|transition-|inline-flex)[a-z0-9\-]+/gi) || [];
+                  if (cssMatches.length >= 2) return true;
+                }
                 // Reject JS runtime errors, framework internal strings and URL protocols
                 if (/^(javascript:|Warning:|Error:|TypeError|ReferenceError|EvalError)/i.test(trimmed)) return true;
                 if (/(\bthrow new\b|\bdelete\b|stopPropagation|preventDefault|window\[|\bbreak\b|\bcase\b|minified|webpack|node_modules|linear-gradient|rgba\(|var\(--)/i.test(trimmed)) return true;
-                if (/(ReadonlyURLSearchParams|TemporaryReferenceSet|Server Function|Client Function|Next\.js|React\.Children|suppressHydrationWarning|dangerouslySetInnerHTML)/i.test(trimmed)) return true;
-                if (/\b(function|class|return|const|let|var|import|export|typeof|instanceof|defaultChecked|defaultValue|innerHTML)\b/i.test(trimmed)) return true;
-                if (/\b(mousedown|mouseup|touchstart|touchend|keydown|keypress|durationchange|timeupdate|animationend|animationstart|animationiteration)\b/i.test(trimmed)) return true;
+                if (/(ReadonlyURLSearchParams|TemporaryReferenceSet|Server Function|Client Function|Next\.js|React\.Children|suppressHydrationWarning|dangerouslySetInnerHTML|defaultChecked|defaultValue|className)/i.test(trimmed)) return true;
+                if (/(pattern\. To get rid of this warning|must start with the combined path|parent routes|pattern\.)/i.test(trimmed)) return true;
+                if (/(verification code dispatched|session has expired|please sign in|scan failed|ensure archive contains|invalid credentials|password reset link|check your email)/i.test(trimmed)) return true;
+                if (/(terms of service|audit disclaimer|all rights reserved|privacy policy|terms & conditions|cookie policy)/i.test(trimmed)) return true;
+                if (trimmed.endsWith('?') || /^(does|is|are|can|will|should|how|what|why|who)\b/i.test(trimmed)) return true;
+                if (/^(spent nearly|these locks rely|regular computers)/i.test(trimmed) && !/[.!?]$/.test(trimmed)) return true;
+                if (/\b(function|class|return|const|let|var|import|export|typeof|instanceof|innerHTML)\b/i.test(trimmed)) return true;
+                if (/\b(mousedown|mouseup|touchstart|touchend|keydown|keypress|durationchange|timeupdate|animationend|animationstart|animationiteration|canplay|seeked|focusin|focusout|selectionchange)\b/i.test(trimmed)) return true;
                 if (/http[s]?:\/\/[^\s]+/i.test(trimmed)) return true; // URLs are not commercial offering titles
                 // Must have human sentence-like word structure (at least 3 genuine English/human words)
                 const words = trimmed.split(/\s+/).filter((w) => /^[a-zA-Z0-9'’–—\-]+$/.test(w));
@@ -865,19 +875,57 @@ Output strictly valid JSON with this schema:
 
     const bespokeTaxonomy = BusinessTaxonomyBrain.generateBespokeIntelligence(extractedData);
 
+    const identifiedServices = (coreOfferings || []).map((item, idx) => {
+      const isObj = typeof item === 'object' && item !== null;
+      const nameStr = isObj ? item.name || 'Core Solution' : item;
+      return {
+        name: nameStr,
+        description: isObj && item.description ? item.description : `Verified ${nameStr} engineered specifically for target buyer operational requirements.`,
+        category: isObj && item.category ? item.category : 'Primary Offering',
+        deliverable: isObj && item.deliverable ? item.deliverable : 'Complete end-to-end execution',
+      };
+    });
+
+    const buyerTargeting = {
+      whoWillBuy: targetAudience.primaryPersona || 'Key organizational decision makers with active budget and pressing operational need',
+      whoCanBuy: `${category} buyers & enterprise teams with verified purchasing authority and active budget`,
+      toWhomToSell: targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0
+        ? targetAudience.decisionMakers
+        : ['Chief Executive Officer (CEO)', 'Chief Information Security Officer (CISO)', 'VP of Engineering', 'Director of Procurement'],
+      whoWillBeInterested: 'Technical researchers, early adopters, compliance officers, and operational leaders',
+      buyingTriggers: targetAudience.buyingTriggers && targetAudience.buyingTriggers.length > 0
+        ? targetAudience.buyingTriggers
+        : ['Regulatory compliance deadline', 'Legacy system performance bottleneck', 'Audit finding & compliance mandate', 'High-priority competitive upgrade'],
+    };
+
     return {
       businessName: name,
       websiteUrl: extractedData.url,
       category,
       categoryKey: bespokeTaxonomy.categoryKey,
       businessModel: bespokeTaxonomy.businessModel,
+      businessModelType: bespokeTaxonomy.businessModelType || 'ONLINE',
       summary,
       whatTheySell,
       coreOfferings,
+      identifiedServices,
+      buyerTargeting,
       positioning,
       targetAudience,
       swotAnalysis: bespokeTaxonomy.swotAnalysis,
-      creativeAdStrategies: bespokeTaxonomy.creativeAdStrategies,
+      companyCreationStrategy: bespokeTaxonomy.companyCreationStrategy,
+      companyManagementStrategy: bespokeTaxonomy.companyManagementStrategy,
+      offlineStrategy: bespokeTaxonomy.offlineStrategy,
+      onlineStrategy: bespokeTaxonomy.onlineStrategy,
+      businessWorkflow: bespokeTaxonomy.businessWorkflow,
+      businessRequiredTeam: bespokeTaxonomy.businessRequiredTeam,
+      businessTargets: bespokeTaxonomy.businessTargets,
+      googleAdsCampaigns: bespokeTaxonomy.googleAdsCampaigns,
+      metaAdsCampaigns: bespokeTaxonomy.metaAdsCampaigns,
+      seoStrategy: bespokeTaxonomy.seoStrategy,
+      aeoStrategy: bespokeTaxonomy.aeoStrategy,
+      socialPostingPerPlatform: bespokeTaxonomy.socialPostingPerPlatform,
+      creativeAdStrategies: bespokeTaxonomy.creativeAdStrategies || [],
       recommendedChannels,
       adAngles,
       recommendedAITeam,
@@ -931,7 +979,12 @@ Output strictly valid JSON with this schema:
       const t = str.trim();
       if (t.length < 10 || t.length > 200) return null;
       if (/[{}<>()\[\];=]/.test(t)) return null;
-      if (/javascript:|throw new|window\[|delete |stopPropagation|preventDefault|break;case|ReadonlyURLSearchParams|Server Function|Client Function|Next\.js|React|minified|webpack|animationend/i.test(t)) return null;
+      // Reject CSS class attribute strings (Tailwind / Bootstrap / CSS utilities)
+      if (/\b(bg-|text-|border-|flex|grid|p-|m-|px-|py-|mx-|my-|rounded|hover:|focus:|items-|justify-|shadow-|font-|w-|h-|space-|transition-|inline-flex|col-|sm:|md:|lg:|xl:)\b/i.test(t)) {
+        const cssMatches = t.match(/\b(bg-|text-|border-|flex|grid|p-|m-|px-|py-|mx-|my-|rounded|hover:|focus:|items-|justify-|shadow-|font-|w-|h-|space-|transition-|inline-flex)[a-z0-9\-]+/gi) || [];
+        if (cssMatches.length >= 2) return null;
+      }
+      if (/javascript:|throw new|window\[|delete |stopPropagation|preventDefault|break;case|ReadonlyURLSearchParams|Server Function|Client Function|Next\.js|React|minified|webpack|animationend|className|defaultChecked|defaultValue/i.test(t)) return null;
       const words = t.split(/\s+/).filter((w) => /^[a-zA-Z0-9'’–—\-]+$/.test(w));
       if (words.length < 3) return null;
       return t;
@@ -1058,15 +1111,41 @@ Output strictly valid JSON with this schema:
       pagesCrawledCount: (data.pagesCrawled || []).length,
     });
 
+    const identifiedServices = (coreOfferings || []).map((item, idx) => {
+      const isObj = typeof item === 'object' && item !== null;
+      const nameStr = isObj ? item.name || 'Core Solution' : item;
+      return {
+        name: nameStr,
+        description: isObj && item.description ? item.description : `Verified ${nameStr} engineered specifically for target buyer operational requirements.`,
+        category: isObj && item.category ? item.category : 'Primary Offering',
+        deliverable: isObj && item.deliverable ? item.deliverable : 'Complete end-to-end execution',
+      };
+    });
+
+    const buyerTargeting = {
+      whoWillBuy: targetAudience.primaryPersona || 'Key organizational decision makers with active budget and pressing operational need',
+      whoCanBuy: `${bespokeTaxonomy.category || industryProfile.category} buyers & enterprise teams with verified purchasing authority and active budget`,
+      toWhomToSell: targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0
+        ? targetAudience.decisionMakers
+        : ['Chief Executive Officer (CEO)', 'Chief Information Security Officer (CISO)', 'VP of Engineering', 'Director of Procurement'],
+      whoWillBeInterested: 'Technical researchers, early adopters, compliance officers, and operational leaders',
+      buyingTriggers: targetAudience.buyingTriggers && targetAudience.buyingTriggers.length > 0
+        ? targetAudience.buyingTriggers
+        : ['Regulatory compliance deadline', 'Legacy system performance bottleneck', 'Audit finding & compliance mandate', 'High-priority competitive upgrade'],
+    };
+
     return {
       businessName: name,
       websiteUrl: data.url,
-      category: industryProfile.category,
+      category: bespokeTaxonomy.category || industryProfile.category,
       categoryKey: bespokeTaxonomy.categoryKey,
       businessModel: bespokeTaxonomy.businessModel,
+      businessModelType: bespokeTaxonomy.businessModelType || 'ONLINE',
       summary: coreValueProp,
       whatTheySell,
       coreOfferings,
+      identifiedServices,
+      buyerTargeting,
       positioning: {
         whatTheySell,
         coreOfferings,
@@ -1076,7 +1155,19 @@ Output strictly valid JSON with this schema:
       },
       targetAudience,
       swotAnalysis: bespokeTaxonomy.swotAnalysis,
-      creativeAdStrategies: bespokeTaxonomy.creativeAdStrategies,
+      companyCreationStrategy: bespokeTaxonomy.companyCreationStrategy,
+      companyManagementStrategy: bespokeTaxonomy.companyManagementStrategy,
+      offlineStrategy: bespokeTaxonomy.offlineStrategy,
+      onlineStrategy: bespokeTaxonomy.onlineStrategy,
+      businessWorkflow: bespokeTaxonomy.businessWorkflow,
+      businessRequiredTeam: bespokeTaxonomy.businessRequiredTeam,
+      businessTargets: bespokeTaxonomy.businessTargets,
+      googleAdsCampaigns: bespokeTaxonomy.googleAdsCampaigns,
+      metaAdsCampaigns: bespokeTaxonomy.metaAdsCampaigns,
+      seoStrategy: bespokeTaxonomy.seoStrategy,
+      aeoStrategy: bespokeTaxonomy.aeoStrategy,
+      socialPostingPerPlatform: bespokeTaxonomy.socialPostingPerPlatform,
+      creativeAdStrategies: bespokeTaxonomy.creativeAdStrategies || [],
       recommendedChannels,
       adAngles,
       recommendedAITeam,
@@ -1153,13 +1244,14 @@ Output strictly valid JSON with this schema:
     }
 
     // Local Services, SMB & Regional Commerce
-    if (/(car\s*wash|plumbing|electrician|cleaning\s*service|salon|spa|car\s*repair|auto\s*repair|mechanic|tailor|catering|event\s*planner|contractor|carpenter|local\s*business|retail\s*store|sweet\s*shop|bakery|restaurant|cafe)/i.test(text)) {
+    if (/(car\s*wash|plumbing|electrician|cleaning\s*service|salon|\b(day\s*spa|wellness\s*spa|massage\s*spa|beauty\s*spa)\b|car\s*repair|auto\s*repair|mechanic|tailor|catering|event\s*planner|contractor|carpenter|local\s*business|retail\s*store|sweet\s*shop|bakery|restaurant|cafe)/i.test(text)) {
       scores.local_services_smb += 15;
     }
 
     // Post-Quantum Cryptography (PQC), Cryptographic Inventory & Quantum Readiness
     if (/(post-quantum|pqc|quantum\s*shield|quantum\s*readiness|cryptograph|crqc|fips\s*(203|204|205)|nist\s*(pqc|post-quantum)|ast\s*inspection|cbom|cryptographic\s*inventory|harvest\s*now\s*decrypt\s*later|hndl|ml-kem|ml-dsa|slh-dsa)/i.test(text)) {
-      scores.cybersecurity_pqc += 15;
+      scores.cybersecurity_pqc += 40;
+      scores.local_services_smb = 0; // PQC cannot be a local car wash or salon
     }
 
     // E-Commerce, Luxury Watches, Fashion & Consumer Goods
