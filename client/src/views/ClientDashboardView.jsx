@@ -1835,6 +1835,8 @@ export default function ClientDashboardView({
               <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#94A3B8' }}>
                 Enter your verified business URL &amp; details to synthesize an autonomous GTM strategy and lock your workspace.
               </p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => setShowOnboardingModal(true)}
