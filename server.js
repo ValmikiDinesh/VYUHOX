@@ -2,11 +2,15 @@ import express from 'express';
 import path from 'path';
 import http from 'http';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from './src/config/db.js';
 import { seedDatabase } from './src/seed.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import authRoutes from './src/routes/authRoutes.js';
 import workspaceRoutes from './src/routes/workspaceRoutes.js';
@@ -75,7 +79,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {});
+  socket.on('disconnect', () => { });
 });
 
 // Middlewares
@@ -135,15 +139,23 @@ app.use('/api/microsite', microSiteRoutes);
 app.use('/api/seo-tools', seoToolsRoutes);
 
 // Serve static client production build & SPA fallback (Render / Production)
-const distPath = path.resolve(process.cwd(), 'client', 'dist');
+const distPath = path.resolve(__dirname, 'client', 'dist');
+console.log(`[Static] Checking for client build at: ${distPath} (exists: ${fs.existsSync(distPath)})`);
+
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
   app.get('*', (req, res, next) => {
     if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/socket.io')) {
       return next();
     }
-    res.sendFile(path.join(distPath, 'index.html'));
+    const indexPath = path.join(distPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+    next();
   });
+} else {
+  console.warn('[Static] Warning: client/dist not found. Ensure "npm run build" is run during deployment.');
 }
 
 // Global Error Handler
