@@ -19,10 +19,21 @@ const generateToken = (userId) => {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, companyName, industry, businessCategory, businessModelDescription, websiteUrl } = req.body;
+    const { name, email, password, companyName, mobileNumber, phone } = req.body;
+
+    const finalMobileNumber = (mobileNumber || phone || '').trim();
+    const finalCompanyName = (companyName || '').trim();
 
     if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
+      return res.status(400).json({ success: false, message: 'Full name, email address, and password are required.' });
+    }
+
+    if (!finalCompanyName) {
+      return res.status(400).json({ success: false, message: 'Company or business name is required.' });
+    }
+
+    if (!finalMobileNumber) {
+      return res.status(400).json({ success: false, message: 'Mobile number is required.' });
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -33,21 +44,19 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Create initial workspace for the user
-    const finalCompanyName = companyName || `${name.split(' ')[0]}'s Company`;
+    // Create single dedicated workspace for the user with strictly NO dummy URL
     const slugBase = finalCompanyName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
-    const slug = `${slugBase}-${Date.now().toString().slice(-4)}`;
-
-    const cleanDomain = websiteUrl ? websiteUrl.replace(/^https?:\/\//, '').split('/')[0].replace(/^www\./, '') : '';
-    const initialIndustry = industry === 'AI_AUTO_DETECT' ? 'AI Auto-Detecting...' : (industry || 'B2B');
+    const slug = `${slugBase || 'client'}-${Date.now().toString().slice(-4)}`;
 
     const workspace = await Workspace.create({
       name: finalCompanyName,
       slug,
-      domain: cleanDomain,
-      industry: initialIndustry,
-      businessCategory: businessCategory || (industry === 'AI_AUTO_DETECT' ? 'AI Auto-Discovery Enabled' : ''),
-      businessModelDescription: businessModelDescription || '',
+      domain: '',
+      businessUrl: '',
+      industry: 'Pending Business Onboarding',
+      businessCategory: '',
+      businessModelDescription: '',
+      onboardingCompleted: false,
       operatingMode: 'AI_COMPANY',
       subscription: {
         planTier: 'NONE',
@@ -81,6 +90,8 @@ router.post('/register', async (req, res) => {
     const user = await User.create({
       name,
       email: email.toLowerCase(),
+      mobileNumber: finalMobileNumber,
+      companyName: finalCompanyName,
       passwordHash,
       role: 'workspace_owner',
       workspaceId: workspace._id,
@@ -95,6 +106,8 @@ router.post('/register', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        mobileNumber: user.mobileNumber,
+        companyName: user.companyName,
         role: user.role,
         workspaceId: workspace._id,
       },

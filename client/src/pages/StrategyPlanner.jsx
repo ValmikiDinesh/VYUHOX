@@ -527,16 +527,18 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
             <span className="badge badge-cyan">
               <Sparkles size={13} />
-              AUTONOMOUS GTM STRATEGIST & MULTI-PAGE CRAWLER
+              AUTHENTIC CLIENT GTM STRATEGY &amp; BUSINESS PLAN
             </span>
-            {strategy?.rawExtractedData?.isLiveCrawl !== undefined && (
-              <span className={`badge ${strategy.rawExtractedData.isLiveCrawl ? 'badge-emerald' : 'badge-amber'}`}>
-                {strategy.rawExtractedData.isLiveCrawl ? '✓ Live Multi-Page Crawl' : '⚡ Domain Reconstructed'}
+            {strategy?.businessName && (
+              <span className="badge badge-emerald">
+                ✓ {strategy.businessName}
               </span>
             )}
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-              Step 1 of 5
-            </span>
+            {strategy?.category && (
+              <span className="badge badge-purple">
+                {strategy.category}
+              </span>
+            )}
           </div>
 
           <h2 style={{
@@ -545,10 +547,10 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
             fontWeight: '800',
             letterSpacing: '-0.02em',
           }}>
-            Website Crawler & Business Strategy Architect
+            {strategy?.businessName || activeWorkspace?.name || 'Business'} Strategy &amp; Growth Blueprint
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Deep-crawls company DOM, pricing models & offerings, synthesizes bespoke ICPs, and structures 30-day autonomous execution blueprints.
+            End-to-end bespoke business strategy, synthesized directly from your verified business profile, offerings, and value proposition.
           </p>
         </div>
 
@@ -636,8 +638,76 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
         </div>
       )}
 
-      {/* Onboarding Mode & Deep Scanner Bar */}
-      <div className="glass-panel" style={{ padding: '22px' }}>
+      {/* If Strategy Exists: Display Locked Business Profile Context; else show scanner */}
+      {strategy ? (
+        <div className="glass-panel" style={{
+          padding: '20px 24px',
+          background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%)',
+          border: '1px solid rgba(6, 182, 212, 0.3)',
+          borderRadius: '14px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #06B6D4, #10B981)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#030712',
+                fontWeight: '900',
+                fontSize: '1.2rem',
+              }}>
+                {(strategy.businessName || 'V').substring(0, 1).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    {strategy.businessName}
+                  </h3>
+                  <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
+                    🔒 Locked Business Dashboard
+                  </span>
+                  {activeWorkspace?.offeringType && activeWorkspace.offeringType !== 'UNSPECIFIED' && (
+                    <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                      {activeWorkspace.offeringType}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', fontSize: '0.8rem', color: '#94A3B8', flexWrap: 'wrap' }}>
+                  {strategy.targetUrl && (
+                    <a
+                      href={strategy.targetUrl.startsWith('http') ? strategy.targetUrl : `https://${strategy.targetUrl}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: '#38BDF8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Globe size={13} />
+                      <span>{strategy.targetUrl}</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  )}
+                  {activeWorkspace?.tagLine && (
+                    <span style={{ color: '#E2E8F0' }}>• &ldquo;{activeWorkspace.tagLine}&rdquo;</span>
+                  )}
+                  {strategy.category && (
+                    <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>{strategy.category}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: '700' }}>
+                ✓ One User • One Dashboard • One Business Active
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="glass-panel" style={{ padding: '22px' }}>
         {/* Source Mode Selector Tabs */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '12px' }}>
           {[
@@ -974,6 +1044,7 @@ ${strat.clientNotes || d.clientEditableNotes || 'No custom notes added yet. Use 
           </div>
         )}
       </div>
+      )}
 
       {/* Main View Mode Selector Tabs */}
       {analysis && (

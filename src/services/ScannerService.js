@@ -736,11 +736,23 @@ export class ScannerService {
   static async synthesizeStrategy(extractedData, workspaceContext = {}) {
     // 0. Master Universal Multi-LLM Gateway (Gemini 1.5 / OpenAI / Groq / DeepSeek)
     try {
-      const gtmPrompt = `You are an elite Autonomous Chief Revenue Officer and GTM Strategist.
-Analyze the following crawled business/website data and generate an authentic, 100% bespoke Go-To-Market strategy.
+      const clientBizName = workspaceContext.workspaceName || extractedData.businessName || 'Enterprise';
+      const clientCategory = workspaceContext.businessCategory || workspaceContext.industry || '';
+      const clientDesc = workspaceContext.businessModelDescription || '';
+      const clientTagline = workspaceContext.tagLine || '';
+      const clientOfferingType = workspaceContext.offeringType || 'UNSPECIFIED';
 
-BUSINESS DATA EXTRACTED:
-- Business Name: ${extractedData.businessName}
+      const gtmPrompt = `You are an elite Autonomous Chief Revenue Officer and GTM Strategist.
+Analyze the following crawled business/website data and client-submitted details to generate an authentic, 100% bespoke Go-To-Market strategy.
+
+CLIENT BUSINESS INPUTS:
+- Business Name: ${clientBizName}
+- Offering Type: ${clientOfferingType} (Product, Service, or Both)
+- Business Category / Niche: ${clientCategory || 'Deduce from website'}
+- Business Tagline: ${clientTagline || 'N/A'}
+- Business Model & Description: ${clientDesc || 'Deduce from website'}
+
+CRAWLED WEBSITE / PROFILE DATA:
 - Target URL: ${extractedData.url}
 - Title: ${extractedData.title}
 - Meta Description: ${extractedData.metaDescription}
@@ -750,10 +762,10 @@ BUSINESS DATA EXTRACTED:
 - Detected Pricing: ${(extractedData.detectedPricing || []).join(', ')}
 
 TASK:
-Accurately identify this company's exact industry and formulate their genuine GTM strategy. DO NOT use generic placeholders or irrelevant tech jargon if this is a local business, retail, financial institution, or service company.
+Accurately identify this company's exact industry and formulate their genuine GTM strategy aligned with whether it is a ${clientOfferingType !== 'UNSPECIFIED' ? clientOfferingType : 'Product or Service'}. Use the client's submitted name, category, and description as primary source of truth. DO NOT use generic placeholders or irrelevant tech jargon.
 Output strictly valid JSON with this schema:
 {
-  "businessName": "${extractedData.businessName}",
+  "businessName": "${clientBizName}",
   "category": "Exact industry vertical / business category (e.g., Financial Services & Chit Funds, D2C Consumer Brand, Local Healthcare, B2B SaaS, etc.)",
   "summary": "2-sentence executive summary of what this specific company actually does and sells",
   "whatTheySell": "Clear explanation of their products or services",

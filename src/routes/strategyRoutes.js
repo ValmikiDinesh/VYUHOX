@@ -28,11 +28,19 @@ const emitProgress = (req, workspaceId, step, message, progressPercent) => {
 // POST /api/strategy/scan - Deep Crawl Website & Generate Complete GTM Intelligence
 router.post('/scan', authMiddleware, async (req, res) => {
   try {
-    const { url, workspaceId: bodyWsId } = req.body;
+    const {
+      url,
+      workspaceId: bodyWsId,
+      businessName: inputBusinessName,
+      businessCategory: inputCategory,
+      tagLine: inputTagLine,
+      businessModelDescription: inputDescription,
+      offeringType: inputOfferingType,
+    } = req.body;
     const workspaceId = bodyWsId || req.workspaceId;
 
     if (!url) {
-      return res.status(400).json({ success: false, message: 'Website URL is required' });
+      return res.status(400).json({ success: false, message: 'Website URL or Google Maps business link is required.' });
     }
 
     if (!workspaceId) {
@@ -44,14 +52,40 @@ router.post('/scan', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Workspace not found' });
     }
 
-    // 1. Deep Multi-Page Crawl
-    emitProgress(req, workspaceId, 'CRAWL_INIT', `Initiating deep end-to-end crawl for ${url}...`, 10);
+    const isGoogleMaps = url.includes('google.com/maps') || url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps');
 
-    const extractedData = await ScannerService.scanWebsite(url, (percent, msg) => {
-      emitProgress(req, workspaceId, 'CRAWLING', msg, percent);
-    });
+    let extractedData;
+    if (isGoogleMaps) {
+      emitProgress(req, workspaceId, 'MAPS_ANALYSIS', `Analyzing Google Maps business presence & local clientele...`, 25);
+      const { NoWebsiteOnboardingService } = await import('../services/NoWebsiteOnboardingService.js');
+      const mapsResult = await NoWebsiteOnboardingService.onboardWithoutWebsite({
+        workspaceId,
+        sourceType: 'GOOGLE_MAPS',
+        sourceInput: url,
+        tradeMode: 'STANDARD',
+      });
+      extractedData = mapsResult.strategy?.rawExtractedData || {
+        url,
+        domainName: 'google.com/maps',
+        businessName: inputBusinessName || workspace.name,
+        title: `${inputBusinessName || workspace.name} — Local Business Profile`,
+        metaDescription: inputDescription || inputTagLine || 'Local business profile on Google Maps.',
+        h1List: [inputBusinessName || workspace.name],
+        h2List: [inputCategory || 'Local Business Services'],
+        detectedFeatures: mapsResult.primaryOffers || [inputCategory || 'Commercial Services'],
+        detectedPricing: ['Competitive Market Rates'],
+        keyParagraphs: [inputDescription || 'Local provider offering top rated products and services.'],
+        isLiveCrawl: true,
+      };
+    } else {
+      // 1. Deep Multi-Page Crawl
+      emitProgress(req, workspaceId, 'CRAWL_INIT', `Initiating deep end-to-end crawl for ${url}...`, 10);
+      extractedData = await ScannerService.scanWebsite(url, (percent, msg) => {
+        emitProgress(req, workspaceId, 'CRAWLING', msg, percent);
+      });
+    }
 
-    // 2. Synthesizing Bespoke Strategy & Business Plan
+    // 2. Synthesizing Bespoke Strategy & Business Plan with client-provided custom inputs
     emitProgress(
       req,
       workspaceId,
@@ -60,20 +94,25 @@ router.post('/scan', authMiddleware, async (req, res) => {
       80
     );
 
+    const finalBusinessName = (inputBusinessName || workspace.name || extractedData.businessName || 'Your Enterprise').trim();
+    const finalCategory = (inputCategory || extractedData.category || workspace.businessCategory || 'B2B Services & Enterprise').trim();
+
     const strategyData = await ScannerService.synthesizeStrategy(extractedData, {
-      workspaceName: workspace.name,
-      industry: workspace.industry,
+      workspaceName: finalBusinessName,
+      industry: finalCategory,
+      businessCategory: finalCategory,
+      businessModelDescription: inputDescription || workspace.businessModelDescription,
+      tagLine: inputTagLine || workspace.tagLine,
+      offeringType: inputOfferingType || workspace.offeringType,
     });
 
     // 2.5 Generate visual cover image and executive presentation deck
-    const businessName = strategyData.businessName || workspace.name;
-    const category = strategyData.category || 'B2B Enterprise SaaS';
-    const visualCoverUrl = VisualAiService.generateBusinessCoverImage(businessName, category, strategyData.positioning?.coreValueProp);
+    const visualCoverUrl = VisualAiService.generateBusinessCoverImage(finalBusinessName, finalCategory, strategyData.positioning?.coreValueProp);
     strategyData.visualCoverUrl = visualCoverUrl;
 
     const presentationDeck = VisualAiService.generatePitchDeck({
-      businessName,
-      category,
+      businessName: finalBusinessName,
+      category: finalCategory,
       targetUrl: extractedData.url,
       analysisResult: strategyData,
       businessPlanDocument: strategyData.businessPlanDocument,
@@ -84,30 +123,33 @@ router.post('/scan', authMiddleware, async (req, res) => {
     const gtmStrategy = await GtmStrategy.create({
       workspaceId,
       targetUrl: extractedData.url,
-      businessName,
-      category,
+      businessName: finalBusinessName,
+      category: finalCategory,
       rawExtractedData: extractedData,
       analysisResult: strategyData,
       businessPlanDocument: strategyData.businessPlanDocument,
       presentationDeck,
       visualCoverUrl,
       stepByStepRoadmap: strategyData.stepByStepRoadmap,
-      clientNotes: '',
+      clientNotes: inputDescription ? `Client Directives: ${inputDescription}` : '',
       status: 'ACTIVE',
     });
 
-    // Update workspace reference and autonomously set Industry & Business Category
+    // Update workspace reference and permanently LOCK client onboarding (one client = one business)
     workspace.currentStrategyId = gtmStrategy._id;
+    workspace.businessUrl = url;
+    workspace.name = finalBusinessName;
     if (extractedData.url && !workspace.domain) {
-      workspace.domain = extractedData.domainName;
+      workspace.domain = extractedData.domainName || url.replace(/^https?:\/\//, '').split('/')[0];
     }
-    workspace.industry = category;
-    workspace.businessCategory = category;
-    if (strategyData.positioning?.coreValueProp) {
-      workspace.businessModelDescription = strategyData.positioning.coreValueProp;
-    }
-    if (businessName && (workspace.name === 'sample' || workspace.name.includes("'s Company") || workspace.name === 'My Business Workspace')) {
-      workspace.name = businessName;
+    workspace.industry = finalCategory;
+    workspace.businessCategory = finalCategory;
+    if (inputTagLine) workspace.tagLine = inputTagLine;
+    if (inputDescription) workspace.businessModelDescription = inputDescription;
+    if (inputOfferingType) workspace.offeringType = inputOfferingType;
+    workspace.onboardingCompleted = true; // Lock workspace setup
+    if (workspace.branding) {
+      workspace.branding.companyName = finalBusinessName;
     }
     await workspace.save();
 
@@ -165,12 +207,19 @@ router.get('/:workspaceId', authMiddleware, async (req, res) => {
 
     if (!strategy) {
       const workspace = await Workspace.findById(workspaceId);
-      if (workspace) {
-        const targetDomain = workspace.domain || `${workspace.slug || 'company'}.com`;
-        const extracted = ScannerService.generateResilientDomainIntelligence(`https://${targetDomain}`, targetDomain);
+      // Only synthesize if workspace actually has a genuine client-provided domain or businessUrl
+      const genuineUrl = workspace?.businessUrl || workspace?.domain;
+      if (workspace && genuineUrl) {
+        const targetDomain = genuineUrl.replace(/^https?:\/\//, '').split('/')[0].replace(/^www\./, '');
+        const targetUrl = genuineUrl.startsWith('http') ? genuineUrl : `https://${genuineUrl}`;
+        const extracted = ScannerService.generateResilientDomainIntelligence(targetUrl, targetDomain);
         const synthesized = await ScannerService.synthesizeStrategy(extracted, {
           workspaceName: workspace.name,
           industry: workspace.industry,
+          businessCategory: workspace.businessCategory,
+          businessModelDescription: workspace.businessModelDescription,
+          tagLine: workspace.tagLine,
+          offeringType: workspace.offeringType,
         });
 
         strategy = await GtmStrategy.create({
@@ -186,11 +235,12 @@ router.get('/:workspaceId', authMiddleware, async (req, res) => {
         });
 
         workspace.currentStrategyId = strategy._id;
+        workspace.onboardingCompleted = true;
         await workspace.save();
       }
     }
 
-    return res.json({ success: true, strategy });
+    return res.json({ success: true, strategy: strategy || null });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

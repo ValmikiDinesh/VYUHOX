@@ -19,6 +19,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    mobileNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    companyName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     role: {
       type: String,
       enum: ['superadmin', 'workspace_owner', 'member'],

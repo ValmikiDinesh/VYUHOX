@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   Sparkles,
   LogIn,
@@ -7,14 +6,13 @@ import {
   Lock,
   User,
   Building,
+  Phone,
   ArrowRight,
   CheckCircle,
   AlertCircle,
   ArrowLeft,
-  Briefcase,
   Shield,
   Zap,
-  Globe,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { authStorage } from '../services/authStorage';
@@ -26,16 +24,12 @@ export default function ClientAuthPage({
   onBackToLanding,
 }) {
   const [mode, setMode] = useState(initialMode); // 'signin' | 'signup'
-  const pendingCrawlUrl = typeof window !== 'undefined' ? sessionStorage.getItem('vyuhox_pending_crawl_url') || '' : '';
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
     companyName: '',
-    websiteUrl: pendingCrawlUrl,
-    industry: 'AI_AUTO_DETECT',
-    businessCategory: '',
-    businessModelDescription: '',
+    mobileNumber: '',
+    password: '',
     currency: defaultCurrency,
   });
   const [loading, setLoading] = useState(false);
@@ -48,15 +42,38 @@ export default function ClientAuthPage({
 
     try {
       if (mode === 'signup') {
+        if (!formData.name.trim()) {
+          setError('Full Name is required.');
+          setLoading(false);
+          return;
+        }
+        if (!formData.email.trim()) {
+          setError('Email ID is required.');
+          setLoading(false);
+          return;
+        }
+        if (!formData.companyName.trim()) {
+          setError('Company / Business Name is required.');
+          setLoading(false);
+          return;
+        }
+        if (!formData.mobileNumber.trim()) {
+          setError('Mobile Number is required.');
+          setLoading(false);
+          return;
+        }
+        if (!formData.password) {
+          setError('Password is required.');
+          setLoading(false);
+          return;
+        }
+
         const res = await api.register({
-          name: formData.name,
-          email: formData.email,
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          companyName: formData.companyName.trim(),
+          mobileNumber: formData.mobileNumber.trim(),
           password: formData.password,
-          companyName: formData.companyName || `${formData.name.split(' ')[0]}'s Company`,
-          websiteUrl: formData.websiteUrl,
-          industry: formData.industry,
-          businessCategory: formData.businessCategory,
-          businessModelDescription: formData.businessModelDescription,
         });
 
         if (res.success) {
@@ -72,13 +89,12 @@ export default function ClientAuthPage({
       } else {
         // Sign In
         const res = await api.login({
-          email: formData.email,
+          email: formData.email.trim(),
           password: formData.password,
         });
 
         if (res.success) {
           authStorage.setSession(res.token, res.user, res.workspace);
-          // If a client logs in, route to client dashboard with their authentic plan
           const isAiCompanyPaid = res.workspace?.operatingMode === 'AI_COMPANY' && res.workspace?.subscription?.planTier && res.workspace?.subscription?.planTier !== 'NONE';
           const persona = res.user.role === 'superadmin' ? 'superadmin' : (isAiCompanyPaid ? 'client_ai' : 'client_tool');
           if (onAuthSuccess) {
@@ -222,30 +238,9 @@ export default function ClientAuthPage({
           </h1>
           <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.5 }}>
             {mode === 'signup'
-              ? 'Deploy your autonomous AI C-Suite and scale multi-channel pipeline.'
+              ? 'Create your account to unlock your dedicated business revenue engine.'
               : 'Access your live leads, voice closer, and autonomous C-Suite dashboard.'}
           </p>
-
-          {pendingCrawlUrl && (
-            <div style={{
-              marginTop: '14px',
-              padding: '8px 14px',
-              borderRadius: '8px',
-              background: 'rgba(6, 182, 212, 0.12)',
-              border: '1px solid rgba(6, 182, 212, 0.3)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '0.78rem',
-              color: '#38BDF8',
-              textAlign: 'left',
-            }}>
-              <Sparkles size={14} color="#06B6D4" />
-              <span>
-                <strong>Website queued for crawl:</strong> {pendingCrawlUrl} — your GTM strategy, business plan &amp; ICP will synthesize immediately upon entry.
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Tab Switcher: Sign In vs Create Account */}
@@ -329,7 +324,7 @@ export default function ClientAuthPage({
           {mode === 'signup' && (
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-                Full Name
+                Full Name <span style={{ color: '#F87171' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <User size={15} color="#64748B" style={{ position: 'absolute', left: '12px', top: '12px' }} />
@@ -348,7 +343,7 @@ export default function ClientAuthPage({
 
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-              Work Email Address
+              Email ID <span style={{ color: '#F87171' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <Mail size={15} color="#64748B" style={{ position: 'absolute', left: '12px', top: '12px' }} />
@@ -364,29 +359,11 @@ export default function ClientAuthPage({
             </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-              Password
-            </label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={15} color="#64748B" style={{ position: 'absolute', left: '12px', top: '12px' }} />
-              <input
-                type="password"
-                required
-                placeholder="••••••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="input-glass"
-                style={{ width: '100%', paddingLeft: '36px', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box' }}
-              />
-            </div>
-          </div>
-
           {mode === 'signup' && (
             <>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-                  Company / Brand Name
+                  Company / Business Name <span style={{ color: '#F87171' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <Building size={15} color="#64748B" style={{ position: 'absolute', left: '12px', top: '12px' }} />
@@ -404,101 +381,41 @@ export default function ClientAuthPage({
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-                  Website or Business Profile Link (Optional)
+                  Mobile Number <span style={{ color: '#F87171' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Globe size={15} color="#06B6D4" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                  <Phone size={15} color="#64748B" style={{ position: 'absolute', left: '12px', top: '12px' }} />
                   <input
-                    type="url"
-                    placeholder="https://yourcompany.com or Google Maps / Business Link"
-                    value={formData.websiteUrl}
-                    onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+                    type="tel"
+                    required
+                    placeholder="+91 98765 43210 or +1 (555) 000-0000"
+                    value={formData.mobileNumber}
+                    onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
                     className="input-glass"
                     style={{ width: '100%', paddingLeft: '36px', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
-                <span style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '3px', display: 'block' }}>
-                  Provide your link to let AI LLM immediately crawl and discover your offerings.
-                </span>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <label style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600' }}>
-                      Industry Vertical
-                    </label>
-                    <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '700' }}>
-                      AI Handled
-                    </span>
-                  </div>
-                  <select
-                    value={formData.industry}
-                    onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                    className="input-glass"
-                    style={{ width: '100%', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box', background: '#0F172A', color: '#F8FAFC' }}
-                  >
-                    <option value="AI_AUTO_DETECT">✨ Auto-Detect by AI LLM (Recommended)</option>
-                    <option value="B2B">B2B SaaS / Services</option>
-                    <option value="Cybersecurity">Cybersecurity & PQC</option>
-                    <option value="Crypto">Crypto & Web3</option>
-                    <option value="Fintech">Fintech / Finance</option>
-                    <option value="Health">Healthcare & Bio</option>
-                    <option value="EdTech">EdTech & Education</option>
-                    <option value="D2C">E-Commerce & D2C</option>
-                    <option value="Local">Local & Professional</option>
-                    <option value="Custom">Custom / Other Industry</option>
-                  </select>
-                  <span style={{ fontSize: '0.68rem', color: '#38BDF8', marginTop: '4px', display: 'block', lineHeight: '1.3' }}>
-                    AI LLM will accurately detect and handle your category after crawling your business link.
-                  </span>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-                    Billing Currency
-                  </label>
-                  <select
-                    value={formData.currency}
-                    onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                    className="input-glass"
-                    style={{ width: '100%', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box', background: '#0F172A', color: '#F8FAFC' }}
-                  >
-                    <option value="INR">INR (₹) - India</option>
-                    <option value="USD">USD ($) - Global</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-                  Custom Business Category & Niche
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Post-Quantum Security, AI Legaltech, Clean Energy SaaS"
-                  value={formData.businessCategory}
-                  onChange={(e) => setFormData({ ...formData, businessCategory: e.target.value })}
-                  className="input-glass"
-                  style={{ width: '100%', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-                  About Your Business Model & Value Proposition (Optional)
-                </label>
-                <textarea
-                  placeholder="Tell us what you sell, who your target buyers are, and how you charge..."
-                  value={formData.businessModelDescription}
-                  onChange={(e) => setFormData({ ...formData, businessModelDescription: e.target.value })}
-                  className="input-glass"
-                  rows={2}
-                  style={{ width: '100%', fontSize: '0.85rem', boxSizing: 'border-box', resize: 'vertical', minHeight: '60px', fontFamily: 'inherit' }}
-                />
               </div>
             </>
           )}
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
+              Password <span style={{ color: '#F87171' }}>*</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Lock size={15} color="#64748B" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+              <input
+                type="password"
+                required
+                placeholder="••••••••••••"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="input-glass"
+                style={{ width: '100%', paddingLeft: '36px', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
 
           <button
             type="submit"
@@ -522,12 +439,12 @@ export default function ClientAuthPage({
               <span>Authenticating...</span>
             ) : mode === 'signup' ? (
               <>
-                <span>Launch Client Workspace</span>
+                <span>Create Account & Continue</span>
                 <ArrowRight size={16} />
               </>
             ) : (
               <>
-                <span>Sign In to Workspace</span>
+                <span>Sign In to Dashboard</span>
                 <ArrowRight size={16} />
               </>
             )}
@@ -545,16 +462,16 @@ export default function ClientAuthPage({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#64748B' }}>
             <CheckCircle size={14} color="#10B981" />
-            <span>Autonomous 6-Agent C-Suite orchestration ready on launch</span>
+            <span>One user • One dashboard • Dedicated business intelligence engine</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#64748B' }}>
             <Zap size={14} color="#06B6D4" />
-            <span>Sub-45s speed-to-lead outbound voice dialer included</span>
+            <span>Autonomous GTM strategy &amp; deep web/maps analysis</span>
           </div>
         </div>
 
         {/* Switch Mode Prompt */}
-        <div style={{ textAlign: 'center', marginTop: '18px', fontSize: '0.8rem', color: '#94A3B8' }}>
+        <div style={{ textAlign: 'center', marginTop: '18px', fontSize: '0.825rem', color: '#94A3B8' }}>
           {mode === 'signup' ? (
             <span>
               Already have an account?{' '}

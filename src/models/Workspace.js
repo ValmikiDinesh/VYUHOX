@@ -34,6 +34,25 @@ const workspaceSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    tagLine: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    offeringType: {
+      type: String,
+      enum: ['PRODUCT', 'SERVICE', 'BOTH', 'UNSPECIFIED'],
+      default: 'UNSPECIFIED',
+    },
+    businessUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    onboardingCompleted: {
+      type: Boolean,
+      default: false,
+    },
     ownerEmail: {
       type: String,
       trim: true,

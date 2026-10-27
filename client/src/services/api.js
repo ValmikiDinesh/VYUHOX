@@ -229,11 +229,14 @@ export const api = {
   },
 
   // Strategy (Phase 2)
-  scanWebsite: async (workspaceId, url) => {
+  scanWebsite: async (workspaceId, urlOrPayload) => {
+    const payload = typeof urlOrPayload === 'string'
+      ? { url: urlOrPayload, workspaceId }
+      : { ...urlOrPayload, workspaceId };
     return safeFetchJson(`${API_BASE}/strategy/scan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
-      body: JSON.stringify({ url, workspaceId }),
+      body: JSON.stringify(payload),
     });
   },
   scanWebsitePublic: async (url) => {

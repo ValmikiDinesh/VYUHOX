@@ -61,11 +61,11 @@ export default function Sidebar({
   // Filter navigation items dynamically based on user role / package
   const allNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'strategy', label: '1. Website Crawl & Strategy', icon: Globe, count: 'Step 1' },
-    { id: 'leads', label: '2. Lead Prospecting', icon: Users, count: 'Step 2' },
-    { id: 'inbox', label: '3. Omnichannel Outreach', icon: MessageSquare, count: 'Step 3' },
-    { id: 'voice', label: '4. Voice AI Closer Maya', icon: Mic, count: 'Step 4' },
-    { id: 'calendar', label: '5. Calendar & Demos', icon: Calendar, count: 'Step 5' },
+    { id: 'strategy', label: 'Strategy & Business Plan', icon: Globe, count: 'Live' },
+    { id: 'leads', label: 'Lead Prospecting', icon: Users, count: 'CRM' },
+    { id: 'inbox', label: 'Omnichannel Outreach', icon: MessageSquare, count: 'AI SDR' },
+    { id: 'voice', label: 'Voice AI Closer Maya', icon: Mic, count: 'Sub-45s' },
+    { id: 'calendar', label: 'Calendar & Demos', icon: Calendar, count: 'Meetings' },
     { id: 'social', label: 'Social Studio', icon: Video, count: 'Live' },
     { id: 'ads', label: 'Ads Manager', icon: TrendingUp, count: 'Live' },
     { id: 'integrations', label: 'Channel Integrations', icon: Link2, count: 'Multi-Tenant' },
@@ -155,10 +155,12 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Workspace Switcher Dropdown */}
+        {/* Workspace Card (Locked for Clients: 1 User = 1 Dashboard = 1 Business) */}
         <div style={{ position: 'relative', marginTop: '16px' }}>
           <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
+            onClick={() => {
+              if (isSuperadmin) setDropdownOpen(!dropdownOpen);
+            }}
             style={{
               width: '100%',
               display: 'flex',
@@ -169,7 +171,7 @@ export default function Sidebar({
               background: 'rgba(255, 255, 255, 0.04)',
               border: '1px solid rgba(255, 255, 255, 0.09)',
               color: '#F8FAFC',
-              cursor: 'pointer',
+              cursor: isSuperadmin ? 'pointer' : 'default',
               textAlign: 'left',
               transition: 'all 0.2s',
             }}
@@ -199,14 +201,20 @@ export default function Sidebar({
                   textOverflow: 'ellipsis',
                   maxWidth: '150px',
                 }}>
-                  {activeWorkspace ? activeWorkspace.name : 'Select Business'}
+                  {activeWorkspace ? activeWorkspace.name : 'Your Business'}
                 </div>
-                <div style={{ fontSize: '0.675rem', color: 'var(--text-dim)' }}>
-                  {activeWorkspace?.industry || 'B2B'} • {activeWorkspace?.domain || 'Active Workspace'}
+                <div style={{ fontSize: '0.675rem', color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px' }}>
+                  {activeWorkspace?.businessCategory || activeWorkspace?.industry || 'Active Business'}
                 </div>
               </div>
             </div>
-            <ChevronDown size={16} color="#94A3B8" />
+            {isSuperadmin ? (
+              <ChevronDown size={16} color="#94A3B8" />
+            ) : (
+              <span className="badge badge-cyan" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
+                Locked
+              </span>
+            )}
           </button>
 
           {/* Dropdown Menu */}
