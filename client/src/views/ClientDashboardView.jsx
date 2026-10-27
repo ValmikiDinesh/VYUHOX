@@ -770,15 +770,6 @@ export default function ClientDashboardView({
         </div>
       )}
 
-      {/* PHASE 5: AUTONOMOUS MORNING EXECUTIVE BRIEFING & 1-CLICK ACTION CARDS */}
-      {briefing && (
-        <ExecutiveBriefingCard
-          briefing={briefing}
-          workspaceId={activeWorkspace?._id}
-          onActionCompleted={loadBriefing}
-          onRefresh={loadBriefing}
-        />
-      )}
 
       {/* VYUHOX TRAINED BUSINESS BRAIN INTELLIGENCE & EXECUTION HUB */}
       <div style={{
