@@ -569,6 +569,15 @@ export default function App() {
       <LandingPage
         initialCurrency={currency}
         onEnterApp={handleEnterApp}
+        onNavigateAuth={(mode) => {
+          if (mode === 'signup') {
+            window.location.hash = '#signup';
+            setCurrentView('client_signup');
+          } else {
+            window.location.hash = '#login';
+            setCurrentView('client_login');
+          }
+        }}
         onSelectPlan={(plan) => {
           if (plan === 'AI_COMPANY') setOperatingMode('AI_COMPANY');
           window.location.hash = '#signup';

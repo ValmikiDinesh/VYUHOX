@@ -31,7 +31,7 @@ import {
 import { api } from '../services/api';
 import { authStorage } from '../services/authStorage';
 
-export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency = 'INR' }) {
+export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, initialCurrency = 'INR' }) {
   // Automatic Indian Locale & Currency Detection (Defaults to INR ₹ in India, USD $ optional)
   const [currency, setCurrency] = useState(() => {
     try {
@@ -329,7 +329,11 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
           {/* Sign In Button (Dedicated Client Login URL) */}
           <button
             onClick={() => {
-              window.location.hash = '#login';
+              if (onNavigateAuth) {
+                onNavigateAuth('signin');
+              } else {
+                window.location.hash = '#login';
+              }
             }}
             style={{
               padding: '8px 14px',
@@ -349,7 +353,11 @@ export default function LandingPage({ onEnterApp, onSelectPlan, initialCurrency 
           {/* Get Started Free Button (Dedicated Client Signup URL) */}
           <button
             onClick={() => {
-              window.location.hash = '#signup';
+              if (onNavigateAuth) {
+                onNavigateAuth('signup');
+              } else {
+                window.location.hash = '#signup';
+              }
             }}
             className="btn btn-primary"
             style={{
