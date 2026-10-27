@@ -772,7 +772,7 @@ export default function ClientDashboardView({
 
 
 
-      {/* 1. MISSION CONTROL INFRASTRUCTURE TELEMETRY BAR (PROVES 24/7 OPERATION) */}
+      {/* 1. GROWTH ENGINE STATUS BAR (SIMPLE & CLEAR) */}
       <div style={{
         background: 'rgba(11, 17, 32, 0.95)',
         border: '1px solid rgba(6, 182, 212, 0.3)',
@@ -789,24 +789,24 @@ export default function ClientDashboardView({
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="live-dot" style={{ background: '#10B981', boxShadow: '0 0 10px #10B981', width: '8px', height: '8px' }} />
-            <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.825rem', fontWeight: '800', color: '#F8FAFC', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              AUTONOMOUS REVENUE RAILS: ONLINE
+            <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.85rem', fontWeight: '800', color: '#F8FAFC' }}>
+              Growth Engine: Active (Working 24/7)
             </span>
           </div>
           <span style={{ color: '#475569' }}>|</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
-            <span style={{ color: '#38BDF8', fontWeight: '700' }}>Web Crawler:</span>
-            <span>DOM Synced</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#CBD5E1' }}>
+            <span style={{ color: '#38BDF8', fontWeight: '700' }}>Your Website &amp; Services:</span>
+            <span>Learned ✓</span>
           </div>
           <span style={{ color: '#475569' }}>•</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
-            <span style={{ color: '#34D399', fontWeight: '700' }}>Email &amp; Outreach:</span>
-            <span>99.2% Inbox Delivery</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#CBD5E1' }}>
+            <span style={{ color: '#34D399', fontWeight: '700' }}>Email Outreach:</span>
+            <span>Reaching Inboxes (99.2%)</span>
           </div>
           <span style={{ color: '#475569' }}>•</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
-            <span style={{ color: '#A78BFA', fontWeight: '700' }}>Maya Voice Carrier:</span>
-            <span>&lt;45s Bridge Standby</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#CBD5E1' }}>
+            <span style={{ color: '#A78BFA', fontWeight: '700' }}>AI Phone Closer:</span>
+            <span>Ready to Call Leads</span>
           </div>
         </div>
 
@@ -814,12 +814,12 @@ export default function ClientDashboardView({
           <button
             onClick={() => onNavigateTab('leads')}
             style={{
-              background: 'rgba(6, 182, 212, 0.12)',
-              border: '1px solid rgba(6, 182, 212, 0.3)',
+              background: 'rgba(6, 182, 212, 0.15)',
+              border: '1px solid rgba(6, 182, 212, 0.4)',
               color: '#38BDF8',
               borderRadius: '6px',
-              padding: '4px 12px',
-              fontSize: '0.725rem',
+              padding: '6px 14px',
+              fontSize: '0.75rem',
               fontWeight: '700',
               cursor: 'pointer',
               display: 'flex',
@@ -827,13 +827,13 @@ export default function ClientDashboardView({
               gap: '6px',
             }}
           >
-            <Zap size={12} />
-            <span>Trigger New Lead Sweep</span>
+            <Zap size={13} />
+            <span>+ Find New Leads Now</span>
           </button>
         </div>
       </div>
 
-      {/* 2. CRITICAL TRIAGE: REQUIRES ATTENTION / REVENUE AT RISK */}
+      {/* 2. ACTION CENTER: LEADS NEEDING YOUR ATTENTION */}
       <div style={{
         background: leads.length === 0 ? 'rgba(15, 23, 42, 0.65)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)',
         border: '1px solid rgba(245, 158, 11, 0.35)',
@@ -858,21 +858,21 @@ export default function ClientDashboardView({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '0.975rem', fontWeight: '800', color: '#F8FAFC' }}>
-                  Action Center: Revenue Leak Prevention &amp; Triage
+                <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: '800', color: '#F8FAFC' }}>
+                  Action Center: Leads Needing Attention
                 </h3>
                 <span className="badge badge-amber" style={{ fontSize: '0.675rem' }}>
-                  {leads.length > 0 ? `${Math.min(leads.length, 2)} Items Need Attention` : '0 Breaches'}
+                  {leads.length > 0 ? `${Math.min(leads.length, 2)} Items Pending` : 'All Caught Up ✓'}
                 </span>
               </div>
               <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#94A3B8' }}>
-                VYUHOX monitors stalled deals, uncontacted inquiries, and ghosting risks to protect your pipeline conversion.
+                VYUHOX alerts you when potential clients reply or need follow-ups so you never lose a paying customer.
               </p>
             </div>
           </div>
 
           <span style={{ fontSize: '0.725rem', color: '#10B981', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <ShieldCheck size={14} /> Zero Pipeline Decay Mode Active
+            <ShieldCheck size={14} /> Automatic Lead Protection Active
           </span>
         </div>
 
@@ -890,13 +890,13 @@ export default function ClientDashboardView({
             }}>
               <div>
                 <div style={{ fontSize: '0.7rem', color: '#FBBF24', fontWeight: '800', textTransform: 'uppercase' }}>
-                  ⚡ Warm Inbound Intent Detected
+                  ⚡ Hot Lead: Interested in Your Offer
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#F8FAFC', marginTop: '2px' }}>
-                  {leads[0]?.name || 'Executive Contact'} ({leads[0]?.company || 'Enterprise Account'})
+                  {leads[0]?.name || 'Executive Lead'} ({leads[0]?.company || 'Enterprise Company'})
                 </div>
                 <div style={{ fontSize: '0.725rem', color: '#94A3B8', marginTop: '2px' }}>
-                  Intent Score: <strong style={{ color: '#34D399' }}>{leads[0]?.score || 92}/100</strong> • Responded to strategy angle
+                  Interest Level: <strong style={{ color: '#34D399' }}>{leads[0]?.score || 92}% Very High</strong>
                 </div>
               </div>
               <button
@@ -904,7 +904,7 @@ export default function ClientDashboardView({
                 className="btn btn-primary"
                 style={{ padding: '6px 14px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
               >
-                Instant Maya Call &rarr;
+                Call with AI Now &rarr;
               </button>
             </div>
 
@@ -920,13 +920,13 @@ export default function ClientDashboardView({
             }}>
               <div>
                 <div style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '800', textTransform: 'uppercase' }}>
-                  🛡️ Follow-up Cadence Primed
+                  🛡️ Ready for Follow-up Message
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#F8FAFC', marginTop: '2px' }}>
                   {leads.length > 1 ? leads[1].company : 'Decision-Maker Accounts'}
                 </div>
                 <div style={{ fontSize: '0.725rem', color: '#94A3B8', marginTop: '2px' }}>
-                  No reply in 48h • Sarah SDR ready with re-engagement hook
+                  No reply for 2 days • AI has a personalized reminder ready
                 </div>
               </div>
               <button
@@ -934,7 +934,7 @@ export default function ClientDashboardView({
                 className="btn btn-secondary"
                 style={{ padding: '6px 14px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
               >
-                Approve Cadence
+                Send Reminder
               </button>
             </div>
           </div>
@@ -952,84 +952,84 @@ export default function ClientDashboardView({
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#CBD5E1', fontSize: '0.8rem' }}>
               <CheckCircle2 size={16} color="#10B981" />
-              <span>All systems nominal: Zero breached SLAs, zero ghosted leads. Engine ready for discovery.</span>
+              <span>Everything is running smoothly: No missed calls, no forgotten follow-ups.</span>
             </div>
             <button
               onClick={() => onNavigateTab('leads')}
               className="btn btn-primary"
               style={{ padding: '6px 14px', fontSize: '0.75rem' }}
             >
-              + Scrape Initial 25 Prospects
+              + Find 25 Potential Clients
             </button>
           </div>
         )}
       </div>
 
-      {/* 3. VITAL REVENUE TELEMETRY SENSORS (4 CORE METRICS) */}
+      {/* 3. YOUR 4 KEY BUSINESS NUMBERS */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
         gap: '16px',
         marginBottom: '28px',
       }}>
-        {/* KPI 1: Speed to Lead */}
+        {/* KPI 1: Speed to Call Back */}
         <div
           onClick={() => onNavigateTab('voice')}
           className="card"
           style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.8)', cursor: 'pointer', border: '1px solid rgba(16, 185, 129, 0.25)' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>SPEED-TO-LEAD RESPONSE</span>
+            <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>CALLBACK SPEED TO LEADS</span>
             <PhoneCall size={18} color="#10B981" />
           </div>
           <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', color: '#10B981' }}>
-            &lt; 45s
+            &lt; 45 Seconds
           </div>
           <div style={{ fontSize: '0.725rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-            <Zap size={13} /> Eliminates 80% Lead Decay
+            <Zap size={13} /> Calls prospects before they look at competitors
           </div>
         </div>
 
-        {/* KPI 2: Qualified Leads */}
+        {/* KPI 2: Potential Clients Discovered */}
         <div
           onClick={() => onNavigateTab('leads')}
           className="card"
           style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.8)', cursor: 'pointer', border: '1px solid rgba(6, 182, 212, 0.25)' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>ACTIVE ICP LEADS</span>
+            <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>POTENTIAL CLIENTS FOUND</span>
             <Users size={18} color="#06B6D4" />
           </div>
           <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', color: '#F8FAFC' }}>
-            {leads.length}
+            {leads.length} Contacts
           </div>
           <div style={{ fontSize: '0.725rem', color: leads.length > 0 ? '#38BDF8' : '#94A3B8', marginTop: '4px' }}>
-            {leads.length > 0 ? '✓ Verified in CRM Database' : 'Pending First Lead Sweep'}
+            {leads.length > 0 ? '✓ Verified emails & phone numbers' : 'Click to discover your first leads'}
           </div>
         </div>
 
-        {/* KPI 3: Meetings Booked */}
+        {/* KPI 3: Scheduled Client Meetings */}
         <div
           onClick={() => onNavigateTab('calendar')}
           className="card"
           style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.8)', cursor: 'pointer', border: '1px solid rgba(139, 92, 246, 0.25)' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>CONFIRMED DEMOS BOOKED</span>
+            <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>SCHEDULED MEETINGS</span>
             <Calendar size={18} color="#A78BFA" />
           </div>
           <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', color: '#C4B5FD' }}>
-            {stats?.meetingsBooked || 0}
+            {stats?.meetingsBooked || 0} Booked
           </div>
           <div style={{ fontSize: '0.725rem', color: '#94A3B8', marginTop: '4px' }}>
-            Google Calendar &amp; Cal.com Synced
+            Automatically added to your calendar
           </div>
         </div>
 
         {/* KPI 4: Estimated Deal Value */}
         <div className="card" style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>ACTIVE PIPELINE VOLUME</span>
+            <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>ESTIMATED DEAL PIPELINE</span>
             <DollarSign size={18} color="#F59E0B" />
           </div>
           {(() => {
@@ -1055,8 +1055,8 @@ export default function ClientDashboardView({
                 </div>
                 <div style={{ fontSize: '0.725rem', color: '#64748B', marginTop: '4px' }}>
                   {leads.length > 0
-                    ? `~${currencySymbol}${isINR ? (acvUSD * exchangeRate).toLocaleString('en-IN') : acvUSD} Target ACV/deal`
-                    : 'Calculates dynamically with leads'}
+                    ? `Potential business value from active leads`
+                    : 'Calculates as you add leads'}
                 </div>
               </>
             );
@@ -1064,7 +1064,7 @@ export default function ClientDashboardView({
         </div>
       </div>
 
-      {/* 4. PIPELINE STAGE RADAR & BOTTLENECK DETECTOR */}
+      {/* 4. HOW CLIENTS MOVE THROUGH YOUR SALES FUNNEL */}
       <div style={{
         background: 'rgba(11, 17, 32, 0.85)',
         border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -1077,15 +1077,15 @@ export default function ClientDashboardView({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <BarChart3 size={18} color="#06B6D4" />
               <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
-                Pipeline Stage Conversion &amp; Bottleneck Detector
+                Your Sales Progress &amp; Customer Journey
               </h3>
             </div>
             <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#94A3B8' }}>
-              Real-time audit across discovery, contact verification, outreach, and booked consultations.
+              See exactly how strangers turn into verified contacts, interested buyers, and booked meetings.
             </p>
           </div>
           <span style={{ fontSize: '0.725rem', color: '#38BDF8', fontWeight: '700' }}>
-            Continuous Diagnostic Active
+            Updated Live
           </span>
         </div>
 
@@ -1097,69 +1097,69 @@ export default function ClientDashboardView({
         }}>
           {/* Stage 1 */}
           <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '14px' }}>
-            <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>1. Sourced &amp; Scraped</div>
+            <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>1. Businesses Found</div>
             <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#F8FAFC', margin: '4px 0' }}>
               {leads.length > 0 ? leads.length * 3 : 0}
             </div>
             <div style={{ fontSize: '0.72rem', color: '#10B981', fontWeight: '600' }}>
-              ● 100% ICP Matched
+              ● Matches your ideal buyer profile
             </div>
           </div>
 
           {/* Stage 2 */}
           <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '14px' }}>
-            <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>2. Verified Emails &amp; Dials</div>
+            <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>2. Verified Emails &amp; Phones</div>
             <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#38BDF8', margin: '4px 0' }}>
               {leads.length > 0 ? leads.length : 0}
             </div>
             <div style={{ fontSize: '0.72rem', color: '#38BDF8', fontWeight: '600' }}>
-              ● 99.4% Deliverable
+              ● Real decision-maker contacts
             </div>
           </div>
 
           {/* Stage 3 */}
           <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '14px' }}>
-            <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>3. Outreach Dispatched</div>
+            <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>3. Messages Sent</div>
             <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#FBBF24', margin: '4px 0' }}>
               {leads.length > 0 ? Math.floor(leads.length * 0.85) : 0}
             </div>
             <div style={{ fontSize: '0.72rem', color: '#FBBF24', fontWeight: '600' }}>
-              ● Omnichannel Active
+              ● Email &amp; WhatsApp outreach active
             </div>
           </div>
 
           {/* Stage 4 */}
           <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(139, 92, 246, 0.25)', borderRadius: '10px', padding: '14px' }}>
-            <div style={{ fontSize: '0.7rem', color: '#C4B5FD', textTransform: 'uppercase', fontWeight: '700' }}>4. Qualified Consultations</div>
+            <div style={{ fontSize: '0.7rem', color: '#C4B5FD', textTransform: 'uppercase', fontWeight: '700' }}>4. Meetings Scheduled</div>
             <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#A78BFA', margin: '4px 0' }}>
               {stats?.meetingsBooked || 0}
             </div>
             <div style={{ fontSize: '0.72rem', color: '#A78BFA', fontWeight: '600' }}>
-              ● Calendar Synced
+              ● Ready for client consultation
             </div>
           </div>
         </div>
       </div>
 
-      {/* 5. TWO-COLUMN RADAR: LIVE HIGH-INTENT PROSPECTS & BLACKBOX EXECUTION AUDIT */}
+      {/* 5. TWO-COLUMN DISPLAY: RECENT INTERESTED LEADS & ACTIVITY FEED */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
         gap: '20px',
         marginBottom: '28px',
       }}>
-        {/* Column A: Recent Inbound Prospects Table */}
+        {/* Column A: Recent Interested Leads */}
         <div className="card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Target size={16} color="#06B6D4" />
                 <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
-                  Live High-Intent Radar Feed
+                  Interested Prospects Right Now
                 </h3>
               </div>
               <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#94A3B8' }}>
-                Real decision-makers currently engaging with your offerings.
+                Decision-makers who recently viewed your offer or engaged with messages.
               </p>
             </div>
 
@@ -1168,7 +1168,7 @@ export default function ClientDashboardView({
               className="btn-secondary"
               style={{ padding: '4px 10px', fontSize: '0.725rem' }}
             >
-              Open CRM &rarr;
+              View All in CRM &rarr;
             </button>
           </div>
 
@@ -1179,7 +1179,7 @@ export default function ClientDashboardView({
                   <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', textAlign: 'left', color: '#64748B' }}>
                     <th style={{ padding: '8px 10px' }}>PROSPECT</th>
                     <th style={{ padding: '8px 10px' }}>COMPANY</th>
-                    <th style={{ padding: '8px 10px' }}>INTENT</th>
+                    <th style={{ padding: '8px 10px' }}>INTEREST</th>
                     <th style={{ padding: '8px 10px', textAlign: 'right' }}>ACTION</th>
                   </tr>
                 </thead>
@@ -1204,7 +1204,7 @@ export default function ClientDashboardView({
                           fontWeight: '800',
                           fontSize: '0.7rem',
                         }}>
-                          {lead.score || 88}/100
+                          {lead.score || 88}% High
                         </span>
                       </td>
                       <td style={{ padding: '10px 10px', textAlign: 'right' }}>
@@ -1221,7 +1221,7 @@ export default function ClientDashboardView({
                             cursor: 'pointer',
                           }}
                         >
-                          Maya Call
+                          Call Now
                         </button>
                       </td>
                     </tr>
@@ -1232,22 +1232,22 @@ export default function ClientDashboardView({
           ) : (
             <div style={{ textAlign: 'center', padding: '32px 16px', color: '#94A3B8', fontSize: '0.8rem' }}>
               <Users size={28} color="#64748B" style={{ margin: '0 auto 8px' }} />
-              <div>Radar standing by. Launch lead prospecting to stream verified executives.</div>
+              <div>No leads yet. Click "Find New Leads" above to start discovering customers.</div>
             </div>
           )}
         </div>
 
-        {/* Column B: Blackbox Autonomous Execution Audit Log */}
+        {/* Column B: Real-Time System Activity Feed */}
         <div className="card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Cpu size={16} color="#34D399" />
               <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
-                Autonomous Execution Audit Log
+                Recent Automated Activity
               </h3>
             </div>
             <span style={{ fontSize: '0.675rem', color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-              Live Telemetry Stream
+              Live Updates
             </span>
           </div>
 
@@ -1256,19 +1256,28 @@ export default function ClientDashboardView({
             border: '1px solid rgba(255, 255, 255, 0.05)',
             borderRadius: '10px',
             padding: '14px',
-            fontFamily: 'monospace',
+            fontFamily: 'Inter, sans-serif',
             fontSize: '0.75rem',
-            lineHeight: '1.6',
+            lineHeight: '1.7',
             color: '#CBD5E1',
             maxHeight: '260px',
             overflowY: 'auto',
           }}>
-            <div style={{ color: '#38BDF8' }}>[TELEMETRY] Autonomous revenue engine loop initiated for workspace</div>
-            <div style={{ color: '#10B981' }}>[OK] Website crawl and offerings matrix verified (0 errors)</div>
-            <div style={{ color: '#94A3B8' }}>[INFO] Email deliverability verification check: SPF/DKIM/DMARC healthy</div>
-            <div style={{ color: '#A78BFA' }}>[VOICE] Maya Vance Voice Closer carrier bridge armed (SLA &lt;45s)</div>
-            <div style={{ color: '#FBBF24' }}>[MONITOR] Lead decay scanner active: 0 stalled opportunities detected</div>
-            <div style={{ color: '#34D399' }}>[STATUS] All 4 rails nominal: Lead Finder, Omnichannel, Maya Voice, Strategy</div>
+            <div style={{ color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>✓</span> <strong>Growth Engine:</strong> Running 24/7 for {activeStrategy?.businessName || activeWorkspace?.name || 'your business'}
+            </div>
+            <div style={{ color: '#10B981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>✓</span> <strong>Website &amp; Services:</strong> Strategy calibrated to your exact business offerings
+            </div>
+            <div style={{ color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>✓</span> <strong>Email Deliverability:</strong> Verified healthy — emails reaching primary inbox
+            </div>
+            <div style={{ color: '#A78BFA', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>✓</span> <strong>AI Phone Closer:</strong> Ready to instantly call back interested prospects within 45 seconds
+            </div>
+            <div style={{ color: '#FBBF24', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>✓</span> <strong>Lead Monitor:</strong> Checking for stale leads and automating follow-up reminders
+            </div>
           </div>
         </div>
       </div>
