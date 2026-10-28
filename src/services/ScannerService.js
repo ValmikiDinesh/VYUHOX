@@ -1028,6 +1028,11 @@ Output strictly valid JSON with this schema:
       /(watch|watches|wrist\s*watch|chronograph|horology|timepiece)/i.test(data.title || '') ||
       /(watch|watches|wrist\s*watch|chronograph|horology|timepiece)/i.test(data.metaDescription || '');
     const isCrossBorderTrade = industryProfile.category.includes('Trade') || /(import\s*export|cross-border\s*trade|customs\s*clearance|bilateral\s*trade|hs\s*code|container\s*shipment)/i.test(corpus);
+    const isEcom = /e-?commerce|retail|store|fashion|apparel|d2c|invites?|invitation|stationery|gifting|consumer|goods/i.test(industryProfile.category) ||
+      /e-?commerce|retail|store|fashion|apparel|d2c|cart|checkout/i.test(bespokeTaxonomy.category || '') ||
+      /e-?commerce|retail|store|add to cart|checkout|shopify|cart/i.test(corpus) ||
+      /d2c|ecommerce/i.test(bespokeTaxonomy.businessModel || '') ||
+      isWatchOrLuxury;
 
     if (isPqcSecurity) {
       whatTheySell = `${name} is an enterprise Post-Quantum Cryptography (PQC) Security Readiness & Vulnerability Discovery Platform. It scans developer codebases, software repositories, and cloud microservices to discover cryptographic debt, pinpoint algorithms vulnerable to Shor's quantum computing attacks (RSA, ECC, Diffie-Hellman), and automate migration to NIST-approved post-quantum encryption standards (ML-KEM, ML-DSA, SLH-DSA).`;
@@ -1084,6 +1089,8 @@ Output strictly valid JSON with this schema:
     }
     if (industryProfile.category.includes('Enterprise') || industryProfile.category.includes('Security') || industryProfile.category.includes('Infrastructure') || isPqcSecurity) {
       estimatedACV = '$25,000 – $150,000 / year (Enterprise Tier)';
+    } else if (isChitFund) {
+      estimatedACV = '₹50,000 – ₹5,00,000 Chit Scheme Value';
     } else if (isEcom) {
       estimatedACV = '$45 – $250 Average Order Value (AOV)';
     }
