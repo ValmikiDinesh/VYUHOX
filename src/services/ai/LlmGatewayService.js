@@ -122,7 +122,7 @@ export class LlmGatewayService {
             text: result.text,
             parsedJson,
             provider: providerId,
-            model: modelName,
+            model: result.modelUsed || modelName,
             latencyMs,
             totalTimeMs: Date.now() - startTime,
             tokensUsed,
@@ -142,51 +142,80 @@ export class LlmGatewayService {
   }
 
   /**
-   * Provider 1: Google Gemini API (1.5 Flash / 2.0 Flash)
+   * Provider 1: Google Gemini API (Auto-Model Failover: gemini-3.5-flash -> gemini-flash-latest -> gemini-3.8-flash)
    */
   static async callGemini({ prompt, systemInstruction, jsonResponse, modelName, apiKey, timeoutMs, temperature }) {
     const activeKey = apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!activeKey) throw new Error('No Google Gemini API key configured.');
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${activeKey}`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const activeGeminiModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+    const candidateModels = Array.from(new Set([
+      activeGeminiModel,
+      'gemini-3.5-flash',
+      'gemini-flash-latest',
+      'gemini-3.8-flash',
+    ].filter(Boolean)));
 
-    const contents = [{ role: 'user', parts: [{ text: prompt }] }];
-    const bodyPayload = {
-      contents,
-      generationConfig: {
-        temperature,
-        maxOutputTokens: 2500,
-        responseMimeType: jsonResponse ? 'application/json' : 'text/plain',
-      },
-    };
+    let lastError = null;
 
-    if (systemInstruction) {
-      bodyPayload.systemInstruction = { parts: [{ text: systemInstruction }] };
-    }
+    for (const currentModel of candidateModels) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${activeKey}`;
 
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyPayload),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs || 12000);
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Gemini HTTP ${res.status}: ${errText.substring(0, 200)}`);
+        const contents = [{ role: 'user', parts: [{ text: prompt }] }];
+        const bodyPayload = {
+          contents,
+          generationConfig: {
+            temperature: temperature ?? 0.2,
+            maxOutputTokens: 3500,
+            responseMimeType: jsonResponse ? 'application/json' : 'text/plain',
+          },
+        };
+
+        if (systemInstruction) {
+          bodyPayload.systemInstruction = { parts: [{ text: systemInstruction }] };
+        }
+
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bodyPayload),
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+
+          if (!res.ok) {
+            const errText = await res.text();
+            if (res.status === 503 && attempt === 0) {
+              await new Promise((r) => setTimeout(r, 1200));
+              continue;
+            }
+            throw new Error(`Gemini ${currentModel} HTTP ${res.status}: ${errText.substring(0, 160)}`);
+          }
+
+          const data = await res.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (text) {
+            return { text, modelUsed: currentModel };
+          }
+        } catch (err) {
+          clearTimeout(timeout);
+          lastError = err;
+          if (attempt === 0 && err.message.includes('503')) {
+            await new Promise((r) => setTimeout(r, 1200));
+            continue;
+          }
+          console.warn(`[LlmGatewayService] Gemini model "${currentModel}" failed: ${err.message}. Trying next candidate...`);
+          break;
+        }
       }
-
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      return { text };
-    } catch (err) {
-      clearTimeout(timeout);
-      throw err;
     }
+
+    throw lastError || new Error('All Gemini candidate models failed.');
   }
 
   /**
@@ -367,7 +396,7 @@ export class LlmGatewayService {
     if (active.length === 0) {
       // Default safe fallback cascade
       return [
-        { providerId: 'gemini', modelName: 'gemini-1.5-flash', priority: 1, timeoutMs: 6000 },
+        { providerId: 'gemini', modelName: process.env.GEMINI_MODEL || 'gemini-3.5-flash', priority: 1, timeoutMs: 12000 },
         { providerId: 'openai', modelName: 'gpt-4o-mini', priority: 2, timeoutMs: 6000 },
         { providerId: 'groq', modelName: 'llama-3.3-70b-versatile', priority: 3, timeoutMs: 5000 },
       ];

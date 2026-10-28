@@ -229,18 +229,16 @@ Analyze the user's spoken voice command and return a clean JSON object with:
 
     const companyName = ws?.name || strategy?.businessName || 'Your Enterprise';
     const category = strategy?.category || ws?.industry || 'Commercial Enterprise';
-    const isInvitations = /invit(e|ation)|wedding|stationery|toran/i.test(`${category} ${companyName}`);
     const offerings = strategy?.analysisResult?.coreOfferings || strategy?.analysisResult?.whatTheySell || [];
-    const targetPersonas = strategy?.analysisResult?.targetAudience?.decisionMakers || strategy?.analysisResult?.targetAudience?.primaryPersona || (isInvitations ? ['Brides & Grooms', 'Wedding Planners'] : ['Enterprise Decision Makers']);
+    const targetPersonas = strategy?.analysisResult?.targetAudience?.decisionMakers
+      || (strategy?.analysisResult?.targetAudience?.primaryPersona ? [strategy.analysisResult.targetAudience.primaryPersona] : [`Decision Makers & Buyers in ${category}`]);
 
     switch (parsed.intent) {
       case 'LEAD_DISCOVERY': {
         const location = params.location || 'Global';
         const industry = params.industry && params.industry !== 'Target ICP'
           ? params.industry
-          : isInvitations
-          ? 'Wedding Planners & Event Designers'
-          : category;
+          : (strategy?.analysisResult?.leadDiscoveryCriteria?.buyerSearchKeywords?.[0] || category);
         const count = Math.min(params.count || 25, 100);
 
         // Execute scraper
@@ -275,10 +273,10 @@ Analyze the user's spoken voice command and return a clean JSON object with:
           ? await Lead.findOne({ workspaceId: effectiveWsId }).sort({ score: -1, createdAt: -1 }).lean()
           : null;
 
-        const defaultTargetName = isInvitations ? 'WedMeGood Luxury Wedding Planning' : 'Primary Target Decision Maker';
+        const defaultTargetName = `Target Buyer (${category})`;
         const leadName = params.leadName || lead?.name || defaultTargetName;
         const leadPhone = lead?.phone || '+91 98201 44520';
-        const leadCompany = lead?.company || (isInvitations ? 'Elite Wedding Design' : companyName);
+        const leadCompany = lead?.company || (companyName ? `${companyName} Prospect` : 'Enterprise Partner');
 
         // Log call dispatch
         try {
@@ -428,11 +426,7 @@ TASK: Give a direct, punchy, spoken strategic response in 2 to 3 sentences as Sa
         }
 
         if (!speechResponse) {
-          if (isInvitations) {
-            speechResponse = `Commander, for ${companyName}, our highest-converting rail is visually captivating Meta and Instagram Reels showcasing our handcrafted foil stamping and bespoke boxed unboxings directly targeting wedding planners and affluent couples. I can mobilize Maya Vance to pitch top bridal coordinators right now.`;
-          } else {
-            speechResponse = `Understood Commander ${userName}. For ${companyName}, I have analyzed your directive regarding "${rawText}". Our ${category} strategy is calibrated around our core offerings to maximize pipeline velocity. Opening your Strategy Planner now.`;
-          }
+          speechResponse = `Understood Commander ${userName}. For ${companyName}, I have analyzed your directive regarding "${rawText}". Our ${category} strategy is calibrated around our verified value proposition and buyer personas to maximize market penetration and deal velocity. Navigating to Strategy Engine now.`;
         }
 
         return {

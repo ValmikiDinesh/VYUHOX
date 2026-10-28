@@ -1109,51 +1109,16 @@ CRITICAL RULES:
     let whatTheySell = bespokeTaxonomy.whatTheySell;
     let coreOfferings = featureSample.length >= 3 ? featureSample : bespokeTaxonomy.coreOfferings;
 
-    const isChitFund = industryProfile.category.includes('Chit Fund') || /chit\s*funds?|chit\s*scheme/i.test(corpus) || /chit\s*funds?/i.test(name);
-    const isPqcSecurity = industryProfile.category.includes('Post-Quantum') || corpus.includes('quantum') || corpus.includes('pqc') || corpus.includes('cryptograph');
-    const isWatchOrLuxury = /(watch|watches|wrist\s*watch|chronograph|automatic\s*watch|leather\s*strap|horology|timepiece|luxury\s*brand)/i.test(corpus) ||
-      /(watch|watches|wrist\s*watch|chronograph|horology|timepiece)/i.test(data.title || '') ||
-      /(watch|watches|wrist\s*watch|chronograph|horology|timepiece)/i.test(data.metaDescription || '');
-    const isCrossBorderTrade = industryProfile.category.includes('Trade') || /(import\s*export|cross-border\s*trade|customs\s*clearance|bilateral\s*trade|hs\s*code|container\s*shipment)/i.test(corpus);
-    const isEcom = /e-?commerce|retail|store|fashion|apparel|d2c|invites?|invitation|stationery|gifting|consumer|goods/i.test(industryProfile.category) ||
-      /e-?commerce|retail|store|fashion|apparel|d2c|cart|checkout/i.test(bespokeTaxonomy.category || '') ||
-      /e-?commerce|retail|store|add to cart|checkout|shopify|cart/i.test(corpus) ||
-      /d2c|ecommerce/i.test(bespokeTaxonomy.businessModel || '') ||
-      isWatchOrLuxury;
+    if (featureSample.length > 0) {
+      coreOfferings = featureSample;
+    } else if (bespokeTaxonomy.coreOfferings?.length > 0) {
+      coreOfferings = bespokeTaxonomy.coreOfferings;
+    }
 
-    if (isPqcSecurity) {
-      whatTheySell = `${name} is an enterprise Post-Quantum Cryptography (PQC) Security Readiness & Vulnerability Discovery Platform. It scans developer codebases, software repositories, and cloud microservices to discover cryptographic debt, pinpoint algorithms vulnerable to Shor's quantum computing attacks (RSA, ECC, Diffie-Hellman), and automate migration to NIST-approved post-quantum encryption standards (ML-KEM, ML-DSA, SLH-DSA).`;
-      coreOfferings = [
-        'Automated Cryptographic Bill of Materials (CBOM) & AST Codebase Inspection across Node.js, Python, Java, Go, OpenSSL & SSH configs',
-        'Shor’s Algorithm Quantum Risk Pinpointing (identifying legacy public-key encryption vulnerable to Harvest-Now-Decrypt-Later threats)',
-        'NIST FIPS 203 (ML-KEM), FIPS 204 (ML-DSA) & FIPS 205 (SLH-DSA) Algorithmic Migration Roadmaps',
-        'Automated GitHub Pull Request & CI/CD Repository Scanner (/scans/github) with blocking gates for new cryptographic vulnerabilities',
-        'ZIP Codebase Archive Upload & Instant Cryptographic Audit Reports (Exportable PDF & machine-readable JSON)',
-        'Interactive AI Cryptography Remediation Assistant for drop-in PQC hybrid cipher implementation without code exposure',
-      ];
-    } else if (isWatchOrLuxury) {
-      whatTheySell = data.metaDescription && data.metaDescription.length > 35 && /(watch|shop|luxury|strap|chronograph|men)/i.test(data.metaDescription)
-        ? `${name} is an elite luxury retail and horology e-commerce destination. ${data.metaDescription}`
-        : `${name} is a premier luxury retail and e-commerce destination curating world-class designer men's and women's watches, automatic timepieces, chronographs, and accessories from top global luxury houses.`;
-      coreOfferings = [
-        'Curated Luxury Watches: Automatic, Mechanical, Chronograph & Analog Timepieces',
-        'Top Global Luxury Designer Brands with 100% Authenticity Guarantee',
-        'Premium Straps & Materials: Genuine Italian Leather, Ceramic, Stainless Steel & Titanium',
-        'Frictionless Digital Shopping Experience with Insured Doorstep Delivery & Easy Returns',
-        'Official Manufacturer International Warranty & Dedicated VIP Horology Assistance',
-      ];
-    } else if (isCrossBorderTrade) {
-      whatTheySell = `${name} is a specialized cross-border bilateral trade and import-export platform connecting verified international buyers with overseas suppliers and manufacturers across target HS codes and logistics corridors.`;
-      coreOfferings = [
-        'Bilateral International Buyer & Seller Matching across Verified HS Codes & Product Tiers',
-        'End-to-End Customs Tariffs, Export Documentation & Regulatory Compliance Clearance',
-        'Full Container Load (FCL) & Less than Container Load (LCL) Ocean Freight Logistics (FOB/CIF)',
-        'Escrow-Protected Cross-Border Trade Finance & Irrevocable Letter of Credit (LC) Processing',
-        'Pre-Shipment Factory Quality Inspection & Third-Party Cargo Certification',
-      ];
-    } else if (featureSample.length > 0) {
-      // Blend discovered features with archetype core offerings
-      coreOfferings = [...new Set([...featureSample, ...bespokeTaxonomy.coreOfferings])].slice(0, 6);
+    if (data.metaDescription && data.metaDescription.length > 25) {
+      whatTheySell = data.metaDescription;
+    } else if (data.h1List && data.h1List[0]) {
+      whatTheySell = `${name} is an established provider specializing in ${data.h1List[0]}.`;
     }
 
     const coreValueProp = data.metaDescription && data.metaDescription.length > 40
@@ -1240,30 +1205,25 @@ CRITICAL RULES:
       };
     });
 
-    const semanticCategory = (bespokeTaxonomy.category || industryProfile.category || '').toLowerCase();
-    const isInvitationsOrWedding = /invit(e|ation)|wedding|stationery|card|print|gifting|toran/i.test(semanticCategory) ||
-      /invit(e|ation)|wedding|stationery|toran/i.test(corpus) ||
-      /invit/i.test(name);
-
-    const defaultDecisionMakers = isInvitationsOrWedding
-      ? ['Bride & Groom', 'Luxury Wedding & Event Planners', 'Family Milestone Hosts', 'Corporate HR / VIP Gifting Managers']
-      : targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0
+    const categoryName = bespokeTaxonomy.category || industryProfile.category || 'Specialized Enterprise';
+    const primaryPersona = targetAudience.primaryPersona || 'Direct Decision Makers & Buyers';
+    const decisionMakers = (targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0)
       ? targetAudience.decisionMakers
-      : ['Chief Executive Officer (CEO)', 'Managing Director', 'VP of Operations', 'Director of Procurement'];
+      : [primaryPersona];
 
     const buyerTargeting = {
-      whoWillBuy: targetAudience.primaryPersona || (isInvitationsOrWedding ? 'Couples planning weddings, affluent families, and luxury event coordinators' : 'Key organizational decision makers with active budget and pressing operational need'),
-      whoCanBuy: isInvitationsOrWedding ? 'Couples, luxury event designers, banquet managers, and wedding planning agencies' : `${bespokeTaxonomy.category || industryProfile.category} buyers & enterprise teams with verified purchasing authority and active budget`,
-      toWhomToSell: defaultDecisionMakers,
-      whoWillBeInterested: isInvitationsOrWedding ? 'Engaged couples, luxury wedding planners, papercraft enthusiasts, and corporate gala hosts' : 'Technical researchers, early adopters, compliance officers, and operational leaders',
+      whoWillBuy: primaryPersona,
+      whoCanBuy: `${categoryName} customers, buyers, and organizations with active purchasing authority and budget`,
+      toWhomToSell: decisionMakers,
+      whoWillBeInterested: `${categoryName} decision-makers, evaluators, and planning teams`,
       buyingTriggers: targetAudience.buyingTriggers && targetAudience.buyingTriggers.length > 0
         ? targetAudience.buyingTriggers
-        : (isInvitationsOrWedding ? ['Confirmed wedding date & venue booking', 'Engagement announcement & countdown', 'Upcoming luxury festive gala or anniversary'] : ['Regulatory compliance deadline', 'Legacy system performance bottleneck', 'Audit finding & compliance mandate', 'High-priority competitive upgrade']),
+        : ['Immediate need for quality solution', 'Strategic upgrade requirement', 'Urgent operational milestone'],
     };
 
-    const isSemanticD2C = isInvitationsOrWedding ||
-                          /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear|invit|stationery/i.test(semanticCategory) ||
-                          /d2c|ecommerce/i.test(bespokeTaxonomy.businessModel || '');
+    const semanticCategory = (categoryName).toLowerCase();
+    const isSemanticD2C = /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear|invit|stationery|clinic|patient/i.test(semanticCategory) ||
+                          /d2c|ecommerce|consumer/i.test(bespokeTaxonomy.businessModel || '');
     const isSemanticHybrid = /wholesale|distributor/i.test(semanticCategory) && /retail|direct|consumer/i.test(semanticCategory);
     const semanticGrowthEngine = isSemanticHybrid ? 'HYBRID' : (isSemanticD2C ? 'PAID_ADS_D2C' : 'OUTBOUND_B2B');
 
@@ -1508,7 +1468,7 @@ CRITICAL RULES:
     }
 
     if (bestCat === 'ecommerce') {
-      const isInvitationsOrStationery = /(invit(e|ation)|wedding|stationery|save\s*the\s*date|boxed\s*cards?|foil\s*print|monogram|wax\s*seal|toran)/i.test(text);
+      const isInvitationsOrStationery = /(invit(e|ation)|wedding|stationery|save\s*the\s*date|boxed\s*cards?|foil\s*print|monogram|wax\s*seal)/i.test(text);
       if (isInvitationsOrStationery) {
         return {
           category: 'Luxury Wedding Invitations, Bespoke Stationery & Event Branding',

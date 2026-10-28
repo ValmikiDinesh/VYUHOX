@@ -78,7 +78,6 @@ export default function DashboardView({
 
   const industryName = activeWorkspace?.industry || activeWorkspace?.businessCategory || 'Target Ecosystem';
   const companyName = activeWorkspace?.branding?.companyName || activeWorkspace?.name || 'Our Company';
-  const isInvites = /invit(e|ation)|wedding|stationery|toran|gifting/i.test(`${industryName} ${companyName}`);
 
   const liveFeed = (leads && leads.length > 0)
     ? leads.slice(0, 4).map((l, idx) => ({
@@ -95,9 +94,7 @@ export default function DashboardView({
           id: 1,
           type: 'voice',
           title: 'Speed-to-Lead Call Scheduled',
-          desc: isInvites
-            ? 'Autonomous voice agent ready to pitch bridal lookbook to luxury wedding planners.'
-            : `Autonomous agent connected with qualified decision makers for ${companyName}.`,
+          desc: `Autonomous voice agent ready to pitch qualified buyers and decision makers for ${companyName}.`,
           time: '2 mins ago',
           icon: PhoneCall,
           color: '#06B6D4',
@@ -105,10 +102,8 @@ export default function DashboardView({
         {
           id: 2,
           type: 'whatsapp',
-          title: 'Omnichannel Lookbook Sequence Prepared',
-          desc: isInvites
-            ? 'Interactive WhatsApp lookbook sequence calibrated for couples and wedding coordinators.'
-            : `Bespoke outreach sequence calibrated for ${industryName} decision makers.`,
+          title: 'Omnichannel Sequence Prepared',
+          desc: `Bespoke outreach sequence calibrated for verified ${industryName} prospects and partners.`,
           time: '14 mins ago',
           icon: MessageCircle,
           color: '#10B981',
@@ -117,9 +112,7 @@ export default function DashboardView({
           id: 3,
           type: 'scraper',
           title: 'Target Buyer Engine Calibrated',
-          desc: isInvites
-            ? 'Scraper pipeline hunting verified luxury wedding planners, banquet halls & event designers.'
-            : `Waterfall lead scraper targeted on verified decision makers across ${industryName}.`,
+          desc: `Waterfall lead scraper targeted on verified decision makers across ${industryName}.`,
           time: '38 mins ago',
           icon: Users,
           color: '#8B5CF6',
@@ -128,9 +121,7 @@ export default function DashboardView({
           id: 4,
           type: 'ad',
           title: 'Ad Budget Optimizer Active',
-          desc: isInvites
-            ? 'Visual Meta & Instagram Reels ad campaign calibrated for seasonal bridal traffic.'
-            : 'Paid ads 24/7 optimizer monitoring blended acquisition CAC and ROAS targets.',
+          desc: `Campaign calibrated for ${industryName} customer acquisition with active ROAS tracking.`,
           time: '1 hour ago',
           icon: TrendingUp,
           color: '#F59E0B',

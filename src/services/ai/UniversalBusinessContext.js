@@ -29,6 +29,7 @@ import { SocialPost } from '../../models/SocialPost.js';
 import { Appointment } from '../../models/Appointment.js';
 import { BusinessBrain } from '../../models/BusinessBrain.js';
 import { PlatformConfig } from '../../models/PlatformConfig.js';
+import { BusinessTaxonomyBrain } from './BusinessTaxonomyBrain.js';
 
 export class UniversalBusinessContext {
   /**
@@ -90,37 +91,20 @@ export class UniversalBusinessContext {
     }
 
     if (services.length === 0) {
-      if (/invit(e|ation)|wedding|stationery|gifting|toran/i.test(`${category} ${businessName}`)) {
-        services.push(
-          'Bespoke Boxed Wedding Invitations with Custom Wax Seals & Acrylic Inlays',
-          'Hot Foil Stamped Letterpress Cards on Premium 600 GSM Cotton Paper',
-          'Interactive Digital Video Invitations & Animated Mobile WhatsApp Monograms',
-          'Complete Event Stationery Suites: Save-The-Dates, Itineraries & Menus',
-          'Curated Luxury Gifting Favors & Personalized Milestone Gift Hampers'
-        );
-      } else if (/dental|clinic|doctor|health|medical/i.test(`${category} ${businessName}`)) {
-        services.push(
-          'Comprehensive Preventive & Restorative Care Consultations',
-          'Advanced Digital Diagnostics & Personalized Treatment Roadmaps',
-          'Painless Specialized Procedures with Certified Practitioners',
-          'Emergency Walk-in Appointments & Priority Telehealth Support',
-          'Flexible Healthcare Financing & Transparent Care Packages'
-        );
-      } else if (/store|retail|shop|fashion|apparel|jewel|watch|clothing|d2c/i.test(`${category} ${businessName}`)) {
-        services.push(
-          `Curated ${category} Direct-to-Consumer Collections`,
-          'Premium Craftsmanship with 100% Authenticity Guarantee',
-          'Frictionless Digital Checkout with Insured Doorstep Delivery',
-          'Seasonal Catalog Drops & Exclusive Member Discounts',
-          'Dedicated Customer VIP Assistance & Hassle-Free Exchange Policy'
-        );
+      const archetype = BusinessTaxonomyBrain.identifyArchetype({
+        name: businessName,
+        category,
+        description: analysis?.summary || '',
+      });
+      if (archetype?.offeringsTemplate) {
+        services.push(...archetype.offeringsTemplate(businessName));
       } else {
         services.push(
           `Verified ${category} Solutions Tailored to Client Specifications`,
-          'Direct Expert Consultation with Rapid Turnaround Timelines',
-          'End-to-End Project Execution with Transparent Pricing Schedules',
-          'Dedicated Account Support & Performance Guarantees',
-          'Scalable Workflow Architecture Engineered for Measurable Client ROI'
+          `Direct Consultation and Strategic Execution for ${businessName}`,
+          `Scalable ${category} Infrastructure Engineered for Maximum ROI`,
+          `Dedicated Account Support & Milestone Guarantees`,
+          `Transparent Performance Reporting & Operational Analytics`
         );
       }
     }

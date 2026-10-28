@@ -304,26 +304,16 @@ export default function SanjayaVoiceCommander({
   };
 
   const companyName = activeWorkspace?.branding?.companyName || activeWorkspace?.name || 'our enterprise';
-  const industryName = activeWorkspace?.industry || activeWorkspace?.businessCategory || 'our target market';
-  const isInvites = /invit(e|ation)|wedding|stationery|toran|gifting/i.test(`${industryName} ${companyName}`);
+  const industryName = activeWorkspace?.industry || activeWorkspace?.businessCategory || 'target market';
 
-  const quickCommands = isInvites
-    ? [
-        { label: '🔍 Find 15 Wedding Planners', cmd: `Find 15 verified wedding planners and luxury event designers for ${companyName}` },
-        { label: '📞 Pitch Invites with Maya', cmd: 'Mobilize Maya Vance to call top wedding planners with our luxury lookbook' },
-        { label: '🎯 Who are our buyers?', cmd: `Sanjaya, who are our most profitable buyer personas for ${companyName} and how should we reach them?` },
-        { label: '💰 Check store revenue & stats', cmd: 'Show me my revenue, conversion rates, and wallet balance' },
-        { label: '⚡ Run autonomous mode', cmd: 'Switch my workspace to Autonomous AI Company mode' },
-        { label: '📊 Executive morning briefing', cmd: 'Give me an executive CEO morning briefing of all sales activities' },
-      ]
-    : [
-        { label: `🔍 Find 10 leads for ${industryName.slice(0, 18)}`, cmd: `Find 10 high-intent leads and decision makers for ${companyName}` },
-        { label: '📞 Call leads with Maya', cmd: 'Call our newest qualified prospects right now using Maya AI' },
-        { label: '🎯 Optimize our strategy', cmd: `Sanjaya, how should we optimize our customer acquisition funnel for ${companyName}?` },
-        { label: '💰 Check revenue & stats', cmd: 'Show me my revenue, conversion rates, and wallet balance' },
-        { label: '⚡ Run autonomous mode', cmd: 'Switch my workspace to Autonomous AI Company mode' },
-        { label: '📊 Brief me like a CEO', cmd: 'Give me an executive CEO morning briefing of all sales activities' },
-      ];
+  const quickCommands = [
+    { label: `🔍 Find 10 leads for ${industryName.slice(0, 18)}`, cmd: `Find 10 high-intent leads and decision makers for ${companyName}` },
+    { label: '📞 Call leads with Maya', cmd: `Mobilize Maya Vance to call top qualified prospects for ${companyName}` },
+    { label: '🎯 Who are our buyers?', cmd: `Sanjaya, who are our most profitable buyer personas for ${companyName} and how should we reach them?` },
+    { label: '💰 Check revenue & stats', cmd: 'Show me my revenue, conversion rates, and wallet balance' },
+    { label: '⚡ Run autonomous mode', cmd: 'Switch my workspace to Autonomous AI Company mode' },
+    { label: '📊 Brief me like a CEO', cmd: 'Give me an executive CEO morning briefing of all sales activities' },
+  ];
 
   if (!isOpen) return null;
 

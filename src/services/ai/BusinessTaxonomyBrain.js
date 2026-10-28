@@ -705,7 +705,6 @@ export class BusinessTaxonomyBrain {
         'wedding stationery',
         'wax seal',
         'luxury cards',
-        'toran',
         'shagun',
         'favor boxes',
         'calligraphy',
@@ -798,7 +797,7 @@ export class BusinessTaxonomyBrain {
         displayAds: {
           angle: 'Tactile Opulence & Timeless Royal Grandeur',
           visualSpecs: 'High-definition macro photography of deep embossed gold foil on textured emerald and burgundy cotton paper with wax seal',
-          placements: ['WeddingSutra', 'WedMeGood', 'Vogue Weddings', 'Brides.com'],
+          placements: ['Luxury Wedding Portals', 'Bridal Directories', 'High-End Lifestyle Magazines'],
         },
         youtubeAds: {
           hook: '"Your wedding invitation is the very first glimpse your guests will have of your special day. Make it unforgettable."',
@@ -1464,7 +1463,7 @@ export class BusinessTaxonomyBrain {
     const text = `${corpus} ${url} ${metaDescription}`.toLowerCase();
 
     // Check specific high-signal niche keywords
-    if (/invit(e|ation)|wedding|stationery|save\s*the\s*date|boxed\s*card|foil\s*print|monogram|wax\s*seal|envelope|rsvp|toran/i.test(text)) {
+    if (/invit(e|ation)|wedding|stationery|save\s*the\s*date|boxed\s*card|foil\s*print|monogram|wax\s*seal|envelope|rsvp/i.test(text)) {
       return this.UNIVERSAL_ARCHETYPES.D2C_LUXURY_INVITATIONS_STATIONERY;
     }
     if (/post-quantum|pqc|quantum\s*shield|quantum\s*readiness|cryptograph|crqc|fips\s*(203|204|205)|nist\s*(pqc|post-quantum)|ast\s*inspection|cbom|harvest\s*now|hndl|ml-kem|ml-dsa|slh-dsa/i.test(text)) {
