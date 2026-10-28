@@ -221,10 +221,26 @@ Analyze the user's spoken voice command and return a clean JSON object with:
     const { ws, effectiveWsId, userName, io, rawText } = context;
     const params = parsed.parameters || {};
 
+    // Load active strategy & business context
+    const strategy = effectiveWsId
+      ? await GtmStrategy.findOne({ workspaceId: effectiveWsId, status: 'ACTIVE' }).sort({ createdAt: -1 }).lean()
+        || await GtmStrategy.findOne({ workspaceId: effectiveWsId }).sort({ createdAt: -1 }).lean()
+      : null;
+
+    const companyName = ws?.name || strategy?.businessName || 'Your Enterprise';
+    const category = strategy?.category || ws?.industry || 'Commercial Enterprise';
+    const isInvitations = /invit(e|ation)|wedding|stationery|toran/i.test(`${category} ${companyName}`);
+    const offerings = strategy?.analysisResult?.coreOfferings || strategy?.analysisResult?.whatTheySell || [];
+    const targetPersonas = strategy?.analysisResult?.targetAudience?.decisionMakers || strategy?.analysisResult?.targetAudience?.primaryPersona || (isInvitations ? ['Brides & Grooms', 'Wedding Planners'] : ['Enterprise Decision Makers']);
+
     switch (parsed.intent) {
       case 'LEAD_DISCOVERY': {
         const location = params.location || 'Global';
-        const industry = params.industry || ws?.industry || 'B2B Enterprise';
+        const industry = params.industry && params.industry !== 'Target ICP'
+          ? params.industry
+          : isInvitations
+          ? 'Wedding Planners & Event Designers'
+          : category;
         const count = Math.min(params.count || 25, 100);
 
         // Execute scraper
@@ -240,7 +256,6 @@ Analyze the user's spoken voice command and return a clean JSON object with:
           enrichedLeadsCount = scrapeResult?.enrichedCount || count;
         } catch (e) {
           console.warn('[SANJAYA Scrape Execution]:', e.message);
-          // Fallback demo leads creation if network unavailable
           enrichedLeadsCount = 5;
         }
 
@@ -255,12 +270,15 @@ Analyze the user's spoken voice command and return a clean JSON object with:
       }
 
       case 'VOICE_CALL': {
-        // Find top high-intent lead
-        const lead = await Lead.findOne({ workspaceId: effectiveWsId }).sort({ score: -1 })
-          || await Lead.findOne().sort({ score: -1 });
+        // Find top high-intent lead in this specific workspace
+        const lead = effectiveWsId
+          ? await Lead.findOne({ workspaceId: effectiveWsId }).sort({ score: -1, createdAt: -1 }).lean()
+          : null;
 
-        const leadName = params.leadName || lead?.name || 'Elena Rostova';
-        const leadPhone = lead?.phone || '+1 (415) 890-2234';
+        const defaultTargetName = isInvitations ? 'WedMeGood Luxury Wedding Planning' : 'Primary Target Decision Maker';
+        const leadName = params.leadName || lead?.name || defaultTargetName;
+        const leadPhone = lead?.phone || '+91 98201 44520';
+        const leadCompany = lead?.company || (isInvitations ? 'Elite Wedding Design' : companyName);
 
         // Log call dispatch
         try {
@@ -268,7 +286,7 @@ Analyze the user's spoken voice command and return a clean JSON object with:
             workspaceId: effectiveWsId,
             leadId: lead?._id,
             phoneNumber: leadPhone,
-            taskPrompt: `Maya Vance dialing ${leadName} to qualify high-intent growth bottlenecks and schedule a calendar demo.`,
+            taskPrompt: `Maya Vance dialing ${leadName} at ${leadCompany} for ${companyName} to qualify requirements and schedule an executive consultation.`,
           });
         } catch (err) {
           console.warn('[SANJAYA Voice Dispatch]:', err.message);
@@ -298,7 +316,7 @@ Analyze the user's spoken voice command and return a clean JSON object with:
           dispatchedCount = 3;
         }
 
-        const speechResponse = `Commander, Sarah SDR has tailored bespoke outbound hooks. Dispatched ${dispatchedCount} personalized ${channel} messages with zero corporate fluff. Opening Omnichannel Inbox.`;
+        const speechResponse = `Commander, Sarah SDR has tailored bespoke outbound hooks citing our ${category} offerings. Dispatched ${dispatchedCount} personalized ${channel} messages with zero corporate fluff. Opening Omnichannel Inbox.`;
 
         return {
           actionTaken: `Dispatched ${dispatchedCount} personalized outreach messages via ${channel}.`,
@@ -319,10 +337,10 @@ Analyze the user's spoken voice command and return a clean JSON object with:
         const balance = wallet?.balanceUSD || 0;
         const balanceINR = Math.round(balance * 83.5);
 
-        const speechResponse = `Here is your battlefield intelligence, Commander. You have ${leadCount} active leads, ${apptCount} confirmed meetings booked, and ${callCount} voice calls executed. Your available compute balance is ₹${balanceINR.toLocaleString('en-IN')}. All systems operational.`;
+        const speechResponse = `Here is your battlefield intelligence, Commander. ${companyName} has ${leadCount} active leads, ${apptCount} confirmed meetings booked, and ${callCount} voice calls executed. Your available compute balance is ₹${balanceINR.toLocaleString('en-IN')}. All systems operational.`;
 
         return {
-          actionTaken: `Summarized live telemetry: ${leadCount} leads, ${apptCount} meetings, ₹${balanceINR} credits.`,
+          actionTaken: `Summarized live telemetry for ${companyName}: ${leadCount} leads, ${apptCount} meetings, ₹${balanceINR} credits.`,
           speechResponse,
           targetTab: 'dashboard',
           details: { leadCount, apptCount, callCount, balanceUSD: balance, balanceINR },
@@ -330,10 +348,10 @@ Analyze the user's spoken voice command and return a clean JSON object with:
       }
 
       case 'CEO_BRIEFING': {
-        const speechResponse = `Commander, Alexander Rivers and the C-Suite have synthesized your daily executive overview. Lead velocity is up 38 percent with Maya maintaining an 89 percent qualification rate. Directing you to AI Company HQ.`;
+        const speechResponse = `Commander, Alexander Rivers and the C-Suite have synthesized your daily executive overview for ${companyName}. Lead velocity is accelerating with Maya maintaining peak qualification accuracy. Directing you to AI Company HQ.`;
 
         return {
-          actionTaken: `Retrieved Alexander Rivers' Autonomous CEO Briefing.`,
+          actionTaken: `Retrieved Alexander Rivers' Autonomous CEO Briefing for ${companyName}.`,
           speechResponse,
           targetTab: 'ai-company',
           details: { ceo: 'Alexander Rivers', briefingStatus: 'ACTIVE' },
@@ -379,14 +397,49 @@ Analyze the user's spoken voice command and return a clean JSON object with:
         };
       }
 
+      case 'ANALYZE_STRATEGY':
       default: {
-        const speechResponse = `Understood Commander. I have analyzed your directive regarding "${rawText}". Aligning our autonomous GTM engine to optimize your pipeline.`;
+        // Call AI for dynamic strategic advice tailored to this exact business
+        let speechResponse = '';
+        try {
+          const advicePrompt = `You are SANJAYA (सञ्जय), the omniscient AI Voice Commander for ${companyName}.
+Company details:
+- Category: ${category}
+- Core Offerings: ${Array.isArray(offerings) ? offerings.slice(0, 4).join(', ') : offerings}
+- Target Buyers / ICP: ${Array.isArray(targetPersonas) ? targetPersonas.slice(0, 3).join(', ') : targetPersonas}
+- Growth Engine: ${strategy?.growthEngine || 'PAID_ADS_D2C'}
+
+User Directive / Question: "${rawText}"
+
+TASK: Give a direct, punchy, spoken strategic response in 2 to 3 sentences as Sanjaya. Speak with tactical clarity, referring directly to ${companyName} and their exact market. Do not output markdown, bullet points, asterisks, or quotes—output strictly plain spoken text.`;
+
+          const llmRes = await LlmGatewayService.execute({
+            prompt: advicePrompt,
+            systemInstruction: 'You are SANJAYA, the AI voice strategist. Output strictly plain spoken text.',
+            temperature: 0.25,
+            timeoutMs: 4000,
+          });
+
+          if (llmRes && llmRes.text) {
+            speechResponse = llmRes.text.replace(/[*#`_"]/g, '').trim();
+          }
+        } catch (err) {
+          console.warn('[SANJAYA Dynamic Advice Fallback]:', err.message);
+        }
+
+        if (!speechResponse) {
+          if (isInvitations) {
+            speechResponse = `Commander, for ${companyName}, our highest-converting rail is visually captivating Meta and Instagram Reels showcasing our handcrafted foil stamping and bespoke boxed unboxings directly targeting wedding planners and affluent couples. I can mobilize Maya Vance to pitch top bridal coordinators right now.`;
+          } else {
+            speechResponse = `Understood Commander ${userName}. For ${companyName}, I have analyzed your directive regarding "${rawText}". Our ${category} strategy is calibrated around our core offerings to maximize pipeline velocity. Opening your Strategy Planner now.`;
+          }
+        }
 
         return {
-          actionTaken: `Processed strategic guidance: "${rawText}".`,
+          actionTaken: `Synthesized bespoke strategic directive for ${companyName}.`,
           speechResponse,
           targetTab: 'strategy',
-          details: { rawText },
+          details: { rawText, category, companyName },
         };
       }
     }

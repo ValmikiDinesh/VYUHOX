@@ -17,6 +17,7 @@
  *    Social Studio, Ads Manager, Calendar, Visual AI, SEO/AEO) so no feature acts in a silo.
  */
 
+import mongoose from 'mongoose';
 import { Workspace } from '../../models/Workspace.js';
 import { GtmStrategy } from '../../models/GtmStrategy.js';
 import { Lead } from '../../models/Lead.js';
@@ -36,6 +37,8 @@ export class UniversalBusinessContext {
   static async getCompleteIntelligence(workspaceId) {
     if (!workspaceId) throw new Error('workspaceId is required for UniversalBusinessContext');
 
+    const isDbConnected = mongoose.connection.readyState === 1;
+    const isValidWs = isDbConnected && mongoose.Types.ObjectId.isValid(workspaceId);
     const [
       workspace,
       strategy,
@@ -49,17 +52,19 @@ export class UniversalBusinessContext {
       appointments,
       platformConfig,
     ] = await Promise.all([
-      Workspace.findById(workspaceId).lean().catch(() => null),
-      GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).sort({ createdAt: -1 }).lean().catch(() => null)
-        || GtmStrategy.findOne({ workspaceId }).sort({ createdAt: -1 }).lean().catch(() => null),
-      BusinessBrain.findOne({ workspaceId }).lean().catch(() => null),
-      Lead.countDocuments({ workspaceId }).catch(() => 0),
-      Lead.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean().catch(() => []),
-      Conversation.find({ workspaceId }).sort({ lastMessageAt: -1 }).limit(10).lean().catch(() => []),
-      CallLog.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean().catch(() => []),
-      AdCampaign.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean().catch(() => []),
-      SocialPost.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean().catch(() => []),
-      Appointment.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean().catch(() => []),
+      isValidWs ? Workspace.findById(workspaceId).lean().catch(() => null) : null,
+      isValidWs
+        ? (GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).sort({ createdAt: -1 }).lean().catch(() => null)
+          || GtmStrategy.findOne({ workspaceId }).sort({ createdAt: -1 }).lean().catch(() => null))
+        : null,
+      isValidWs ? BusinessBrain.findOne({ workspaceId }).lean().catch(() => null) : null,
+      isValidWs ? Lead.countDocuments({ workspaceId }).catch(() => 0) : 0,
+      isValidWs ? Lead.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean().catch(() => []) : [],
+      isValidWs ? Conversation.find({ workspaceId }).sort({ lastMessageAt: -1 }).limit(10).lean().catch(() => []) : [],
+      isValidWs ? CallLog.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean().catch(() => []) : [],
+      isValidWs ? AdCampaign.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean().catch(() => []) : [],
+      isValidWs ? SocialPost.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean().catch(() => []) : [],
+      isValidWs ? Appointment.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean().catch(() => []) : [],
       PlatformConfig.findOne({ isGlobal: true }).lean().catch(() => null),
     ]);
 
@@ -85,13 +90,39 @@ export class UniversalBusinessContext {
     }
 
     if (services.length === 0) {
-      services.push(
-        'Autonomous Pipeline & Lead Acquisition Engine',
-        'Sub-800ms AI Voice Closer & Inbound Speed-to-Lead',
-        'Omnichannel WhatsApp, Telegram & Email Conversational Sequences',
-        'Autonomous Paid Ads Budget & Creative Optimizer',
-        'Full-Funnel GTM Strategy & High-Converting Web Architecture'
-      );
+      if (/invit(e|ation)|wedding|stationery|gifting|toran/i.test(`${category} ${businessName}`)) {
+        services.push(
+          'Bespoke Boxed Wedding Invitations with Custom Wax Seals & Acrylic Inlays',
+          'Hot Foil Stamped Letterpress Cards on Premium 600 GSM Cotton Paper',
+          'Interactive Digital Video Invitations & Animated Mobile WhatsApp Monograms',
+          'Complete Event Stationery Suites: Save-The-Dates, Itineraries & Menus',
+          'Curated Luxury Gifting Favors & Personalized Milestone Gift Hampers'
+        );
+      } else if (/dental|clinic|doctor|health|medical/i.test(`${category} ${businessName}`)) {
+        services.push(
+          'Comprehensive Preventive & Restorative Care Consultations',
+          'Advanced Digital Diagnostics & Personalized Treatment Roadmaps',
+          'Painless Specialized Procedures with Certified Practitioners',
+          'Emergency Walk-in Appointments & Priority Telehealth Support',
+          'Flexible Healthcare Financing & Transparent Care Packages'
+        );
+      } else if (/store|retail|shop|fashion|apparel|jewel|watch|clothing|d2c/i.test(`${category} ${businessName}`)) {
+        services.push(
+          `Curated ${category} Direct-to-Consumer Collections`,
+          'Premium Craftsmanship with 100% Authenticity Guarantee',
+          'Frictionless Digital Checkout with Insured Doorstep Delivery',
+          'Seasonal Catalog Drops & Exclusive Member Discounts',
+          'Dedicated Customer VIP Assistance & Hassle-Free Exchange Policy'
+        );
+      } else {
+        services.push(
+          `Verified ${category} Solutions Tailored to Client Specifications`,
+          'Direct Expert Consultation with Rapid Turnaround Timelines',
+          'End-to-End Project Execution with Transparent Pricing Schedules',
+          'Dedicated Account Support & Performance Guarantees',
+          'Scalable Workflow Architecture Engineered for Measurable Client ROI'
+        );
+      }
     }
 
     // 3. Brand Positioning, Value Proposition & Differentiators

@@ -676,7 +676,189 @@ export class BusinessTaxonomyBrain {
         decisionMakers: ['Household Decision-Makers & Direct In-Store Shoppers'],
         painPoints: ['Frustration waiting 4-6 days for online delivery', 'Receiving broken or counterfeit products from faceless online sellers', 'Difficult online return processes requiring courier pickup scheduling'],
         buyingTriggers: ['Immediate urgent need for product today', 'Wanting to inspect build quality in person before spending hard-earned money', 'Preferring to support trusted local community businesses'],
-        typicalACV: '$25 - $450 / purchase',
+        typicalACV: '$25 - $250 / store visit',
+      },
+      creativeAdHooks: [],
+    },
+
+    D2C_LUXURY_INVITATIONS_STATIONERY: {
+      categoryKey: 'D2C_LUXURY_INVITATIONS_STATIONERY',
+      categoryName: 'Luxury Wedding Invitations, Bespoke Stationery & Event Branding',
+      businessModel: 'D2C_LUXURY_COMMERCE_BESPOKE',
+      businessModelType: 'ONLINE',
+      growthEngine: 'PAID_ADS_D2C',
+      keywords: [
+        'invitation',
+        'invitations',
+        'invite',
+        'invites',
+        'wedding',
+        'stationery',
+        'save the date',
+        'boxed cards',
+        'foil printing',
+        'bespoke cards',
+        'event branding',
+        'monogram',
+        'digital invite',
+        'rsvp',
+        'wedding stationery',
+        'wax seal',
+        'luxury cards',
+        'toran',
+        'shagun',
+        'favor boxes',
+        'calligraphy',
+      ],
+      offeringsTemplate: (biz) => [
+        `Bespoke ${biz} Hardbound Boxed Wedding Invitations with Custom Wax Seals & Acrylic Inlays`,
+        'Intricate Gold & Rose Gold Hot Foil Stamped Invitation Cards on 600 GSM Cotton Paper',
+        'Interactive Digital Video Invitations & Animated Mobile WhatsApp Monograms',
+        'End-to-End Wedding Stationery Suite: Save-the-Date, Itinerary Booklet, Luggage Tags & Thank-You Cards',
+        'Curated Luxury Wedding Favor Boxes & Personalized Confectionery Hampers',
+        'White-Glove Design Concierge with Unlimited Revisions and Insured Doorstep Delivery',
+      ],
+      companyCreationStrategy: {
+        entityType: 'D2C Luxury Brand / Private Limited Enterprise',
+        regulatoryChecks: ['Trademark registration for brand name & logo', 'GST/Sales Tax registration for physical & digital goods', 'Packaging and postal shipping insurance compliance'],
+        seedLaunchTactics: ['Tie-ups with top 10 luxury wedding planners & boutique bridal stylists offering 15% partner commission', 'Instagram Reels campaign showcasing hypnotic close-up video of hot-foil stamping and wax sealing', 'Complimentary VIP Sample Kit sent to 50 leading event designers and celebrity wedding coordinators'],
+        techStack: 'Shopify / Custom React Storefront, Meta Pixel & CAPI, WhatsApp Business Cloud API, Shiprocket / DHL Express Integration',
+      },
+      companyManagementStrategy: {
+        dailyOperations: 'Review incoming bespoke design requests, coordinate draft proofs with brides & wedding planners via WhatsApp, oversee quality-check at print press, dispatch boxed courier tracking numbers.',
+        cashflowManagement: 'Collecting 50% advance booking deposit with balance paid prior to dispatch; maintaining 65%+ gross product margin; tracking Average Order Value (target: ₹35,000 – ₹1,50,000 / $400 – $2,000).',
+        retentionSop: 'Lifecycle follow-up with milestone stationery: Baby announcement cards, anniversary stationery, and luxury corporate festive hampers.',
+      },
+      offlineStrategy: {
+        applicable: true,
+        summary: 'Presence at premier bridal expos (Vogue Wedding Show, Wedding Asia, Dawat-e-Khaas) and partnerships with 5-star heritage wedding hotels and luxury banquet halls.',
+        tactics: ['Tactile experiential display table with velvet-lined sample boxes at premier bridal expos', 'Exclusive showcase display in bridal suites of luxury 5-star wedding destination hotels (Taj, Oberoi, Leela)'],
+      },
+      onlineStrategy: {
+        applicable: true,
+        summary: 'Visually captivating digital funnels on Instagram, Pinterest, and Meta Ads driving high-intent couples directly into WhatsApp design consultations and luxury sample kit orders.',
+        tactics: ['High-aesthetic Instagram Reels highlighting tactile luxury details (foil shimmer, wax seal crack, unboxing sound)', 'Pinterest Wedding Inspiration boards ranking for "Royal Indian Wedding Cards" and "Modern Minimalist Save the Date"', 'Click-to-WhatsApp Meta Ads connecting brides directly with our Senior Stationery Designer in <30 seconds'],
+      },
+      swot: {
+        strengths: ['Emotional high-involvement purchase where families prioritize beauty and luxury over bargain hunting', 'High Average Order Value (AOV) with substantial upfront advance payments', 'Organic viral word-of-mouth as hundreds of high-net-worth wedding guests receive and inspect the physical invite'],
+        weaknesses: ['Seasonal spikes aligned with traditional wedding muhurats / seasons requiring peak capacity management', 'Custom handcrafted artisanal production requires stringent quality control to eliminate misprints'],
+        opportunities: ['Expansion into animated digital video invitations with interactive RSVP collection', 'Corporate luxury gifting and milestone anniversary stationery for high-net-worth enterprise clients', 'International NRI wedding market in USA, UK, Canada & UAE with 3x higher willingness-to-pay'],
+        threats: ['Cheap automated generic printing portals offering low-grade paper at discount prices', 'Sudden shifts in wedding trends toward paperless digital-only invitations'],
+      },
+      businessWorkflow: {
+        creationWorkflow: [
+          'Step 1: Consultation with couple / wedding planner to discover aesthetic theme and ceremony details',
+          'Step 2: Designer crafts 2 bespoke digital concept proofs and typography layouts',
+          'Step 3: Client reviews and approves digital proof with unlimited typography refinements',
+          'Step 4: Artisan hot-foil stamping, letterpress debossing, laser cutting, and handcrafted box assembly',
+          'Step 5: White-glove quality inspection, insured packaging, and expedited worldwide delivery',
+        ],
+        managementWorkflow: {
+          daily: 'WhatsApp inquiry triage within 5 minutes, design proof approvals, print press batch queue monitoring.',
+          weekly: 'Stock replenishment for premium cotton cardstock, foil rolls, wax beads, and packaging materials.',
+          monthly: 'New seasonal design collection launch, bridal expo bookings, and revenue margin reconciliation.',
+        },
+        salesWorkflow: 'Instagram Reel / Meta Ad -> Click to WhatsApp / Sample Box Order -> 10-Minute Virtual Consultation -> Digital Proof Approval -> 50% Deposit -> Handcrafted Printing & Delivery.',
+        fulfillmentWorkflow: 'Design file finalization -> Plate making -> Press printing -> Hand-assembly -> Quality inspection seal -> Insured DHL/FedEx dispatch.',
+      },
+      businessRequiredTeam: {
+        humanRoles: [
+          { title: 'Principal Stationery Designer', focus: 'Bespoke typography, motif creation, and wedding palette curation' },
+          { title: 'Print & Production Master', focus: 'Overseeing foil stamping, paper GSM selection, and flawless assembly' },
+          { title: 'Client Concierge Lead', focus: 'Consulting with brides and wedding planners on WhatsApp for rapid signoffs' },
+        ],
+        aiAgentTeam: [
+          { agent: 'Maya Vance', role: 'Bridal Inquiry Voice Closer (calls couples within 45s of web inquiry to understand theme and schedule virtual design slot)' },
+          { agent: 'Ethan CMO', role: 'Visual Ad Architect (runs Pinterest and Instagram Reels ad funnels capturing seasonal bridal traffic)' },
+          { agent: 'Sarah SDR', role: 'Wedding Planner Liaison (dispatches luxury digital lookbooks to top event planning agencies)' },
+        ],
+      },
+      businessTargets: {
+        day30: { leads: 150, targetRevenue: '$15,000 Revenue (₹12 Lakhs)', focus: 'Secure 20 confirmed wedding invitation bookings and 50 luxury sample kit shipments' },
+        day60: { leads: 400, targetRevenue: '$35,000 Revenue (₹30 Lakhs)', focus: 'Partner with 5 top wedding planning agencies and scale Instagram Reel ad ROAS to 4.5x' },
+        day90: { leads: 900, targetRevenue: '$75,000 Revenue (₹60 Lakhs)', focus: 'Launch NRI wedding collection and achieve 100+ five-star bride testimonials' },
+        year1: { targetRevenue: '$500,000 Revenue (₹4 Crore)', focus: 'Become the undisputed #1 luxury bespoke invitation house in the regional and NRI luxury market' },
+      },
+      googleAdsCampaigns: {
+        searchAds: [
+          {
+            headlines: ['Luxury Wedding Invitations', 'Bespoke Boxed Wedding Cards', 'Royal Gold Foil Stationery'],
+            descriptions: ['Handcrafted with 600 GSM cotton paper, hot foil stamping & custom wax seals. Order luxury sample box today.', 'Personalized design concierge with unlimited revisions. Insured doorstep delivery across India and worldwide.'],
+            keywords: ['luxury wedding invitations online', 'bespoke wedding cards', 'custom boxed invitations', 'royal wedding invitation design', 'gold foil wedding stationery'],
+            negativeKeywords: ['free templates', 'cheap printable cards', 'free download'],
+          },
+        ],
+        pMax: {
+          assetGroupName: 'High-Intent Couples & Wedding Planners',
+          headlines: ['Bespoke Wedding Cards', 'Luxury Boxed Invitations', 'Unmatched Royal Elegance'],
+          longHeadline: 'Handcrafted Luxury Wedding Invitations Designed to Make an Unforgettable First Impression',
+          description: 'Experience pure opulence with bespoke typography, hot-stamped gold foil, custom monograms, and handcrafted packaging.',
+          callToAction: 'ORDER_NOW',
+        },
+        displayAds: {
+          angle: 'Tactile Opulence & Timeless Royal Grandeur',
+          visualSpecs: 'High-definition macro photography of deep embossed gold foil on textured emerald and burgundy cotton paper with wax seal',
+          placements: ['WeddingSutra', 'WedMeGood', 'Vogue Weddings', 'Brides.com'],
+        },
+        youtubeAds: {
+          hook: '"Your wedding invitation is the very first glimpse your guests will have of your special day. Make it unforgettable."',
+          scriptBreakdown: '0-5s: Close-up sound of wax seal peeling and box opening. 5-15s: Showcase gold foil shimmer and heavy cotton paper texture. 15-25s: Couple holding finished suite with smiles. 25-30s: Clear CTA to order luxury sample kit.',
+          visualDirective: 'Cinema-grade slow motion macro shots of foil pressing and unboxing sequence',
+        },
+      },
+      metaAdsCampaigns: {
+        facebookFeed: {
+          headline: 'Announce Your Wedding with Unmatched Royal Elegance',
+          primaryText: 'Your wedding is a once-in-a-lifetime milestone. Don’t settle for generic paper cards.\n\nOur bespoke invitations feature 600 GSM textured paper, handcrafted gold foil stamping, custom family monograms, and velvet-lined luxury gift boxes.\n\nOrder our curated Luxury Sample Kit today or tap below to consult directly with our Lead Stationery Designer on WhatsApp.',
+          visualDirective: 'Gorgeous flatlay of full wedding stationery suite with floral accents, rings, and calligraphy envelopes',
+          cta: 'MESSAGE_PAGE',
+        },
+        instagramReels: {
+          hook: 'The satisfying moment when the gold foil presses onto 600 GSM handmade paper...',
+          script: 'Every wedding invitation we craft is an artisanal masterpiece. From custom wax seals with your initials to velvet hardbound boxes that your guests will keep forever. Tap the link in bio to order your bespoke sample suite.',
+          audioVibe: 'Crisp ASMR printing audio transitioning into romantic cinematic strings',
+          visualDirective: 'Mesmerizing ASMR close-up of hot-foil stamping machine in action followed by box unboxing',
+          cta: 'LEARN_MORE',
+        },
+        carouselAds: [
+          { card: 1, title: 'Hardbound Boxed Suites', copy: 'Royal velvet-lined presentation boxes with custom brass locks' },
+          { card: 2, title: 'Hot Foil & Letterpress', copy: 'Deep impression gold, copper & rose gold foil on heavy cotton paper' },
+          { card: 3, title: 'Interactive Video Invites', copy: 'Stunning animated monograms & digital itineraries for WhatsApp' },
+          { card: 4, title: 'Bespoke Wax Seals', copy: 'Hand-poured wax with personalized couple monograms & botanical dried florals' },
+        ],
+        storiesAds: {
+          hook: 'Planning your 2026-2027 wedding?',
+          benefitPoints: ['100% bespoke handcrafted designs', 'Unlimited revisions with dedicated designer', 'Worldwide insured express delivery'],
+          ctaText: 'Swipe Up to Chat with Designer on WhatsApp',
+        },
+      },
+      seoStrategy: {
+        technicalChecklist: ['Product JSON-LD Schema with high-resolution imagery', 'Fast mobile loading for image-heavy lookbooks (<1.8s)', 'Clear WhatsApp click-to-chat floating widget on all gallery pages'],
+        primaryKeywords: ['luxury wedding invitations', 'bespoke wedding cards online', 'hardbound boxed wedding invitations', 'gold foil wedding stationery', 'digital video wedding invite creator'],
+        contentPillars: ['The Ultimate Guide to Wedding Invitation Wording & Etiquette', 'Boxed vs Traditional Wedding Invitations: Complete Comparison', 'Trending Wedding Color Palettes and Stationery Designs for 2026'],
+        localMapPack: { applicable: true, notes: 'Maintain verified showroom/design studio Google Business Profile for physical couple design consultations.' },
+      },
+      aeoStrategy: {
+        aiEngineOptimization: 'Ensure brand is cited on ChatGPT, Perplexity, and Apple Intelligence as a premier luxury wedding stationery designer.',
+        schemaType: 'LocalBusiness',
+        qaAuthorityPairs: [
+          { question: 'How long does it take to design and print bespoke wedding invitations?', answer: 'Our custom design process typically takes 5-7 business days for concept proofing, followed by 10-14 days for artisanal printing, foil stamping, and handcrafted box assembly.' },
+          { question: 'Do you ship luxury wedding invitations internationally?', answer: 'Yes, we provide fully insured international express doorstep delivery across the USA, UK, Canada, UAE, Australia, and worldwide with full real-time tracking.' },
+          { question: 'Can we order a physical sample kit before placing our full order?', answer: 'Yes, we offer curated VIP Sample Kits containing our popular paper stocks, foil finishes, wax seals, and boxed presentation options delivered directly to your home.' },
+        ],
+      },
+      socialPostingPerPlatform: {
+        linkedIn: 'Post 1x/month: Corporate milestone gala invitation suites and luxury packaging craftsmanship.',
+        instagram: 'Post 5x/week: ASMR foil printing Reels, real couple unboxing reactions, color palette moodboards, and customer reviews.',
+        facebook: 'Post 3x/week: Full album galleries of completed wedding suites, customer testimonials, and bridal expo announcements.',
+        twitter: 'Post 2x/week: Quick wedding planning tips, etiquette advice, and behind-the-scenes studio snapshots.',
+      },
+      targetAudience: {
+        primaryPersona: 'Brides, Grooms, Affluent Families & Luxury Event Planners',
+        decisionMakers: ['Bride & Groom', 'Family Milestone Decision Makers', 'Luxury Wedding & Event Planners', 'Corporate HR / VIP Gifting Managers'],
+        painPoints: ['Generic, cheap invitation templates that fail to convey the prestige of the event', 'Delayed printing and poor paper stock quality ruining wedding countdown timelines', 'Friction managing RSVP responses and coordinating guest stationery across multiple ceremonies'],
+        buyingTriggers: ['Fixing wedding date / venue booking confirmation', 'Family engagement announcement', 'High-profile corporate anniversary or annual gala celebration'],
+        typicalACV: '$350 - $3,500 / order (₹25,000 – ₹2,50,000)',
       },
       creativeAdHooks: [],
     },
@@ -1272,10 +1454,19 @@ export class BusinessTaxonomyBrain {
   /**
    * Intelligently classifies any website or business into its exact archetype
    */
-  static identifyArchetype(corpus = '', url = '', metaDescription = '') {
+  static identifyArchetype(corpusOrOptions = '', url = '', metaDescription = '') {
+    let corpus = corpusOrOptions;
+    if (typeof corpusOrOptions === 'object' && corpusOrOptions !== null) {
+      corpus = corpusOrOptions.corpus || '';
+      url = corpusOrOptions.url || url || '';
+      metaDescription = corpusOrOptions.metaDescription || metaDescription || '';
+    }
     const text = `${corpus} ${url} ${metaDescription}`.toLowerCase();
 
     // Check specific high-signal niche keywords
+    if (/invit(e|ation)|wedding|stationery|save\s*the\s*date|boxed\s*card|foil\s*print|monogram|wax\s*seal|envelope|rsvp|toran/i.test(text)) {
+      return this.UNIVERSAL_ARCHETYPES.D2C_LUXURY_INVITATIONS_STATIONERY;
+    }
     if (/post-quantum|pqc|quantum\s*shield|quantum\s*readiness|cryptograph|crqc|fips\s*(203|204|205)|nist\s*(pqc|post-quantum)|ast\s*inspection|cbom|harvest\s*now|hndl|ml-kem|ml-dsa|slh-dsa/i.test(text)) {
       return this.UNIVERSAL_ARCHETYPES.CYBERSECURITY_PQC;
     }

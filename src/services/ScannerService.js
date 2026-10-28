@@ -742,8 +742,8 @@ export class ScannerService {
       const clientTagline = workspaceContext.tagLine || '';
       const clientOfferingType = workspaceContext.offeringType || 'UNSPECIFIED';
 
-      const gtmPrompt = `You are an elite Autonomous Chief Revenue Officer and GTM Strategist.
-Analyze the following crawled business/website data and client-submitted details to generate an authentic, 100% bespoke Go-To-Market strategy.
+      const gtmPrompt = `You are a world-class Chief Strategy Officer and Growth Agency Partner (combining McKinsey, Ogilvy, and Y Combinator).
+Analyze the following crawled business website data and client inputs to synthesize an authentic, 100% bespoke, production-ready Go-To-Market blueprint.
 
 CLIENT BUSINESS INPUTS:
 - Business Name: ${clientBizName}
@@ -752,7 +752,7 @@ CLIENT BUSINESS INPUTS:
 - Business Tagline: ${clientTagline || 'N/A'}
 - Business Model & Description: ${clientDesc || 'Deduce from website'}
 
-CRAWLED WEBSITE / PROFILE DATA:
+CRAWLED WEBSITE DATA:
 - Target URL: ${extractedData.url}
 - Title: ${extractedData.title}
 - Meta Description: ${extractedData.metaDescription}
@@ -762,34 +762,117 @@ CRAWLED WEBSITE / PROFILE DATA:
 - Detected Pricing: ${(extractedData.detectedPricing || []).join(', ')}
 
 TASK:
-Accurately identify this company's exact industry and formulate their genuine GTM strategy aligned with whether it is a ${clientOfferingType !== 'UNSPECIFIED' ? clientOfferingType : 'Product or Service'}. Use the client's submitted name, category, and description as primary source of truth. DO NOT use generic placeholders or irrelevant tech jargon.
-Output strictly valid JSON with this schema:
+Accurately identify this company's exact industry and formulate their genuine GTM strategy aligned with whether it is a ${clientOfferingType !== 'UNSPECIFIED' ? clientOfferingType : 'Product or Service'}.
+CRITICAL RULES:
+1. NEVER output generic enterprise software / SaaS templates unless the site is genuinely B2B software.
+2. For luxury products (wedding invites, stationery, watches, apparel, retail, jewelry, clinics), use D2C/retail funnels, actual consumer/event decision makers (e.g. Brides & Grooms, Event Planners), and appropriate ACV/AOV.
+3. Every single section must be 100% tailored to THIS specific business.
+4. Output strictly valid JSON matching this schema:
+
 {
   "businessName": "${clientBizName}",
-  "category": "Exact industry vertical / business category (e.g., Financial Services & Chit Funds, D2C Consumer Brand, Local Healthcare, B2B SaaS, etc.)",
+  "category": "Exact industry vertical / business category",
+  "businessModel": "Exact business model (e.g. D2C_LUXURY_COMMERCE, LOCAL_HEALTHCARE, B2B_SAAS, COMMERCIAL_SERVICES)",
+  "growthEngine": "'PAID_ADS_D2C' | 'OUTBOUND_B2B' | 'LOCAL_SEO_MAPS' | 'HYBRID'",
   "summary": "2-sentence executive summary of what this specific company actually does and sells",
-  "whatTheySell": "Clear explanation of their products or services",
-  "coreOfferings": ["3 to 6 actual offerings or capabilities discovered"],
+  "whatTheySell": "Comprehensive 3-sentence breakdown of their exact physical products, bespoke services, or software features",
+  "coreOfferings": ["5 to 7 authentic offerings or products discovered from their website"],
   "positioning": {
     "coreValueProp": "Their genuine value proposition for their customers",
-    "unfairAdvantage": "Their unique advantage or competitive moat",
-    "keyDifferentiators": ["3 differentiators"]
+    "unfairAdvantage": "Their unique moat or craftsmanship advantage",
+    "keyDifferentiators": ["3 specific differentiators"]
   },
   "targetAudience": {
-    "primaryPersona": "Exact target buyer / customer persona",
-    "decisionMakers": ["Key decision makers / buyers"],
-    "painPoints": ["3 to 4 genuine customer pain points"],
-    "buyingTriggers": ["Key buying triggers"],
-    "estimatedACV": "Estimated transaction value / scheme size"
+    "primaryPersona": "Exact target buyer persona",
+    "decisionMakers": ["3 to 4 specific decision maker titles/roles who actually buy this"],
+    "painPoints": ["3 to 4 genuine customer pain points this business solves"],
+    "buyingTriggers": ["3 to 4 key buying triggers"],
+    "estimatedACV": "Typical transaction value or order range"
   },
-  "growthEngine": "Optimal acquisition rail: 'OUTBOUND_B2B' (for high-ticket services, B2B software, agencies, consulting), 'PAID_ADS_D2C' (for e-commerce, consumer brands, retail products), or 'HYBRID' (for businesses with both wholesale and direct retail)"
+  "swotAnalysis": {
+    "strengths": ["4 authentic strengths based on this specific business"],
+    "weaknesses": ["4 honest operational or scale challenges"],
+    "opportunities": ["4 genuine market growth opportunities"],
+    "threats": ["4 external market risks"]
+  },
+  "googleAdsCampaigns": {
+    "searchAds": [
+      {
+        "headlines": ["3 compelling 30-char headlines for Google Search"],
+        "descriptions": ["2 90-char descriptions"],
+        "keywords": ["5 high-intent keywords"],
+        "negativeKeywords": ["3 negative keywords"]
+      }
+    ],
+    "pMax": {
+      "assetGroupName": "High-Intent Audience",
+      "headlines": ["3 headlines"],
+      "longHeadline": "1 long headline",
+      "description": "1 compelling description",
+      "callToAction": "ORDER_NOW"
+    },
+    "displayAds": {
+      "angle": "High-performing visual hook",
+      "visualSpecs": "Visual specifications",
+      "placements": ["3 niche websites/blogs where buyers hang out"]
+    },
+    "youtubeAds": {
+      "hook": "Attention-grabbing 5-second video hook",
+      "scriptBreakdown": "Step-by-step 30s video outline"
+    }
+  },
+  "metaAdsCampaigns": {
+    "facebookFeed": {
+      "headline": "Scroll-stopping headline",
+      "primaryText": "Engaging direct-response copy",
+      "visualDirective": "Visual concept description",
+      "cta": "LEARN_MORE"
+    },
+    "instagramReels": {
+      "hook": "First 3-second hook for Reel/TikTok",
+      "script": "Voiceover script for 15-30s video",
+      "audioVibe": "Audio tone/style",
+      "visualDirective": "Visual scenes description",
+      "cta": "ORDER_NOW"
+    },
+    "carouselAds": [
+      { "card": 1, "title": "Card 1 title", "copy": "Card 1 copy" },
+      { "card": 2, "title": "Card 2 title", "copy": "Card 2 copy" },
+      { "card": 3, "title": "Card 3 title", "copy": "Card 3 copy" },
+      { "card": 4, "title": "Card 4 title", "copy": "Card 4 copy" }
+    ],
+    "storiesAds": {
+      "hook": "Vertical story hook",
+      "benefitPoints": ["3 quick bullet points"],
+      "ctaText": "Swipe Up CTA"
+    }
+  },
+  "seoStrategy": {
+    "technicalChecklist": ["4 technical SEO items"],
+    "primaryKeywords": ["6 to 8 exact primary keywords"],
+    "contentPillars": ["3 to 4 content pillars"],
+    "schemaType": "Recommended JSON-LD schema (e.g. LocalBusiness, Product, Organization)"
+  },
+  "aeoStrategy": {
+    "aiEngineOptimization": "Directive on how ChatGPT, Perplexity and Google Gemini should cite and recommend this brand",
+    "qaAuthorityPairs": [
+      { "question": "Customer question 1", "answer": "Authoritative brand answer 1" },
+      { "question": "Customer question 2", "answer": "Authoritative brand answer 2" }
+    ]
+  },
+  "leadDiscoveryCriteria": {
+    "buyerSearchKeywords": ["5 exact search queries to discover real prospective buyers in any city"],
+    "buyerPersonas": ["4 exact job titles or roles who buy this"],
+    "targetCompanyTypes": ["3 types of businesses, agencies, or individuals who purchase this"]
+  }
 }`;
 
       const llmResult = await LlmGatewayService.execute({
         prompt: gtmPrompt,
-        systemInstruction: 'You are an elite Autonomous Chief Revenue Officer. Output strictly valid JSON.',
+        systemInstruction: 'You are an elite Autonomous Chief Revenue Officer and Agency Partner. Output strictly valid JSON.',
         jsonResponse: true,
         temperature: 0.2,
+        timeoutMs: 12000,
       });
 
       if (llmResult?.parsedJson && llmResult.parsedJson.category) {
@@ -800,29 +883,7 @@ Output strictly valid JSON with this schema:
       console.warn('[ScannerService] LLM Gateway strategy synthesis fallback:', llmErr.message);
     }
 
-    // 1. Try OpenAI if configured
-    const openAiKey = process.env.OPENAI_API_KEY;
-    if (openAiKey && openAiKey.startsWith('sk-') && !openAiKey.includes('demo')) {
-      try {
-        console.log('[ScannerService] Calling OpenAI GPT-4o-mini for GTM synthesis...');
-        return await this.callOpenAI(extractedData, workspaceContext, openAiKey);
-      } catch (err) {
-        console.warn('[ScannerService] OpenAI synthesis failed, trying Gemini or semantic engine:', err.message);
-      }
-    }
-
-    // 2. Try Google Gemini if configured
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (geminiKey && !geminiKey.includes('demo')) {
-      try {
-        console.log('[ScannerService] Calling Gemini API for GTM synthesis...');
-        return await this.callGemini(extractedData, workspaceContext, geminiKey);
-      } catch (err) {
-        console.warn('[ScannerService] Gemini synthesis failed, using deep semantic engine:', err.message);
-      }
-    }
-
-    // 3. High-Accuracy Deep Semantic Analytical Engine
+    // High-Accuracy Deep Semantic Analytical Engine fallback
     return this.generateDeepSemanticStrategy(extractedData, workspaceContext);
   }
 
@@ -849,11 +910,11 @@ Output strictly valid JSON with this schema:
 
     const targetAudience = {
       primaryPersona: llmResult.targetAudience?.primaryPersona || 'Direct Decision Makers & Buyers',
-      decisionMakers: llmResult.targetAudience?.decisionMakers || ['Founder', 'Managing Director', 'Operations Head'],
+      decisionMakers: llmResult.targetAudience?.decisionMakers || ['Owner', 'Decision Maker'],
       painPoints: llmResult.targetAudience?.painPoints || ['Operational friction', 'High acquisition cost'],
-      buyingTriggers: llmResult.targetAudience?.buyingTriggers || ['Seasonal demand surge', 'Immediate efficiency requirement'],
+      buyingTriggers: llmResult.targetAudience?.buyingTriggers || ['Seasonal demand surge', 'Immediate requirement'],
       estimatedACV: llmResult.targetAudience?.estimatedACV || 'Tailored to customer scale',
-      pricingSummary: (extractedData.detectedPricing || [])[0] || 'Direct Quote / Flexible Schedule',
+      pricingSummary: (extractedData.detectedPricing || [])[0] || llmResult.targetAudience?.estimatedACV || 'Direct Quote / Flexible Schedule',
     };
 
     const industryProfile = {
@@ -888,7 +949,7 @@ Output strictly valid JSON with this schema:
 
     const bespokeTaxonomy = BusinessTaxonomyBrain.generateBespokeIntelligence(extractedData);
 
-    const identifiedServices = (coreOfferings || []).map((item, idx) => {
+    const identifiedServices = (coreOfferings || []).map((item) => {
       const isObj = typeof item === 'object' && item !== null;
       const nameStr = isObj ? item.name || 'Core Solution' : item;
       return {
@@ -900,26 +961,52 @@ Output strictly valid JSON with this schema:
     });
 
     const buyerTargeting = {
-      whoWillBuy: targetAudience.primaryPersona || 'Key organizational decision makers with active budget and pressing operational need',
-      whoCanBuy: `${category} buyers & enterprise teams with verified purchasing authority and active budget`,
+      whoWillBuy: targetAudience.primaryPersona || 'Target buyers with active budget and pressing need',
+      whoCanBuy: `${category} clients with verified purchasing authority and active budget`,
       toWhomToSell: targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0
         ? targetAudience.decisionMakers
-        : ['Chief Executive Officer (CEO)', 'Chief Information Security Officer (CISO)', 'VP of Engineering', 'Director of Procurement'],
-      whoWillBeInterested: 'Technical researchers, early adopters, compliance officers, and operational leaders',
+        : [targetAudience.primaryPersona || 'Direct Buyer'],
+      whoWillBeInterested: `${category} buyers, enthusiasts, and planning teams`,
       buyingTriggers: targetAudience.buyingTriggers && targetAudience.buyingTriggers.length > 0
         ? targetAudience.buyingTriggers
-        : ['Regulatory compliance deadline', 'Legacy system performance bottleneck', 'Audit finding & compliance mandate', 'High-priority competitive upgrade'],
+        : ['Immediate need', 'Quality upgrade', 'Special milestone requirement'],
     };
 
     const categoryLower = (category || '').toLowerCase();
-    const isD2C = /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear/i.test(categoryLower) ||
+    const isD2C = /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear|invit|wedding|stationery/i.test(categoryLower) ||
                   /d2c|ecommerce/i.test(bespokeTaxonomy.businessModel || '');
     const isWholesaleAndRetail = /wholesale|distributor/i.test(categoryLower) && /retail|direct|consumer/i.test(categoryLower);
     
     let growthEngine = llmResult.growthEngine;
-    if (!growthEngine || !['OUTBOUND_B2B', 'PAID_ADS_D2C', 'HYBRID'].includes(growthEngine)) {
+    if (!growthEngine || !['OUTBOUND_B2B', 'PAID_ADS_D2C', 'HYBRID', 'LOCAL_SEO_MAPS'].includes(growthEngine)) {
       growthEngine = isWholesaleAndRetail ? 'HYBRID' : (isD2C ? 'PAID_ADS_D2C' : 'OUTBOUND_B2B');
     }
+
+    const swotAnalysis = (llmResult.swotAnalysis && llmResult.swotAnalysis.strengths?.length > 0)
+      ? llmResult.swotAnalysis
+      : bespokeTaxonomy.swotAnalysis;
+
+    const googleAdsCampaigns = (llmResult.googleAdsCampaigns && llmResult.googleAdsCampaigns.searchAds?.length > 0)
+      ? llmResult.googleAdsCampaigns
+      : bespokeTaxonomy.googleAdsCampaigns;
+
+    const metaAdsCampaigns = (llmResult.metaAdsCampaigns && llmResult.metaAdsCampaigns.facebookFeed)
+      ? llmResult.metaAdsCampaigns
+      : bespokeTaxonomy.metaAdsCampaigns;
+
+    const seoStrategy = (llmResult.seoStrategy && llmResult.seoStrategy.primaryKeywords?.length > 0)
+      ? llmResult.seoStrategy
+      : bespokeTaxonomy.seoStrategy;
+
+    const aeoStrategy = (llmResult.aeoStrategy && llmResult.aeoStrategy.qaAuthorityPairs?.length > 0)
+      ? llmResult.aeoStrategy
+      : bespokeTaxonomy.aeoStrategy;
+
+    const leadDiscoveryCriteria = llmResult.leadDiscoveryCriteria || {
+      buyerSearchKeywords: (targetAudience.decisionMakers || []).map((d) => `${d} in [Location]`),
+      buyerPersonas: targetAudience.decisionMakers || ['Key Decision Maker'],
+      targetCompanyTypes: [category],
+    };
 
     return {
       businessName: name,
@@ -927,7 +1014,7 @@ Output strictly valid JSON with this schema:
       category,
       growthEngine,
       categoryKey: bespokeTaxonomy.categoryKey,
-      businessModel: bespokeTaxonomy.businessModel,
+      businessModel: llmResult.businessModel || bespokeTaxonomy.businessModel,
       businessModelType: bespokeTaxonomy.businessModelType || 'ONLINE',
       summary,
       whatTheySell,
@@ -936,7 +1023,8 @@ Output strictly valid JSON with this schema:
       buyerTargeting,
       positioning,
       targetAudience,
-      swotAnalysis: bespokeTaxonomy.swotAnalysis,
+      swotAnalysis,
+      leadDiscoveryCriteria,
       companyCreationStrategy: bespokeTaxonomy.companyCreationStrategy,
       companyManagementStrategy: bespokeTaxonomy.companyManagementStrategy,
       offlineStrategy: bespokeTaxonomy.offlineStrategy,
@@ -944,16 +1032,15 @@ Output strictly valid JSON with this schema:
       businessWorkflow: bespokeTaxonomy.businessWorkflow,
       businessRequiredTeam: bespokeTaxonomy.businessRequiredTeam,
       businessTargets: bespokeTaxonomy.businessTargets,
-      googleAdsCampaigns: bespokeTaxonomy.googleAdsCampaigns,
-      metaAdsCampaigns: bespokeTaxonomy.metaAdsCampaigns,
-      seoStrategy: bespokeTaxonomy.seoStrategy,
-      aeoStrategy: bespokeTaxonomy.aeoStrategy,
+      googleAdsCampaigns,
+      metaAdsCampaigns,
+      seoStrategy,
+      aeoStrategy,
       socialPostingPerPlatform: bespokeTaxonomy.socialPostingPerPlatform,
       creativeAdStrategies: bespokeTaxonomy.creativeAdStrategies || [],
       recommendedChannels,
       adAngles,
       recommendedAITeam,
-      stepByStepRoadmap,
       businessPlanDocument,
       rawExtractedData: {
         featuresCount: coreOfferings.length,
@@ -1097,12 +1184,12 @@ Output strictly valid JSON with this schema:
 
     // 4. Bespoke ICP Matrix
     const targetAudience = {
-      primaryPersona: industryProfile.primaryPersona,
-      painPoints: industryProfile.painPoints,
-      decisionMakers: industryProfile.decisionMakers,
-      buyingTriggers: industryProfile.buyingTriggers,
+      primaryPersona: bespokeTaxonomy.targetAudience?.primaryPersona || industryProfile.primaryPersona,
+      painPoints: bespokeTaxonomy.targetAudience?.painPoints || industryProfile.painPoints,
+      decisionMakers: bespokeTaxonomy.targetAudience?.decisionMakers || industryProfile.decisionMakers,
+      buyingTriggers: bespokeTaxonomy.targetAudience?.buyingTriggers || industryProfile.buyingTriggers,
       estimatedBudgetTier: industryProfile.estimatedBudgetTier,
-      estimatedACV,
+      estimatedACV: bespokeTaxonomy.targetAudience?.typicalACV || estimatedACV,
       pricingSummary,
     };
 
@@ -1153,20 +1240,29 @@ Output strictly valid JSON with this schema:
       };
     });
 
+    const semanticCategory = (bespokeTaxonomy.category || industryProfile.category || '').toLowerCase();
+    const isInvitationsOrWedding = /invit(e|ation)|wedding|stationery|card|print|gifting|toran/i.test(semanticCategory) ||
+      /invit(e|ation)|wedding|stationery|toran/i.test(corpus) ||
+      /invit/i.test(name);
+
+    const defaultDecisionMakers = isInvitationsOrWedding
+      ? ['Bride & Groom', 'Luxury Wedding & Event Planners', 'Family Milestone Hosts', 'Corporate HR / VIP Gifting Managers']
+      : targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0
+      ? targetAudience.decisionMakers
+      : ['Chief Executive Officer (CEO)', 'Managing Director', 'VP of Operations', 'Director of Procurement'];
+
     const buyerTargeting = {
-      whoWillBuy: targetAudience.primaryPersona || 'Key organizational decision makers with active budget and pressing operational need',
-      whoCanBuy: `${bespokeTaxonomy.category || industryProfile.category} buyers & enterprise teams with verified purchasing authority and active budget`,
-      toWhomToSell: targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0
-        ? targetAudience.decisionMakers
-        : ['Chief Executive Officer (CEO)', 'Chief Information Security Officer (CISO)', 'VP of Engineering', 'Director of Procurement'],
-      whoWillBeInterested: 'Technical researchers, early adopters, compliance officers, and operational leaders',
+      whoWillBuy: targetAudience.primaryPersona || (isInvitationsOrWedding ? 'Couples planning weddings, affluent families, and luxury event coordinators' : 'Key organizational decision makers with active budget and pressing operational need'),
+      whoCanBuy: isInvitationsOrWedding ? 'Couples, luxury event designers, banquet managers, and wedding planning agencies' : `${bespokeTaxonomy.category || industryProfile.category} buyers & enterprise teams with verified purchasing authority and active budget`,
+      toWhomToSell: defaultDecisionMakers,
+      whoWillBeInterested: isInvitationsOrWedding ? 'Engaged couples, luxury wedding planners, papercraft enthusiasts, and corporate gala hosts' : 'Technical researchers, early adopters, compliance officers, and operational leaders',
       buyingTriggers: targetAudience.buyingTriggers && targetAudience.buyingTriggers.length > 0
         ? targetAudience.buyingTriggers
-        : ['Regulatory compliance deadline', 'Legacy system performance bottleneck', 'Audit finding & compliance mandate', 'High-priority competitive upgrade'],
+        : (isInvitationsOrWedding ? ['Confirmed wedding date & venue booking', 'Engagement announcement & countdown', 'Upcoming luxury festive gala or anniversary'] : ['Regulatory compliance deadline', 'Legacy system performance bottleneck', 'Audit finding & compliance mandate', 'High-priority competitive upgrade']),
     };
 
-    const semanticCategory = (bespokeTaxonomy.category || industryProfile.category || '').toLowerCase();
-    const isSemanticD2C = /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear/i.test(semanticCategory) ||
+    const isSemanticD2C = isInvitationsOrWedding ||
+                          /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear|invit|stationery/i.test(semanticCategory) ||
                           /d2c|ecommerce/i.test(bespokeTaxonomy.businessModel || '');
     const isSemanticHybrid = /wholesale|distributor/i.test(semanticCategory) && /retail|direct|consumer/i.test(semanticCategory);
     const semanticGrowthEngine = isSemanticHybrid ? 'HYBRID' : (isSemanticD2C ? 'PAID_ADS_D2C' : 'OUTBOUND_B2B');
@@ -1412,6 +1508,26 @@ Output strictly valid JSON with this schema:
     }
 
     if (bestCat === 'ecommerce') {
+      const isInvitationsOrStationery = /(invit(e|ation)|wedding|stationery|save\s*the\s*date|boxed\s*cards?|foil\s*print|monogram|wax\s*seal|toran)/i.test(text);
+      if (isInvitationsOrStationery) {
+        return {
+          category: 'Luxury Wedding Invitations, Bespoke Stationery & Event Branding',
+          primaryPersona: 'Brides, Grooms, Affluent Families & Luxury Event Planners',
+          decisionMakers: ['Bride & Groom', 'Family Milestone Decision Makers', 'Luxury Wedding & Event Planners', 'Corporate HR / VIP Gifting Managers'],
+          painPoints: [
+            'Generic, cheap invitation templates that fail to convey the prestige of the event',
+            'Delayed printing and poor paper stock quality ruining wedding countdown timelines',
+            'Friction managing RSVP responses and coordinating guest stationery across multiple ceremonies',
+          ],
+          buyingTriggers: [
+            'Confirmed wedding date & venue booking',
+            'Family engagement announcement',
+            'High-profile corporate anniversary or annual gala celebration',
+          ],
+          estimatedBudgetTier: '₹25,000 – ₹2,50,000 / event ($350 – $3,500 AOV)',
+        };
+      }
+
       const isWatchesOrLuxury = /(watch|watches|wrist\s*watch|chronograph|horology|timepiece|luxury\s*brand|leather\s*strap)/i.test(text);
       return {
         category: isWatchesOrLuxury ? 'D2C Luxury E-Commerce & Designer Timepieces' : 'D2C E-Commerce & Retail Brands',

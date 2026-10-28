@@ -54,6 +54,7 @@ export default function SanjayaVoiceCommander({
     },
   ]);
   const [voiceMuted, setVoiceMuted] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioWaves, setAudioWaves] = useState([20, 45, 80, 60, 30, 90, 40, 75]);
   const [speechSupported, setSpeechSupported] = useState(true);
 
@@ -151,9 +152,13 @@ export default function SanjayaVoiceCommander({
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.rate = 1.05;
       utterance.pitch = 1.0;
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
       window.speechSynthesis.speak(utterance);
     } catch (err) {
       console.warn('[SpeechSynthesis Error]:', err);
+      setIsSpeaking(false);
     }
   };
 
@@ -298,14 +303,27 @@ export default function SanjayaVoiceCommander({
     }
   };
 
-  const quickCommands = [
-    { label: '🔍 Find 10 fresh leads', cmd: 'Find 10 high-intent leads for cybersecurity and post-quantum defense' },
-    { label: '📞 Call leads with Maya', cmd: 'Call my newest qualified leads right now using Maya AI' },
-    { label: '💰 Check revenue & stats', cmd: 'Show me my revenue, conversion rates, and wallet balance' },
-    { label: '⚡ Run full autonomous mode', cmd: 'Switch my workspace to Autonomous AI Company mode' },
-    { label: '📊 Brief me like a CEO', cmd: 'Give me an executive CEO morning briefing of all sales activities' },
-    { label: '✉️ Dispatch outreach emails', cmd: 'Draft and dispatch AI outreach messages to all new prospects' },
-  ];
+  const companyName = activeWorkspace?.branding?.companyName || activeWorkspace?.name || 'our enterprise';
+  const industryName = activeWorkspace?.industry || activeWorkspace?.businessCategory || 'our target market';
+  const isInvites = /invit(e|ation)|wedding|stationery|toran|gifting/i.test(`${industryName} ${companyName}`);
+
+  const quickCommands = isInvites
+    ? [
+        { label: '🔍 Find 15 Wedding Planners', cmd: `Find 15 verified wedding planners and luxury event designers for ${companyName}` },
+        { label: '📞 Pitch Invites with Maya', cmd: 'Mobilize Maya Vance to call top wedding planners with our luxury lookbook' },
+        { label: '🎯 Who are our buyers?', cmd: `Sanjaya, who are our most profitable buyer personas for ${companyName} and how should we reach them?` },
+        { label: '💰 Check store revenue & stats', cmd: 'Show me my revenue, conversion rates, and wallet balance' },
+        { label: '⚡ Run autonomous mode', cmd: 'Switch my workspace to Autonomous AI Company mode' },
+        { label: '📊 Executive morning briefing', cmd: 'Give me an executive CEO morning briefing of all sales activities' },
+      ]
+    : [
+        { label: `🔍 Find 10 leads for ${industryName.slice(0, 18)}`, cmd: `Find 10 high-intent leads and decision makers for ${companyName}` },
+        { label: '📞 Call leads with Maya', cmd: 'Call our newest qualified prospects right now using Maya AI' },
+        { label: '🎯 Optimize our strategy', cmd: `Sanjaya, how should we optimize our customer acquisition funnel for ${companyName}?` },
+        { label: '💰 Check revenue & stats', cmd: 'Show me my revenue, conversion rates, and wallet balance' },
+        { label: '⚡ Run autonomous mode', cmd: 'Switch my workspace to Autonomous AI Company mode' },
+        { label: '📊 Brief me like a CEO', cmd: 'Give me an executive CEO morning briefing of all sales activities' },
+      ];
 
   if (!isOpen) return null;
 
@@ -482,6 +500,92 @@ export default function SanjayaVoiceCommander({
             gap: '16px',
           }}
         >
+          {/* Active Maya Speaking Live Animation */}
+          {isSpeaking && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 18px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.18) 0%, rgba(16, 185, 129, 0.12) 100%)',
+                border: '1px solid rgba(6, 182, 212, 0.45)',
+                boxShadow: '0 0 25px rgba(6, 182, 212, 0.3)',
+                marginBottom: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 15px rgba(6, 182, 212, 0.8)',
+                  }}
+                >
+                  <Bot size={20} color="#04101A" />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      right: '-2px',
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      background: '#10B981',
+                      border: '2px solid #060a17',
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#F8FAFC' }}>
+                      Maya Vance • Speaking Live
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.65rem',
+                        fontWeight: '700',
+                        color: '#10B981',
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                      }}
+                    >
+                      Active Voice
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#38BDF8', marginTop: '2px' }}>
+                    Sub-800ms Voice Synthesis • Addressing Directive
+                  </div>
+                </div>
+              </div>
+
+              {/* Reactive Soundwave Animation */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                {[14, 28, 20, 36, 24, 16, 32, 18].map((h, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: '3px',
+                      height: `${h}px`,
+                      borderRadius: '3px',
+                      background: i % 2 === 0 ? '#06B6D4' : '#10B981',
+                      transition: 'height 0.15s ease',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {responseLog.map((item) => (
             <div
               key={item.id}

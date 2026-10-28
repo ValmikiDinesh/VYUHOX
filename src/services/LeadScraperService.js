@@ -1,5 +1,6 @@
 import dns from 'dns';
 import * as cheerio from 'cheerio';
+import mongoose from 'mongoose';
 import { Lead } from '../models/Lead.js';
 import { GtmStrategy } from '../models/GtmStrategy.js';
 import { Workspace } from '../models/Workspace.js';
@@ -98,7 +99,7 @@ export class LeadScraperService {
         if (aRecords && aRecords.length > 0) {
           return { hasMx: true, mxHost: `mail.${domain}`, status: 'VERIFIED' };
         }
-      } catch (inner) {}
+      } catch (inner) { }
       return { hasMx: false, mxHost: '', status: 'RISKY' };
     }
   }
@@ -352,6 +353,28 @@ Return a strict JSON object:
     const url = (strategy?.targetUrl || workspace?.domain || '').toLowerCase();
     const rawTokens = `${businessName} ${category} ${modelDesc} ${url} ${customKeywords}`.toLowerCase();
 
+    // 0. DYNAMIC AI DISCOVERY: Use the active GTM Strategy's AI-generated criteria if available
+    const aiCriteria = strategy?.analysisResult?.leadDiscoveryCriteria;
+    const aiBuyerTargeting = strategy?.analysisResult?.buyerTargeting;
+    const aiPersonas = (aiCriteria?.buyerPersonas && aiCriteria.buyerPersonas.length > 0)
+      ? aiCriteria.buyerPersonas
+      : (aiBuyerTargeting?.toWhomToSell && aiBuyerTargeting.toWhomToSell.length > 0 ? aiBuyerTargeting.toWhomToSell : null);
+    const aiKeywords = (aiCriteria?.buyerSearchKeywords && aiCriteria.buyerSearchKeywords.length > 0)
+      ? aiCriteria.buyerSearchKeywords
+      : null;
+
+    if (targetRole === 'BUYER' && aiKeywords && aiPersonas) {
+      return {
+        serviceType: strategy?.category || category || 'Bespoke Offerings',
+        valueOffering: strategy?.analysisResult?.positioning?.coreValueProp || strategy?.analysisResult?.whatTheySell || `${businessName} offerings`,
+        buyerDescription: strategy?.analysisResult?.targetAudience?.primaryPersona || `Target buyers and decision-makers for ${businessName}`,
+        buyerPersonas: aiPersonas,
+        buyerSearchKeywords: aiKeywords,
+        painPoint: (strategy?.analysisResult?.targetAudience?.painPoints || [])[0] || `Sourcing reliable and verified solutions for ${businessName}`,
+        sampleLocalBuyerPool: { INDIA: [], US_GLOBAL: [] },
+      };
+    }
+
     // Specific Seller / Manufacturer Targeting Mode
     if (targetRole === 'SELLER') {
       const kw = customKeywords || (rawTokens.includes('quantum') || rawTokens.includes('security') ? 'Cybersecurity Software' : 'Wholesale Manufacturing');
@@ -538,7 +561,59 @@ Return a strict JSON object:
       };
     }
 
-    // 2. Sunglasses / Eyewear / Apparel / Fashion Products
+    // 2. Luxury Wedding Invitations, Stationery, Gifting & Event Branding
+    if (
+      rawTokens.includes('invit') ||
+      rawTokens.includes('wedding') ||
+      rawTokens.includes('stationery') ||
+      rawTokens.includes('toran') ||
+      rawTokens.includes('card') ||
+      rawTokens.includes('foil') ||
+      rawTokens.includes('gifting')
+    ) {
+      return {
+        serviceType: 'Luxury Wedding Invitations & Event Stationery',
+        valueOffering: 'bespoke handcrafted wedding invitation suites, hot-stamped gold foil cards, and luxury boxed gifting presentation',
+        buyerDescription: 'Elite Wedding Planners, Luxury Event Designers, 5-Star Banquet Directors, and High-Net-Worth Milestone Event Coordinators',
+        buyerPersonas: [
+          'Lead Wedding Designer & Event Director',
+          'Luxury Wedding & Celebration Planner',
+          'Director of Banquets & Private Celebrations',
+          'Head of Corporate Gifting & VIP Relations',
+          'Bespoke Bridal Stylist & Concierge',
+        ],
+        buyerSearchKeywords: [
+          'wedding planning agencies',
+          'luxury event designers',
+          'destination wedding planners',
+          'five star banquet directors',
+          'corporate gifting firms',
+        ],
+        painPoint: 'Generic, low-quality invitation templates that fail to convey the prestige of high-ticket weddings and milestone celebrations',
+        sampleLocalBuyerPool: {
+          INDIA: [
+            { name: 'WedMeGood Luxury Wedding Curators', domain: 'wedmegood.com' },
+            { name: 'The Wedding Design Company', domain: 'wdcindia.com' },
+            { name: 'Shaadi Squad Celebrity Wedding Planners', domain: 'shaadisquad.com' },
+            { name: 'Seven Steps Luxury Weddings', domain: 'sevensteps.co.in' },
+            { name: 'Fête Events Luxury Wedding Designers', domain: 'feteevents.in' },
+            { name: 'Taj Palace Celebrations & Banquets', domain: 'tajhotels.com' },
+            { name: 'Oberoi Luxury Events & Suites', domain: 'oberoihotels.com' },
+            { name: 'Godrej Luxury Living Corporate Gifting', domain: 'godrej.com' },
+            { name: 'Reliance Brands VIP Milestone Events', domain: 'reliancebrands.com' },
+          ],
+          US_GLOBAL: [
+            { name: 'Mindy Weiss Party Consultants', domain: 'mindyweiss.com' },
+            { name: 'Colin Cowie Lifestyle Events', domain: 'colincowie.com' },
+            { name: 'David Tutera Celebrations & Weddings', domain: 'davidtutera.com' },
+            { name: 'The Knot Luxury Event Specialists', domain: 'theknot.com' },
+            { name: 'Brides & Grooms Guild VIP Gifting', domain: 'brides.com' },
+          ],
+        },
+      };
+    }
+
+    // 3. Sunglasses / Eyewear / Apparel / Fashion Products
     // Service: Sells sunglasses / lifestyle apparel (B2B wholesale, D2C retail)
     // BUYERS: Optical Retailers, Eyewear Boutiques, Fashion Department Stores, Lifestyle Distributors
     if (
@@ -693,7 +768,7 @@ Return a strict JSON object:
               const parsed = new URL(rawHref, 'https://duckduckgo.com');
               url = decodeURIComponent(parsed.searchParams.get('uddg') || rawHref);
             }
-          } catch (e) {}
+          } catch (e) { }
 
           const domain = url.replace(/https?:\/\//i, '').split('/')[0].replace(/^www\./i, '');
           if (domain && !domain.includes('duckduckgo.com')) {
@@ -800,7 +875,7 @@ Return a strict JSON object:
                 source: 'Professional Network',
               };
             }
-          } catch (e) {}
+          } catch (e) { }
           return { name: u.login, company: `${u.login} Technologies`, bio: '', source: 'Professional Network' };
         })
       );
@@ -908,7 +983,7 @@ Return a strict JSON object:
           live: true,
         };
       }
-    } catch (e) {}
+    } catch (e) { }
     return { domain, title: domain, metaDesc: '', emails: [], phones: [], live: true };
   }
 
@@ -923,6 +998,10 @@ Return a strict JSON object:
   static async executeWaterfallScrape({
     jobId,
     workspaceId,
+    domain,
+    industry,
+    businessName: explicitBizName,
+    icpTarget,
     location = 'United States',
     locations = [],
     limit = 10,
@@ -956,24 +1035,37 @@ Return a strict JSON object:
 
     try {
       // 1. Fetch Active Business Strategy & Workspace Context
+      const isDbConnected = mongoose.connection.readyState === 1;
+      const isValidWs = isDbConnected && workspaceId && mongoose.Types.ObjectId.isValid(workspaceId);
       const [strategy, workspace] = await Promise.all([
-        GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).sort({ createdAt: -1 }),
-        Workspace.findById(workspaceId),
+        isValidWs ? GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).sort({ createdAt: -1 }) : null,
+        isValidWs ? Workspace.findById(workspaceId) : null,
       ]);
 
-      const businessName = strategy?.businessName || workspace?.name || 'Enterprise Client';
+      const businessName = explicitBizName || strategy?.businessName || workspace?.name || domain || 'Enterprise Client';
 
       // 2. CRITICAL: Resolve Buyer/Seller Matrix based on targetRole & customKeywords
-      const buyerMatrix = this.resolveTargetBuyerMatrix(strategy, workspace, targetRole, customKeywords);
+      const enrichedStrategy = {
+        ...strategy,
+        businessName,
+        category: industry || strategy?.category,
+        targetUrl: domain || strategy?.targetUrl,
+      };
+      const buyerMatrix = this.resolveTargetBuyerMatrix(
+        enrichedStrategy,
+        workspace,
+        targetRole,
+        customKeywords || icpTarget || ''
+      );
 
       // Parse multi-locations
       const targetLocationList = (Array.isArray(locations) && locations.length > 0)
         ? locations.map((s) => String(s).trim()).filter(Boolean)
         : (typeof location === 'string' && location.includes(';'))
-        ? location.split(';').map((s) => s.trim()).filter(Boolean)
-        : (typeof location === 'string' && location.includes('|'))
-        ? location.split('|').map((s) => s.trim()).filter(Boolean)
-        : [String(location || 'United States').trim()];
+          ? location.split(';').map((s) => s.trim()).filter(Boolean)
+          : (typeof location === 'string' && location.includes('|'))
+            ? location.split('|').map((s) => s.trim()).filter(Boolean)
+            : [String(location || 'United States').trim()];
 
       const locationSummary = targetLocationList.join(', ');
 
@@ -991,10 +1083,12 @@ Return a strict JSON object:
       const secondaryBuyerKeyword = buyerMatrix.buyerSearchKeywords[1] || 'Technology Platforms';
 
       // Pre-load all existing leads in this workspace to ensure 100% fresh, unseen leads on repeat scrapes
-      const existingLeads = await Lead.find(
-        { workspaceId },
-        { website: 1, email: 1, phone: 1, company: 1 }
-      ).lean();
+      const existingLeads = (isDbConnected && isValidWs)
+        ? await Lead.find(
+          { workspaceId },
+          { website: 1, email: 1, phone: 1, company: 1 }
+        ).lean()
+        : [];
 
       const existingDomains = new Set();
       const existingCompanies = new Set();
@@ -1131,13 +1225,14 @@ Return a strict JSON object:
             const isIndiaTarget = this.detectRegion(curLocation, '', workspace) === 'INDIA';
             const poolRegion = isIndiaTarget ? 'INDIA' : 'US_GLOBAL';
             const buyerPool = buyerMatrix.sampleLocalBuyerPool[poolRegion] || buyerMatrix.sampleLocalBuyerPool.US_GLOBAL;
+            const wsSeed = workspaceId ? workspaceId.toString().split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) : Math.floor(Math.random() * 100);
 
-            const idx = (locIdx + cycle) % buyerPool.length;
+            const idx = (locIdx + cycle + (wsSeed % buyerPool.length)) % buyerPool.length;
             const item = buyerPool[idx];
             const firstNames = isIndiaTarget ? EXECUTIVE_FIRST_NAMES_INDIA : EXECUTIVE_FIRST_NAMES_GLOBAL;
             const lastNames = isIndiaTarget ? EXECUTIVE_LAST_NAMES_INDIA : EXECUTIVE_LAST_NAMES_GLOBAL;
-            const firstName = firstNames[(idx * 7 + 3 + cycle * 3) % firstNames.length];
-            const lastName = lastNames[(idx * 5 + 4 + cycle * 7) % lastNames.length];
+            const firstName = firstNames[(idx * 7 + 3 + cycle * 3 + (wsSeed % firstNames.length)) % firstNames.length];
+            const lastName = lastNames[(idx * 5 + 4 + cycle * 7 + (wsSeed % lastNames.length)) % lastNames.length];
             const suffix = cycle > 0 ? ` Unit ${cycle + 1}` : '';
             const domainKey = cycle > 0 ? `${item.domain.split('.')[0]}-${locIdx}-${cycle}.${item.domain.split('.').slice(1).join('.')}` : (candidateMap.has(item.domain) ? `${item.domain.split('.')[0]}-${locIdx}.${item.domain.split('.').slice(1).join('.')}` : item.domain);
 
@@ -1246,11 +1341,11 @@ Return a strict JSON object:
           }),
           p.phone
             ? this.auditAndVerifyPhoneWithAi({
-                phone: p.phone,
-                company: p.company,
-                location: p.location,
-                domain: p.domain,
-              })
+              phone: p.phone,
+              company: p.company,
+              location: p.location,
+              domain: p.domain,
+            })
             : Promise.resolve({ phoneStatus: 'NO_PHONE' }),
         ]);
 
@@ -1312,11 +1407,14 @@ Return a strict JSON object:
           ? { workspaceId, email: leadObj.email }
           : { workspaceId, phone: leadObj.phone, company: leadObj.company };
 
-        const savedLead = await Lead.findOneAndUpdate(
-          upsertQuery,
-          leadObj,
-          { upsert: true, new: true }
-        );
+        let savedLead = leadObj;
+        if (isDbConnected && isValidWs) {
+          savedLead = await Lead.findOneAndUpdate(
+            upsertQuery,
+            leadObj,
+            { upsert: true, new: true }
+          );
+        }
 
         enrichedList.push(savedLead);
 
@@ -1335,7 +1433,7 @@ Return a strict JSON object:
       // 6. Plan-Aware Lead Quota & Accurate Per-Lead Wallet Deduction
       const verifiedCount = enrichedList.length;
 
-      const ws = await Workspace.findById(workspaceId);
+      const ws = isValidWs ? await Workspace.findById(workspaceId) : null;
       const planTier = ws?.subscription?.planTier || (ws?.operatingMode === 'AI_COMPANY' ? 'AI_COMPANY_SCALE' : 'TOOL_MODE');
 
       let defaultQuota = 250;
@@ -1353,7 +1451,7 @@ Return a strict JSON object:
       const totalDeductionUSD = +(billableLeadsCount * ratePerLeadUSD).toFixed(2);
 
       let updatedWalletBalance = 0;
-      let wallet = await Wallet.findOne({ workspaceId });
+      let wallet = (isDbConnected && isValidWs) ? await Wallet.findOne({ workspaceId }) : null;
       if (wallet && totalDeductionUSD > 0) {
         wallet.balanceUSD = +(Math.max(0, wallet.balanceUSD - totalDeductionUSD)).toFixed(2);
         const transaction = {
@@ -1375,12 +1473,14 @@ Return a strict JSON object:
         updatedWalletBalance = wallet.balanceUSD;
       }
 
-      await Workspace.findByIdAndUpdate(workspaceId, {
-        $inc: {
-          'leadUsage.scrapedThisMonth': verifiedCount,
-          scrapedLeadsCount: verifiedCount,
-        },
-      });
+      if (isDbConnected && isValidWs) {
+        await Workspace.findByIdAndUpdate(workspaceId, {
+          $inc: {
+            'leadUsage.scrapedThisMonth': verifiedCount,
+            scrapedLeadsCount: verifiedCount,
+          },
+        });
+      }
 
       // 7. Step 4: Final Ingestion & Completion
       job.status = 'COMPLETED';

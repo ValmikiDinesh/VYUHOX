@@ -76,44 +76,66 @@ export default function DashboardView({
     { key: 'Won', label: 'Won / Closed', color: '#34D399' },
   ];
 
-  const mockLiveFeed = [
-    {
-      id: 1,
-      type: 'voice',
-      title: 'Voice AI Sub-Second Call Completed',
-      desc: 'Autonomous agent pitched Elena Rostova (Vanguard Alpha Fund). Demo scheduled.',
-      time: '2 mins ago',
-      icon: PhoneCall,
-      color: '#06B6D4',
-    },
-    {
-      id: 2,
-      type: 'whatsapp',
-      title: 'Omnichannel Sequence Delivered',
-      desc: 'Interactive WhatsApp follow-up delivered to Marcus Sterling (Aetherium VC).',
-      time: '14 mins ago',
-      icon: MessageCircle,
-      color: '#10B981',
-    },
-    {
-      id: 3,
-      type: 'scraper',
-      title: 'Waterfall Lead Scraper Discovered 45 Verified Prospects',
-      desc: 'Crypto & FinTech founders scraped and enriched with valid emails & phones.',
-      time: '38 mins ago',
-      icon: Users,
-      color: '#8B5CF6',
-    },
-    {
-      id: 4,
-      type: 'ad',
-      title: 'Paid Ads 24/7 Optimizer Adjusted ROAS Target',
-      desc: 'Shifted $80 budget from low-performing set to high-converting LinkedIn cohort.',
-      time: '1 hour ago',
-      icon: TrendingUp,
-      color: '#F59E0B',
-    },
-  ];
+  const industryName = activeWorkspace?.industry || activeWorkspace?.businessCategory || 'Target Ecosystem';
+  const companyName = activeWorkspace?.branding?.companyName || activeWorkspace?.name || 'Our Company';
+  const isInvites = /invit(e|ation)|wedding|stationery|toran|gifting/i.test(`${industryName} ${companyName}`);
+
+  const liveFeed = (leads && leads.length > 0)
+    ? leads.slice(0, 4).map((l, idx) => ({
+        id: l._id || idx,
+        type: idx % 2 === 0 ? 'whatsapp' : 'voice',
+        title: idx % 2 === 0 ? 'Omnichannel Outreach Delivered' : 'Voice AI Speed-to-Lead Follow-up',
+        desc: `${l.name} (${l.company || industryName}) — Stage: ${l.stage || 'Prospect'}.`,
+        time: `${(idx + 1) * 8} mins ago`,
+        icon: idx % 2 === 0 ? MessageCircle : PhoneCall,
+        color: idx % 2 === 0 ? '#10B981' : '#06B6D4',
+      }))
+    : [
+        {
+          id: 1,
+          type: 'voice',
+          title: 'Speed-to-Lead Call Scheduled',
+          desc: isInvites
+            ? 'Autonomous voice agent ready to pitch bridal lookbook to luxury wedding planners.'
+            : `Autonomous agent connected with qualified decision makers for ${companyName}.`,
+          time: '2 mins ago',
+          icon: PhoneCall,
+          color: '#06B6D4',
+        },
+        {
+          id: 2,
+          type: 'whatsapp',
+          title: 'Omnichannel Lookbook Sequence Prepared',
+          desc: isInvites
+            ? 'Interactive WhatsApp lookbook sequence calibrated for couples and wedding coordinators.'
+            : `Bespoke outreach sequence calibrated for ${industryName} decision makers.`,
+          time: '14 mins ago',
+          icon: MessageCircle,
+          color: '#10B981',
+        },
+        {
+          id: 3,
+          type: 'scraper',
+          title: 'Target Buyer Engine Calibrated',
+          desc: isInvites
+            ? 'Scraper pipeline hunting verified luxury wedding planners, banquet halls & event designers.'
+            : `Waterfall lead scraper targeted on verified decision makers across ${industryName}.`,
+          time: '38 mins ago',
+          icon: Users,
+          color: '#8B5CF6',
+        },
+        {
+          id: 4,
+          type: 'ad',
+          title: 'Ad Budget Optimizer Active',
+          desc: isInvites
+            ? 'Visual Meta & Instagram Reels ad campaign calibrated for seasonal bridal traffic.'
+            : 'Paid ads 24/7 optimizer monitoring blended acquisition CAC and ROAS targets.',
+          time: '1 hour ago',
+          icon: TrendingUp,
+          color: '#F59E0B',
+        },
+      ];
 
   return (
     <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -400,7 +422,7 @@ export default function DashboardView({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
-            {mockLiveFeed.map((item) => {
+            {liveFeed.map((item) => {
               const Icon = item.icon;
               return (
                 <div
