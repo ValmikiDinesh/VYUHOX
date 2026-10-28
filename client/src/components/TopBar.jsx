@@ -16,6 +16,7 @@ import {
   Shield,
   Layers,
   ExternalLink,
+  Mic,
 } from 'lucide-react';
 
 export default function TopBar({
@@ -35,6 +36,7 @@ export default function TopBar({
   onChangeRolePersona,
   onOpenConnectChannels,
   onNavigateTab,
+  onOpenSanjayaVoiceModal,
 }) {
   const isAiMode = operatingMode === 'AI_COMPANY';
   const isINR = currency === 'INR';
@@ -213,6 +215,65 @@ export default function TopBar({
           </span>
         </button>
 
+        {/* 2.5 Prominent Live Public Site Button */}
+        <button
+          onClick={onViewLanding}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            background: 'rgba(6, 182, 212, 0.12)',
+            border: '1px solid rgba(6, 182, 212, 0.35)',
+            color: '#38BDF8',
+            fontSize: '0.78rem',
+            fontWeight: '700',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            boxShadow: '0 0 12px rgba(6, 182, 212, 0.15)',
+          }}
+          title="Switch to public live website"
+        >
+          <Globe size={13} color="#38BDF8" />
+          <span>Public Site</span>
+          <ExternalLink size={12} color="#38BDF8" />
+        </button>
+
+        {/* 2.6 SANJAYA AI Voice Commander Trigger Button */}
+        <button
+          onClick={onOpenSanjayaVoiceModal}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.12) 100%)',
+            border: '1px solid rgba(245, 158, 11, 0.45)',
+            color: '#FBBF24',
+            fontSize: '0.78rem',
+            fontWeight: '800',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 0 16px rgba(245, 158, 11, 0.25)',
+          }}
+          title="Launch SANJAYA (सञ्जय) Voice Commander (Shortcut: ⌘J / Ctrl+J)"
+        >
+          <Mic size={14} color="#FBBF24" />
+          <span>Sanjaya Voice</span>
+          <span
+            style={{
+              fontSize: '0.62rem',
+              background: 'rgba(245, 158, 11, 0.25)',
+              padding: '1px 5px',
+              borderRadius: '4px',
+              color: '#FDE68A',
+            }}
+          >
+            ⌘J
+          </span>
+        </button>
         {/* 3. Consolidated '+ Action' Dropdown Button */}
         <div ref={actionMenuRef} style={{ position: 'relative' }}>
           <button

@@ -1368,6 +1368,17 @@ export const api = {
   getEmployeeRoles: async () => {
     return safeFetchJson(`${API_BASE}/strategy/employee-roles`);
   },
+  // SANJAYA - Autonomous AI Voice Commander
+  sendSanjayaCommand: async (commandText, workspaceId) => {
+    return safeFetchJson(`${API_BASE}/sanjaya/command`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commandText, workspaceId }),
+    });
+  },
+  getSanjayaSuggestions: async () => {
+    return safeFetchJson(`${API_BASE}/sanjaya/suggestions`);
+  },
 };
 
 

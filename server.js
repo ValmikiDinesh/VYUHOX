@@ -34,6 +34,7 @@ import briefingRoutes from './src/routes/briefingRoutes.js';
 import publicRoutes from './src/routes/publicRoutes.js';
 import microSiteRoutes from './src/routes/microSiteRoutes.js';
 import seoToolsRoutes from './src/routes/seoToolsRoutes.js';
+import sanjayaRoutes from './src/routes/sanjayaRoutes.js';
 import { agentEventBus } from './src/services/agents/AgentEventBus.js';
 import { initSocialPublisher } from './src/cron/socialPublisher.js';
 import { initAdOptimizerCron } from './src/cron/adOptimizer.js';
@@ -137,6 +138,7 @@ app.use('/api/briefings', briefingRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/microsite', microSiteRoutes);
 app.use('/api/seo-tools', seoToolsRoutes);
+app.use('/api/sanjaya', sanjayaRoutes);
 
 // Serve static client production build & SPA fallback (Render / Production)
 const distPath = path.resolve(__dirname, 'client', 'dist');

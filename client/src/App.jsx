@@ -34,6 +34,8 @@ import NewWorkspaceModal from './components/modals/NewWorkspaceModal';
 import AddFundsModal from './components/modals/AddFundsModal';
 import BulkImportModal from './components/modals/BulkImportModal';
 import ConnectChannelsModal from './components/modals/ConnectChannelsModal';
+import SanjayaVoiceCommander from './components/SanjayaVoiceCommander';
+import { Mic, Sparkles } from 'lucide-react';
 
 import { api } from './services/api';
 import { authStorage } from './services/authStorage';
@@ -180,6 +182,19 @@ export default function App() {
   const [isAddFundsModalOpen, setIsAddFundsModalOpen] = useState(false);
   const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
   const [isConnectChannelsModalOpen, setIsConnectChannelsModalOpen] = useState(false);
+  const [isSanjayaOpen, setIsSanjayaOpen] = useState(false);
+
+  // Global Keyboard Shortcut: Cmd+J or Ctrl+J opens SANJAYA Voice Commander
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'j' || e.key === 'J')) {
+        e.preventDefault();
+        setIsSanjayaOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // 1. Initial Load: Fetch Workspaces & Match Logged-In User
   useEffect(() => {
@@ -702,6 +717,7 @@ export default function App() {
           rolePersona={rolePersona}
           onChangeRolePersona={handleChangeRolePersona}
           onNavigateTab={(tab) => setActiveTab(tab)}
+          onOpenSanjayaVoiceModal={() => setIsSanjayaOpen(true)}
         />
 
         {/* Super Admin Inspection Mode Banner */}
@@ -1004,6 +1020,73 @@ export default function App() {
           setIsModeModalOpen(false);
         }}
       />
+
+      {/* SANJAYA (सञ्जय) • Autonomous Celestial Voice Commander */}
+      <SanjayaVoiceCommander
+        isOpen={isSanjayaOpen}
+        onClose={() => setIsSanjayaOpen(false)}
+        activeWorkspace={activeWorkspace}
+        onNavigateTab={(tab) => setActiveTab(tab)}
+        onToggleOperatingMode={handleToggleOperatingMode}
+        onOpenAddFundsModal={() => setIsAddFundsModalOpen(true)}
+        onRefreshData={refreshWorkspaceData}
+      />
+
+      {/* Floating Bottom-Right Voice Commander Summon Orb */}
+      <button
+        onClick={() => setIsSanjayaOpen(true)}
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 900,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '10px 18px',
+          borderRadius: '30px',
+          background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 60%, #06B6D4 100%)',
+          color: '#FFFFFF',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
+          boxShadow: '0 8px 30px rgba(245, 158, 11, 0.45)',
+          cursor: 'pointer',
+          fontWeight: '800',
+          fontSize: '0.82rem',
+          letterSpacing: '0.02em',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        title="Summon SANJAYA Voice Commander (Cmd+J / Ctrl+J)"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)';
+          e.currentTarget.style.boxShadow = '0 12px 35px rgba(245, 158, 11, 0.6)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0) scale(1)';
+          e.currentTarget.style.boxShadow = '0 8px 30px rgba(245, 158, 11, 0.45)';
+        }}
+      >
+        <div style={{
+          width: '26px',
+          height: '26px',
+          borderRadius: '50%',
+          background: 'rgba(0, 0, 0, 0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Mic size={15} color="#FFFFFF" />
+        </div>
+        <span>Sanjaya Voice AI</span>
+        <span style={{
+          fontSize: '0.62rem',
+          padding: '2px 6px',
+          borderRadius: '10px',
+          background: 'rgba(0, 0, 0, 0.25)',
+          color: '#FDE68A',
+        }}>
+          ⌘J
+        </span>
+      </button>
     </div>
   );
 }

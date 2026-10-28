@@ -20,6 +20,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
+    "marked": "^15.0.12",
     "mongoose": "^8.8.0",
     "multer": "^2.5.0",
     "pptxgenjs": "^4.0.1",
