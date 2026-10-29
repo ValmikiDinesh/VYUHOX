@@ -117,18 +117,19 @@ export class UniversalBusinessContext {
 
     // 4. Target Personas & Metros
     const targetPersonas =
-      analysis?.targetAudience?.decisionMakers ||
-      ['Chief Technology Officer (CTO)', 'Chief Executive Officer (CEO)', 'VP of Sales', 'Head of Growth'];
+      Array.isArray(analysis?.targetAudience?.decisionMakers) && analysis.targetAudience.decisionMakers.length > 0
+        ? analysis.targetAudience.decisionMakers
+        : (analysis?.targetAudience?.primaryPersona ? [analysis.targetAudience.primaryPersona] : [`Primary ${category} Decision Makers`]);
 
     const targetLocations =
-      workspace?.targetLocations ||
-      ['United States', 'United Kingdom', 'India (Bengaluru, Mumbai, Delhi NCR)', 'Singapore', 'Dubai UAE'];
+      Array.isArray(workspace?.targetLocations) && workspace.targetLocations.length > 0
+        ? workspace.targetLocations
+        : ['Target Metros & Markets'];
 
     // 5. Omnichannel Signals
-    const topObjections = brain?.roundsHistory?.[0]?.resolvedObjections || [
-      { objection: 'Pricing & ROI uncertainty', counterScript: 'Verified 3.8x pipeline yield and guaranteed pilot benchmarks.' },
-      { objection: 'Integration technical complexity', counterScript: 'Zero-code turnkey webhooks and sub-10 minute API connectors.' },
-    ];
+    const topObjections = brain?.roundsHistory?.[0]?.resolvedObjections || (Array.isArray(strategy?.objections) && strategy.objections.length > 0
+      ? strategy.objections.map((o) => ({ objection: o.objection, counterScript: o.counter }))
+      : []);
 
     // 6. Ad Performance & Winning Angles
     let totalAdSpend = 0;

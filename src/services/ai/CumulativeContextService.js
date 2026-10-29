@@ -103,33 +103,81 @@ ${objections || 'General objections countered'}`;
       positioning.unfairAdvantage ||
       'Proprietary multi-agent automation and high-speed execution benchmarks.';
 
-    const primaryPersona = targetAudience.primaryPersona || 'Enterprise Decision Makers & C-Suite';
-    const decisionMakers =
-      targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0
-        ? targetAudience.decisionMakers
-        : ['Chief Technology Officer (CTO)', 'Chief Information Security Officer (CISO)', 'VP of Engineering'];
+    let primaryPersona = targetAudience.primaryPersona;
+    let decisionMakers = Array.isArray(targetAudience.decisionMakers) && targetAudience.decisionMakers.length > 0
+      ? targetAudience.decisionMakers
+      : [];
+    let painPoints = Array.isArray(targetAudience.painPoints) && targetAudience.painPoints.length > 0
+      ? targetAudience.painPoints
+      : [];
+    let offers = Array.isArray(strategy?.microSite?.offers) && strategy.microSite.offers.length > 0
+      ? strategy.microSite.offers
+      : (Array.isArray(analysis.valuePropositions) && analysis.valuePropositions.length > 0 ? analysis.valuePropositions : []);
+    let competitiveMoat = Array.isArray(strategy?.competitiveMoat) && strategy.competitiveMoat.length > 0
+      ? strategy.competitiveMoat
+      : [];
+    let objections = Array.isArray(strategy?.objections) && strategy.objections.length > 0
+      ? strategy.objections
+      : [];
 
-    const painPoints =
-      targetAudience.painPoints && targetAudience.painPoints.length > 0
-        ? targetAudience.painPoints
-        : ['Manual pipeline bottlenecks and high operational friction'];
+    // If core target audience or objections are missing in MongoDB, dynamically synthesize them via AI and persist
+    if (!primaryPersona || decisionMakers.length === 0 || painPoints.length === 0 || objections.length === 0) {
+      try {
+        const dynamicPrompt = `You are a Chief Revenue Officer. Analyze this specific business and output valid JSON:
+Business Name: ${businessName}
+Category: ${category}
+Value Proposition: ${coreValueProp}
 
-    const offers =
-      strategy?.microSite?.offers ||
-      analysis.valuePropositions ||
-      ['Turnkey Enterprise Deployment', '24/7 Dedicated Support & SLA', 'Custom System Integration'];
+Generate authentic buyer targeting strictly suited for THIS category (e.g. if consumer/retail, target consumer buyers; if B2B, target relevant corporate titles; if healthcare/clinic, target patients/referrers).
+Output strictly JSON:
+{
+  "primaryPersona": "Exact primary buyer persona",
+  "decisionMakers": ["3 realistic buyer job titles or roles"],
+  "painPoints": ["3 genuine customer pain points"],
+  "offers": ["3 authentic core offerings"],
+  "competitiveMoat": ["2 genuine competitive differentiators"],
+  "objections": [
+    { "objection": "Primary customer objection", "counter": "Strategic counter-response" }
+  ]
+}`;
+        const llmRes = await LlmGatewayService.execute({
+          prompt: dynamicPrompt,
+          systemInstruction: 'Output strictly valid JSON. Never output generic software roles unless the business is genuinely software.',
+          jsonResponse: true,
+          temperature: 0.2,
+          timeoutMs: 15000,
+        });
 
-    const competitiveMoat = strategy?.competitiveMoat || [
-      'Autonomous 24/7 multi-agent orchestration',
-      'Direct server-side verification and compliance isolation',
-    ];
+        if (llmRes?.parsedJson) {
+          const pj = llmRes.parsedJson;
+          if (!primaryPersona && pj.primaryPersona) primaryPersona = pj.primaryPersona;
+          if (decisionMakers.length === 0 && Array.isArray(pj.decisionMakers)) decisionMakers = pj.decisionMakers;
+          if (painPoints.length === 0 && Array.isArray(pj.painPoints)) painPoints = pj.painPoints;
+          if (offers.length === 0 && Array.isArray(pj.offers)) offers = pj.offers;
+          if (competitiveMoat.length === 0 && Array.isArray(pj.competitiveMoat)) competitiveMoat = pj.competitiveMoat;
+          if (objections.length === 0 && Array.isArray(pj.objections)) objections = pj.objections;
 
-    const objections = strategy?.objections || [
-      {
-        objection: 'We already have an existing legacy process.',
-        counter: 'Our system runs alongside existing tools without requiring rip-and-replace, delivering immediate ROI in under 14 days.',
-      },
-    ];
+          // Persist the synthesized intelligence directly into MongoDB GtmStrategy so it is never missing again
+          if (strategy?._id) {
+            await GtmStrategy.updateOne(
+              { _id: strategy._id },
+              {
+                $set: {
+                  'analysisResult.targetAudience.primaryPersona': primaryPersona,
+                  'analysisResult.targetAudience.decisionMakers': decisionMakers,
+                  'analysisResult.targetAudience.painPoints': painPoints,
+                  'microSite.offers': offers,
+                  competitiveMoat,
+                  objections,
+                },
+              }
+            ).catch(() => null);
+          }
+        }
+      } catch (synthErr) {
+        console.warn('[CumulativeContextService] Dynamic AI enrichment warning:', synthErr.message);
+      }
+    }
 
     const pastRoundsMemory = this.formatPastRoundsMemory(brain);
     const activeRound = brain.currentRound || 1;
