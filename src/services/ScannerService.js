@@ -720,8 +720,8 @@ export class ScannerService {
    */
   static async synthesizeStrategy(extractedData, workspaceContext = {}) {
     // 0. Master Universal Multi-LLM Gateway (Gemini 1.5 / OpenAI / Groq / DeepSeek)
+    const clientBizName = workspaceContext.workspaceName || extractedData.businessName || 'Enterprise';
     try {
-      const clientBizName = workspaceContext.workspaceName || extractedData.businessName || 'Enterprise';
       const clientCategory = workspaceContext.businessCategory || workspaceContext.industry || '';
       const clientDesc = workspaceContext.businessModelDescription || '';
       const clientTagline = workspaceContext.tagLine || '';
@@ -869,7 +869,7 @@ CRITICAL RULES:
         systemInstruction: 'You are an elite Autonomous Chief Revenue Officer and Agency Partner. Output strictly valid JSON.',
         jsonResponse: true,
         temperature: 0.2,
-        timeoutMs: 30000,
+        timeoutMs: 45000,
       });
 
       if (llmResult?.parsedJson && llmResult.parsedJson.category) {
@@ -877,7 +877,8 @@ CRITICAL RULES:
         return this.enrichLlmStrategyWithBlueprint(llmResult.parsedJson, extractedData, workspaceContext);
       }
 
-      const failMsg = llmResult?.error || 'AI response was incomplete or unparseable';
+      console.warn(`[ScannerService] Raw LLM result text length: ${llmResult?.text?.length || 0}. Preview: ${llmResult?.text?.substring(0, 300)}`);
+      const failMsg = llmResult?.error || (llmResult?.text ? 'AI response JSON could not be validated or category missing' : 'AI response was incomplete or unparseable');
       const adminDiagnostic = `Gemini/LLM Synthesis Failure on "${clientBizName}". Provider: ${llmResult?.provider || 'gemini'}, Model: ${llmResult?.model || 'default'}. Detail: ${failMsg}`;
       const err = new Error('AI Engine is currently processing peak traffic. Our engineering team has been notified, and capacity is being re-allocated. Please retry in a few moments.');
       err.isAiUnavailable = true;
@@ -1006,14 +1007,18 @@ CRITICAL RULES:
       targetCompanyTypes: [category],
     };
 
+    const categoryKey = llmResult.categoryKey || (category || 'GENERAL_ENTERPRISE').toUpperCase().replace(/[^A-Z0-9]/g, '_');
+    const businessModel = llmResult.businessModel || 'B2B Enterprise Solutions';
+    const businessModelType = llmResult.businessModelType || 'ONLINE';
+
     return {
       businessName: name,
       websiteUrl: extractedData.url,
       category,
       growthEngine,
-      categoryKey: bespokeTaxonomy.categoryKey,
-      businessModel: llmResult.businessModel || bespokeTaxonomy.businessModel,
-      businessModelType: bespokeTaxonomy.businessModelType || 'ONLINE',
+      categoryKey,
+      businessModel,
+      businessModelType,
       summary,
       whatTheySell,
       coreOfferings,
@@ -1023,19 +1028,19 @@ CRITICAL RULES:
       targetAudience,
       swotAnalysis,
       leadDiscoveryCriteria,
-      companyCreationStrategy: bespokeTaxonomy.companyCreationStrategy,
-      companyManagementStrategy: bespokeTaxonomy.companyManagementStrategy,
-      offlineStrategy: bespokeTaxonomy.offlineStrategy,
-      onlineStrategy: bespokeTaxonomy.onlineStrategy,
-      businessWorkflow: bespokeTaxonomy.businessWorkflow,
-      businessRequiredTeam: bespokeTaxonomy.businessRequiredTeam,
-      businessTargets: bespokeTaxonomy.businessTargets,
+      companyCreationStrategy: llmResult.companyCreationStrategy || null,
+      companyManagementStrategy: llmResult.companyManagementStrategy || null,
+      offlineStrategy: llmResult.offlineStrategy || null,
+      onlineStrategy: llmResult.onlineStrategy || null,
+      businessWorkflow: llmResult.businessWorkflow || null,
+      businessRequiredTeam: llmResult.businessRequiredTeam || null,
+      businessTargets: llmResult.businessTargets || null,
       googleAdsCampaigns,
       metaAdsCampaigns,
       seoStrategy,
       aeoStrategy,
-      socialPostingPerPlatform: bespokeTaxonomy.socialPostingPerPlatform,
-      creativeAdStrategies: bespokeTaxonomy.creativeAdStrategies || [],
+      socialPostingPerPlatform: llmResult.socialPostingPerPlatform || null,
+      creativeAdStrategies: llmResult.creativeAdStrategies || [],
       recommendedChannels,
       adAngles,
       recommendedAITeam,

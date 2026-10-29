@@ -150,12 +150,12 @@ export class LlmGatewayService {
     const activeKey = apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!activeKey) throw new Error('No Google Gemini API key configured.');
 
-    const activeGeminiModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
     const candidateModels = Array.from(new Set([
-      activeGeminiModel,
-      'gemini-3.5-flash',
+      'gemini-3-flash-preview',
+      'gemini-3.1-flash-lite',
+      'gemini-3.1-flash-lite-preview',
+      process.env.GEMINI_MODEL,
       'gemini-flash-latest',
-      'gemini-3.8-flash',
     ].filter(Boolean)));
 
     let lastError = null;
@@ -165,7 +165,7 @@ export class LlmGatewayService {
 
       for (let attempt = 0; attempt < 2; attempt++) {
         const controller = new AbortController();
-        const modelTimeout = Math.max(timeoutMs || 12000, 10000);
+        const modelTimeout = Math.max(timeoutMs || 30000, 25000);
         const timeout = setTimeout(() => controller.abort(), modelTimeout);
 
         const contents = [{ role: 'user', parts: [{ text: prompt }] }];
@@ -173,7 +173,7 @@ export class LlmGatewayService {
           contents,
           generationConfig: {
             temperature: temperature ?? 0.2,
-            maxOutputTokens: 3500,
+            maxOutputTokens: 8192,
             responseMimeType: jsonResponse ? 'application/json' : 'text/plain',
           },
         };
