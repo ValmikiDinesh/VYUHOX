@@ -18,55 +18,47 @@ import { LlmGatewayService } from '../ai/LlmGatewayService.js';
 
 export class SentimentClassifier {
   /**
-   * Classify message sentiment and intent
+   * Classify message sentiment and intent using live multi-LLM cascade
    * @param {string} text - Inbound message body
-   * @param {Object} [context] - Contextual metadata (channel, lead info)
+   * @param {Object} [context] - Contextual metadata (channel, lead info, full history)
    * @returns {Promise<{ sentiment: string, confidence: number, summary: string, recommendedStage: string, scoreDelta: number }>}
    */
   static async classify(text = '', context = {}) {
     const raw = text.trim();
-    const lower = raw.toLowerCase();
+    const historyText = Array.isArray(context.recentHistory) && context.recentHistory.length > 0
+      ? `\nPREVIOUS CONVERSATION THREAD:\n${context.recentHistory.map((m) => `${m.direction === 'OUTBOUND' ? 'Assistant' : 'Customer'}: ${m.content}`).join('\n')}\n`
+      : '';
 
-    // 1. Check for live OpenAI configuration if available
-    if (process.env.OPENAI_API_KEY) {
-      try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: `You are an elite B2B/D2C sales conversation intelligence AI. Analyze this inbound customer message and return JSON strictly with format:
+    // 1. Live Multi-LLM Execution (Gemini -> OpenAI -> Groq)
+    try {
+      const prompt = `You are an elite conversation intelligence AI analyzing customer interactions.
+${historyText}
+LATEST CUSTOMER MESSAGE TO ANALYZE:
+"${raw}"
+
+Analyze the sentiment and intent considering the entire conversation.
+Output strictly JSON matching this schema:
 {
   "sentiment": "HIGH_INTENT" | "OBJECTION" | "GENERAL_INQUIRY" | "NOT_INTERESTED" | "NEUTRAL",
-  "confidence": number between 0.8 and 1.0,
-  "summary": "1 sentence explanation of lead intent",
+  "confidence": 0.95,
+  "summary": "1 sentence explanation of customer intent in context",
   "recommendedStage": "Qualified" | "Demo_Booked" | "Contacted" | "Lost" | null,
-  "scoreDelta": number between -20 and +25
-}`,
-              },
-              { role: 'user', content: `Lead message: "${raw}"` },
-            ],
-            response_format: { type: 'json_object' },
-            temperature: 0.1,
-          }),
-        });
+  "scoreDelta": 15
+}`;
 
-        if (response.ok) {
-          const data = await response.json();
-          const parsed = JSON.parse(data.choices[0].message.content);
-          if (parsed.sentiment) {
-            return parsed;
-          }
-        }
-      } catch (err) {
-        console.warn('[SentimentClassifier] OpenAI API failed, falling back to rule engine:', err.message);
+      const res = await LlmGatewayService.execute({
+        prompt,
+        systemInstruction: 'You are an expert sales conversation analyst. Output strictly valid JSON.',
+        jsonResponse: true,
+        temperature: 0.1,
+        timeoutMs: 8000,
+      });
+
+      if (res?.parsedJson && res.parsedJson.sentiment) {
+        return res.parsedJson;
       }
+    } catch (llmErr) {
+      console.warn('[SentimentClassifier] LLM classification notice:', llmErr.message);
     }
 
     // 2. High-Accuracy Rule & Semantic Intent Matcher Fallback
@@ -147,9 +139,9 @@ export class SentimentClassifier {
   }
 
   /**
-   * Generate context-aware AI suggestion for response using Cumulative Context Flywheel (Level 1 + 2 + 3)
+   * Generate context-aware AI suggestion for response using Cumulative Context Flywheel + Full Conversation History
    */
-  static async generateSuggestedReply({ messageContent, sentiment, lead, workspaceId }) {
+  static async generateSuggestedReply({ messageContent, sentiment, lead, workspaceId, conversationId = null }) {
     let ctx = null;
     try {
       ctx = await CumulativeContextService.getLevel3Context(workspaceId, lead?._id);
@@ -158,10 +150,30 @@ export class SentimentClassifier {
     }
 
     const businessName = ctx?.businessName || 'Our Team';
-    const coreValueProp = ctx?.coreValueProp || 'Accelerating autonomous pipeline velocity';
+    const coreValueProp = ctx?.coreValueProp || 'Accelerating business growth';
     const leadName = lead?.name ? lead.name.split(' ')[0] : 'there';
     const company = lead?.company || 'your team';
     const leadTitle = lead?.title || 'Decision Maker';
+
+    // Retrieve previous messages in the conversation to maintain multi-turn memory
+    let conversationHistoryText = '';
+    if (conversationId) {
+      try {
+        const { Message } = await import('../../models/Message.js');
+        const pastMsgs = await Message.find({ conversationId })
+          .sort({ createdAt: 1 })
+          .limit(20)
+          .lean();
+        if (pastMsgs && pastMsgs.length > 0) {
+          conversationHistoryText = `\nFULL CONVERSATION HISTORY (CHRONOLOGICAL):\n${pastMsgs
+            .map((m) => `[${m.direction === 'OUTBOUND' ? 'Assistant' : 'Customer'}]: ${m.content}`)
+            .join('\n')}\n`;
+        }
+      } catch (histErr) {
+        console.warn('[SentimentClassifier] Past history retrieval warning:', histErr.message);
+      }
+    }
+
     const isQuestion = messageContent.includes('?') || /what|how|why|when|where|who|price|cost|tier|pricing|can you|do you|feature|support|demo|integrate/i.test(messageContent);
 
     // If prospect is asking a question or general inquiry, answer accessing BOTH AI LLM + Trained Business Brain
@@ -181,7 +193,7 @@ export class SentimentClassifier {
             : `Hi ${leadName}, ${qaResult.answer}`;
           return {
             suggestedText: formattedReply,
-            rationale: `Synthesized via AI LLM (${qaResult.provider || 'CASCADE'}) + Trained Business Brain (Round ${qaResult.round || 1}) grounded in authentic company intelligence & QA ledger.`,
+            rationale: `Synthesized via AI LLM (${qaResult.provider || 'CASCADE'}) + Trained Business Brain grounded in authentic company intelligence & QA ledger.`,
             provider: 'AI_LLM_PLUS_TRAINED_BUSINESS_BRAIN',
             groundedSources: qaResult.groundedSources || ['AI LLM', 'Trained Business Brain'],
           };
@@ -191,13 +203,13 @@ export class SentimentClassifier {
       }
     }
 
-    // 1. Multi-LLM Generation via LlmGatewayService (Gemini, Groq, OpenAI)
+    // Multi-LLM Generation via LlmGatewayService (Gemini, Groq, OpenAI) evaluating FULL thread
     try {
-      const prompt = `You are an elite enterprise Account Executive representing ${businessName}.
-CONTEXT (CUMULATIVE FLYWHEEL ACROSS ALL ROUNDS & LEVELS):
+      const prompt = `You are an elite representative for ${businessName}.
+CONTEXT (CUMULATIVE BUSINESS FLYWHEEL):
 ${ctx?.summaryText || `Company: ${businessName}. Value Prop: ${coreValueProp}`}
-
-INBOUND MESSAGE TO ANSWER:
+${conversationHistoryText}
+LATEST CUSTOMER MESSAGE TO ANSWER:
 "${messageContent}"
 
 DETECTED SENTIMENT: ${sentiment}
@@ -206,10 +218,8 @@ LEAD: ${leadName} (${leadTitle}) at ${company}
 TASK:
 Draft a concise, high-converting, empathetic reply (under 75 words).
 - Speak specifically on behalf of ${businessName}.
-- Directly address their inquiry/objection using ${businessName}'s value proposition.
-- If HIGH_INTENT: Offer a direct 15-minute sync.
-- If OBJECTION: Acknowledge empathetically with high-conviction social proof.
-- If GENERAL_INQUIRY: Clarify capabilities and ask a sharp qualifying discovery question.
+- Directly address their inquiry/objection using ${businessName}'s real value proposition.
+- Reference previous conversation nuances if relevant (allergies, specific requests, deadlines).
 Output ONLY the drafted reply message text.`;
 
       const llmResult = await LlmGatewayService.execute({
@@ -222,12 +232,12 @@ Output ONLY the drafted reply message text.`;
         const cleanReply = llmResult.text.replace(/^["']|["']$/g, '').trim();
         return {
           suggestedText: cleanReply,
-          rationale: `AI Copilot generated reply tailored to ${sentiment} intent for ${company} using Level 1-6 Business Context.`,
+          rationale: `AI Copilot generated reply tailored to ${sentiment} intent for ${company} with full multi-turn memory.`,
           provider: llmResult.model || 'MULTI_LLM_CASCADE',
         };
       }
     } catch (err) {
-      console.warn('[SentimentClassifier] LLM generation failed, falling back to context-aware templates:', err.message);
+      console.warn('[SentimentClassifier] LLM generation failed:', err.message);
     }
 
     // 2. High-Fidelity Context-Aware Fallback Templates

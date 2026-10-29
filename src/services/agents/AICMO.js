@@ -44,14 +44,45 @@ class AICMO {
   async handleObjectionFeedback({ workspaceId, objection, sourceLead, signalType = 'UNSUPPORTED_INTEGRATION_OBJECTION' }) {
     console.log(`[AICMO] 🎯 Received feedback signal: "${objection}". Restructuring marketing campaigns...`);
 
-    // 1. Generate specialized high-converting Ad Copy Variant
-    const newCreativeHeadline = objection.toLowerCase().includes('bybit')
-      ? 'HedgeX Sub-Millisecond Bybit & Multi-Exchange Liquidity Gateway'
-      : `HedgeX Enterprise Solutions: Overcoming ${objection}`;
+    const { GtmStrategy } = await import('../../models/GtmStrategy.js');
+    const { Workspace } = await import('../../models/Workspace.js');
+    const { LlmGatewayService } = await import('../ai/LlmGatewayService.js');
 
-    const newAdBody = objection.toLowerCase().includes('bybit')
-      ? 'Tired of API rate limits on Bybit? HedgeX delivers unified WebSocket execution across Binance, Bybit, and OKX with zero slip.'
-      : `Empower your trading desk with institutional grade tools engineered for modern algorithmic funds.`;
+    const [ws, strategy] = await Promise.all([
+      Workspace.findById(workspaceId).lean(),
+      GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).lean(),
+    ]);
+
+    const businessName = strategy?.businessName || ws?.name || 'Our Company';
+    const category = strategy?.category || ws?.industry || 'Enterprise Solutions';
+
+    let newCreativeHeadline = `${businessName}: Resolving ${objection}`;
+    let newPrimaryText = `Direct solutions designed to address ${objection} with certified reliability and rapid deployment.`;
+
+    try {
+      const prompt = `You are Sophia Sterling, AI Chief Marketing Officer for ${businessName} (${category}).
+A prospect raised this critical objection/friction point: "${objection}".
+Draft an immediate high-converting ad copy angle to counter this friction.
+Output JSON:
+{
+  "headline": "Scroll-stopping compliant headline under 50 chars",
+  "primaryText": "Persuasive 2-sentence copy resolving this exact objection"
+}`;
+      const res = await LlmGatewayService.execute({
+        prompt,
+        systemInstruction: 'Output valid JSON. Adhere strictly to the business profile.',
+        jsonResponse: true,
+        temperature: 0.2,
+      });
+      if (res?.parsedJson?.headline && res.parsedJson.primaryText) {
+        newCreativeHeadline = res.parsedJson.headline;
+        newPrimaryText = res.parsedJson.primaryText;
+      }
+    } catch (e) {
+      console.warn('[AICMO] Dynamic objection copy synthesis notice:', e.message);
+    }
+
+    const newAdBody = newPrimaryText;
 
     // 2. Persist new creative in Ads database
     let createdCreative = null;
@@ -64,7 +95,7 @@ class AICMO {
           platformFormat: 'META_FEED',
           headline: newCreativeHeadline,
           primaryText: newAdBody,
-          ctaText: 'Book Strategy Call',
+          ctaText: 'Learn More',
         });
       }
     } catch (e) {
@@ -75,8 +106,8 @@ class AICMO {
     const log = await agentEventBus.recordActivity({
       workspaceId,
       agentRole: this.role,
-      actionTitle: `Auto-Iterated Ad Creative & Scraper Targeting for "${objection}"`,
-      description: `In response to Voice Closer call friction, deployed new Bybit liquidity router ad set and adjusted Apollo scraper keywords to target Bybit algo traders.`,
+      actionTitle: `Auto-Iterated Ad Creative for "${objection.slice(0, 30)}"`,
+      description: `In response to Voice Closer call friction, deployed new creative angle addressing "${objection}".`,
       category: 'MARKETING',
       impactScore: 96,
       metadata: {

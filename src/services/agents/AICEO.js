@@ -53,44 +53,105 @@ class AICEO {
       aiCustomerSuccess.getStatus(workspaceId),
     ]);
 
-    const executiveSummary =
-      `Good morning. The autonomous GTM engine is running at peak velocity with 100% uptime. ` +
-      `SDR Marcus qualified 42 accounts, Maya Vance dialed 14 high-intent leads in sub-45s with a 41% meeting conversion rate, ` +
-      `and Julian Vance reported an elite 21.4x LTV/CAC ratio with $48.5k MRR run-rate. ` +
-      `Sophia Sterling auto-pivoted ad creatives to Bybit liquidity routing following voice call friction signals.`;
+    const { GtmStrategy } = await import('../../models/GtmStrategy.js');
+    const { Workspace } = await import('../../models/Workspace.js');
+    const { LlmGatewayService } = await import('../ai/LlmGatewayService.js');
 
-    const proposedActions = [
+    const [ws, strategy] = await Promise.all([
+      Workspace.findById(workspaceId).lean(),
+      GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).lean(),
+    ]);
+
+    const businessName = strategy?.businessName || ws?.name || 'Enterprise Partner';
+    const category = strategy?.category || ws?.industry || 'Commercial Enterprise';
+    const coreValue = strategy?.positioning?.coreValueProp || strategy?.analysisResult?.summary || 'high-converting market solutions';
+
+    let executiveSummary = `Good morning. The autonomous GTM workforce for ${businessName} (${category}) is operating at nominal velocity. Outreach channels, pipeline capture, and customer acquisition workflows are active.`;
+    let proposedActions = [
       {
         actionId: 'ACT_' + Math.random().toString(36).substring(2, 9).toUpperCase(),
         agentRole: 'CMO',
-        actionTitle: 'Double Daily Budget on Bybit High-ROAS Meta Ad Set',
-        description:
-          'Increase daily Meta ad spend from $150 to $300 on the newly tested Bybit liquidity creative, which is demonstrating a 4.8x ROAS.',
+        actionTitle: `Scale High-Performing Ad Creative Sets for ${category}`,
+        description: `Allocate increased budget toward winning creative angles demonstrating high conversion efficiency for ${businessName}.`,
         status: 'PENDING',
-        impact: 'High Revenue Growth',
-        estimatedValue: '+$8,400 MRR',
+        impact: 'Revenue Growth',
+        estimatedValue: 'Scale Pipeline',
       },
       {
         actionId: 'ACT_' + Math.random().toString(36).substring(2, 9).toUpperCase(),
         agentRole: 'SDR',
-        actionTitle: 'Launch Cold Email Sequence to 250 Quant Funds on Bybit',
-        description:
-          'Scrape and enrich 250 verified managing partners of algorithmic hedge funds in Switzerland and Singapore experiencing Bybit rate limits.',
+        actionTitle: `Expand Verified Decision-Maker Outreach in Target Metros`,
+        description: `Prospect and enrich additional verified buyers fitting ${businessName}'s ideal customer profile.`,
         status: 'PENDING',
         impact: 'Pipeline Expansion',
-        estimatedValue: '+$14,000 Pipeline',
+        estimatedValue: 'New Qualified Opportunities',
       },
       {
         actionId: 'ACT_' + Math.random().toString(36).substring(2, 9).toUpperCase(),
         agentRole: 'CFO',
-        actionTitle: 'Activate Auto-Sweep to Credit Balance from Stripe Payouts',
-        description:
-          'Allocate 8% of incoming Stripe subscription revenue automatically to telephony and AI computation wallets to prevent buffer depletion.',
+        actionTitle: 'Enforce Margin Discipline & Automated Wallet Replenishment',
+        description: 'Maintain strict positive gross margins across voice calling and customer acquisition spend.',
         status: 'PENDING',
         impact: 'Treasury & Risk Automation',
-        estimatedValue: 'Zero Downtime',
+        estimatedValue: 'Capital Efficiency',
       },
     ];
+
+    try {
+      const prompt = `You are Alexander Vance, Autonomous Chief Executive Officer representing ${businessName} (${category}).
+Value Proposition: ${coreValue}
+
+Synthesize a tailored, realistic morning briefing and 3 strategic growth proposals for the founder.
+Strictly output JSON in this format:
+{
+  "executiveSummary": "2-3 concise sentences summarizing daily pipeline, outreach, and operational performance for this specific business",
+  "proposedActions": [
+    {
+      "agentRole": "CMO",
+      "actionTitle": "Specific marketing action tailored to ${category}",
+      "description": "Concrete 1-sentence action directive",
+      "status": "PENDING",
+      "impact": "High Growth",
+      "estimatedValue": "Measurable pipeline outcome"
+    },
+    {
+      "agentRole": "SDR",
+      "actionTitle": "Specific outbound sales action for ${businessName}",
+      "description": "Concrete 1-sentence action directive",
+      "status": "PENDING",
+      "impact": "Market Expansion",
+      "estimatedValue": "Measurable pipeline outcome"
+    },
+    {
+      "agentRole": "CFO",
+      "actionTitle": "Margin and treasury management directive",
+      "description": "Concrete 1-sentence action directive",
+      "status": "PENDING",
+      "impact": "Margin Guardian",
+      "estimatedValue": "Measurable pipeline outcome"
+    }
+  ]
+}`;
+      const llmRes = await LlmGatewayService.execute({
+        prompt,
+        systemInstruction: 'Output strictly valid JSON. Never output crypto or hedge fund references unless the company is genuinely crypto.',
+        jsonResponse: true,
+        temperature: 0.2,
+        timeoutMs: 12000,
+      });
+
+      if (llmRes?.parsedJson && llmRes.parsedJson.executiveSummary) {
+        executiveSummary = llmRes.parsedJson.executiveSummary;
+        if (Array.isArray(llmRes.parsedJson.proposedActions) && llmRes.parsedJson.proposedActions.length > 0) {
+          proposedActions = llmRes.parsedJson.proposedActions.map((p) => ({
+            ...p,
+            actionId: 'ACT_' + Math.random().toString(36).substring(2, 9).toUpperCase(),
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('[AICEO] Dynamic briefing synthesis notice:', e.message);
+    }
 
     const briefing = await CeoBriefing.create({
       workspaceId,

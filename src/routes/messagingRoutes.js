@@ -401,12 +401,13 @@ async function processInboundMessage({ workspaceId, leadId, channel, content, se
     io,
   });
 
-  // 5. Generate Instant AI Suggested Response
+  // 5. Generate Instant AI Suggested Response with Full Conversation History
   const suggestedReply = await SentimentClassifier.generateSuggestedReply({
     messageContent: content,
     sentiment: sentimentResult.sentiment,
     lead: updatedLead || lead,
     workspaceId: effectiveWorkspaceId,
+    conversationId: conv._id,
   });
 
   // 6. Save Inbound Message
