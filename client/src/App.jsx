@@ -341,11 +341,20 @@ export default function App() {
       setOperatingMode(newMode);
     };
 
+    const handleSuperAdminAlert = (alertData) => {
+      if (rolePersona === 'superadmin' || currentUser?.role === 'superadmin') {
+        const audio = new Audio('/audio/ding.mp3');
+        audio.play().catch(() => {});
+        alert(`🚨 [SUPERADMIN CRITICAL ALERT: AI QUOTA / API OUTAGE]\n\nDiagnostic: ${alertData.diagnostic}\n\nAction Required: ${alertData.instruction}`);
+      }
+    };
+
     socket.on('leadCreated', handleLeadCreated);
     socket.on('leadStageChanged', handleLeadStageChanged);
     socket.on('leadDeleted', handleLeadDeleted);
     socket.on('walletUpdated', handleWalletUpdated);
     socket.on('operatingModeUpdated', handleOperatingModeUpdated);
+    socket.on('superadmin:alert', handleSuperAdminAlert);
 
     return () => {
       socket.off('leadCreated', handleLeadCreated);
@@ -353,8 +362,9 @@ export default function App() {
       socket.off('leadDeleted', handleLeadDeleted);
       socket.off('walletUpdated', handleWalletUpdated);
       socket.off('operatingModeUpdated', handleOperatingModeUpdated);
+      socket.off('superadmin:alert', handleSuperAdminAlert);
     };
-  }, [socket, activeWorkspace]);
+  }, [socket, activeWorkspace, rolePersona, currentUser]);
 
   // Toggle Operating Mode - Opens ModeSwitchModal
   const handleToggleOperatingMode = () => {

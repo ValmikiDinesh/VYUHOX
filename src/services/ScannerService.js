@@ -877,13 +877,21 @@ CRITICAL RULES:
         return this.enrichLlmStrategyWithBlueprint(llmResult.parsedJson, extractedData, workspaceContext);
       }
 
-      const failMsg = llmResult?.error || 'AI did not return structured strategy data';
-      throw new Error(`AI Service Unavailable: Unable to synthesize Go-To-Market strategy for "${clientBizName}". Reason: ${failMsg}. Please check your Gemini API key or quota.`);
+      const failMsg = llmResult?.error || 'AI response was incomplete or unparseable';
+      const adminDiagnostic = `Gemini/LLM Synthesis Failure on "${clientBizName}". Provider: ${llmResult?.provider || 'gemini'}, Model: ${llmResult?.model || 'default'}. Detail: ${failMsg}`;
+      const err = new Error('AI Engine is currently processing peak traffic. Our engineering team has been notified, and capacity is being re-allocated. Please retry in a few moments.');
+      err.isAiUnavailable = true;
+      err.adminDiagnostic = adminDiagnostic;
+      throw err;
     } catch (llmErr) {
       console.error('[ScannerService] AI Strategy Synthesis Error:', llmErr.message);
-      throw new Error(llmErr.message.startsWith('AI Service Unavailable')
-        ? llmErr.message
-        : `AI Service Unavailable: Failed to synthesize strategy with AI. Reason: ${llmErr.message}. Please check your Gemini API key or quota.`);
+      if (llmErr.isAiUnavailable) {
+        throw llmErr;
+      }
+      const err = new Error('AI Engine is temporarily occupied analyzing market data. Superadmin alert dispatched. Please retry in a few moments.');
+      err.isAiUnavailable = true;
+      err.adminDiagnostic = `Gemini API Exception for "${clientBizName}": ${llmErr.message}`;
+      throw err;
     }
   }
 

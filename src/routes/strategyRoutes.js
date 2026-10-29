@@ -7,6 +7,7 @@ import { DailyBriefingJob } from '../cron/dailyBriefingJob.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { BusinessBrain } from '../models/BusinessBrain.js';
 import { MarketIntelligence } from '../models/MarketIntelligenceModel.js';
+import { PlatformConfig } from '../models/PlatformConfig.js';
 import { vyuhoxMasterBrain } from '../services/ai/VyuhoxMasterBrainService.js';
 
 const router = express.Router();
@@ -199,9 +200,59 @@ router.post('/scan', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('[Strategy Scan Error]:', error);
-    emitProgress(req, workspaceId, 'ERROR', error.message, 100);
-    const statusCode = error.message.startsWith('AI Service Unavailable') ? 503 : 500;
-    return res.status(statusCode).json({ success: false, message: error.message, isAiUnavailable: statusCode === 503 });
+    const isAiError = error.isAiUnavailable || error.message.includes('AI') || error.message.includes('Gemini');
+    
+    // Client-safe polite message
+    const clientSafeMessage = isAiError
+      ? 'The AI Growth Engine is currently experiencing peak demand. Our platform engineers have been notified and additional capacity is being provisioned. Please try again in 1-2 minutes.'
+      : (error.message || 'Unable to complete website strategy analysis. Please check your URL and try again.');
+
+    emitProgress(req, workspaceId, 'ERROR', clientSafeMessage, 100);
+
+    // Notify Super Admin in real-time via Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+      const superAdminAlert = {
+        type: 'AI_QUOTA_OUTAGE',
+        severity: 'CRITICAL',
+        workspaceId,
+        url,
+        diagnostic: error.adminDiagnostic || error.message,
+        timestamp: new Date().toISOString(),
+        instruction: 'Please check your Gemini API Key in Superadmin Dashboard -> Integrations or replenish API credits.',
+      };
+      // Broadcast to platform-wide administration channels
+      io.emit('superadmin:alert', superAdminAlert);
+      io.emit('agent:telemetry', {
+        agentRole: 'SUPERADMIN',
+        actionTitle: 'AI Gateway Error Intercepted',
+        description: superAdminAlert.diagnostic,
+        category: 'SYSTEM_ALERT',
+        status: 'FLAGGED',
+      });
+    }
+
+    // Persist failure into PlatformConfig for Superadmin visibility
+    PlatformConfig.findOneAndUpdate(
+      { configKey: 'GLOBAL_CONFIG' },
+      {
+        $set: {
+          'llmCascadeConfig.lastFailoverEvent': {
+            timestamp: new Date(),
+            failedProvider: 'gemini',
+            switchedToProvider: 'NONE',
+            reason: (error.adminDiagnostic || error.message).substring(0, 300),
+          },
+        },
+      }
+    ).catch(() => {});
+
+    const statusCode = isAiError ? 503 : 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: clientSafeMessage,
+      isAiUnavailable: isAiError,
+    });
   }
 });
 
