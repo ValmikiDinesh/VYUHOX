@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { GtmStrategy } from '../models/GtmStrategy.js';
 import { Workspace } from '../models/Workspace.js';
 import { ScannerService } from '../services/ScannerService.js';
@@ -507,6 +508,27 @@ router.get('/brain-status', authMiddleware, async (req, res) => {
     const workspaceId = req.query.workspaceId || req.workspaceId;
     if (!workspaceId) return res.status(400).json({ success: false, message: 'workspaceId required' });
     
+    // Validate ObjectId to prevent CastError 500s when workspace is initializing or invalid
+    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return res.json({
+        success: true,
+        brain: null,
+        strategy: null,
+        isTrained: false,
+        operatingModelType: 'ONLINE',
+        masterBrainSyncStatus: 'CONNECTED_TO_VYUHOX_MASTER',
+        filteredNoiseList: [],
+        identifiedServices: [],
+        buyerTargeting: {},
+        targets: {},
+        workflows: {},
+        swot: {},
+        googleAds: {},
+        metaAds: {},
+        seoAeo: {},
+      });
+    }
+
     // Safely query or create fallback
     let brain = null;
     let strategy = null;

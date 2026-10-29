@@ -16,6 +16,8 @@ const actionItemSchema = new mongoose.Schema({
   actionType: {
     type: String,
     enum: [
+      'CRAWL_WEBSITE',
+      'CALCULATE_ICP',
       'SCRAPE_LEADS',
       'SCALE_AD_BUDGET',
       'TRIGGER_RE_ENGAGEMENT',
