@@ -765,7 +765,7 @@ TASK:
 Accurately identify this company's exact industry and formulate their genuine GTM strategy aligned with whether it is a ${clientOfferingType !== 'UNSPECIFIED' ? clientOfferingType : 'Product or Service'}.
 CRITICAL RULES:
 1. NEVER output generic enterprise software / SaaS templates unless the site is genuinely B2B software.
-2. For luxury products (wedding invites, stationery, watches, apparel, retail, jewelry, clinics), use D2C/retail funnels, actual consumer/event decision makers (e.g. Brides & Grooms, Event Planners), and appropriate ACV/AOV.
+2. Align the growth engine, funnels, target buyer personas, ACV/AOV, and decision-maker roles strictly to whether the crawled data represents B2B enterprise, D2C consumer e-commerce, local walk-in retail/clinic, or specialized commercial services.
 3. Every single section must be 100% tailored to THIS specific business.
 4. Output strictly valid JSON matching this schema:
 
@@ -864,6 +864,18 @@ CRITICAL RULES:
     "buyerSearchKeywords": ["5 exact search queries to discover real prospective buyers in any city"],
     "buyerPersonas": ["4 exact job titles or roles who buy this"],
     "targetCompanyTypes": ["3 types of businesses, agencies, or individuals who purchase this"]
+  },
+  "recommendedAITeam": {
+    "coreBottleneckSolved": "The single primary operational or growth bottleneck this AI workforce eliminates for this business",
+    "estimatedMonthlyROI": "Projected ROI multiple or revenue impact metric",
+    "recommendedPlan": "Enterprise Autonomous Growth & Operations Mode",
+    "teamMembers": [
+      {
+        "role": "Specific AI Agent Title tailored to this business",
+        "purpose": "Exact operational workflow this agent executes for this company",
+        "monthlyEquivalentValue": "$3,500/mo Human Equivalent Value"
+      }
+    ]
   }
 }`;
 
@@ -872,19 +884,22 @@ CRITICAL RULES:
         systemInstruction: 'You are an elite Autonomous Chief Revenue Officer and Agency Partner. Output strictly valid JSON.',
         jsonResponse: true,
         temperature: 0.2,
-        timeoutMs: 12000,
+        timeoutMs: 30000,
       });
 
       if (llmResult?.parsedJson && llmResult.parsedJson.category) {
         console.log(`[ScannerService] Successfully synthesized bespoke GTM strategy using LLM (${llmResult.provider}/${llmResult.model}) for ${extractedData.businessName}`);
         return this.enrichLlmStrategyWithBlueprint(llmResult.parsedJson, extractedData, workspaceContext);
       }
-    } catch (llmErr) {
-      console.warn('[ScannerService] LLM Gateway strategy synthesis fallback:', llmErr.message);
-    }
 
-    // High-Accuracy Deep Semantic Analytical Engine fallback
-    return this.generateDeepSemanticStrategy(extractedData, workspaceContext);
+      const failMsg = llmResult?.error || 'AI did not return structured strategy data';
+      throw new Error(`AI Service Unavailable: Unable to synthesize Go-To-Market strategy for "${clientBizName}". Reason: ${failMsg}. Please check your Gemini API key or quota.`);
+    } catch (llmErr) {
+      console.error('[ScannerService] AI Strategy Synthesis Error:', llmErr.message);
+      throw new Error(llmErr.message.startsWith('AI Service Unavailable')
+        ? llmErr.message
+        : `AI Service Unavailable: Failed to synthesize strategy with AI. Reason: ${llmErr.message}. Please check your Gemini API key or quota.`);
+    }
   }
 
   /**
@@ -927,7 +942,15 @@ CRITICAL RULES:
 
     const recommendedChannels = this.buildTailoredChannels(category);
     const adAngles = this.buildBespokeAdAngles(name, industryProfile, extractedData);
-    const recommendedAITeam = this.buildAITeamArchitecture(category, name, extractedData);
+    const recommendedAITeam = (llmResult.recommendedAITeam?.teamMembers?.length > 0)
+      ? {
+          roles: llmResult.recommendedAITeam.teamMembers.map((m) => `${m.role}: ${m.purpose}`),
+          teamMembers: llmResult.recommendedAITeam.teamMembers,
+          estimatedMonthlyROI: llmResult.recommendedAITeam.estimatedMonthlyROI || '5.8x – 10.4x Qualified Pipeline ROI',
+          recommendedPlan: llmResult.recommendedAITeam.recommendedPlan || 'Enterprise Autonomous Growth Mode',
+          coreBottleneckSolved: llmResult.recommendedAITeam.coreBottleneckSolved || `Accelerating revenue growth and operational velocity for ${name}`,
+        }
+      : this.buildAITeamArchitecture(category, name, extractedData);
     const stepByStepRoadmap = this.buildStepByStepRoadmap(name, industryProfile, targetAudience);
 
     const businessPlanDocument = this.buildFullBusinessPlanDocument({
@@ -972,14 +995,12 @@ CRITICAL RULES:
         : ['Immediate need', 'Quality upgrade', 'Special milestone requirement'],
     };
 
-    const categoryLower = (category || '').toLowerCase();
-    const isD2C = /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear|invit|wedding|stationery/i.test(categoryLower) ||
-                  /d2c|ecommerce/i.test(bespokeTaxonomy.businessModel || '');
-    const isWholesaleAndRetail = /wholesale|distributor/i.test(categoryLower) && /retail|direct|consumer/i.test(categoryLower);
-    
     let growthEngine = llmResult.growthEngine;
     if (!growthEngine || !['OUTBOUND_B2B', 'PAID_ADS_D2C', 'HYBRID', 'LOCAL_SEO_MAPS'].includes(growthEngine)) {
-      growthEngine = isWholesaleAndRetail ? 'HYBRID' : (isD2C ? 'PAID_ADS_D2C' : 'OUTBOUND_B2B');
+      const categoryLower = (category || '').toLowerCase();
+      const isConsumerCommerce = /ecommerce|retail|store|consumer|d2c/i.test(categoryLower) ||
+                                /d2c|ecommerce/i.test(llmResult.businessModel || '');
+      growthEngine = isConsumerCommerce ? 'PAID_ADS_D2C' : 'OUTBOUND_B2B';
     }
 
     const swotAnalysis = (llmResult.swotAnalysis && llmResult.swotAnalysis.strengths?.length > 0)
@@ -1062,643 +1083,18 @@ CRITICAL RULES:
    * pricing, and features to build a genuine, 100% bespoke GTM Blueprint and Business Plan Document.
    */
   static generateDeepSemanticStrategy(data, workspaceContext = {}) {
-    const name = data.businessName || 'Enterprise';
-    const domain = data.domainName || '';
-
-    // Collect all substantive textual tokens from all crawled pages
-    const corpus = [
-      data.title,
-      data.metaDescription,
-      (data.h1List || []).join(' '),
-      (data.h2List || []).join(' '),
-      (data.detectedFeatures || []).join(' '),
-      (data.keyParagraphs || []).join(' '),
-      domain,
-    ]
-      .join(' ')
-      .toLowerCase();
-
-    // 1. Granular Industry Classifier (Over 20 distinct industry verticals)
-    const industryProfile = this.classifyIndustryVertical(corpus, data);
-
-    // 2. Extract or Synthesize Authentic Value Proposition from Crawled Headings
-    const primaryHeading = (data.h1List && data.h1List[0]) || data.title || `${name} Platform`;
-    const secondaryHeading = (data.h2List && data.h2List[0]) || '';
-    // Clean and sanitize any extracted features (reject code garbage or minified tokens)
-    const cleanOffering = (str) => {
-      if (!str || typeof str !== 'string') return null;
-      const t = str.trim();
-      if (t.length < 10 || t.length > 200) return null;
-      if (/[{}<>()\[\];=]/.test(t)) return null;
-      // Reject CSS class attribute strings (Tailwind / Bootstrap / CSS utilities)
-      if (/\b(bg-|text-|border-|flex|grid|p-|m-|px-|py-|mx-|my-|rounded|hover:|focus:|items-|justify-|shadow-|font-|w-|h-|space-|transition-|inline-flex|col-|sm:|md:|lg:|xl:)\b/i.test(t)) {
-        const cssMatches = t.match(/\b(bg-|text-|border-|flex|grid|p-|m-|px-|py-|mx-|my-|rounded|hover:|focus:|items-|justify-|shadow-|font-|w-|h-|space-|transition-|inline-flex)[a-z0-9\-]+/gi) || [];
-        if (cssMatches.length >= 2) return null;
-      }
-      if (/javascript:|throw new|window\[|delete |stopPropagation|preventDefault|break;case|ReadonlyURLSearchParams|Server Function|Client Function|Next\.js|React|minified|webpack|animationend|className|defaultChecked|defaultValue/i.test(t)) return null;
-      const words = t.split(/\s+/).filter((w) => /^[a-zA-Z0-9'’–—\-]+$/.test(w));
-      if (words.length < 3) return null;
-      return t;
-    };
-    const cleanFeatures = (data.detectedFeatures || []).map(cleanOffering).filter(Boolean);
-    const featureSample = cleanFeatures.slice(0, 8);
-
-    // Synthesize What the Business Actually Sells & Discovered Core Offerings via BusinessTaxonomyBrain
-    const bespokeTaxonomy = BusinessTaxonomyBrain.generateBespokeIntelligence(data);
-
-    let whatTheySell = bespokeTaxonomy.whatTheySell;
-    let coreOfferings = featureSample.length >= 3 ? featureSample : bespokeTaxonomy.coreOfferings;
-
-    if (featureSample.length > 0) {
-      coreOfferings = featureSample;
-    } else if (bespokeTaxonomy.coreOfferings?.length > 0) {
-      coreOfferings = bespokeTaxonomy.coreOfferings;
-    }
-
-    if (data.metaDescription && data.metaDescription.length > 25) {
-      whatTheySell = data.metaDescription;
-    } else if (data.h1List && data.h1List[0]) {
-      whatTheySell = `${name} is an established provider specializing in ${data.h1List[0]}.`;
-    }
-
-    const coreValueProp = data.metaDescription && data.metaDescription.length > 40
-      ? data.metaDescription
-      : whatTheySell;
-
-    const unfairAdvantage = coreOfferings.length > 0
-      ? `Combines ${coreOfferings[0].toLowerCase()} with ${coreOfferings[1] ? coreOfferings[1].toLowerCase() : 'enterprise-grade automated workflows'} to deliver measurable customer ROI from day one.`
-      : `Differentiated ${industryProfile.category} architecture delivering proprietary performance benchmarks and automated operational scaling.`;
-
-    const keyDifferentiators = coreOfferings;
-
-    // 3. Realistic Pricing Model Discovery
-    const detectedPricing = data.detectedPricing || [];
-    let pricingSummary = 'Tiered Subscription Model (Self-Serve + Enterprise Quote)';
-    let estimatedACV = '$6,000 – $36,000 / year';
-
-    if (detectedPricing.some((p) => /\/mo|\/month|\$\d+/i.test(p))) {
-      pricingSummary = `Discovered Pricing: ${detectedPricing.slice(0, 3).join(', ')}`;
-    }
-    if (industryProfile.category.includes('Enterprise') || industryProfile.category.includes('Security') || industryProfile.category.includes('Infrastructure') || isPqcSecurity) {
-      estimatedACV = '$25,000 – $150,000 / year (Enterprise Tier)';
-    } else if (isChitFund) {
-      estimatedACV = '₹50,000 – ₹5,00,000 Chit Scheme Value';
-    } else if (isEcom) {
-      estimatedACV = '$45 – $250 Average Order Value (AOV)';
-    }
-
-    // 4. Bespoke ICP Matrix
-    const targetAudience = {
-      primaryPersona: bespokeTaxonomy.targetAudience?.primaryPersona || industryProfile.primaryPersona,
-      painPoints: bespokeTaxonomy.targetAudience?.painPoints || industryProfile.painPoints,
-      decisionMakers: bespokeTaxonomy.targetAudience?.decisionMakers || industryProfile.decisionMakers,
-      buyingTriggers: bespokeTaxonomy.targetAudience?.buyingTriggers || industryProfile.buyingTriggers,
-      estimatedBudgetTier: industryProfile.estimatedBudgetTier,
-      estimatedACV: bespokeTaxonomy.targetAudience?.typicalACV || estimatedACV,
-      pricingSummary,
-    };
-
-    // 5. Recommended Channel Switchboard
-    const recommendedChannels = this.buildTailoredChannels(industryProfile.category);
-
-    // 6. High-Converting Copy Angles using actual product tokens
-    const adAngles = this.buildBespokeAdAngles(name, industryProfile, data);
-
-    // 7. Tailored AI Agent C-Suite Team
-    const recommendedAITeam = this.buildAITeamArchitecture(industryProfile.category, name, data);
-
-    // 8. 30-Day Step-by-Step Launch Blueprint with VYUHOX
-    const stepByStepRoadmap = this.buildStepByStepRoadmap(name, industryProfile, targetAudience);
-
-    // 9. Comprehensive Business Plan Document
-    const businessPlanDocument = this.buildFullBusinessPlanDocument({
-      name,
-      url: data.url,
-      domain,
-      category: industryProfile.category,
-      summary: coreValueProp,
-      targetAudience,
-      positioning: {
-        whatTheySell,
-        coreOfferings,
-        coreValueProp,
-        unfairAdvantage,
-        keyDifferentiators,
-      },
-      recommendedChannels,
-      adAngles,
-      recommendedAITeam,
-      stepByStepRoadmap,
-      features: data.detectedFeatures || [],
-      techStack: data.detectedTech || [],
-      pagesCrawledCount: (data.pagesCrawled || []).length,
-    });
-
-    const identifiedServices = (coreOfferings || []).map((item, idx) => {
-      const isObj = typeof item === 'object' && item !== null;
-      const nameStr = isObj ? item.name || 'Core Solution' : item;
-      return {
-        name: nameStr,
-        description: isObj && item.description ? item.description : `Verified ${nameStr} engineered specifically for target buyer operational requirements.`,
-        category: isObj && item.category ? item.category : 'Primary Offering',
-        deliverable: isObj && item.deliverable ? item.deliverable : 'Complete end-to-end execution',
-      };
-    });
-
-    const categoryName = bespokeTaxonomy.category || industryProfile.category || 'Specialized Enterprise';
-    const primaryPersona = targetAudience.primaryPersona || 'Direct Decision Makers & Buyers';
-    const decisionMakers = (targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0)
-      ? targetAudience.decisionMakers
-      : [primaryPersona];
-
-    const buyerTargeting = {
-      whoWillBuy: primaryPersona,
-      whoCanBuy: `${categoryName} customers, buyers, and organizations with active purchasing authority and budget`,
-      toWhomToSell: decisionMakers,
-      whoWillBeInterested: `${categoryName} decision-makers, evaluators, and planning teams`,
-      buyingTriggers: targetAudience.buyingTriggers && targetAudience.buyingTriggers.length > 0
-        ? targetAudience.buyingTriggers
-        : ['Immediate need for quality solution', 'Strategic upgrade requirement', 'Urgent operational milestone'],
-    };
-
-    const semanticCategory = (categoryName).toLowerCase();
-    const isSemanticD2C = /d2c|ecommerce|e-commerce|retail|fashion|consumer|apparel|watch|jewel|luxury|clothing|footwear|invit|stationery|clinic|patient/i.test(semanticCategory) ||
-                          /d2c|ecommerce|consumer/i.test(bespokeTaxonomy.businessModel || '');
-    const isSemanticHybrid = /wholesale|distributor/i.test(semanticCategory) && /retail|direct|consumer/i.test(semanticCategory);
-    const semanticGrowthEngine = isSemanticHybrid ? 'HYBRID' : (isSemanticD2C ? 'PAID_ADS_D2C' : 'OUTBOUND_B2B');
-
-    return {
-      businessName: name,
-      websiteUrl: data.url,
-      category: bespokeTaxonomy.category || industryProfile.category,
-      growthEngine: semanticGrowthEngine,
-      categoryKey: bespokeTaxonomy.categoryKey,
-      businessModel: bespokeTaxonomy.businessModel,
-      businessModelType: bespokeTaxonomy.businessModelType || 'ONLINE',
-      summary: coreValueProp,
-      whatTheySell,
-      coreOfferings,
-      identifiedServices,
-      buyerTargeting,
-      positioning: {
-        whatTheySell,
-        coreOfferings,
-        coreValueProp,
-        unfairAdvantage,
-        keyDifferentiators,
-      },
-      targetAudience,
-      swotAnalysis: bespokeTaxonomy.swotAnalysis,
-      companyCreationStrategy: bespokeTaxonomy.companyCreationStrategy,
-      companyManagementStrategy: bespokeTaxonomy.companyManagementStrategy,
-      offlineStrategy: bespokeTaxonomy.offlineStrategy,
-      onlineStrategy: bespokeTaxonomy.onlineStrategy,
-      businessWorkflow: bespokeTaxonomy.businessWorkflow,
-      businessRequiredTeam: bespokeTaxonomy.businessRequiredTeam,
-      businessTargets: bespokeTaxonomy.businessTargets,
-      googleAdsCampaigns: bespokeTaxonomy.googleAdsCampaigns,
-      metaAdsCampaigns: bespokeTaxonomy.metaAdsCampaigns,
-      seoStrategy: bespokeTaxonomy.seoStrategy,
-      aeoStrategy: bespokeTaxonomy.aeoStrategy,
-      socialPostingPerPlatform: bespokeTaxonomy.socialPostingPerPlatform,
-      creativeAdStrategies: bespokeTaxonomy.creativeAdStrategies || [],
-      recommendedChannels,
-      adAngles,
-      recommendedAITeam,
-      stepByStepRoadmap,
-      businessPlanDocument,
-      rawExtractedData: {
-        featuresCount: (data.detectedFeatures || []).length,
-        pricingSignals: data.detectedPricing || [],
-        pagesCrawled: data.pagesCrawled || [],
-        detectedTech: data.detectedTech || [],
-        scannedTabs: data.scannedTabs || [],
-        scannedImages: data.scannedImages || [],
-        scannedProducts: data.scannedProducts || [],
-        scannedLinks: data.scannedLinks || [],
-        isSpa: !!data.isSpa,
-        isLiveCrawl: data.isLiveCrawl !== false,
-      },
-    };
+    throw new Error('AI Service Unavailable: Hardcoded fallback strategy generation is permanently disabled. Go-To-Market strategies must be synthesized directly via Gemini AI or loaded from MongoDB.');
   }
 
-  /**
-   * Classify into 20+ granular industry taxonomies with tailored personas & pain points
-   */
   static classifyIndustryVertical(text, data) {
-    if (data?.inferredCategory) {
-      if (data.inferredCategory.includes('Chit Fund')) {
-        return {
-          category: data.inferredCategory,
-          primaryPersona: 'Local Business Proprietors, Salaried Professionals, Self-Employed Individuals & Families Seeking High-Yield Savings & Working Capital',
-          decisionMakers: ['Business Proprietors', 'Family Financial Decision Makers', 'Individual Savers', 'SME Directors'],
-          painPoints: [
-            'Bank loan rejection or tedious paperwork for urgent working capital and emergency funding',
-            'Low bank fixed-deposit returns that fail to beat inflation and living expenses',
-            'Need for trusted, regulated monthly savings pools with transparent dividend distributions',
-            'Lack of flexible collateral-free credit for local merchants and business expansion',
-          ],
-          buyingTriggers: [
-            'New monthly savings discipline requirement',
-            'Urgent working capital requirement for seasonal inventory or family milestones',
-            'Upcoming business expansion, medical, or education funding need',
-          ],
-          estimatedBudgetTier: '₹25,000 – ₹10,00,000 Chit Pool Value (Flexible Monthly Instalments)',
-        };
-      }
-      return {
-        category: data.inferredCategory,
-        primaryPersona: 'Regional Consumers, Business Clients & Local Decision Makers',
-        decisionMakers: ['Business Owner', 'Managing Director', 'Household Financial Head'],
-        painPoints: ['Slow local response times', 'Uncertainty regarding service quality', 'Lack of transparent quotes'],
-        buyingTriggers: ['Urgent local need', 'Direct word-of-mouth recommendation', 'Seasonal service demand'],
-        estimatedBudgetTier: 'Flexible Local Rate / Direct Pricing',
-      };
-    }
-
-    const scores = {
-      chit_funds_finance: 0,
-      local_services_smb: 0,
-      cybersecurity_pqc: 0,
-      ecommerce: 0,
-      devtools: 0,
-      cybersecurity: 0,
-      fintech_web3: 0,
-      healthcare: 0,
-      hrtech: 0,
-      logistics: 0,
-      realestate: 0,
-      agency: 0,
-      b2b_saas: 1, // baseline
-    };
-
-    // Chit Funds, Micro-Savings & Community Credit
-    if (/(chit\s*funds?|chit\s*scheme|auction\s*chit|chitty|microfinance|gold\s*loan|credit\s*society|nbfc|bishi\s*scheme|committee\s*scheme|savings\s*pool)/i.test(text)) {
-      scores.chit_funds_finance += 25;
-    }
-
-    // Local Services, SMB & Regional Commerce
-    if (/(car\s*wash|plumbing|electrician|cleaning\s*service|salon|\b(day\s*spa|wellness\s*spa|massage\s*spa|beauty\s*spa)\b|car\s*repair|auto\s*repair|mechanic|tailor|catering|event\s*planner|contractor|carpenter|local\s*business|retail\s*store|sweet\s*shop|bakery|restaurant|cafe)/i.test(text)) {
-      scores.local_services_smb += 15;
-    }
-
-    // Post-Quantum Cryptography (PQC), Cryptographic Inventory & Quantum Readiness
-    if (/(post-quantum|pqc|quantum\s*shield|quantum\s*readiness|cryptograph|crqc|fips\s*(203|204|205)|nist\s*(pqc|post-quantum)|ast\s*inspection|cbom|cryptographic\s*inventory|harvest\s*now\s*decrypt\s*later|hndl|ml-kem|ml-dsa|slh-dsa)/i.test(text)) {
-      scores.cybersecurity_pqc += 40;
-      scores.local_services_smb = 0; // PQC cannot be a local car wash or salon
-    }
-
-    // E-Commerce, Luxury Watches, Fashion & Consumer Goods
-    if (/(watch|watches|wrist\s*watch|chronograph|automatic\s*watch|leather\s*strap|horology|timepiece|timepieces|mens\s*watches|womens\s*watches)/i.test(text)) {
-      scores.ecommerce += 25;
-    }
-    if (/(apparel|clothing|shoes|outfit|workout\s*clothes|gym\s*clothes|activewear|hoodie|leggings|tees|fashion|jewelry|cosmetics|skincare|perfume|handbag|eyewear|sunglasses|luxury\s*brand|designer\s*collection|menswear|womenswear)/i.test(text)) {
-      scores.ecommerce += 15;
-    }
-    if (/(add to cart|bag|basket|free shipping|discount code|order tracking|checkout|shopify|storefront|return policy|buy now|shop now|in stock|product details|sale\s*price|wishlist)/i.test(text)) {
-      scores.ecommerce += 10;
-    }
-
-    // Cross-Border Trade & Import/Export
-    if (/(import\s*export|cross-border\s*trade|customs\s*clearance|freight\s*forward|bilateral\s*trade|international\s*sourcing|hs\s*code|port\s*logistics|ocean\s*cargo|export\s*house|merchant\s*exporter)/i.test(text)) {
-      scores.logistics += 20;
-    }
-
-    // Developer Tools & Cloud Infrastructure
-    if (/(developer\s*(api|tools|platform|sdk)|api\s*(documentation|reference|endpoints|gateway)|graphql\s*api|postgres|database\s*cluster|kubernetes|docker\s*container|devops\s*pipeline|ci\/cd|sdk\s*for|code\s*editor|github\s*action)/i.test(text)) scores.devtools += 8;
-    if (/(latency|throughput|endpoints|microservices|serverless|cloud\s*infrastructure)/i.test(text)) scores.devtools += 3;
-
-    // Cybersecurity & RegTech (general compliance)
-    if (/(soc2|soc\s*2|hipaa\s*compliance|iso\s*27001|vulnerability\s*scanner|penetration\s*testing|zero-trust|iam\s*identity|firewall|endpoint\s*protection|governance\s*risk)/i.test(text)) scores.cybersecurity += 8;
-
-    // Fintech, Web3 & Payments (ensure standard e-com checkout buttons don't falsely trigger fintech!)
-    if (/\b(cryptocurrency|crypto\s*(asset|trading|exchange|token|wallet|fund|market|liquidity))\b|web3|blockchain|solana|ethereum|\btoken\b|defi|otc\s*trading|dex|liquidity\s*pool|yield\s*farming|staking|custody/i.test(text)) {
-      if (!/cryptograph|pqc|post-quantum/i.test(text) || /\b(trading|token|solana|ethereum|dex)\b/i.test(text)) {
-        scores.fintech_web3 += 8;
-      }
-    }
-    if (scores.ecommerce === 0 && /(payment\s*gateway|accept\s*payments|money\s*movement|billing\s*engine|financial\s*infrastructure|merchant\s*account|cross-border\s*payout)/i.test(text)) {
-      scores.fintech_web3 += 7;
-    }
-
-    // Healthcare
-    if (/(patient|telehealth|telemedicine|clinical\s*trials|ehr|emr|medical\s*practice|doctor|hospital|healthcare|hipaa\s*compliant\s*care)/i.test(text)) scores.healthcare += 8;
-
-    // HRTech
-    if (/(recruiting|applicant\s*tracking|ats|talent\s*acquisition|payroll|hris|onboarding\s*employees|headcount\s*planning)/i.test(text)) scores.hrtech += 8;
-
-    // Supply Chain & Logistics
-    if (/(freight|shipping\s*carrier|warehouse\s*management|fleet\s*tracking|supply\s*chain|cargo|logistics\s*operations|trucking)/i.test(text)) scores.logistics += 8;
-
-    // Real Estate & PropTech
-    if (/(real\s*estate|property\s*management|brokerage|mls\s*listings|commercial\s*leasing|realtor|tenant\s*portal)/i.test(text)) scores.realestate += 8;
-
-    // Agency
-    if (/(marketing\s*agency|creative\s*agency|design\s*studio|client\s*retainer|branding\s*agency|consultancy)/i.test(text)) scores.agency += 7;
-
-    // Find highest category
-    let bestCat = 'b2b_saas';
-    let maxScore = 0;
-    for (const [cat, val] of Object.entries(scores)) {
-      if (val > maxScore) {
-        maxScore = val;
-        bestCat = cat;
-      }
-    }
-
-    if (bestCat === 'chit_funds_finance') {
-      return {
-        category: 'Financial Services, Chit Funds & Micro-Savings Collective',
-        primaryPersona: 'Local Business Proprietors, Salaried Professionals, Self-Employed Individuals & Families Seeking High-Yield Savings & Working Capital',
-        decisionMakers: ['Business Proprietors', 'Family Financial Decision Makers', 'Individual Savers', 'SME Directors'],
-        painPoints: [
-          'Bank loan rejection or tedious paperwork for urgent working capital and emergency funding',
-          'Low bank fixed-deposit returns that fail to beat inflation and living expenses',
-          'Need for trusted, regulated monthly savings pools with transparent dividend distributions',
-          'Lack of flexible collateral-free credit for local merchants and business expansion',
-        ],
-        buyingTriggers: [
-          'New monthly savings discipline requirement',
-          'Urgent working capital requirement for seasonal inventory or family milestones',
-          'Upcoming business expansion, medical, or education funding need',
-        ],
-        estimatedBudgetTier: '₹25,000 – ₹10,00,000 Chit Pool Value (Flexible Monthly Instalments)',
-      };
-    }
-
-    if (bestCat === 'local_services_smb') {
-      return {
-        category: 'Local Services, SMB & Regional Commerce',
-        primaryPersona: 'Regional Consumers, Commercial Clients & Local Decision Makers',
-        decisionMakers: ['Business Owner', 'Managing Director', 'Household Financial Head'],
-        painPoints: [
-          'Unreliable response times and inconsistent quality from unverified service providers',
-          'Lack of upfront transparent pricing and formal service warranties',
-          'Inability to easily book and confirm appointments via mobile or WhatsApp',
-        ],
-        buyingTriggers: ['Immediate local repair/service need', 'Relocation or renovation event', 'Word-of-mouth referral'],
-        estimatedBudgetTier: 'Flexible Local Rate / Per-Service Pricing',
-      };
-    }
-
-    if (bestCat === 'cybersecurity_pqc') {
-      return {
-        category: 'Cybersecurity, Post-Quantum Cryptography (PQC) & Application Security',
-        primaryPersona: 'Chief Information Security Officers (CISOs), VP of Application Security & Cryptographic Compliance Architects',
-        decisionMakers: [
-          'Chief Information Security Officer (CISO)',
-          'Chief Technology Officer (CTO)',
-          'Head of Application Security (AppSec)',
-          'Principal Cryptographer & Enterprise Architect',
-        ],
-        painPoints: [
-          'Harvest-Now-Decrypt-Later (HNDL) attacks where adversaries intercept and store encrypted enterprise data today for quantum decryption',
-          'Upcoming NIST FIPS 203/204/205 standardization mandates and CNSA 2.0 migration deadlines without visibility into legacy codebases',
-          'Manual, error-prone cryptographic discovery across microservices, repositories, and third-party dependencies without automated AST inspection',
-          'High risk of production latency spikes or failed cryptographic interoperability during algorithmic migration to post-quantum standards',
-        ],
-        buyingTriggers: [
-          'NIST FIPS 203/204/205 standards finalization',
-          'Annual enterprise cryptographic audit and board-level quantum risk inquiry',
-          'CNSA 2.0 government and defense contractor compliance deadline',
-          'Customer-mandated post-quantum readiness vendor assessment',
-        ],
-        estimatedBudgetTier: '$25,000 – $150,000 / year (Enterprise Security Tier)',
-      };
-    }
-
-    if (bestCat === 'ecommerce') {
-      const isInvitationsOrStationery = /(invit(e|ation)|wedding|stationery|save\s*the\s*date|boxed\s*cards?|foil\s*print|monogram|wax\s*seal)/i.test(text);
-      if (isInvitationsOrStationery) {
-        return {
-          category: 'Luxury Wedding Invitations, Bespoke Stationery & Event Branding',
-          primaryPersona: 'Brides, Grooms, Affluent Families & Luxury Event Planners',
-          decisionMakers: ['Bride & Groom', 'Family Milestone Decision Makers', 'Luxury Wedding & Event Planners', 'Corporate HR / VIP Gifting Managers'],
-          painPoints: [
-            'Generic, cheap invitation templates that fail to convey the prestige of the event',
-            'Delayed printing and poor paper stock quality ruining wedding countdown timelines',
-            'Friction managing RSVP responses and coordinating guest stationery across multiple ceremonies',
-          ],
-          buyingTriggers: [
-            'Confirmed wedding date & venue booking',
-            'Family engagement announcement',
-            'High-profile corporate anniversary or annual gala celebration',
-          ],
-          estimatedBudgetTier: '₹25,000 – ₹2,50,000 / event ($350 – $3,500 AOV)',
-        };
-      }
-
-      const isWatchesOrLuxury = /(watch|watches|wrist\s*watch|chronograph|horology|timepiece|luxury\s*brand|leather\s*strap)/i.test(text);
-      return {
-        category: isWatchesOrLuxury ? 'D2C Luxury E-Commerce & Designer Timepieces' : 'D2C E-Commerce & Retail Brands',
-        primaryPersona: isWatchesOrLuxury
-          ? 'Luxury Watch Buyers, High-Net-Worth Collectors, Executive Professionals & Premium Gift Seekers'
-          : 'E-Commerce Brand Founders, VP of Growth & Chief Marketing Officers',
-        decisionMakers: isWatchesOrLuxury
-          ? ['Individual Luxury Buyer', 'Collectors', 'Executive Gift Buyers']
-          : ['Brand Founder', 'Chief Marketing Officer', 'Head of Performance Media'],
-        painPoints: isWatchesOrLuxury
-          ? [
-              'Fear of counterfeit or gray-market luxury timepieces without verified manufacturer warranty',
-              'Lack of local boutique availability for exclusive international designer horology editions',
-              'High cross-border customs duties, slow overseas delivery, and transit damage risks',
-              'Lack of transparent post-sales servicing, warranty registration, and strap adjustment support',
-            ]
-          : [
-              'Rising Meta and TikTok ad CPMs eroding net profit margins and ROAS below 2.0x',
-              'High cart abandonment (70%+) without immediate conversational recovery on WhatsApp/SMS',
-              'Low 90-day repeat purchase rate leading to unsustainable reliance on cold traffic',
-            ],
-        buyingTriggers: isWatchesOrLuxury
-          ? ['Career milestones & promotions', 'Exclusive luxury watch drops & seasonal releases', 'Luxury gifting for weddings & festivals']
-          : ['Q4 holiday season scale', 'Product collection drop', 'Declining blended ROAS'],
-        estimatedBudgetTier: isWatchesOrLuxury ? '₹15,000 – ₹5,00,000+ Average Order Value (AOV)' : '$5,000 – $35,000 / month ad allocation',
-      };
-    }
-
-    if (bestCat === 'fintech_web3') {
-      return {
-        category: 'Fintech, Payments & Web3 Infrastructure',
-        primaryPersona: 'Fintech Founders, VP of Payments & Institutional Allocators',
-        decisionMakers: ['Chief Executive Officer', 'Head of Payments', 'Chief Investment Officer (CIO)'],
-        painPoints: [
-          'High compliance friction when vetting and onboarding institutional counterparties',
-          'Payment gateway authorization drop-offs and high chargeback/fraud rates',
-          'Time-sensitive liquidity and investor introduction opportunities missed due to slow manual relationship building',
-        ],
-        buyingTriggers: ['New liquidity pool launch', 'Payment rail upgrade', 'Fund allocation cycle'],
-        estimatedBudgetTier: '$20,000 – $100,000 / month',
-      };
-    }
-
-    if (bestCat === 'devtools') {
-      return {
-        category: 'Developer Tools & Cloud Infrastructure',
-        primaryPersona: 'VP of Engineering, Chief Technology Officer (CTO) & Lead DevOps Architects',
-        decisionMakers: ['Chief Technology Officer', 'VP of Engineering', 'Head of Platform Infrastructure'],
-        painPoints: [
-          'High API latency and complex infrastructure maintenance burning senior engineering cycles',
-          'Developer onboarding friction and outdated documentation causing POC abandonments',
-          'Scaling bottlenecks and unpredictable cloud compute overage invoices',
-        ],
-        buyingTriggers: ['Infrastructure outages', 'Series A/B hiring scale', 'New microservice launch'],
-        estimatedBudgetTier: '$8,000 – $40,000 / month',
-      };
-    }
-
-    if (bestCat === 'cybersecurity') {
-      return {
-        category: 'Cybersecurity & Governance RegTech',
-        primaryPersona: 'Chief Information Security Officers (CISOs) & VP of Compliance',
-        decisionMakers: ['CISO', 'Chief Information Officer (CIO)', 'Head of IT & Security Governance'],
-        painPoints: [
-          'Enterprise deal blockades due to manual vendor security assessments and 60-day audit cycles',
-          'Zero-day vulnerability blind spots across sprawling third-party SaaS vendors',
-          'Severe regulatory penalties and brand reputation risk from potential data leaks',
-        ],
-        buyingTriggers: ['Upcoming SOC2/ISO audit', 'Enterprise RFP requirement', 'Security incident report'],
-        estimatedBudgetTier: '$15,000 – $60,000 / month',
-      };
-    }
-
-    if (bestCat === 'healthcare') {
-      return {
-        category: 'Healthcare & Digital Health Technology',
-        primaryPersona: 'Chief Medical Officers (CMO), Clinic Group Operators & VP of Patient Operations',
-        decisionMakers: ['Chief Medical Officer', 'VP of Clinical Operations', 'Healthcare Practice CEO'],
-        painPoints: [
-          'High patient appointment no-show rates eroding clinic utilization and hourly margins',
-          'Heavy administrative burden on clinical staff navigating disconnected EHR systems',
-          'Complex HIPAA compliance constraints limiting automated patient follow-ups',
-        ],
-        buyingTriggers: ['Clinic expansion', 'High patient churn rate', 'New telemedicine service launch'],
-        estimatedBudgetTier: '$6,000 – $30,000 / month',
-      };
-    }
-
-    if (bestCat === 'hrtech') {
-      return {
-        category: 'HRTech & Talent Acquisition Automation',
-        primaryPersona: 'VP of People, Chief Human Resources Officers (CHRO) & Head of Talent Acquisition',
-        decisionMakers: ['Chief Human Resources Officer', 'VP of People Operations', 'Head of Talent'],
-        painPoints: [
-          'Lengthy 60+ day time-to-hire cycles driving loss of elite tier-1 candidates',
-          'Recruiter burn-out conducting 40+ manual resume screenings and preliminary phone screens weekly',
-          'Poor candidate response rates on traditional InMail channels',
-        ],
-        buyingTriggers: ['Quarterly hiring surge', 'High executive turnover', 'Recruitment budget review'],
-        estimatedBudgetTier: '$5,000 – $25,000 / month',
-      };
-    }
-
-    if (bestCat === 'logistics') {
-      return {
-        category: 'Supply Chain & Freight Logistics',
-        primaryPersona: 'VP of Supply Chain, Director of Fleet Operations & Chief Logistics Officer',
-        decisionMakers: ['VP of Supply Chain', 'Chief Operating Officer (COO)', 'Director of Freight Operations'],
-        painPoints: [
-          'Lack of real-time shipment transparency and manual carrier rate negotiations',
-          'Carrier detention fees and warehouse fulfillment bottlenecks draining margins',
-          'Inability to rapidly scale spot freight quotes to shippers within 5 minutes',
-        ],
-        buyingTriggers: ['Peak shipping season', 'New warehouse facility launch', 'Carrier rate hikes'],
-        estimatedBudgetTier: '$10,000 – $50,000 / month',
-      };
-    }
-
-    if (bestCat === 'realestate') {
-      return {
-        category: 'Real Estate & PropTech Solutions',
-        primaryPersona: 'Real Estate Brokerage Owners, Managing Principals & Head of Acquisitions',
-        decisionMakers: ['Principal Broker / Owner', 'Managing Partner', 'Director of Property Acquisitions'],
-        painPoints: [
-          'Slow speed-to-lead on high-intent buyer inquiries resulting in lost listings to competitors',
-          'Manual property tour coordination and repetitive qualification calls eating agent hours',
-          'Fragmented lead flow across Zillow, MLS, and social campaigns without unified CRM tracking',
-        ],
-        buyingTriggers: ['New luxury development launch', 'Market inventory shift', 'Brokerage expansion'],
-        estimatedBudgetTier: '$4,000 – $20,000 / month',
-      };
-    }
-
-    if (bestCat === 'agency') {
-      return {
-        category: 'Digital Agency & Professional Marketing Services',
-        primaryPersona: 'Agency Owners, Managing Directors & Head of Client Accounts',
-        decisionMakers: ['Agency Principal / Founder', 'Managing Director', 'VP of Client Operations'],
-        painPoints: [
-          'Feast-or-famine client acquisition cycles creating cash flow volatility and unbilled bench hours',
-          'Manual outbound prospecting taking leadership time away from delivering client work',
-          'High client churn after month 3 due to lack of transparent automated ROI reporting',
-        ],
-        buyingTriggers: ['Losing a key retainer account', 'Hiring new account managers', 'Year-end growth targets'],
-        estimatedBudgetTier: '$3,000 – $18,000 / month',
-      };
-    }
-
-    // Default High-Value B2B SaaS
-    return {
-      category: 'B2B Enterprise SaaS & Workflow Automation',
-      primaryPersona: 'Chief Revenue Officers (CRO), VP of Sales & VP of Operations',
-      decisionMakers: ['Chief Executive Officer', 'Chief Revenue Officer', 'VP of Business Operations'],
-      painPoints: [
-        'Lengthening sales cycles and low conversion rates on outbound prospecting lists',
-        'Siloed sales and marketing operations resulting in high CAC and missed quota targets',
-        'Manual prospect qualification draining expensive account executive bandwidth',
-      ],
-      buyingTriggers: ['Quarterly revenue miss', 'New product tier release', 'Board mandate for efficient growth'],
-      estimatedBudgetTier: '$7,000 – $35,000 / month',
-    };
+    throw new Error('AI Service Unavailable: Hardcoded industry vertical classification is permanently disabled. Market classifications must be fetched from MongoDB or synthesized via Gemini AI.');
   }
 
-  /**
-   * Build tailored acquisition channel switchboard based on industry vertical
-   */
-  static buildTailoredChannels(category) {
-    const isPqc = category.includes('PQC') || category.includes('Cybersecurity');
-    const isD2C = category.includes('D2C') || category.includes('E-Commerce');
-    const isTech = category.includes('Developer') || isPqc;
-    const isWeb3 = category.includes('Web3') || category.includes('Fintech');
-
-    if (isPqc) {
-      return [
-        {
-          channel: 'Targeted CISO & AppSec Outbound (Sarah SDR)',
-          priority: 1,
-          fitScore: 99,
-          rationale: 'Direct targeted inbox penetration with personalized cryptographic audit & NIST FIPS compliance briefings.',
-          enabled: true,
-        },
-        {
-          channel: 'Sub-Second Technical Voice Qualification (Maya AE)',
-          priority: 2,
-          fitScore: 96,
-          rationale: 'Instant qualification within 45 seconds of security whitepaper download or demo request.',
-          enabled: true,
-        },
-        {
-          channel: 'LinkedIn ABM Campaign (VP AppSec & Enterprise Architects)',
-          priority: 3,
-          fitScore: 94,
-          rationale: 'Account-Based Marketing targeting Fortune 500 security engineering leadership facing quantum migration deadlines.',
-          enabled: true,
-        },
-        {
-          channel: 'Infosec Webcasts & Technical Whitepaper Downloads',
-          priority: 4,
-          fitScore: 92,
-          rationale: 'High-intent lead generation delivering actionable AST scan reports and NIST FIPS 203/204/205 readiness checklists.',
-          enabled: true,
-        },
-        {
-          channel: 'Autonomous Paid Search (Google / CAPI)',
-          priority: 5,
-          fitScore: 88,
-          rationale: 'High-intent search capture for PQC readiness, cryptographic inventory, and FIPS migration keywords.',
-          enabled: true,
-        },
-      ];
-    }
+  static buildTailoredChannels(category = '') {
+    const catLower = (category || '').toLowerCase();
+    const isD2C = /d2c|ecommerce|retail|store|consumer/i.test(catLower);
+    const isTech = /software|saas|developer|cloud|security|devops/i.test(catLower);
+    const isWeb3 = /web3|crypto|fintech|blockchain/i.test(catLower);
 
     return [
       {
@@ -1780,24 +1176,6 @@ CRITICAL RULES:
    * Recommend authentic AI Workforce Team structure dynamically allocated to the company
    */
   static buildAITeamArchitecture(category, name, crawledData = {}) {
-    const isPqc = (category || '').includes('PQC') || (category || '').includes('Post-Quantum');
-    if (isPqc) {
-      const roles = [
-        { role: 'AI CISO Strategist (Vigil)', purpose: `Maps NIST FIPS 203/204/205 compliance standards and crafts executive risk assessments for ${name}` },
-        { role: 'AI Security SDR (Sarah)', purpose: `Runs targeted outbound prospecting across enterprise CISOs and VP of AppSec for ${name}` },
-        { role: 'AI Technical Closer (Maya)', purpose: 'Conducts sub-second conversational security qualification on inbound demo requests' },
-        { role: 'AI Security CMO (Sophia)', purpose: 'Authors cryptographic migration whitepapers and orchestrates targeted ABM campaigns' },
-        { role: 'AI Security CFO (Julian)', purpose: 'Analyzes enterprise ACV, multi-year contracts, and safeguards security sales margins' },
-      ];
-      return {
-        roles: roles.map((r) => `${r.role}: ${r.purpose}`),
-        teamMembers: roles,
-        estimatedMonthlyROI: '6.8x – 11.2x Enterprise Pipeline ROI',
-        recommendedPlan: 'Enterprise Autonomous Security & GTM Mode',
-        coreBottleneckSolved: 'Cryptographic quantum debt discovery & NIST algorithmic migration roadmaps',
-      };
-    }
-
     const dynamicAllocation = EmployeeRoleBrain.allocateDynamicTeam(category, null, crawledData, name);
     return {
       roles: dynamicAllocation.roles,
@@ -1975,7 +1353,7 @@ Generate a bespoke, deeply customized GTM strategy and comprehensive Business Pl
     const parsed = JSON.parse(content);
     // Ensure all critical structures exist
     if (!parsed.businessPlanDocument) {
-      return this.generateDeepSemanticStrategy(extractedData, workspaceContext);
+      throw new Error('AI Service Unavailable: OpenAI response was incomplete. Please check your API key or model.');
     }
     return parsed;
   }
@@ -1992,7 +1370,7 @@ Headings: ${(extractedData.h1List || []).join(' | ')}
 Features: ${(extractedData.detectedFeatures || []).slice(0, 10).join('; ')}
 Pricing: ${(extractedData.detectedPricing || []).join(', ')}`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2006,7 +1384,7 @@ Pricing: ${(extractedData.detectedPricing || []).join(', ')}`;
     const text = json.candidates[0].content.parts[0].text;
     const parsed = JSON.parse(text);
     if (!parsed.businessPlanDocument) {
-      return this.generateDeepSemanticStrategy(extractedData, workspaceContext);
+      throw new Error('AI Service Unavailable: Gemini response was incomplete. Please check your API key or model.');
     }
     return parsed;
   }

@@ -323,240 +323,46 @@ export class EmployeeRoleBrain {
    * Dynamically Allocates an Authentic, Tailored AI Workforce Team
    * Based on the Crawled Company's Exact Category, Offerings, and Real-World Operational Gaps
    */
-  static allocateDynamicTeam(category, businessModel, crawledData = {}, workspaceName = 'Enterprise') {
-    const cleanCategory = (category || '').toLowerCase();
-    const cleanModel = (businessModel || '').toUpperCase();
+  static allocateDynamicTeam(category = 'Commercial Solutions', businessModel = 'COMMERCIAL_ENTERPRISE', crawledData = {}, workspaceName = 'Enterprise') {
+    const cleanCategory = category || 'Commercial Solutions';
+    const cleanModel = (businessModel || 'COMMERCIAL_ENTERPRISE').toUpperCase();
     const name = workspaceName || crawledData.businessName || 'Your Business';
-    const detectedFeatures = crawledData.detectedFeatures || [];
-    const pricing = crawledData.detectedPricing || [];
 
-    // Determine primary operational archetype
-    const isHealthcare = cleanCategory.includes('dental') || cleanCategory.includes('clinic') || cleanCategory.includes('healthcare') || cleanCategory.includes('doctor');
-    const isD2C = cleanCategory.includes('apparel') || cleanCategory.includes('fashion') || cleanCategory.includes('skincare') || cleanCategory.includes('beauty') || cleanCategory.includes('clothing') || cleanCategory.includes('ecommerce');
-    const isChitFund = cleanCategory.includes('chit') || cleanCategory.includes('micro-savings') || cleanCategory.includes('finance') || cleanCategory.includes('loan');
-    const isRealEstate = cleanCategory.includes('real estate') || cleanCategory.includes('property') || cleanCategory.includes('penthouse') || cleanCategory.includes('realty');
-    const isManufacturing = cleanCategory.includes('manufacturing') || cleanCategory.includes('export') || cleanCategory.includes('import') || cleanCategory.includes('trade');
-    const isRestaurant = cleanCategory.includes('restaurant') || cleanCategory.includes('cafe') || cleanCategory.includes('dining') || cleanCategory.includes('food');
-    const isHomeServices = cleanCategory.includes('hvac') || cleanCategory.includes('contractor') || cleanCategory.includes('plumb') || cleanCategory.includes('roof');
-    const isGym = cleanCategory.includes('gym') || cleanCategory.includes('fitness') || cleanCategory.includes('wellness');
-    const isEdtech = cleanCategory.includes('edtech') || cleanCategory.includes('coaching') || cleanCategory.includes('academy') || cleanCategory.includes('course');
+    const coreBottleneckSolved = `High customer acquisition friction, manual prospect follow-up, and scaling sales velocity in ${cleanCategory}`;
+    const projectedMonthlyRoi = '5.8x – 10.4x Qualified Pipeline Return on Investment within 60 days';
 
-    let allocatedRoles = [];
-    let coreBottleneckSolved = '';
-    let projectedMonthlyRoi = '';
-
-    if (isHealthcare) {
-      coreBottleneckSolved = 'Missed phone calls during clinical hours and patient hesitation over treatment costs';
-      projectedMonthlyRoi = '₹3,50,000 – ₹8,00,000+ incremental patient lifetime value from automated show-ups & reviews';
-      allocatedRoles = [
-        {
-          roleKey: 'CLINIC_PATIENT_COORDINATOR',
-          title: 'Clinical Patient Coordinator (Maya Health)',
-          purpose: `Answers inbound appointment inquiries for ${name} within 30s, explains procedures, and locks in booked chair time.`,
-          monthlyEquivalentValue: '$3,200/mo Human Salary',
-        },
-        {
-          roleKey: 'SEO_AEO_AUTHORITY_SPECIALIST',
-          title: 'Local Clinic Authority & Google Reviews Specialist (RankMaster)',
-          purpose: `Positions ${name} as the #1 verified clinic on Google Maps and automated post-visit 5-star review sequences.`,
-          monthlyEquivalentValue: '$2,500/mo Agency Retainer',
-        },
-        {
-          roleKey: 'PAID_MEDIA_BUYER',
-          title: 'Cosmetic & Dental Lead Media Buyer (AdVance)',
-          purpose: `Scales targeted local Meta & Google Search ads specifically for high-value treatments with zero ad budget waste.`,
-          monthlyEquivalentValue: '$2,800/mo Media Buyer',
-        },
-        {
-          roleKey: 'WHATSAPP_CONVERSATIONAL_SELLER',
-          title: 'WhatsApp Treatment Plan Follow-up Concierge (Aria)',
-          purpose: `Nurtures consultation patients who hesitated, sharing before/after smiles and flexible EMI payment options.`,
-          monthlyEquivalentValue: '$1,800/mo Coordinator',
-        },
-        {
-          roleKey: 'LEAD_GROWTH_STRATEGIST',
-          title: 'Practice Revenue Strategist (Horizon)',
-          purpose: `Analyzes patient retention, treatment profitability, and optimizes pricing tiers for maximum monthly clinic revenue.`,
-          monthlyEquivalentValue: '$4,500/mo Consultant',
-        },
-      ];
-    } else if (isD2C) {
-      coreBottleneckSolved = 'Rising Meta advertising CPMs, ad creative fatigue, and high checkout cart abandonment';
-      projectedMonthlyRoi = '4.2x – 6.8x Blended ROAS & 22% direct lift in checkout cart recovery';
-      allocatedRoles = [
-        {
-          roleKey: 'VIRAL_REELS_DIRECTOR',
-          title: 'Short-Form Video & Viral Hook Director (Studio-X)',
-          purpose: `Generates 9:16 vertical video ad concepts highlighting ${name}'s unique fabric textures, styling, and unboxing appeal.`,
-          monthlyEquivalentValue: '$4,000/mo Creative Director',
-        },
-        {
-          roleKey: 'PAID_MEDIA_BUYER',
-          title: 'Autonomous Meta & Google ROAS Media Buyer (AdVance)',
-          purpose: `Executes 24/7 autonomous budget scaling, cutting fatigue adsets within 2h and scaling top-performing hooks.`,
-          monthlyEquivalentValue: '$3,500/mo Media Buyer',
-        },
-        {
-          roleKey: 'D2C_ABANDONED_CART_RECOVERY',
-          title: 'WhatsApp Instant Cart Recovery Concierge (ShopPulse)',
-          purpose: `Sends sub-15 minute conversational WhatsApp recovery messages with 1-click purchase links to shoppers who dropped off.`,
-          monthlyEquivalentValue: '$2,200/mo Retention Specialist',
-        },
-        {
-          roleKey: 'DIRECT_RESPONSE_COPYWRITER',
-          title: 'Direct-Response Ad Copywriter (CopyPulse)',
-          purpose: `Authors pattern-interrupt ad copy and urgency-driven promotional drops tailored to ${name}'s customer demographic.`,
-          monthlyEquivalentValue: '$2,800/mo Copywriter',
-        },
-        {
-          roleKey: 'CHIEF_REVENUE_OFFICER',
-          title: 'D2C Unit Economics & Margin Guardian (Julian Vance)',
-          purpose: `Monitors blended customer acquisition cost (CAC), return rates, and shipping margins to protect gross profitability.`,
-          monthlyEquivalentValue: '$5,000/mo Fractional CFO',
-        },
-      ];
-    } else if (isChitFund) {
-      coreBottleneckSolved = 'Explaining state regulatory safety to new savers and managing manual monthly auction notifications';
-      projectedMonthlyRoi = '₹15,00,000 – ₹50,00,000+ monthly scheme subscriptions pool growth with zero collection delays';
-      allocatedRoles = [
-        {
-          roleKey: 'CHIT_FUND_SCHEME_ADMINISTRATOR',
-          title: 'Regulated Chit Scheme Administrator (ChitFlow)',
-          purpose: `Educates prospective subscribers on ${name}'s 100% RBI & State Chit Fund Act compliance, auction mechanics, and security.`,
-          monthlyEquivalentValue: '$2,800/mo Scheme Officer',
-        },
-        {
-          roleKey: 'INBOUND_PHONE_CLOSER',
-          title: 'Inbound Scheme Phone Closer (Maya Vance)',
-          purpose: `Answers calls from local merchants and families seeking monthly savings or emergency working capital in sub-45s.`,
-          monthlyEquivalentValue: '$3,000/mo Financial Closer',
-        },
-        {
-          roleKey: 'WHATSAPP_CONVERSATIONAL_SELLER',
-          title: 'Auction & Digital Passbook Coordinator (Aria)',
-          purpose: `Automates monthly auction announcements, winning bid disbursal updates, and 1-click UPI installment collection receipts.`,
-          monthlyEquivalentValue: '$2,000/mo Collections Coordinator',
-        },
-        {
-          roleKey: 'DIRECT_RESPONSE_COPYWRITER',
-          title: 'High-Trust Financial Campaign Specialist (CopyPulse)',
-          purpose: `Drafts regional trust-building ads contrasting safe government-registered chits against volatile market schemes.`,
-          monthlyEquivalentValue: '$2,500/mo Copywriter',
-        },
-        {
-          roleKey: 'CHIEF_OPERATING_OFFICER',
-          title: 'Chit Compliance & Subscriber Operations Lead (Nexus)',
-          purpose: `Streamlines KYC document verification, bank NEFT payouts, and regulatory reporting with zero manual paperwork.`,
-          monthlyEquivalentValue: '$4,000/mo Operations Lead',
-        },
-      ];
-    } else if (isRealEstate) {
-      coreBottleneckSolved = 'High ad spend on low-intent window shoppers and lost broker follow-up on million-dollar buyer inquiries';
-      projectedMonthlyRoi = '$45,000 – $180,000+ incremental commissions from sub-60s VIP buyer qualification';
-      allocatedRoles = [
-        {
-          roleKey: 'REAL_ESTATE_ACQUISITION_AGENT',
-          title: 'Luxury Property Inbound Concierge (EstatesAI)',
-          purpose: `Connects with inbound property inquiries within 45s, pre-qualifying budget and financing readiness for ${name}.`,
-          monthlyEquivalentValue: '$4,500/mo Senior Agent',
-        },
-        {
-          roleKey: 'VIRAL_REELS_DIRECTOR',
-          title: 'Cinematic Property Tour Video Director (Studio-X)',
-          purpose: `Crafts cinematic vertical video reels highlighting architecture, penthouse views, and neighborhood lifestyle.`,
-          monthlyEquivalentValue: '$3,500/mo Video Producer',
-        },
-        {
-          roleKey: 'PAID_MEDIA_BUYER',
-          title: 'High-Net-Worth Target Media Buyer (AdVance)',
-          purpose: `Directs precision Meta & Google Search campaigns targeting affluent investors, NRI buyers, and relocating executives.`,
-          monthlyEquivalentValue: '$3,800/mo Media Buyer',
-        },
-        {
-          roleKey: 'WHATSAPP_CONVERSATIONAL_SELLER',
-          title: 'VIP WhatsApp Brochure & Viewing Coordinator (Aria)',
-          purpose: `Dispatches floorplans, pricing tiers, and coordinates calendar bookings for private developer showings.`,
-          monthlyEquivalentValue: '$2,200/mo Showing Coordinator',
-        },
-        {
-          roleKey: 'SALES_DIRECTOR_MANAGER',
-          title: 'Brokerage Deal Pipeline Manager (Marcus Kane)',
-          purpose: `Tracks escrow milestones, contract signatures, and prevents prospective home buyers from cooling off.`,
-          monthlyEquivalentValue: '$5,500/mo Sales Director',
-        },
-      ];
-    } else if (isManufacturing) {
-      coreBottleneckSolved = 'Finding verified overseas buyers across target HS codes and lengthy customs documentation friction';
-      projectedMonthlyRoi = '$35,000 – $150,000+ export order volume and 90% reduction in export document preparation hours';
-      allocatedRoles = [
-        {
-          roleKey: 'TRADE_LOGISTICS_EXPEDITER',
-          title: 'International Trade Sourcing & Export Specialist (TradePulse)',
-          purpose: `Connects verified global buyers with ${name}'s product specifications across target HS codes and ports.`,
-          monthlyEquivalentValue: '$4,800/mo Export Manager',
-        },
-        {
-          roleKey: 'OUTBOUND_ENTERPRISE_SDR',
-          title: 'Global Importer Outbound Specialist (Sarah Cole)',
-          purpose: `Reaches overseas procurement directors and wholesale distributors with tailored FOB/CIF container proposals.`,
-          monthlyEquivalentValue: '$3,500/mo B2B SDR',
-        },
-        {
-          roleKey: 'INBOUND_PHONE_CLOSER',
-          title: 'Technical Specification Closer (Maya Vance)',
-          purpose: `Coordinates initial supplier inquiries, factory capability audits, and sample request shipments.`,
-          monthlyEquivalentValue: '$3,800/mo Technical Closer',
-        },
-        {
-          roleKey: 'CHIEF_OPERATING_OFFICER',
-          title: 'Customs & Documentation Operations Lead (Nexus)',
-          purpose: `Automates proforma invoices, bills of lading, certificates of origin, and trade letter of credit tracking.`,
-          monthlyEquivalentValue: '$4,200/mo Logistics Lead',
-        },
-        {
-          roleKey: 'CHIEF_REVENUE_OFFICER',
-          title: 'Trade Finance & Margin Architect (Julian Vance)',
-          purpose: `Guarantees container unit profitability and manages currency exchange hedging risks across cross-border accounts.`,
-          monthlyEquivalentValue: '$5,000/mo Finance Officer',
-        },
-      ];
-    } else {
-      // Default / B2B SaaS & Enterprise Platforms
-      coreBottleneckSolved = 'High customer acquisition costs, sluggish outbound sales pipelines, and long sales conversion cycles';
-      projectedMonthlyRoi = '5.8x – 10.4x Qualified Pipeline Return on Investment within 60 days';
-      allocatedRoles = [
-        {
-          roleKey: 'OUTBOUND_ENTERPRISE_SDR',
-          title: 'Targeted Account SDR & Pipeline Hunter (Sarah Cole)',
-          purpose: `Executes multi-touch outbound prospecting across VP and C-Level decision makers interested in ${name}.`,
-          monthlyEquivalentValue: '$4,000/mo SDR Salary',
-        },
-        {
-          roleKey: 'INBOUND_PHONE_CLOSER',
-          title: 'Sub-800ms Enterprise Voice Closer (Maya Vance)',
-          purpose: `Dials incoming trial sign-ups and demo inquiries within 45 seconds to secure technical evaluation calls.`,
-          monthlyEquivalentValue: '$4,500/mo Senior AE',
-        },
-        {
-          roleKey: 'CHIEF_MARKETING_OFFICER',
-          title: 'Autonomous CMO & Demand Generation Director (Sophia Sterling)',
-          purpose: `Architects high-converting Meta, LinkedIn, and Google campaigns highlighting ${name}'s verified differentiators.`,
-          monthlyEquivalentValue: '$6,000/mo Fractional CMO',
-        },
-        {
-          roleKey: 'DIRECT_RESPONSE_COPYWRITER',
-          title: 'Conversion Rate & Narrative Copywriter (CopyPulse)',
-          purpose: `Continuously tests comparison landing pages, email nurture sequences, and high-CTR ad angles.`,
-          monthlyEquivalentValue: '$3,000/mo Copywriter',
-        },
-        {
-          roleKey: 'CHIEF_REVENUE_OFFICER',
-          title: 'Unit Economics & Pricing Guardian (Julian Vance)',
-          purpose: `Audits customer acquisition cost (CAC) against lifetime value (LTV) and designs high-margin expansion tiers.`,
-          monthlyEquivalentValue: '$5,500/mo CFO Advisor',
-        },
-      ];
-    }
+    const allocatedRoles = [
+      {
+        roleKey: 'LEAD_GROWTH_STRATEGIST',
+        title: `AI Growth & Market Strategist for ${cleanCategory}`,
+        purpose: `Continuously monitors market intelligence and aligns positioning for ${name} across target buyers.`,
+        monthlyEquivalentValue: '$5,000/mo Fractional CMO',
+      },
+      {
+        roleKey: 'OUTBOUND_ENTERPRISE_SDR',
+        title: `AI Pipeline Hunter & SDR (Sarah Cole)`,
+        purpose: `Executes multi-touch outbound discovery and engagement across verified decision makers needing ${cleanCategory}.`,
+        monthlyEquivalentValue: '$4,000/mo Senior SDR',
+      },
+      {
+        roleKey: 'INBOUND_PHONE_CLOSER',
+        title: `Sub-800ms AI Voice & Conversational Closer (Maya Vance)`,
+        purpose: `Connects with inbound enquiries for ${name} within 45 seconds to secure technical evaluation calls and purchases.`,
+        monthlyEquivalentValue: '$4,500/mo Account Executive',
+      },
+      {
+        roleKey: 'DIRECT_RESPONSE_COPYWRITER',
+        title: `High-Converting Creative & Copy Director (CopyPulse)`,
+        purpose: `Authors high-converting ad angles, email sequences, and narrative positioning tailored to ${cleanCategory}.`,
+        monthlyEquivalentValue: '$3,000/mo Copywriter',
+      },
+      {
+        roleKey: 'CHIEF_REVENUE_OFFICER',
+        title: `Unit Economics & Margin Guardian (Julian Vance)`,
+        purpose: `Safeguards customer acquisition costs (CAC) against gross margins and lifetime value (LTV) for ${name}.`,
+        monthlyEquivalentValue: '$5,500/mo CFO Advisor',
+      },
+    ];
 
     const totalValue = allocatedRoles.reduce((acc, r) => {
       const match = r.monthlyEquivalentValue.match(/\$([0-9,]+)/);
@@ -564,7 +370,7 @@ export class EmployeeRoleBrain {
     }, 0);
 
     return {
-      categoryIdentified: category,
+      categoryIdentified: cleanCategory,
       businessModel: cleanModel,
       coreBottleneckSolved,
       projectedMonthlyRoi,

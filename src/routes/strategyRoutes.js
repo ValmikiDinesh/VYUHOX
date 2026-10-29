@@ -200,7 +200,9 @@ router.post('/scan', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('[Strategy Scan Error]:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    emitProgress(req, workspaceId, 'ERROR', error.message, 100);
+    const statusCode = error.message.startsWith('AI Service Unavailable') ? 503 : 500;
+    return res.status(statusCode).json({ success: false, message: error.message, isAiUnavailable: statusCode === 503 });
   }
 });
 
@@ -211,39 +213,7 @@ router.get('/:workspaceId', authMiddleware, async (req, res) => {
     let strategy = await GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).sort({ createdAt: -1 });
 
     if (!strategy) {
-      const workspace = await Workspace.findById(workspaceId);
-      // Only synthesize if workspace actually has a genuine client-provided domain or businessUrl
-      const genuineUrl = workspace?.businessUrl || workspace?.domain;
-      if (workspace && genuineUrl) {
-        const targetDomain = genuineUrl.replace(/^https?:\/\//, '').split('/')[0].replace(/^www\./, '');
-        const targetUrl = genuineUrl.startsWith('http') ? genuineUrl : `https://${genuineUrl}`;
-        const extracted = ScannerService.generateResilientDomainIntelligence(targetUrl, targetDomain);
-        const synthesized = await ScannerService.synthesizeStrategy(extracted, {
-          workspaceName: workspace.name,
-          industry: workspace.industry,
-          businessCategory: workspace.businessCategory,
-          businessModelDescription: workspace.businessModelDescription,
-          tagLine: workspace.tagLine,
-          offeringType: workspace.offeringType,
-        });
-
-        strategy = await GtmStrategy.create({
-          workspaceId,
-          targetUrl: extracted.url,
-          businessName: workspace.name,
-          category: synthesized.category,
-          growthEngine: synthesized.growthEngine || 'OUTBOUND_B2B',
-          rawExtractedData: extracted,
-          analysisResult: synthesized,
-          businessPlanDocument: synthesized.businessPlanDocument,
-          stepByStepRoadmap: synthesized.stepByStepRoadmap,
-          status: 'ACTIVE',
-        });
-
-        workspace.currentStrategyId = strategy._id;
-        workspace.onboardingCompleted = true;
-        await workspace.save();
-      }
+      return res.json({ success: true, strategy: null, message: 'No active strategy found for this workspace' });
     }
 
     return res.json({ success: true, strategy: strategy || null });

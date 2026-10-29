@@ -47,14 +47,16 @@ export class LlmGatewayService {
         const callStartTime = Date.now();
         let result = null;
 
+        const effectiveTimeoutMs = Math.max(timeoutMs || 0, providerConfig.timeoutMs || 0, 25000);
+
         if (providerId === 'gemini') {
           result = await this.callGemini({
             prompt,
             systemInstruction,
             jsonResponse,
-            modelName: modelName || 'gemini-1.5-flash',
+            modelName: modelName || process.env.GEMINI_MODEL || 'gemini-3.5-flash',
             apiKey,
-            timeoutMs: providerConfig.timeoutMs || timeoutMs,
+            timeoutMs: effectiveTimeoutMs,
             temperature,
           });
         } else if (providerId === 'openai') {
@@ -64,7 +66,7 @@ export class LlmGatewayService {
             jsonResponse,
             modelName: modelName || 'gpt-4o-mini',
             apiKey,
-            timeoutMs: providerConfig.timeoutMs || timeoutMs,
+            timeoutMs: effectiveTimeoutMs,
             temperature,
           });
         } else if (providerId === 'groq') {
@@ -74,7 +76,7 @@ export class LlmGatewayService {
             jsonResponse,
             modelName: modelName || 'llama-3.3-70b-versatile',
             apiKey,
-            timeoutMs: providerConfig.timeoutMs || timeoutMs,
+            timeoutMs: effectiveTimeoutMs,
             temperature,
           });
         } else if (providerId === 'deepseek') {
@@ -84,7 +86,7 @@ export class LlmGatewayService {
             jsonResponse,
             modelName: modelName || 'deepseek-chat',
             apiKey,
-            timeoutMs: providerConfig.timeoutMs || timeoutMs,
+            timeoutMs: effectiveTimeoutMs,
             temperature,
           });
         }
@@ -162,6 +164,7 @@ export class LlmGatewayService {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${activeKey}`;
 
       for (let attempt = 0; attempt < 2; attempt++) {
+        const controller = new AbortController();
         const modelTimeout = Math.max(timeoutMs || 12000, 10000);
         const timeout = setTimeout(() => controller.abort(), modelTimeout);
 

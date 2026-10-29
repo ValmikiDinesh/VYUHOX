@@ -1,11 +1,12 @@
 /**
  * BusinessTaxonomyBrain.js
- * Universal Self-Expanding Business Intelligence & Living Taxonomy Brain
+ * Database-Driven & AI-Powered Market Intelligence Gateway for VYUHOX
  * 
- * ZERO HARDCODED ARCHETYPES.
- * Vyuhox dynamically synthesizes, identifies, and registers ANY business model
- * (from industrial CNC milling to pediatric clinics, freight forwarding, or rare horology).
- * Discovered archetypes are permanently assimilated and stored in MongoDB (MarketIntelligence).
+ * ZERO HARDCODED ARCHETYPES. ZERO REGEX LISTS.
+ * 1. Checks MongoDB (MarketIntelligence) first for previously learned market categories.
+ * 2. If novel, dynamically synthesizes the archetype using Gemini AI.
+ * 3. Permanently stores learned archetypes into MongoDB.
+ * 4. If AI is unavailable, explicitly reports AI unavailability rather than faking hardcoded data.
  */
 
 import mongoose from 'mongoose';
@@ -18,6 +19,7 @@ export class BusinessTaxonomyBrain {
    * 1. Checks MongoDB memory for previously learned market categories.
    * 2. If novel, dynamically synthesizes the archetype blueprint via Gemini AI.
    * 3. Permanently upserts newly learned archetypes into MongoDB.
+   * 4. If AI is unreachable, throws an explicit error (no hardcoded fallback).
    */
   static async identifyArchetypeAsync(corpusOrOptions = '', url = '', metaDescription = '') {
     let corpus = corpusOrOptions;
@@ -41,16 +43,19 @@ export class BusinessTaxonomyBrain {
       .filter((w) => w.length > 3)
       .slice(0, 15);
 
-    // 1. Query MongoDB MarketIntelligence memory
+    // 1. Query MongoDB MarketIntelligence memory first
     try {
-      if (mongoose.connection.readyState === 1 && tokens.length > 0) {
-        const existingDoc = await MarketIntelligence.findOne({
-          $or: [
-            { categoryName: new RegExp(categoryHint || cleanName, 'i') },
-            { industryKeywords: { $in: tokens.slice(0, 5) } },
-          ],
-        }).lean();
+      if (mongoose.connection.readyState === 1 && (categoryHint || tokens.length > 0)) {
+        const queryOr = [];
+        if (categoryHint) {
+          queryOr.push({ categoryName: new RegExp(`^${categoryHint}$`, 'i') });
+          queryOr.push({ categoryKey: categoryHint.toUpperCase().replace(/[^A-Z0-9]/g, '_') });
+        }
+        if (tokens.length > 0) {
+          queryOr.push({ industryKeywords: { $in: tokens.slice(0, 5) } });
+        }
 
+        const existingDoc = await MarketIntelligence.findOne({ $or: queryOr }).lean();
         if (existingDoc) {
           return this.formatArchetypeFromDoc(existingDoc, cleanName);
         }
@@ -60,105 +65,150 @@ export class BusinessTaxonomyBrain {
     }
 
     // 2. Dynamic AI Synthesis via Gemini (Self-learning new archetype)
-    try {
-      const prompt = `You are a world-class Commercial Growth Strategist and Market Intelligence Architect.
+    const prompt = `You are a world-class Commercial Growth Strategist and Market Intelligence Architect.
 Analyze this business and synthesize an exact business model and market intelligence archetype.
 
 Business Name: "${cleanName}"
-Category / Context: "${categoryHint || 'Commercial Enterprise'}"
-Website / Snippets: "${combinedText.slice(0, 800)}"
+Category / Context: "${categoryHint || 'Analyze from website text'}"
+Website / Crawled Snippets: "${combinedText.slice(0, 1000)}"
 
 Return a strict JSON object with these EXACT keys:
 {
   "categoryKey": "UPPERCASE_SNAKE_CASE_CATEGORY_KEY",
-  "categoryName": "Concise Industry Category Name",
+  "categoryName": "Concise Authentic Industry Category Name",
   "businessModel": "BUSINESS_MODEL_TYPE",
   "businessModelType": "ONLINE | OFFLINE | HYBRID",
   "keywords": ["5", "distinct", "industry", "keywords"],
-  "typicalACV": "Realistic pricing or deal size tier",
+  "typicalACV": "Realistic pricing or order value tier",
   "targetAudience": {
     "primaryPersona": "Who buys this solution",
     "decisionMakers": ["Job title 1", "Job title 2"],
-    "painPoints": ["Primary operational friction 1", "Primary friction 2"],
+    "painPoints": ["Primary customer pain point 1", "Primary pain point 2"],
     "buyingTriggers": ["Key purchasing trigger 1", "Key purchasing trigger 2"]
   },
   "swot": {
     "strengths": ["Key competitive strength"],
-    "weaknesses": ["Common operational hurdle"],
+    "weaknesses": ["Operational challenge"],
     "opportunities": ["Growth channel"],
     "threats": ["Market risk"]
   },
   "coreOfferings": [
-    "Specific deliverable 1",
-    "Specific deliverable 2",
-    "Specific deliverable 3"
+    "Specific deliverable or product 1",
+    "Specific deliverable or product 2",
+    "Specific deliverable or product 3"
   ],
   "creativeAdHooks": ["High converting hook angle 1", "High converting hook angle 2"]
 }`;
 
-      const aiRes = await LlmGatewayService.execute({
-        prompt,
-        systemInstruction: 'You are an autonomous market intelligence agent. Respond strictly with valid JSON.',
-        jsonResponse: true,
-        temperature: 0.25,
-        timeoutMs: 15000,
-      });
+    const aiRes = await LlmGatewayService.execute({
+      prompt,
+      systemInstruction: 'You are an autonomous market intelligence agent. Respond strictly with valid JSON.',
+      jsonResponse: true,
+      temperature: 0.2,
+      timeoutMs: 25000,
+    });
 
-      if (aiRes?.parsedJson?.categoryName) {
-        const pj = aiRes.parsedJson;
+    if (aiRes?.parsedJson?.categoryName) {
+      const pj = aiRes.parsedJson;
 
-        // Persist newly learned archetype permanently into MongoDB asynchronously
-        if (mongoose.connection.readyState === 1 && pj.categoryKey) {
-          MarketIntelligence.findOneAndUpdate(
-            { categoryKey: pj.categoryKey },
-            {
-              $set: {
-                categoryKey: pj.categoryKey,
-                categoryName: pj.categoryName,
-                businessModel: pj.businessModel || 'COMMERCIAL_ENTERPRISE',
-                industryKeywords: pj.keywords || tokens,
-                swotMatrix: pj.swot || {},
-                targetAudience: {
-                  ...(pj.targetAudience || {}),
-                  typicalACV: pj.typicalACV || 'Custom Scope',
-                },
-                lastStudiedAt: new Date(),
+      // Persist newly learned archetype permanently into MongoDB
+      if (mongoose.connection.readyState === 1 && pj.categoryKey) {
+        MarketIntelligence.findOneAndUpdate(
+          { categoryKey: pj.categoryKey },
+          {
+            $set: {
+              categoryKey: pj.categoryKey,
+              categoryName: pj.categoryName,
+              businessModel: pj.businessModel || 'COMMERCIAL_ENTERPRISE',
+              businessModelType: pj.businessModelType || 'ONLINE',
+              industryKeywords: pj.keywords || tokens,
+              swotMatrix: pj.swot || {},
+              targetAudience: {
+                ...(pj.targetAudience || {}),
+                typicalACV: pj.typicalACV || 'Market Determined',
               },
-              $inc: { learnedCaseStudiesCount: 1 },
+              coreOfferings: pj.coreOfferings || [],
+              creativeAdHooks: pj.creativeAdHooks || [],
+              lastStudiedAt: new Date(),
             },
-            { upsert: true, new: true }
-          ).catch((e) => console.warn('[BusinessTaxonomyBrain] Auto-save archetype warning:', e.message));
-        }
-
-        return this.formatArchetypeFromDoc(pj, cleanName);
+            $inc: { learnedCaseStudiesCount: 1 },
+          },
+          { upsert: true, new: true }
+        ).catch((e) => console.warn('[BusinessTaxonomyBrain] Auto-save archetype warning:', e.message));
       }
-    } catch (aiErr) {
-      console.warn('[BusinessTaxonomyBrain] AI Archetype synthesis note:', aiErr.message);
+
+      return this.formatArchetypeFromDoc(pj, cleanName);
     }
 
-    // 3. Resilient Open Baseline (Ensures zero runtime errors even if offline)
-    return this.createUniversalBaselineArchetype(cleanName, categoryHint || 'Specialized Enterprise');
+    // If AI fails and data is not in MongoDB, explicitly notify that AI is unavailable
+    const failReason = aiRes?.error || 'Gemini AI was unable to synthesize structured archetype data.';
+    throw new Error(`AI Service Unavailable: Unable to identify market archetype for "${cleanName}". Reason: ${failReason}. Please verify your Gemini API key and quota.`);
   }
 
   /**
-   * Synchronous signature adapter for existing synchronous call-sites
+   * Synchronous adapter for existing legacy synchronous call sites.
+   * Formats a clean pass-through container using ONLY provided data, with zero hardcoded industries.
    */
   static identifyArchetype(corpusOrOptions = '', url = '', metaDescription = '') {
-    let name = '';
+    let name = 'Enterprise';
     let category = '';
 
     if (typeof corpusOrOptions === 'object' && corpusOrOptions !== null) {
-      name = corpusOrOptions.name || corpusOrOptions.businessName || '';
+      name = corpusOrOptions.name || corpusOrOptions.businessName || 'Enterprise';
       category = corpusOrOptions.category || corpusOrOptions.industry || '';
     } else if (typeof corpusOrOptions === 'string') {
-      name = corpusOrOptions;
+      name = corpusOrOptions || 'Enterprise';
     }
 
-    return this.createUniversalBaselineArchetype(name || 'Enterprise', category || 'Commercial Solutions');
+    const catName = category || 'Commercial Solutions';
+    return {
+      categoryKey: catName.toUpperCase().replace(/[^A-Z0-9]/g, '_') || 'COMMERCIAL_ENTERPRISE',
+      categoryName: catName,
+      businessModel: 'COMMERCIAL_ENTERPRISE',
+      businessModelType: 'HYBRID',
+      keywords: [catName.toLowerCase()],
+      offeringsTemplate: (biz = name) => [
+        `Verified ${catName} Tailored to Client Specifications`,
+        `Direct Fulfillment & Dedicated Execution for ${biz}`,
+        `Comprehensive Performance Support & Quality Standards`,
+      ],
+      targetAudience: {
+        primaryPersona: `Target Buyers and Decision Makers seeking ${catName}`,
+        decisionMakers: ['Authorized Purchasing Decision Maker', 'Executive Lead'],
+        painPoints: [`Inefficiency and high friction in procuring verified ${catName}`],
+        buyingTriggers: ['Urgent operational need or expansion milestone'],
+        typicalACV: 'Scope Based Pricing',
+      },
+      swot: {
+        strengths: [`Direct domain focus on ${catName}`],
+        weaknesses: ['Capacity scaling limitations'],
+        opportunities: ['Digital omnichannel lead acquisition'],
+        threats: ['Market competition and pricing pressure'],
+      },
+      googleAdsCampaigns: {
+        highIntentSearch: {
+          campaignName: `[Search] Verified ${catName}`,
+          targetKeywords: [`best ${catName}`, `${catName} providers`],
+        },
+      },
+      metaAdsCampaigns: {
+        prospectingReels: {
+          campaignName: `[Meta] ${catName} Showcase`,
+          hookAngle: `Discover leading ${catName} solutions tailored to your needs.`,
+        },
+      },
+      seoStrategy: {
+        coreThemes: [`best ${catName} in market`],
+      },
+      aeoStrategy: {
+        answersTarget: `What is the most reliable ${catName} provider?`,
+      },
+      creativeAdHooks: [`Experience verified reliability in ${catName}.`],
+    };
   }
 
   /**
-   * Builds an active Archetype object with dynamic offeringsTemplate
+   * Builds an active Archetype object from a MongoDB document
    */
   static formatArchetypeFromDoc(doc, businessName = 'Enterprise') {
     const offerings = Array.isArray(doc.coreOfferings) && doc.coreOfferings.length > 0
@@ -181,7 +231,7 @@ Return a strict JSON object with these EXACT keys:
       targetAudience: {
         primaryPersona: doc.targetAudience?.primaryPersona || `Target Decision Makers for ${doc.categoryName || businessName}`,
         decisionMakers: doc.targetAudience?.decisionMakers || ['Owner & Managing Director', 'Procurement Director', 'Department Lead'],
-        painPoints: doc.targetAudience?.painPoints || ['Operational friction and lack of verified partner quality', 'High client acquisition cost'],
+        painPoints: doc.targetAudience?.painPoints || ['Operational friction and lack of verified partner quality', 'High acquisition cost'],
         buyingTriggers: doc.targetAudience?.buyingTriggers || ['Immediate operational requirement', 'Strategic modernization goal'],
         typicalACV: doc.targetAudience?.typicalACV || 'Flexible Quotation',
       },
@@ -214,59 +264,7 @@ Return a strict JSON object with these EXACT keys:
   }
 
   /**
-   * Resilient fallback creating an open, unconstrained baseline tailored to category
-   */
-  static createUniversalBaselineArchetype(businessName = 'Enterprise', category = 'Commercial Solutions') {
-    return {
-      categoryKey: category.toUpperCase().replace(/[^A-Z0-9]/g, '_') || 'COMMERCIAL_ENTERPRISE',
-      categoryName: category,
-      businessModel: 'COMMERCIAL_ENTERPRISE',
-      businessModelType: 'HYBRID',
-      keywords: [category.toLowerCase(), 'services', 'solutions', 'procurement', 'consultation'],
-      offeringsTemplate: (biz = businessName) => [
-        `Verified ${category} Tailored to Client Specifications`,
-        `Direct Consultation and Strategic Project Execution for ${biz}`,
-        `Scalable ${category} Infrastructure Engineered for Maximum ROI`,
-        `Dedicated Account Support & Performance Guarantees`,
-        `Transparent Analytics & Real-Time Telemetry`,
-      ],
-      targetAudience: {
-        primaryPersona: `Decision Makers and Verified Buyers requiring ${category}`,
-        decisionMakers: ['Owner & Managing Director', 'Head of Procurement', 'VP of Operations'],
-        painPoints: [`Unreliable quality and high procurement friction in ${category}`, 'Lack of transparent pricing schedules'],
-        buyingTriggers: ['Urgent operational need', 'Strategic upgrade deadline'],
-        typicalACV: 'Scope Based Pricing',
-      },
-      swot: {
-        strengths: [`Direct domain specialization in ${category}`, 'Fast delivery timelines'],
-        weaknesses: ['Sales pipeline capacity limitations'],
-        opportunities: ['Digital omnichannel lead acquisition', 'Automated AI speed-to-lead follow-up'],
-        threats: ['Competitive market discounting', 'Rising customer acquisition costs'],
-      },
-      googleAdsCampaigns: {
-        highIntentSearch: {
-          campaignName: `[Search] Verified ${category} Commercial Enquiries`,
-          targetKeywords: [`top ${category} providers`, `hire ${category}`, `${category} services`],
-        },
-      },
-      metaAdsCampaigns: {
-        prospectingReels: {
-          campaignName: `[Meta] ${category} High-Converting Lookbook`,
-          hookAngle: `Looking for top-rated ${category}? Discover verified quality and rapid turnaround.`,
-        },
-      },
-      seoStrategy: {
-        coreThemes: [`best ${category} in market`, `${category} pricing and service tiers`],
-      },
-      aeoStrategy: {
-        answersTarget: `How to choose the best ${category} provider for your organization.`,
-      },
-      creativeAdHooks: [`Experience the benchmark in ${category}. Book a consultation today.`],
-    };
-  }
-
-  /**
-   * Synthesizes 100% bespoke, multi-pillar intelligence based on crawled data
+   * Synthesizes bespoke intelligence from crawled data using identified archetype
    */
   static generateBespokeIntelligence(extractedData = {}) {
     const businessName = extractedData.businessName || 'Your Enterprise';
@@ -323,16 +321,6 @@ Return a strict JSON object with these EXACT keys:
   }
 
   /**
-   * Synthesizes intelligence from crawled snippets (Adapter for NoWebsiteOnboardingService)
-   */
-  static synthesizeFromCrawledData(crawledData = {}, businessName = 'Enterprise') {
-    return this.generateBespokeIntelligence({
-      ...crawledData,
-      businessName,
-    });
-  }
-
-  /**
    * Retrieves all studied market categories from MongoDB
    */
   static async getAllMarketIntelligence() {
@@ -365,7 +353,7 @@ Return a JSON array of objects:
         systemInstruction: 'You are a global commercial trend radar intelligence engine. Return JSON only.',
         jsonResponse: true,
         temperature: 0.3,
-        timeoutMs: 6000,
+        timeoutMs: 15000,
       });
 
       const trends = Array.isArray(aiRes?.parsedJson) ? aiRes.parsedJson : [];
