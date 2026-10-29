@@ -1,8 +1,31 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { Workspace } from '../models/Workspace.js';
 import { Wallet } from '../models/Wallet.js';
 import { Lead } from '../models/Lead.js';
 import { User } from '../models/User.js';
+import { GtmStrategy } from '../models/GtmStrategy.js';
+import { BusinessBrain } from '../models/BusinessBrain.js';
+import { Conversation } from '../models/Conversation.js';
+import { Message } from '../models/Message.js';
+import { CallLog } from '../models/CallLog.js';
+import { AdCampaign } from '../models/AdCampaign.js';
+import { AdCreative } from '../models/AdCreative.js';
+import { AdOptimizationLog } from '../models/AdOptimizationLog.js';
+import { AgentActivityLog } from '../models/AgentActivityLog.js';
+import { AiBriefing } from '../models/AiBriefing.js';
+import { CeoBriefing } from '../models/CeoBriefing.js';
+import { Appointment } from '../models/Appointment.js';
+import { CalendarConfig } from '../models/CalendarConfig.js';
+import { DncRecord } from '../models/DncRecord.js';
+import { DomainWarmup } from '../models/DomainWarmup.js';
+import { DripSequence } from '../models/DripSequence.js';
+import { IntegrationConfig } from '../models/IntegrationConfig.js';
+import { JournalistPitch } from '../models/JournalistPitch.js';
+import { SocialAccountConfig } from '../models/SocialAccountConfig.js';
+import { SocialPost } from '../models/SocialPost.js';
+import { VoiceAgentConfig } from '../models/VoiceAgentConfig.js';
+import { A2PRegistration } from '../models/A2PRegistration.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -284,6 +307,175 @@ router.get('/:id/stats', authMiddleware, async (req, res) => {
         pipelineValue,
         walletBalance: wallet ? wallet.balanceUSD : 0,
       },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * DELETE /api/workspaces/:id/purge-account
+ * Completely deletes all MongoDB documents related to a client workspace
+ * (Workspaces, GTM Strategies, BusinessBrain, Leads, Conversations, Messages, CallLogs, Ads, Appointments, etc.)
+ * Resets the account completely so it can be re-onboarded cleanly.
+ */
+router.delete('/:id/purge-account', authMiddleware, async (req, res) => {
+  try {
+    const workspaceId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return res.status(400).json({ success: false, message: 'Invalid workspaceId format' });
+    }
+
+    // Permission check: only superadmin or the workspace owner can purge
+    if (req.user && req.user.role !== 'superadmin' && req.user.workspaceId?.toString() !== workspaceId) {
+      return res.status(403).json({ success: false, message: 'Access denied: You can only purge your own workspace' });
+    }
+
+    const ws = await Workspace.findById(workspaceId);
+    if (!ws) {
+      return res.status(404).json({ success: false, message: 'Workspace not found in database' });
+    }
+
+    const wsName = ws.name;
+
+    // Concurrently purge all linked collections in MongoDB Atlas
+    const [
+      delStrategy,
+      delBrain,
+      delLeads,
+      delConv,
+      delMessages,
+      delCalls,
+      delAds,
+      delCreatives,
+      delAdLogs,
+      delAgentLogs,
+      delBriefings,
+      delCeoBriefings,
+      delAppointments,
+      delCalConfig,
+      delDnc,
+      delWarmup,
+      delDrips,
+      delIntegrations,
+      delPitches,
+      delSocialConfigs,
+      delSocialPosts,
+      delVoiceConfigs,
+      delA2P,
+      delWallet,
+      delWorkspace,
+    ] = await Promise.all([
+      GtmStrategy.deleteMany({ workspaceId }),
+      BusinessBrain.deleteMany({ workspaceId }),
+      Lead.deleteMany({ workspaceId }),
+      Conversation.deleteMany({ workspaceId }),
+      Message.deleteMany({ workspaceId }),
+      CallLog.deleteMany({ workspaceId }),
+      AdCampaign.deleteMany({ workspaceId }),
+      AdCreative.deleteMany({ workspaceId }),
+      AdOptimizationLog.deleteMany({ workspaceId }),
+      AgentActivityLog.deleteMany({ workspaceId }),
+      AiBriefing.deleteMany({ workspaceId }),
+      CeoBriefing.deleteMany({ workspaceId }),
+      Appointment.deleteMany({ workspaceId }),
+      CalendarConfig.deleteMany({ workspaceId }),
+      DncRecord.deleteMany({ workspaceId }),
+      DomainWarmup.deleteMany({ workspaceId }),
+      DripSequence.deleteMany({ workspaceId }),
+      IntegrationConfig.deleteMany({ workspaceId }),
+      JournalistPitch.deleteMany({ workspaceId }),
+      SocialAccountConfig.deleteMany({ workspaceId }),
+      SocialPost.deleteMany({ workspaceId }),
+      VoiceAgentConfig.deleteMany({ workspaceId }),
+      A2PRegistration.deleteMany({ workspaceId }),
+      Wallet.deleteMany({ workspaceId }),
+      Workspace.deleteOne({ _id: workspaceId }),
+    ]);
+
+    // Unbind any linked non-superadmin User so they can be reassigned or re-onboard
+    await User.updateMany(
+      { workspaceId, role: { $ne: 'superadmin' } },
+      { $set: { workspaceId: null, onboardingCompleted: false } }
+    );
+
+    console.log(`[WorkspaceRoutes] 🗑️ PURGED all MongoDB Atlas records for workspace "${wsName}" (${workspaceId})`);
+
+    return res.json({
+      success: true,
+      message: `Successfully purged all MongoDB data for workspace "${wsName}". You can now re-onboard from scratch.`,
+      purgedSummary: {
+        workspaceName: wsName,
+        workspaceId,
+        strategies: delStrategy.deletedCount,
+        businessBrain: delBrain.deletedCount,
+        leads: delLeads.deletedCount,
+        conversations: delConv.deletedCount,
+        messages: delMessages.deletedCount,
+        callLogs: delCalls.deletedCount,
+        adCampaigns: delAds.deletedCount,
+        adCreatives: delCreatives.deletedCount,
+        adLogs: delAdLogs.deletedCount,
+        agentLogs: delAgentLogs.deletedCount,
+        briefings: delBriefings.deletedCount + delCeoBriefings.deletedCount,
+        appointments: delAppointments.deletedCount,
+        wallet: delWallet.deletedCount,
+        workspace: delWorkspace.deletedCount,
+      },
+    });
+  } catch (error) {
+    console.error('[WorkspaceRoutes] Purge workspace error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/workspaces/:id/reset-onboarding
+ * Resets the onboarding status and strategy while keeping the workspace structure
+ * (Ideal for re-running URL crawling, strategy generation, and AI workforce setup)
+ */
+router.post('/:id/reset-onboarding', authMiddleware, async (req, res) => {
+  try {
+    const workspaceId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return res.status(400).json({ success: false, message: 'Invalid workspaceId format' });
+    }
+
+    if (req.user && req.user.role !== 'superadmin' && req.user.workspaceId?.toString() !== workspaceId) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const ws = await Workspace.findById(workspaceId);
+    if (!ws) {
+      return res.status(404).json({ success: false, message: 'Workspace not found' });
+    }
+
+    // Delete active strategy and reset brain
+    await Promise.all([
+      GtmStrategy.deleteMany({ workspaceId }),
+      BusinessBrain.deleteMany({ workspaceId }),
+      Lead.deleteMany({ workspaceId }),
+      Conversation.deleteMany({ workspaceId }),
+      Message.deleteMany({ workspaceId }),
+      CallLog.deleteMany({ workspaceId }),
+    ]);
+
+    // Reset workspace flags
+    ws.onboardingCompleted = false;
+    ws.currentStrategyId = null;
+    ws.businessUrl = '';
+    ws.industry = '';
+    ws.businessCategory = '';
+    ws.businessModelDescription = '';
+    ws.tagLine = '';
+    await ws.save();
+
+    return res.json({
+      success: true,
+      message: `Workspace "${ws.name}" has been reset. Onboarding is unlocked for re-testing.`,
+      workspace: ws,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
