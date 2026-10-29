@@ -43,11 +43,9 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Method to verify password
+// Method to verify password (strictly case-sensitive)
 userSchema.methods.comparePassword = async function (password) {
-  const match = await bcrypt.compare(password, this.passwordHash);
-  if (match) return true;
-  return bcrypt.compare(password.toLowerCase(), this.passwordHash);
+  return bcrypt.compare(password, this.passwordHash);
 };
 
 export const User = mongoose.model('User', userSchema);
