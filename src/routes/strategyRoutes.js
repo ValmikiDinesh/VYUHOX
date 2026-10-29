@@ -111,13 +111,15 @@ router.post('/scan', authMiddleware, async (req, res) => {
       offeringType: inputOfferingType || workspace.offeringType,
     });
 
+    const synthesizedCategory = strategyData.category || finalCategory;
+
     // 2.5 Generate visual cover image and executive presentation deck
-    const visualCoverUrl = VisualAiService.generateBusinessCoverImage(finalBusinessName, finalCategory, strategyData.positioning?.coreValueProp);
+    const visualCoverUrl = VisualAiService.generateBusinessCoverImage(finalBusinessName, synthesizedCategory, strategyData.positioning?.coreValueProp);
     strategyData.visualCoverUrl = visualCoverUrl;
 
     const presentationDeck = VisualAiService.generatePitchDeck({
       businessName: finalBusinessName,
-      category: finalCategory,
+      category: synthesizedCategory,
       targetUrl: extractedData.url,
       analysisResult: strategyData,
       businessPlanDocument: strategyData.businessPlanDocument,
@@ -129,7 +131,7 @@ router.post('/scan', authMiddleware, async (req, res) => {
       workspaceId,
       targetUrl: extractedData.url,
       businessName: finalBusinessName,
-      category: finalCategory,
+      category: synthesizedCategory,
       growthEngine: strategyData.growthEngine || 'OUTBOUND_B2B',
       rawExtractedData: extractedData,
       analysisResult: strategyData,
@@ -148,8 +150,8 @@ router.post('/scan', authMiddleware, async (req, res) => {
     if (extractedData.url && !workspace.domain) {
       workspace.domain = extractedData.domainName || url.replace(/^https?:\/\//, '').split('/')[0];
     }
-    workspace.industry = finalCategory;
-    workspace.businessCategory = finalCategory;
+    workspace.industry = synthesizedCategory;
+    workspace.businessCategory = synthesizedCategory;
     if (inputTagLine) workspace.tagLine = inputTagLine;
     if (inputDescription) workspace.businessModelDescription = inputDescription;
     if (inputOfferingType) workspace.offeringType = inputOfferingType;
@@ -162,8 +164,8 @@ router.post('/scan', authMiddleware, async (req, res) => {
     // 3.5 VYUHOX Master Brain supplies bespoke, noise-free Client Brain to this Workspace
     try {
       await vyuhoxMasterBrain.provisionClientBrain(workspaceId, {
-        businessName,
-        category,
+        businessName: finalBusinessName,
+        category: synthesizedCategory,
         categoryKey: strategyData.categoryKey,
         businessModel: strategyData.businessModel,
         operatingModelType: strategyData.businessModelType,
