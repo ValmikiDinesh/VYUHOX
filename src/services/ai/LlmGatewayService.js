@@ -150,11 +150,18 @@ export class LlmGatewayService {
     const activeKey = apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!activeKey) throw new Error('No Google Gemini API key configured.');
 
+    // Prioritize caller override, then .env configuration, then fallback candidates
+    const envModel = process.env.GEMINI_MODEL;
+    const envFallbacks = process.env.GEMINI_FALLBACK_MODELS
+      ? process.env.GEMINI_FALLBACK_MODELS.split(',').map((m) => m.trim())
+      : [];
+
     const candidateModels = Array.from(new Set([
+      modelName,
+      envModel,
+      ...envFallbacks,
       'gemini-3-flash-preview',
       'gemini-3.1-flash-lite',
-      'gemini-3.1-flash-lite-preview',
-      process.env.GEMINI_MODEL,
       'gemini-flash-latest',
     ].filter(Boolean)));
 
