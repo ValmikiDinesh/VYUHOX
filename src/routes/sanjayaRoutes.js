@@ -50,7 +50,7 @@ router.post('/command', authMiddleware, async (req, res) => {
  */
 router.get('/suggestions', authMiddleware, async (req, res) => {
   const suggestions = [
-    { label: 'Find 50 dental clinics in Texas', category: 'SCRAPE' },
+    { label: 'Find 50 verified buyers in my target market', category: 'SCRAPE' },
     { label: 'Have Maya call our highest intent lead', category: 'CALL' },
     { label: 'Show my revenue and pipeline stats', category: 'METRICS' },
     { label: 'Dispatch WhatsApp outreach sequence', category: 'OUTREACH' },

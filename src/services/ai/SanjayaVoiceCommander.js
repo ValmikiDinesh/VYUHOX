@@ -93,7 +93,7 @@ Analyze the user's spoken voice command and return a clean JSON object with:
   - "GENERAL_ADVICE" (general strategic or marketing question)
 - "parameters":
   - "location": location string if mentioned (e.g. "Texas", "Bangalore", "London")
-  - "industry": industry or business type if mentioned (e.g. "dental clinics", "software", "logistics")
+  - "industry": industry or business type if mentioned (e.g. "manufacturing", "software", "logistics")
   - "count": number of leads if specified (default: 20)
   - "leadName": name of person if mentioned (e.g. "Elena", "Marcus")
   - "channel": "WHATSAPP", "EMAIL", "PHONE", "SMS" if mentioned
@@ -128,7 +128,7 @@ Analyze the user's spoken voice command and return a clean JSON object with:
   static fallbackRegexParser(text) {
     const lower = text.toLowerCase();
 
-    if (/find|scrape|search|get|lead|prospect|doctor|clinic|founder|company|companies/i.test(lower)) {
+    if (/find|scrape|search|get|lead|prospect|founder|company|companies|business/i.test(lower)) {
       let location = 'Global';
       if (/in\s+([a-zA-Z\s]+)/i.test(lower)) {
         location = lower.match(/in\s+([a-zA-Z\s]+)/i)[1].trim();

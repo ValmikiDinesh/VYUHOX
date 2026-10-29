@@ -30,24 +30,11 @@ class VyuhoxMasterBrainService {
   /**
    * Determine the clean operating model type (ONLINE, OFFLINE, HYBRID, B2B_SERVICES)
    */
-  detectOperatingModel(category = '', businessModel = '', url = '', description = '') {
-    const text = `${category} ${businessModel} ${url} ${description}`.toLowerCase();
-
-    // Check for explicit offline indicators
-    const offlineSignals = ['clinic', 'dental', 'hospital', 'store', 'retail showroom', 'salon', 'restaurant', 'cafe', 'auto garage', 'gym', 'real estate broker', 'physiotherapy'];
-    const isOffline = offlineSignals.some(s => text.includes(s));
-
-    // Check for explicit hybrid indicators
-    const hybridSignals = ['hybrid', 'click and collect', 'omnichannel', 'chains', 'franchise'];
-    const isHybrid = hybridSignals.some(s => text.includes(s));
-
-    // Check for B2B services
-    const b2bSignals = ['consulting', 'agency', 'legal', 'law firm', 'accounting', 'advisory', 'b2b services'];
-    const isB2B = b2bSignals.some(s => text.includes(s));
-
-    if (isHybrid) return 'HYBRID';
-    if (isOffline) return 'OFFLINE';
-    if (isB2B) return 'B2B_SERVICES';
+  detectOperatingModel(category = '', businessModel = '', url = '', description = '', explicitType = '') {
+    const candidate = (explicitType || businessModel || '').toUpperCase();
+    if (['ONLINE', 'OFFLINE', 'HYBRID', 'B2B_SERVICES'].includes(candidate)) {
+      return candidate;
+    }
     return 'ONLINE';
   }
 
