@@ -162,8 +162,8 @@ export class LlmGatewayService {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${activeKey}`;
 
       for (let attempt = 0; attempt < 2; attempt++) {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), timeoutMs || 12000);
+        const modelTimeout = Math.max(timeoutMs || 12000, 10000);
+        const timeout = setTimeout(() => controller.abort(), modelTimeout);
 
         const contents = [{ role: 'user', parts: [{ text: prompt }] }];
         const bodyPayload = {
