@@ -257,10 +257,105 @@ router.post('/scan', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/strategy/brain-status - Retrieve VYUHOX Business Brain Training Status & Multi-Dimensional Intelligence
+router.get('/brain-status', authMiddleware, async (req, res) => {
+  try {
+    const workspaceId = req.query.workspaceId || req.workspaceId;
+    if (!workspaceId) return res.status(400).json({ success: false, message: 'workspaceId required' });
+    
+    // Validate ObjectId to prevent CastError 500s when workspace is initializing or invalid
+    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return res.json({
+        success: true,
+        brain: null,
+        strategy: null,
+        isTrained: false,
+        operatingModelType: 'ONLINE',
+        masterBrainSyncStatus: 'CONNECTED_TO_VYUHOX_MASTER',
+        filteredNoiseList: [],
+        identifiedServices: [],
+        buyerTargeting: {},
+        targets: {},
+        workflows: {},
+        swot: {},
+        googleAds: {},
+        metaAds: {},
+        seoAeo: {},
+      });
+    }
+
+    // Safely query or create fallback
+    let brain = null;
+    let strategy = null;
+    try {
+      brain = await BusinessBrain.findOne({ workspaceId }).lean();
+      strategy = await GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).sort({ createdAt: -1 }).lean()
+        || await GtmStrategy.findOne({ workspaceId }).sort({ createdAt: -1 }).lean();
+    } catch (dbErr) {
+      console.warn('[StrategyRoutes] Brain DB query warning:', dbErr.message);
+    }
+
+    const operatingModelType = brain?.operatingModelType || strategy?.analysisResult?.businessModelType || 'ONLINE';
+    const isTrained = !!(brain?.brainTrainingStatus || strategy);
+
+    return res.json({
+      success: true,
+      brain,
+      strategy,
+      isTrained,
+      operatingModelType,
+      masterBrainSyncStatus: brain?.masterBrainSyncStatus || 'CONNECTED_TO_VYUHOX_MASTER',
+      filteredNoiseList: brain?.filteredNoiseList && brain.filteredNoiseList.length > 0 
+        ? brain.filteredNoiseList 
+        : operatingModelType === 'ONLINE'
+        ? ['Local Store Footfall SOPs (Suppressed)', 'Storefront Physical POS (Suppressed)']
+        : operatingModelType === 'OFFLINE'
+        ? ['SaaS PLG Free Trials (Suppressed)', 'Developer API Webhooks (Suppressed)']
+        : [],
+      identifiedServices: brain?.identifiedServices && brain.identifiedServices.length > 0
+        ? brain.identifiedServices
+        : strategy?.analysisResult?.identifiedServices && strategy.analysisResult.identifiedServices.length > 0
+        ? strategy.analysisResult.identifiedServices
+        : (brain?.trainedProfile?.coreOfferings || strategy?.analysisResult?.coreOfferings || []).map((s) => ({
+            name: typeof s === 'string' ? s : s.name || 'Solution',
+            description: typeof s === 'object' && s.description ? s.description : `Verified ${typeof s === 'string' ? s : s.name} offering.`,
+            category: typeof s === 'object' && s.category ? s.category : 'Core Offering',
+            deliverable: typeof s === 'object' && s.deliverable ? s.deliverable : 'Complete operational fulfillment',
+          })),
+      buyerTargeting: brain?.buyerTargeting && brain.buyerTargeting.whoWillBuy
+        ? brain.buyerTargeting
+        : strategy?.analysisResult?.buyerTargeting || {
+            whoWillBuy: strategy?.analysisResult?.targetAudience?.primaryPersona || 'Key commercial decision makers with active need',
+            whoCanBuy: `${strategy?.category || 'Specialized'} enterprises with operational capacity & budget`,
+            toWhomToSell: strategy?.analysisResult?.targetAudience?.decisionMakers || ['Managing Director', 'Chief Executive Officer', 'Head of Procurement'],
+            whoWillBeInterested: 'Technical architects, compliance managers, and operations leaders',
+            buyingTriggers: strategy?.analysisResult?.targetAudience?.buyingTriggers || ['Quarterly efficiency mandate', 'Regulatory compliance audit'],
+          },
+      lastTelemetryPushedAt: brain?.lastTelemetryPushedAt || brain?.lastEvolvedAt || new Date(),
+      category: strategy?.category || brain?.trainedProfile?.category || 'Specialized Enterprise',
+      targets: brain?.businessTargets || strategy?.analysisResult?.businessTargets || {},
+      workflows: brain?.businessWorkflows || strategy?.analysisResult?.businessWorkflow || {},
+      swot: brain?.swotAnalysis || strategy?.analysisResult?.swotAnalysis || {},
+      googleAds: brain?.googleAdsPlan || strategy?.analysisResult?.googleAdsCampaigns || {},
+      metaAds: brain?.metaAdsPlan || strategy?.analysisResult?.metaAdsCampaigns || {},
+      seoAeo: brain?.seoAeoPlan || {
+        seo: strategy?.analysisResult?.seoStrategy,
+        aeo: strategy?.analysisResult?.aeoStrategy,
+      },
+    });
+  } catch (error) {
+    console.error('[StrategyRoutes] brain-status error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // GET /api/strategy/:workspaceId - Retrieve active GTM strategy & business plan document
 router.get('/:workspaceId', authMiddleware, async (req, res) => {
   try {
     const workspaceId = req.params.workspaceId;
+    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return res.status(400).json({ success: false, message: 'Invalid workspace ID format' });
+    }
     let strategy = await GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).sort({ createdAt: -1 });
 
     if (!strategy) {
@@ -499,97 +594,6 @@ router.post('/market-radar/sweep', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('[StrategyRoutes] Market radar sweep error:', error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
-// GET /api/strategy/brain-status - Retrieve VYUHOX Business Brain Training Status & Multi-Dimensional Intelligence
-router.get('/brain-status', authMiddleware, async (req, res) => {
-  try {
-    const workspaceId = req.query.workspaceId || req.workspaceId;
-    if (!workspaceId) return res.status(400).json({ success: false, message: 'workspaceId required' });
-    
-    // Validate ObjectId to prevent CastError 500s when workspace is initializing or invalid
-    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
-      return res.json({
-        success: true,
-        brain: null,
-        strategy: null,
-        isTrained: false,
-        operatingModelType: 'ONLINE',
-        masterBrainSyncStatus: 'CONNECTED_TO_VYUHOX_MASTER',
-        filteredNoiseList: [],
-        identifiedServices: [],
-        buyerTargeting: {},
-        targets: {},
-        workflows: {},
-        swot: {},
-        googleAds: {},
-        metaAds: {},
-        seoAeo: {},
-      });
-    }
-
-    // Safely query or create fallback
-    let brain = null;
-    let strategy = null;
-    try {
-      brain = await BusinessBrain.findOne({ workspaceId }).lean();
-      strategy = await GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).sort({ createdAt: -1 }).lean()
-        || await GtmStrategy.findOne({ workspaceId }).sort({ createdAt: -1 }).lean();
-    } catch (dbErr) {
-      console.warn('[StrategyRoutes] Brain DB query warning:', dbErr.message);
-    }
-
-    const operatingModelType = brain?.operatingModelType || strategy?.analysisResult?.businessModelType || 'ONLINE';
-    const isTrained = !!(brain?.brainTrainingStatus || strategy);
-
-    return res.json({
-      success: true,
-      brain,
-      strategy,
-      isTrained,
-      operatingModelType,
-      masterBrainSyncStatus: brain?.masterBrainSyncStatus || 'CONNECTED_TO_VYUHOX_MASTER',
-      filteredNoiseList: brain?.filteredNoiseList && brain.filteredNoiseList.length > 0 
-        ? brain.filteredNoiseList 
-        : operatingModelType === 'ONLINE'
-        ? ['Local Store Footfall SOPs (Suppressed)', 'Storefront Physical POS (Suppressed)']
-        : operatingModelType === 'OFFLINE'
-        ? ['SaaS PLG Free Trials (Suppressed)', 'Developer API Webhooks (Suppressed)']
-        : [],
-      identifiedServices: brain?.identifiedServices && brain.identifiedServices.length > 0
-        ? brain.identifiedServices
-        : strategy?.analysisResult?.identifiedServices && strategy.analysisResult.identifiedServices.length > 0
-        ? strategy.analysisResult.identifiedServices
-        : (brain?.trainedProfile?.coreOfferings || strategy?.analysisResult?.coreOfferings || []).map((s) => ({
-            name: typeof s === 'string' ? s : s.name || 'Solution',
-            description: typeof s === 'object' && s.description ? s.description : `Verified ${typeof s === 'string' ? s : s.name} offering.`,
-            category: typeof s === 'object' && s.category ? s.category : 'Core Offering',
-            deliverable: typeof s === 'object' && s.deliverable ? s.deliverable : 'Complete operational fulfillment',
-          })),
-      buyerTargeting: brain?.buyerTargeting && brain.buyerTargeting.whoWillBuy
-        ? brain.buyerTargeting
-        : strategy?.analysisResult?.buyerTargeting || {
-            whoWillBuy: strategy?.analysisResult?.targetAudience?.primaryPersona || 'Key commercial decision makers with active need',
-            whoCanBuy: `${strategy?.category || 'Specialized'} enterprises with operational capacity & budget`,
-            toWhomToSell: strategy?.analysisResult?.targetAudience?.decisionMakers || ['Managing Director', 'Chief Executive Officer', 'Head of Procurement'],
-            whoWillBeInterested: 'Technical architects, compliance managers, and operations leaders',
-            buyingTriggers: strategy?.analysisResult?.targetAudience?.buyingTriggers || ['Quarterly efficiency mandate', 'Regulatory compliance audit'],
-          },
-      lastTelemetryPushedAt: brain?.lastTelemetryPushedAt || brain?.lastEvolvedAt || new Date(),
-      category: strategy?.category || brain?.trainedProfile?.category || 'Specialized Enterprise',
-      targets: brain?.businessTargets || strategy?.analysisResult?.businessTargets || {},
-      workflows: brain?.businessWorkflows || strategy?.analysisResult?.businessWorkflow || {},
-      swot: brain?.swotAnalysis || strategy?.analysisResult?.swotAnalysis || {},
-      googleAds: brain?.googleAdsPlan || strategy?.analysisResult?.googleAdsCampaigns || {},
-      metaAds: brain?.metaAdsPlan || strategy?.analysisResult?.metaAdsCampaigns || {},
-      seoAeo: brain?.seoAeoPlan || {
-        seo: strategy?.analysisResult?.seoStrategy,
-        aeo: strategy?.analysisResult?.aeoStrategy,
-      },
-    });
-  } catch (error) {
-    console.error('[StrategyRoutes] brain-status error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });
