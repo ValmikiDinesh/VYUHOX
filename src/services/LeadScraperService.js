@@ -7,7 +7,6 @@ import { Workspace } from '../models/Workspace.js';
 import { Wallet } from '../models/Wallet.js';
 import { PlatformConfig } from '../models/PlatformConfig.js';
 import { LlmGatewayService } from './ai/LlmGatewayService.js';
-import { BusinessTaxonomyBrain } from './ai/BusinessTaxonomyBrain.js';
 
 // In-memory active scraper job registry
 export const scraperJobs = new Map();
@@ -420,31 +419,6 @@ Return a strict JSON object with these EXACT keys:
       console.warn('[LeadScraperService] Dynamic LLM Buyer Matrix synthesis error:', llmErr.message);
     }
 
-    // 2. Dynamic Archetype Fallback from BusinessTaxonomyBrain
-    const archetype = BusinessTaxonomyBrain.identifyArchetype({
-      name: businessName,
-      category,
-      description: customKeywords,
-    });
-
-    if (archetype) {
-      const decisionMakers = archetype.targetAudience?.decisionMakers || (archetype.targetAudience?.primaryPersona
-        ? [archetype.targetAudience.primaryPersona]
-        : ['Managing Director & Owner', 'Procurement Director', 'Category Buyer']);
-      const searchKeywords = archetype.targetAudience?.searchKeywords || [`${category} companies`, `${category} stores`, `top ${category} providers`];
-      const painPoint = (archetype.targetAudience?.painPoints && archetype.targetAudience.painPoints[0])
-        || `High acquisition friction and unverified suppliers in ${category}`;
-
-      return {
-        serviceType: archetype.name || category || 'Commercial Solutions',
-        valueOffering: archetype.positioning?.coreValueProp || `${businessName} specialized products and services`,
-        buyerDescription: archetype.targetAudience?.primaryPersona || `Target decision makers and customers for ${businessName}`,
-        buyerPersonas: decisionMakers,
-        buyerSearchKeywords: searchKeywords,
-        painPoint,
-        sampleLocalBuyerPool: { INDIA: [], US_GLOBAL: [] },
-      };
-    }
 
     // 3. Clean Universal Baseline Fallback
     return {

@@ -5,9 +5,8 @@ import { ScannerService } from '../services/ScannerService.js';
 import { VisualAiService } from '../services/visual/VisualAiService.js';
 import { DailyBriefingJob } from '../cron/dailyBriefingJob.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { BusinessTaxonomyBrain } from '../services/ai/BusinessTaxonomyBrain.js';
-import { EmployeeRoleBrain } from '../services/ai/EmployeeRoleBrain.js';
 import { BusinessBrain } from '../models/BusinessBrain.js';
+import { MarketIntelligence } from '../models/MarketIntelligenceModel.js';
 import { vyuhoxMasterBrain } from '../services/ai/VyuhoxMasterBrainService.js';
 
 const router = express.Router();
@@ -421,10 +420,10 @@ router.post('/onboard-no-website', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/strategy/market-radar - Universal Business Taxonomy & Market Intelligence Radar
+// GET /api/strategy/market-radar - Universal Business Taxonomy & Market Intelligence Radar from MongoDB
 router.get('/market-radar', authMiddleware, async (req, res) => {
   try {
-    const marketIntelligence = await BusinessTaxonomyBrain.getAllMarketIntelligence();
+    const marketIntelligence = await MarketIntelligence.find().sort({ lastStudiedAt: -1 }).lean();
     return res.json({
       success: true,
       count: marketIntelligence.length,
@@ -437,14 +436,13 @@ router.get('/market-radar', authMiddleware, async (req, res) => {
   }
 });
 
-// POST /api/strategy/market-radar/sweep - Trigger Autonomous Trend Discovery & Model Assimilation
+// POST /api/strategy/market-radar/sweep - Query live Market Intelligence state
 router.post('/market-radar/sweep', authMiddleware, async (req, res) => {
   try {
-    const result = await BusinessTaxonomyBrain.sweepAutonomousTrends();
-    const updated = await BusinessTaxonomyBrain.getAllMarketIntelligence();
+    const updated = await MarketIntelligence.find().sort({ lastStudiedAt: -1 }).lean();
     return res.json({
       success: true,
-      message: 'Autonomous Market Radar completed sweep. New viral trends and models assimilated.',
+      message: 'Autonomous Market Radar intelligence retrieved.',
       categories: updated,
     });
   } catch (error) {
@@ -656,10 +654,46 @@ router.get('/master-brain/status', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/strategy/employee-roles - Complete Corporate Roles & Employee Taxonomy
+// GET /api/strategy/employee-roles - Universal Corporate Roles Framework
 router.get('/employee-roles', authMiddleware, (req, res) => {
   try {
-    const roles = EmployeeRoleBrain.getFullRolesEncyclopedia();
+    const roles = [
+      {
+        id: 'FOUNDER_CEO',
+        title: 'Founder & Chief Executive Officer (CEO)',
+        echelon: 'EXECUTIVE_LEADERSHIP',
+        coreResponsibilities: ['Company vision', 'Capital allocation', 'Go-to-market direction'],
+        aiAgentMapping: { name: 'Horizon', role: 'Autonomous Executive AI Strategist' },
+      },
+      {
+        id: 'CHIEF_REVENUE_OFFICER',
+        title: 'Chief Revenue Officer (CRO)',
+        echelon: 'EXECUTIVE_LEADERSHIP',
+        coreResponsibilities: ['Pipeline orchestration', 'Margin guardrails', 'Monetization structures'],
+        aiAgentMapping: { name: 'Julian Vance', role: 'Autonomous Revenue Operations & Margin Guardian' },
+      },
+      {
+        id: 'INBOUND_PHONE_CLOSER',
+        title: 'Inbound Speed-to-Lead Phone Closer',
+        echelon: 'SALES_REVENUE',
+        coreResponsibilities: ['Sub-45 second call speed-to-lead', 'Budget and timeline qualification', 'Securing consultations'],
+        aiAgentMapping: { name: 'Maya Vance', role: 'Sub-800ms Conversational AI Voice Closer' },
+      },
+      {
+        id: 'OUTBOUND_ENTERPRISE_SDR',
+        title: 'Outbound Sales Development Representative (SDR)',
+        echelon: 'SALES_REVENUE',
+        coreResponsibilities: ['Target buyer account verification', 'Multi-touch outbound email/social sequences', 'Delivering qualified executive meetings'],
+        aiAgentMapping: { name: 'Sarah Cole', role: 'Autonomous Outbound Prospecting SDR' },
+      },
+      {
+        id: 'DIRECT_RESPONSE_COPYWRITER',
+        title: 'Direct-Response Advertising Copywriter',
+        echelon: 'MARKETING_CREATIVE',
+        coreResponsibilities: ['Psychological ad headlines', 'High-converting landing page copy', 'Email nurturing sequences'],
+        aiAgentMapping: { name: 'CopyPulse', role: 'Psychological Copy & Conversion Hook Specialist' },
+      },
+    ];
     return res.json({
       success: true,
       count: roles.length,

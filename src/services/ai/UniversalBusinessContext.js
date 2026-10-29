@@ -29,7 +29,6 @@ import { SocialPost } from '../../models/SocialPost.js';
 import { Appointment } from '../../models/Appointment.js';
 import { BusinessBrain } from '../../models/BusinessBrain.js';
 import { PlatformConfig } from '../../models/PlatformConfig.js';
-import { BusinessTaxonomyBrain } from './BusinessTaxonomyBrain.js';
 
 export class UniversalBusinessContext {
   /**
@@ -91,22 +90,13 @@ export class UniversalBusinessContext {
     }
 
     if (services.length === 0) {
-      const archetype = BusinessTaxonomyBrain.identifyArchetype({
-        name: businessName,
-        category,
-        description: analysis?.summary || '',
-      });
-      if (archetype?.offeringsTemplate) {
-        services.push(...archetype.offeringsTemplate(businessName));
-      } else {
-        services.push(
-          `Verified ${category} Solutions Tailored to Client Specifications`,
-          `Direct Consultation and Strategic Execution for ${businessName}`,
-          `Scalable ${category} Infrastructure Engineered for Maximum ROI`,
-          `Dedicated Account Support & Milestone Guarantees`,
-          `Transparent Performance Reporting & Operational Analytics`
-        );
-      }
+      services.push(
+        `Verified ${category} Solutions Tailored to Client Specifications`,
+        `Direct Consultation and Strategic Execution for ${businessName}`,
+        `Scalable ${category} Infrastructure Engineered for Maximum ROI`,
+        `Dedicated Account Support & Milestone Guarantees`,
+        `Transparent Performance Reporting & Operational Analytics`
+      );
     }
 
     // 3. Brand Positioning, Value Proposition & Differentiators

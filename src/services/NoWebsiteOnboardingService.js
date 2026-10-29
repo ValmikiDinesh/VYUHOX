@@ -12,7 +12,6 @@
 import { LlmGatewayService } from './ai/LlmGatewayService.js';
 import { GtmStrategy } from '../models/GtmStrategy.js';
 import { Workspace } from '../models/Workspace.js';
-import { BusinessTaxonomyBrain } from './ai/BusinessTaxonomyBrain.js';
 import { vyuhoxMasterBrain } from './ai/VyuhoxMasterBrainService.js';
 
 export class NoWebsiteOnboardingService {
@@ -212,24 +211,17 @@ OUTPUT STRICT JSON:
 
     // Autonomously provision tailored, noise-free Client Brain via VYUHOX Master Brain
     try {
-      const taxonomy = BusinessTaxonomyBrain.synthesizeFromCrawledData(
-        {
-          domainName: uniqueSlug,
-          pageTitles: [synthesized.headline || synthesized.businessName],
-          headings: synthesized.primaryOffers || [],
-          bodySnippets: [synthesized.summary, synthesized.coreValueProp],
-          metaDescription: `${synthesized.summary} ${synthesized.coreValueProp}`,
-        },
-        synthesized.businessName
-      );
       await vyuhoxMasterBrain.provisionClientBrain(workspaceId, {
         businessName: synthesized.businessName,
         category: synthesized.category,
-        categoryKey: taxonomy.categoryKey,
-        businessModel: taxonomy.businessModel,
+        categoryKey: (synthesized.category || 'COMMERCIAL').toUpperCase().replace(/[^A-Z0-9]/g, '_'),
+        businessModel: sourceType === 'GOOGLE_MAPS' ? 'OFFLINE' : 'ONLINE',
         operatingModelType: sourceType === 'GOOGLE_MAPS' ? 'OFFLINE' : 'ONLINE',
         extractedData: { metaDescription: synthesized.summary },
-        strategyData: taxonomy,
+        strategyData: {
+          categoryName: synthesized.category,
+          summary: synthesized.summary,
+        },
       });
     } catch (brainErr) {
       console.warn('[NoWebsiteOnboarding] Brain provisioning warning:', brainErr.message);
