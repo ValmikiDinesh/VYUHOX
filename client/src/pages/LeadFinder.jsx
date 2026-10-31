@@ -1695,18 +1695,18 @@ export default function LeadFinder({
             scrollbarColor: 'rgba(16, 185, 129, 0.4) rgba(15, 23, 42, 0.6)',
           }}
         >
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
-            <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0B1120', boxShadow: '0 2px 6px rgba(0,0,0,0.6)' }}>
+          <table className="table-dense-container" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--surface-1)', boxShadow: '0 2px 6px rgba(0,0,0,0.6)' }}>
               <tr style={{
-                background: '#0B1120',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                color: '#64748B',
+                background: 'var(--surface-1)',
+                borderBottom: 'var(--border-hairline)',
+                color: 'var(--text-tertiary)',
                 textTransform: 'uppercase',
                 fontSize: '0.68rem',
                 letterSpacing: '0.05em',
                 fontWeight: '700',
               }}>
-                <th style={{ padding: '12px 16px', width: '36px' }}>
+                <th style={{ padding: '9px 12px', width: '36px' }}>
                   <input
                     type="checkbox"
                     onChange={handleSelectAll}
@@ -1714,16 +1714,16 @@ export default function LeadFinder({
                     style={{ cursor: 'pointer' }}
                   />
                 </th>
-                <th style={{ padding: '12px 8px', width: '36px', textAlign: 'center' }}>#</th>
-                <th style={{ padding: '12px 16px' }}>Contact & Executive Title</th>
-                <th style={{ padding: '12px 16px' }}>Target Company & Domain</th>
-                <th style={{ padding: '12px 16px' }}>Verified Email & MX Server</th>
-                <th style={{ padding: '12px 16px' }}>Phone / Location</th>
-                <th style={{ padding: '12px 16px' }}>AI Fit Score</th>
-                <th style={{ padding: '12px 16px' }}>Pipeline Stage</th>
-                <th style={{ padding: '12px 16px' }}>Custom AI Script</th>
-                <th style={{ padding: '12px 16px' }}>Channels</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+                <th style={{ padding: '9px 8px', width: '36px', textAlign: 'center' }}>#</th>
+                <th style={{ padding: '9px 12px' }}>Contact & Executive Title</th>
+                <th style={{ padding: '9px 12px' }}>Target Company & Domain</th>
+                <th style={{ padding: '9px 12px' }}>Verified Email & MX Server</th>
+                <th style={{ padding: '9px 12px' }}>Phone / Location</th>
+                <th style={{ padding: '9px 12px' }}>AI Fit Score</th>
+                <th style={{ padding: '9px 12px' }}>Pipeline Stage</th>
+                <th style={{ padding: '9px 12px' }}>Custom AI Script</th>
+                <th style={{ padding: '9px 12px' }}>Channels</th>
+                <th style={{ padding: '9px 12px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1750,20 +1750,16 @@ export default function LeadFinder({
                   return (
                     <React.Fragment key={lead._id}>
                       <tr
+                        className={`grid-row-interactive ${isChecked ? 'table-row-selected' : ''}`}
                         style={{
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                          background: isChecked ? 'rgba(6, 182, 212, 0.05)' : 'transparent',
-                          transition: 'background 0.15s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isChecked) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isChecked) e.currentTarget.style.background = 'transparent';
+                          borderBottom: 'var(--border-hairline)',
+                          background: isChecked ? 'rgba(2, 132, 199, 0.08)' : 'transparent',
+                          transition: 'background var(--duration-fast) var(--ease-spring)',
+                          cursor: 'pointer',
                         }}
                       >
                         {/* Checkbox */}
-                        <td style={{ padding: '14px 16px' }}>
+                        <td style={{ padding: '8px 12px' }}>
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -1773,30 +1769,30 @@ export default function LeadFinder({
                         </td>
 
                         {/* Numbering */}
-                        <td style={{ padding: '14px 8px', textAlign: 'center', color: '#64748B', fontWeight: '700', fontSize: '0.72rem' }}>
+                        <td className="tabular-nums" style={{ padding: '8px 8px', textAlign: 'center', color: '#64748B', fontWeight: '700', fontSize: '0.72rem' }}>
                           {startIndex + idx + 1}
                         </td>
 
                         {/* Contact Info */}
-                        <td style={{ padding: '14px 16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <td style={{ padding: '8px 12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '8px',
-                              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(16, 185, 129, 0.2))',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '7px',
+                              background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(16, 185, 129, 0.25))',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               color: '#38BDF8',
                               fontWeight: '700',
-                              fontSize: '0.825rem',
+                              fontSize: '0.78rem',
                             }}>
                               {lead.name ? lead.name.substring(0, 1) : 'L'}
                             </div>
                             <div>
-                              <div style={{ fontWeight: '600', color: '#F8FAFC' }}>{lead.name}</div>
-                              <div style={{ fontSize: '0.72rem', color: '#38BDF8', fontWeight: '500' }}>
+                              <div style={{ fontWeight: '600', color: '#EDEDED', fontSize: '0.8125rem' }}>{lead.name}</div>
+                              <div style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '500' }}>
                                 {lead.title || 'Decision Maker'}
                               </div>
                             </div>
@@ -1804,9 +1800,9 @@ export default function LeadFinder({
                         </td>
 
                         {/* Company & Domain */}
-                        <td style={{ padding: '14px 16px' }}>
+                        <td style={{ padding: '8px 12px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <div style={{ fontWeight: '600', color: '#E2E8F0' }}>{lead.company || 'Enterprise'}</div>
+                            <div style={{ fontWeight: '600', color: '#E2E8F0', fontSize: '0.8125rem' }}>{lead.company || 'Enterprise'}</div>
                           </div>
                           {lead.website && (
                             <a
@@ -1814,13 +1810,13 @@ export default function LeadFinder({
                               target="_blank"
                               rel="noreferrer"
                               style={{
-                                fontSize: '0.7rem',
+                                fontSize: '0.68rem',
                                 color: '#06B6D4',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '3px',
                                 textDecoration: 'none',
-                                marginTop: '2px',
+                                marginTop: '1px',
                               }}
                             >
                               <ExternalLink size={10} /> {lead.website.replace(/https?:\/\//, '')}
@@ -1829,38 +1825,18 @@ export default function LeadFinder({
                         </td>
 
                         {/* Verified Email & Live MX */}
-                        <td style={{ padding: '14px 16px' }}>
+                        <td style={{ padding: '8px 12px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ color: '#F8FAFC', fontWeight: '500' }}>{lead.email}</span>
+                            <span style={{ color: '#F8FAFC', fontWeight: '500', fontSize: '0.78rem' }}>{lead.email}</span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', flexWrap: 'wrap' }}>
                             {isVerified ? (
-                              <span style={{
-                                fontSize: '0.65rem',
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                                background: 'rgba(16, 185, 129, 0.15)',
-                                color: '#34D399',
-                                border: '1px solid rgba(16, 185, 129, 0.3)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                              }}>
-                                <ShieldCheck size={10} /> DNS MX Verified
+                              <span className="badge badge-emerald" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
+                                <ShieldCheck size={9} /> MX Verified
                               </span>
                             ) : (
-                              <span style={{
-                                fontSize: '0.65rem',
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                                background: 'rgba(245, 158, 11, 0.15)',
-                                color: '#FBBF24',
-                                border: '1px solid rgba(245, 158, 11, 0.3)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                              }}>
-                                <AlertTriangle size={10} /> Unverified
+                              <span className="badge badge-amber" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
+                                <AlertTriangle size={9} /> Unverified
                               </span>
                             )}
                             {lead.mxHost && (
@@ -1872,36 +1848,36 @@ export default function LeadFinder({
                         </td>
 
                         {/* Phone & Location */}
-                        <td style={{ padding: '14px 16px' }}>
-                          <div style={{
+                        <td style={{ padding: '8px 12px' }}>
+                          <div className="tabular-nums" style={{
                             color: lead.phone ? '#10B981' : '#64748B',
                             fontWeight: '600',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '5px',
-                            fontSize: '0.8rem',
+                            gap: '4px',
+                            fontSize: '0.78rem',
                           }}>
-                            <Smartphone size={13} color="#10B981" />
-                            <span>{lead.phone || 'Direct extension active'}</span>
+                            <Smartphone size={12} color="#10B981" />
+                            <span>{lead.phone || 'Direct line active'}</span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', flexWrap: 'wrap' }}>
                             {lead.phone && (
                               <span style={{
-                                fontSize: '0.62rem',
-                                padding: '1px 5px',
-                                borderRadius: '4px',
+                                fontSize: '0.6rem',
+                                padding: '1px 4px',
+                                borderRadius: '3px',
                                 background: 'rgba(16, 185, 129, 0.12)',
                                 color: '#34D399',
                                 border: '1px solid rgba(16, 185, 129, 0.25)',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '3px',
+                                gap: '2px',
                                 fontWeight: '600',
                               }}>
-                                <CheckCircle2 size={9} />
+                                <CheckCircle2 size={8} />
                                 {lead.metadata?.phoneVerification?.telecomStandard === 'TRAI_10_DIGIT_CELLULAR' || lead.phone?.startsWith('+91')
-                                  ? 'TRAI Mobile'
-                                  : 'Cellular Line'}
+                                  ? 'TRAI Cell'
+                                  : 'Direct Cell'}
                               </span>
                             )}
                             {lead.channels?.whatsapp && (

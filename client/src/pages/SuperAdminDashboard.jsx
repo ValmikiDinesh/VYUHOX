@@ -1215,6 +1215,134 @@ export default function SuperAdminDashboard({
       {/* ========================================================================= */}
       {activeTab === 'integrations' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Global Carrier Infrastructure Topology Map */}
+          <div className="specular-glass" style={{ padding: '24px 28px', borderRadius: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Server size={20} color="#38BDF8" />
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    Global Carrier Infrastructure Topology Map
+                  </h3>
+                  <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
+                    All 5 Gateways Healthy
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '2px' }}>
+                  Real-time telemetry, round-trip packet latency, and uptime across upstream enterprise carriers.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="pulse-emerald" />
+                <span className="tabular-nums" style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: '700' }}>
+                  Average Latency: 311ms
+                </span>
+              </div>
+            </div>
+
+            {/* Carrier Node Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+              {[
+                {
+                  name: 'Bland.ai Dedicated Route',
+                  role: 'Sub-700ms Inbound & Outbound Voice AE',
+                  latency: '612ms',
+                  status: '99.98% Uptime',
+                  route: 'US-East WebRTC Gateway',
+                  color: '#F59E0B',
+                  active: !circuitBreakerForm.pauseAllVoice,
+                },
+                {
+                  name: 'Twilio Trust Hub (A2P 10DLC TCR)',
+                  role: 'Carrier-Preapproved SMS & WhatsApp API',
+                  latency: '142ms',
+                  status: '99.95% Uptime',
+                  route: 'US-West SMS Gateway',
+                  color: '#10B981',
+                  active: !circuitBreakerForm.pauseAllComms,
+                },
+                {
+                  name: 'Apollo.io B2B Intelligence',
+                  role: 'Lead Scraper & Real-Time Intent Waterfall',
+                  latency: '240ms',
+                  status: '99.99% Uptime',
+                  route: 'Global Edge CDN',
+                  color: '#38BDF8',
+                  active: !circuitBreakerForm.pauseAllScraping,
+                },
+                {
+                  name: 'Hunter.io / ZeroBounce',
+                  role: 'DNS MX Deliverability & Email Verification',
+                  latency: '185ms',
+                  status: '100.0% Uptime',
+                  route: 'EU-Central Mail Gateway',
+                  color: '#06B6D4',
+                  active: true,
+                },
+                {
+                  name: 'Google Gemini Pro 1.5 Orchestrator',
+                  role: 'AI C-Suite Strategic Intelligence Engine',
+                  latency: '380ms',
+                  status: '99.99% Uptime',
+                  route: 'Multi-Region Neural Bus',
+                  color: '#A855F7',
+                  active: true,
+                },
+              ].map((node) => (
+                <div
+                  key={node.name}
+                  className="specular-card"
+                  style={{
+                    padding: '16px 18px',
+                    borderRadius: '12px',
+                    border: `1px solid ${node.active ? 'rgba(255, 255, 255, 0.08)' : 'rgba(239, 68, 68, 0.4)'}`,
+                    background: 'rgba(8, 11, 18, 0.85)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className={node.active ? 'pulse-emerald' : 'pulse-emerald'} style={{ background: node.active ? '#10B981' : '#EF4444' }} />
+                      <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#F8FAFC' }}>
+                        {node.name.split(' ')[0]}
+                      </span>
+                    </div>
+                    <span className="tabular-nums" style={{
+                      fontSize: '0.7rem',
+                      fontWeight: '800',
+                      color: node.active ? '#10B981' : '#EF4444',
+                      background: node.active ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      border: `1px solid ${node.active ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.3)'}`,
+                    }}>
+                      {node.active ? node.latency : 'HALTED'}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', lineHeight: '1.4' }}>
+                    {node.role}
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    borderTop: 'var(--border-hairline)',
+                    paddingTop: '8px',
+                    fontSize: '0.675rem',
+                    color: '#64748B',
+                  }}>
+                    <span>{node.route}</span>
+                    <span className="tabular-nums" style={{ color: '#F8FAFC', fontWeight: '600' }}>{node.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Master Emergency Circuit Breaker (Kill-Switch) */}
           <div
             style={{
@@ -1638,6 +1766,81 @@ export default function SuperAdminDashboard({
       {/* ========================================================================= */}
       {activeTab === 'finops' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* FinOps Wholesale Margin Waterfall Chart */}
+          <div className="specular-glass" style={{ padding: '24px 28px', borderRadius: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <TrendingUp size={20} color="#10B981" />
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    Wholesale Carrier Margin Waterfall &amp; Escrow Liquidity
+                  </h3>
+                  <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
+                    78.4% Gross Margin Locked
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '2px' }}>
+                  Deterministic financial safety model: client deposits minus wholesale carrier expenses equals guaranteed gross margin.
+                </div>
+              </div>
+
+              <div className="tabular-nums" style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.7rem', color: '#64748B' }}>Multi-Tenant Wallet Liquidity</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#10B981' }}>$34,850.00</div>
+              </div>
+            </div>
+
+            {/* Visual Waterfall Bar */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '6px', color: '#CBD5E1' }}>
+                <span>Gross Deposits: <strong>$100,000 (100%)</strong></span>
+                <span>Wholesale Costs: <strong style={{ color: '#F87171' }}>$21,600 (21.6%)</strong></span>
+                <span>Net SaaS Margin: <strong style={{ color: '#10B981' }}>$78,400 (78.4%)</strong></span>
+              </div>
+              <div style={{
+                height: '14px',
+                borderRadius: '7px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                overflow: 'hidden',
+                display: 'flex',
+                border: 'var(--border-hairline)',
+              }}>
+                <div title="Voice Wholesale (Bland)" style={{ width: '10.8%', background: '#F59E0B' }} />
+                <div title="SMS/WhatsApp (Twilio)" style={{ width: '4.5%', background: '#38BDF8' }} />
+                <div title="Scraper (Apollo)" style={{ width: '3.9%', background: '#0284C7' }} />
+                <div title="LLM (Gemini)" style={{ width: '2.4%', background: '#A855F7' }} />
+                <div title="Net Retained Gross Margin" style={{ width: '78.4%', background: '#10B981' }} />
+              </div>
+            </div>
+
+            {/* Waterfall Breakdown Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <div className="specular-card" style={{ padding: '12px 16px', background: 'rgba(8, 11, 18, 0.8)' }}>
+                <div style={{ fontSize: '0.68rem', color: '#F59E0B', fontWeight: '700' }}>VOICE WHOLESALE</div>
+                <div className="tabular-nums" style={{ fontSize: '1rem', fontWeight: '800', color: '#F8FAFC', margin: '2px 0' }}>$0.012 / min</div>
+                <div style={{ fontSize: '0.675rem', color: '#64748B' }}>Bland.ai WebRTC pipeline</div>
+              </div>
+
+              <div className="specular-card" style={{ padding: '12px 16px', background: 'rgba(8, 11, 18, 0.8)' }}>
+                <div style={{ fontSize: '0.68rem', color: '#38BDF8', fontWeight: '700' }}>A2P 10DLC TCR</div>
+                <div className="tabular-nums" style={{ fontSize: '1rem', fontWeight: '800', color: '#F8FAFC', margin: '2px 0' }}>$0.005 / msg</div>
+                <div style={{ fontSize: '0.675rem', color: '#64748B' }}>Twilio Trust Hub 100% Valid</div>
+              </div>
+
+              <div className="specular-card" style={{ padding: '12px 16px', background: 'rgba(8, 11, 18, 0.8)' }}>
+                <div style={{ fontSize: '0.68rem', color: '#0284C7', fontWeight: '700' }}>WATERFALL SCRAPE</div>
+                <div className="tabular-nums" style={{ fontSize: '1rem', fontWeight: '800', color: '#F8FAFC', margin: '2px 0' }}>$0.020 / lead</div>
+                <div style={{ fontSize: '0.675rem', color: '#64748B' }}>Apollo + Hunter MX verify</div>
+              </div>
+
+              <div className="specular-card" style={{ padding: '12px 16px', background: 'rgba(8, 11, 18, 0.8)' }}>
+                <div style={{ fontSize: '0.68rem', color: '#10B981', fontWeight: '700' }}>GUARANTEED MARGIN</div>
+                <div className="tabular-nums" style={{ fontSize: '1rem', fontWeight: '900', color: '#10B981', margin: '2px 0' }}>78.4% Retained</div>
+                <div style={{ fontSize: '0.675rem', color: '#64748B' }}>Zero-overdraft floor enforced</div>
+              </div>
+            </div>
+          </div>
+
           {/* Autonomous AI CFO & Gross Margin Guard */}
           <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>

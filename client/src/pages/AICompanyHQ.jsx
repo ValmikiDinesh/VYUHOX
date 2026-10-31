@@ -34,6 +34,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
   const [loading, setLoading] = useState(true);
   const [selectedAgentFilter, setSelectedAgentFilter] = useState('ALL');
   const [selectedAgentDetail, setSelectedAgentDetail] = useState(null);
+  const [hqViewMode, setHqViewMode] = useState('mesh'); // 'mesh' | 'grid'
 
   // Cross-Agent Feedback Loop Simulation State
   const [simulatingFeedback, setSimulatingFeedback] = useState(false);
@@ -297,162 +298,549 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
         </div>
       )}
 
-      {/* 2. Interactive Organization Chart: Top CEO & Executive Team */}
+      {/* 2. Interactive Organization Chart: Boardroom Neural Mesh & Executive Hierarchy */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '700', color: '#F8FAFC' }}>
-            Autonomous Executive Hierarchy
-          </h2>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-            Click any agent to inspect operational prompt directives and telemetry
-          </span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC' }}>
+                Autonomous Boardroom Neural Mesh
+              </h2>
+              <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
+                Event Bus Online
+              </span>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+              Live autonomous handoffs between Marketing, Sales, Voice AI, and FinOps. Click any node to inspect telemetry.
+            </span>
+          </div>
+
+          {/* View Switcher Pill */}
+          <div style={{
+            display: 'flex',
+            background: 'rgba(255, 255, 255, 0.04)',
+            borderRadius: '8px',
+            border: 'var(--border-hairline)',
+            padding: '3px',
+          }}>
+            <button
+              onClick={() => setHqViewMode('mesh')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '6px',
+                border: 'none',
+                background: hqViewMode === 'mesh' ? 'rgba(2, 132, 199, 0.25)' : 'transparent',
+                color: hqViewMode === 'mesh' ? '#38BDF8' : '#94A3B8',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                transition: 'all 0.15s',
+              }}
+            >
+              <Zap size={13} />
+              <span>Neural Mesh</span>
+            </button>
+            <button
+              onClick={() => setHqViewMode('grid')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '6px',
+                border: 'none',
+                background: hqViewMode === 'grid' ? 'rgba(2, 132, 199, 0.25)' : 'transparent',
+                color: hqViewMode === 'grid' ? '#38BDF8' : '#94A3B8',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                transition: 'all 0.15s',
+              }}
+            >
+              <Layers size={13} />
+              <span>Executive Grid</span>
+            </button>
+          </div>
         </div>
 
-        {/* Level 1: Central CEO & Chief of Staff */}
-        {orgData?.leader && (
-          <div
-            onClick={() => setSelectedAgentDetail(orgData.leader)}
-            className="specular-card"
-            style={{
-              padding: '20px 24px',
-              borderRadius: '14px',
-              border: '1px solid rgba(56, 189, 248, 0.35)',
-              background: 'radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%)',
-              cursor: 'pointer',
+        {/* VIEW 1: Interactive Boardroom Neural Mesh Topology */}
+        {hqViewMode === 'mesh' && (
+          <div className="specular-glass" style={{
+            position: 'relative',
+            padding: '32px 24px',
+            borderRadius: '16px',
+            minHeight: '480px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            overflow: 'hidden',
+          }}>
+            {/* Ambient Animated Data Flow Stream Banner */}
+            <div style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '16px',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.6)')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.35)')}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              background: 'rgba(4, 6, 10, 0.7)',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'var(--border-hairline)',
+              marginBottom: '20px',
+              fontSize: '0.75rem',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="pulse-emerald" />
+                <span style={{ color: '#F8FAFC', fontWeight: '700' }}>Active Handoff Loop:</span>
+                <span style={{ color: '#94A3B8' }}>
+                  Ethan (CMO) enriched 48 accounts ➔ Sarah (SDR) queued 18 WhatsApps ➔ Maya (Voice) on sub-700ms standby ➔ Victoria (CFO) margins at 81.2%
+                </span>
+              </div>
+              <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                Zero Human In The Loop
+              </span>
+            </div>
+
+            {/* Top Row: Inbound & Outbound Pipeline (Ethan CMO & Sarah SDR) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
+              {/* Node: Ethan (CMO) */}
+              {(() => {
+                const cmo = orgData?.executiveTeam?.find((a) => a.role === 'CMO') || {
+                  name: 'Ethan Vance',
+                  role: 'CMO',
+                  efficiencyScore: 98,
+                  currentTask: 'Scraping Apollo accounts & running multi-channel ads',
+                  avatarGradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
+                };
+                return (
+                  <div
+                    onClick={() => setSelectedAgentDetail(cmo)}
+                    className="specular-card card-tilt-hover"
+                    style={{
+                      padding: '16px 20px',
+                      width: '320px',
+                      cursor: 'pointer',
+                      border: '1px solid rgba(236, 72, 153, 0.3)',
+                      background: 'rgba(14, 18, 28, 0.9)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: cmo.avatarGradient, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Megaphone size={18} color="#FFF" />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#F8FAFC' }}>{cmo.name}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#F472B6', fontWeight: '600' }}>AI CMO • Inbound Engine</div>
+                        </div>
+                      </div>
+                      <span className="badge badge-rose" style={{ fontSize: '0.65rem' }}>98% Eff.</span>
+                    </div>
+                    <div style={{ fontSize: '0.73rem', color: '#94A3B8', lineHeight: '1.4' }}>
+                      {cmo.currentTask}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Data Flow Track 1: Ethan ➔ Sarah */}
               <div style={{
-                width: '52px',
-                height: '52px',
-                borderRadius: '14px',
-                background: orgData.leader.avatarGradient,
+                flex: 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 0 18px rgba(56, 189, 248, 0.3)',
+                position: 'relative',
+                padding: '0 10px',
               }}>
-                <Bot size={28} color="#FFFFFF" />
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#F8FAFC' }}>
-                    {orgData.leader.name}
-                  </span>
-                  <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
-                    {orgData.leader.role}
-                  </span>
-                  <span className="badge badge-green" style={{ fontSize: '0.675rem' }}>
-                    100% Autonomous
-                  </span>
+                <div style={{
+                  height: '2px',
+                  width: '100%',
+                  background: 'linear-gradient(90deg, rgba(236, 72, 153, 0.4) 0%, rgba(56, 189, 248, 0.6) 100%)',
+                  position: 'relative',
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(8, 11, 18, 0.9)',
+                    border: 'var(--border-hairline)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.65rem',
+                    color: '#38BDF8',
+                    whiteSpace: 'nowrap',
+                    fontWeight: '700',
+                  }}>
+                    ✦ 48 Enriched ICP Leads
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '2px' }}>
-                  {orgData.leader.title} • {orgData.leader.currentTask}
-                </div>
               </div>
+
+              {/* Node: Sarah (SDR) */}
+              {(() => {
+                const sdr = orgData?.executiveTeam?.find((a) => a.role === 'SDR') || {
+                  name: 'Sarah Chen',
+                  role: 'SDR',
+                  efficiencyScore: 96,
+                  currentTask: 'Dispatching WhatsApp & email multi-channel touches',
+                  avatarGradient: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                };
+                return (
+                  <div
+                    onClick={() => setSelectedAgentDetail(sdr)}
+                    className="specular-card card-tilt-hover"
+                    style={{
+                      padding: '16px 20px',
+                      width: '320px',
+                      cursor: 'pointer',
+                      border: '1px solid rgba(2, 132, 199, 0.3)',
+                      background: 'rgba(14, 18, 28, 0.9)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: sdr.avatarGradient, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Users size={18} color="#FFF" />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#F8FAFC' }}>{sdr.name}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '600' }}>AI SDR • Outbound Hunter</div>
+                        </div>
+                      </div>
+                      <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>96% Eff.</span>
+                    </div>
+                    <div style={{ fontSize: '0.73rem', color: '#94A3B8', lineHeight: '1.4' }}>
+                      {sdr.currentTask}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
-            {/* Quick Metrics */}
-            <div style={{ display: 'flex', gap: '20px' }}>
-              {orgData.leader.keyMetrics?.map((m, idx) => (
-                <div key={idx} style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>{m.label}</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: '800', color: '#38BDF8', fontVariantNumeric: 'tabular-nums' }}>{m.value}</div>
+            {/* Center Row: Alexander (CEO & CoS) - Central Orchestrator */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '28px 0',
+              position: 'relative',
+            }}>
+              {orgData?.leader && (
+                <div
+                  onClick={() => setSelectedAgentDetail(orgData.leader)}
+                  className="specular-card card-tilt-hover"
+                  style={{
+                    padding: '20px 28px',
+                    width: '460px',
+                    cursor: 'pointer',
+                    border: '1px solid rgba(56, 189, 248, 0.45)',
+                    background: 'radial-gradient(circle at 50% 50%, rgba(2, 132, 199, 0.15) 0%, rgba(8, 11, 18, 0.95) 100%)',
+                    boxShadow: '0 0 35px rgba(2, 132, 199, 0.25)',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '12px',
+                      background: orgData.leader.avatarGradient,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 0 16px rgba(56, 189, 248, 0.4)',
+                    }}>
+                      <Bot size={24} color="#FFF" />
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: '800', color: '#F8FAFC' }}>{orgData.leader.name}</span>
+                        <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>100% Autonomous</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#38BDF8', fontWeight: '600' }}>
+                        {orgData.leader.role} • {orgData.leader.title}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#CBD5E1', lineHeight: '1.45' }}>
+                    {orgData.leader.currentTask}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginTop: '12px', borderTop: 'var(--border-hairline)', paddingTop: '10px' }}>
+                    {orgData.leader.keyMetrics?.map((m, idx) => (
+                      <div key={idx} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#64748B', textTransform: 'uppercase' }}>{m.label}</div>
+                        <div className="tabular-nums" style={{ fontSize: '0.9rem', fontWeight: '800', color: '#38BDF8' }}>{m.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Row: Conversion & FinOps (Victoria CFO & Maya Voice Closer) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
+              {/* Node: Victoria (CFO) */}
+              {(() => {
+                const cfo = orgData?.executiveTeam?.find((a) => a.role === 'CFO') || {
+                  name: 'Victoria Sterling',
+                  role: 'CFO',
+                  efficiencyScore: 99,
+                  currentTask: 'Enforcing wholesale carrier margins & cash burn floor',
+                  avatarGradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                };
+                return (
+                  <div
+                    onClick={() => setSelectedAgentDetail(cfo)}
+                    className="specular-card card-tilt-hover"
+                    style={{
+                      padding: '16px 20px',
+                      width: '320px',
+                      cursor: 'pointer',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      background: 'rgba(14, 18, 28, 0.9)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: cfo.avatarGradient, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <DollarSign size={18} color="#FFF" />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#F8FAFC' }}>{cfo.name}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '600' }}>AI CFO • FinOps Margin Guard</div>
+                        </div>
+                      </div>
+                      <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>99% Eff.</span>
+                    </div>
+                    <div style={{ fontSize: '0.73rem', color: '#94A3B8', lineHeight: '1.4' }}>
+                      {cfo.currentTask}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Data Flow Track 2: Maya ➔ Victoria */}
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                padding: '0 10px',
+              }}>
+                <div style={{
+                  height: '2px',
+                  width: '100%',
+                  background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.6) 0%, rgba(245, 158, 11, 0.4) 100%)',
+                  position: 'relative',
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(8, 11, 18, 0.9)',
+                    border: 'var(--border-hairline)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.65rem',
+                    color: '#10B981',
+                    whiteSpace: 'nowrap',
+                    fontWeight: '700',
+                  }}>
+                    ✦ Closed Deals ➔ 80% Gross Margin
+                  </div>
+                </div>
+              </div>
+
+              {/* Node: Maya (Voice Closer) */}
+              {(() => {
+                const maya = orgData?.executiveTeam?.find((a) => a.role === 'VOICE_CLOSER') || {
+                  name: 'Maya Vance',
+                  role: 'VOICE_CLOSER',
+                  efficiencyScore: 97,
+                  currentTask: 'Sub-700ms Bland.ai objection dialing & meeting booking',
+                  avatarGradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                };
+                return (
+                  <div
+                    onClick={() => setSelectedAgentDetail(maya)}
+                    className="specular-card card-tilt-hover"
+                    style={{
+                      padding: '16px 20px',
+                      width: '320px',
+                      cursor: 'pointer',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      background: 'rgba(14, 18, 28, 0.9)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: maya.avatarGradient, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <PhoneCall size={18} color="#FFF" />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#F8FAFC' }}>{maya.name}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#F59E0B', fontWeight: '600' }}>AI Closer • 680ms Voice AE</div>
+                        </div>
+                      </div>
+                      <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>97% Eff.</span>
+                    </div>
+                    <div style={{ fontSize: '0.73rem', color: '#94A3B8', lineHeight: '1.4' }}>
+                      {maya.currentTask}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 2: Standard Executive Grid */}
+        {hqViewMode === 'grid' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {orgData?.leader && (
+              <div
+                onClick={() => setSelectedAgentDetail(orgData.leader)}
+                className="specular-card"
+                style={{
+                  padding: '20px 24px',
+                  borderRadius: '14px',
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                  background: 'radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '14px',
+                    background: orgData.leader.avatarGradient,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 18px rgba(56, 189, 248, 0.3)',
+                  }}>
+                    <Bot size={28} color="#FFFFFF" />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#F8FAFC' }}>
+                        {orgData.leader.name}
+                      </span>
+                      <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
+                        {orgData.leader.role}
+                      </span>
+                      <span className="badge badge-green" style={{ fontSize: '0.675rem' }}>
+                        100% Autonomous
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '2px' }}>
+                      {orgData.leader.title} • {orgData.leader.currentTask}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '20px' }}>
+                  {orgData.leader.keyMetrics?.map((m, idx) => (
+                    <div key={idx} style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>{m.label}</div>
+                      <div className="tabular-nums" style={{ fontSize: '1.05rem', fontWeight: '800', color: '#38BDF8' }}>{m.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+              {orgData?.executiveTeam?.map((agent) => (
+                <div
+                  key={agent.role}
+                  onClick={() => setSelectedAgentDetail(agent)}
+                  className="specular-card"
+                  style={{
+                    padding: '18px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.4)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '10px',
+                        background: agent.avatarGradient,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {agent.role === 'CMO' && <Megaphone size={18} color="#FFF" />}
+                        {agent.role === 'SDR' && <Users size={18} color="#FFF" />}
+                        {agent.role === 'VOICE_CLOSER' && <PhoneCall size={18} color="#FFF" />}
+                        {agent.role === 'CFO' && <DollarSign size={18} color="#FFF" />}
+                        {agent.role === 'CUSTOMER_SUCCESS' && <Headphones size={18} color="#FFF" />}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: '700', color: '#F8FAFC' }}>
+                          {agent.name}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                          {agent.role}
+                        </div>
+                      </div>
+                    </div>
+
+                    <span className="badge badge-green" style={{ fontSize: '0.65rem' }}>
+                      {agent.efficiencyScore}% Eff.
+                    </span>
+                  </div>
+
+                  <div style={{
+                    fontSize: '0.725rem',
+                    color: '#CBD5E1',
+                    lineHeight: '1.4',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    minHeight: '44px',
+                  }}>
+                    {agent.currentTask}
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                    paddingTop: '8px',
+                  }}>
+                    {agent.keyMetrics?.slice(0, 2).map((m, idx) => (
+                      <div key={idx}>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>{m.label}</div>
+                        <div className="tabular-nums" style={{ fontSize: '0.825rem', fontWeight: '700', color: '#10B981' }}>{m.value}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
-
-        {/* Level 2: Specialized C-Suite Executives (CMO, SDR, Closer, CFO, CS) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-          {orgData?.executiveTeam?.map((agent) => (
-            <div
-              key={agent.role}
-              onClick={() => setSelectedAgentDetail(agent)}
-              className="specular-card"
-              style={{
-                padding: '18px',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.4)')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '10px',
-                    background: agent.avatarGradient,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    {agent.role === 'CMO' && <Megaphone size={18} color="#FFF" />}
-                    {agent.role === 'SDR' && <Users size={18} color="#FFF" />}
-                    {agent.role === 'VOICE_CLOSER' && <PhoneCall size={18} color="#FFF" />}
-                    {agent.role === 'CFO' && <DollarSign size={18} color="#FFF" />}
-                    {agent.role === 'CUSTOMER_SUCCESS' && <Headphones size={18} color="#FFF" />}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.875rem', fontWeight: '700', color: '#F8FAFC' }}>
-                      {agent.name}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-                      {agent.role}
-                    </div>
-                  </div>
-                </div>
-
-                <span className="badge badge-green" style={{ fontSize: '0.65rem' }}>
-                  {agent.efficiencyScore}% Eff.
-                </span>
-              </div>
-
-              <div style={{
-                fontSize: '0.725rem',
-                color: '#CBD5E1',
-                lineHeight: '1.4',
-                background: 'rgba(255, 255, 255, 0.03)',
-                padding: '8px 10px',
-                borderRadius: '8px',
-                minHeight: '44px',
-              }}>
-                {agent.currentTask}
-              </div>
-
-              {/* Metrics Row */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-                paddingTop: '8px',
-              }}>
-                {agent.keyMetrics?.slice(0, 2).map((m, idx) => (
-                  <div key={idx}>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>{m.label}</div>
-                    <div style={{ fontSize: '0.825rem', fontWeight: '700', color: '#10B981', fontVariantNumeric: 'tabular-nums' }}>{m.value}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* 3. CEO Daily Briefing Log & 1-Click Action Proposals */}

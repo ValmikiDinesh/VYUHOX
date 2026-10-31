@@ -486,88 +486,158 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
             </button>
           </div>
 
-          {/* Living 3D Voice Orb Hero Simulator */}
+          {/* Living 3D Voice Orb Hero Simulator (Retell / Bland.ai S-Tier Architecture) */}
           <div
+            className="border-beam-card"
             style={{
-              maxWidth: '680px',
+              maxWidth: '740px',
               margin: '0 auto 40px',
-              background: 'rgba(14, 18, 28, 0.7)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '16px',
-              boxShadow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.12), 0 20px 40px rgba(0, 0, 0, 0.6)',
-              padding: '20px 24px',
+              padding: '24px 28px',
+              textAlign: 'left',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            {/* Header Telemetry Pill */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span className="pulse-emerald" />
-                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>
-                  Live Voice AE Simulator • Maya Vance
+                <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#F8FAFC', letterSpacing: '-0.01em' }}>
+                  Interactive 3D Voice AE Simulator • Maya Vance
                 </span>
-                <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
-                  Sub-700ms Bland.ai
+                <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
+                  Bland.ai Sub-700ms
                 </span>
               </div>
-              <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Try without signing up</span>
+              <div className="tabular-nums" style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span>Latency: <strong style={{ color: '#10B981' }}>642ms</strong></span>
+                <span>•</span>
+                <span>Interruption: <strong style={{ color: '#38BDF8' }}>99.8%</strong></span>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(4, 6, 10, 0.6)', padding: '12px 18px', borderRadius: '12px', border: 'var(--border-hairline)' }}>
-              <button
-                onClick={togglePlayAudio}
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '50%',
-                  background: isPlayingAudio ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' : 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
-                  border: 'none',
-                  color: '#FFFFFF',
+            {/* Voice Orb & Real-Time Waveform Centerpiece */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '24px',
+              background: 'rgba(4, 6, 10, 0.75)',
+              padding: '18px 24px',
+              borderRadius: '14px',
+              border: 'var(--border-hairline)',
+              position: 'relative',
+              overflow: 'visible',
+            }}>
+              {/* Concentric Reactive 3D Voice Orb */}
+              <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {isPlayingAudio && (
+                  <>
+                    <div className="soundwave-ring-1" />
+                    <div className="soundwave-ring-2" />
+                    <div className="soundwave-ring-3" />
+                  </>
+                )}
+                <button
+                  onClick={togglePlayAudio}
+                  aria-label={isPlayingAudio ? 'Pause live voice simulation' : 'Start live voice simulation'}
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
+                    background: isPlayingAudio
+                      ? 'radial-gradient(circle at 35% 35%, #F43F5E 0%, #BE123C 60%, #881337 100%)'
+                      : 'radial-gradient(circle at 35% 35%, #38BDF8 0%, #0284C7 60%, #0369A1 100%)',
+                    border: '2px solid rgba(255, 255, 255, 0.3)',
+                    color: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: isPlayingAudio
+                      ? '0 0 30px rgba(244, 63, 94, 0.65), inset 0 2px 4px rgba(255,255,255,0.4)'
+                      : '0 0 30px rgba(2, 132, 199, 0.65), inset 0 2px 4px rgba(255,255,255,0.4)',
+                    transition: 'all 0.25s var(--ease-spring)',
+                    zIndex: 2,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  {isPlayingAudio ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: '3px' }} />}
+                </button>
+              </div>
+
+              {/* Dynamic Transcript & Speech Telemetry */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: isPlayingAudio ? '#38BDF8' : '#EDEDED' }}>
+                    {isPlayingAudio ? 'Live Conversational Speech Stream' : 'Speak with Maya Vance — Live WebRTC Simulation'}
+                  </div>
+                  <span className="tabular-nums" style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                    {isPlayingAudio ? `00:${audioPlaybackTime < 10 ? '0' + audioPlaybackTime : audioPlaybackTime} / 00:18` : '18s Sample'}
+                  </span>
+                </div>
+
+                {/* Simulated Live Dialogue Ticker */}
+                <div style={{
+                  fontSize: '0.8rem',
+                  color: isPlayingAudio ? '#F8FAFC' : '#94A3B8',
+                  lineHeight: '1.45',
+                  minHeight: '44px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: isPlayingAudio ? '0 0 20px rgba(239, 68, 68, 0.5)' : '0 0 20px rgba(2, 132, 199, 0.5)',
-                  flexShrink: 0,
-                  transition: 'transform 0.15s ease',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-              >
-                {isPlayingAudio ? <Pause size={18} /> : <Play size={18} style={{ marginLeft: '2px' }} />}
-              </button>
-
-              <div style={{ flex: 1, textAlign: 'left' }}>
-                <div style={{ fontSize: '0.84rem', fontWeight: '700', color: '#FFFFFF' }}>
-                  {isPlayingAudio ? '🔴 Maya Vance Handling Inbound Enterprise Objection...' : 'Listen to 680ms Live Objection Dial'}
+                }}>
+                  {!isPlayingAudio && (
+                    <span>Click the reactive audio orb to test real-time objection handling &amp; 680ms conversational latency.</span>
+                  )}
+                  {isPlayingAudio && audioPlaybackTime <= 4 && (
+                    <span style={{ color: '#38BDF8' }}>
+                      <strong>Maya:</strong> &ldquo;Hi David! Maya here with VYUHOX. I saw your team evaluating our autonomous GTM engine today...&rdquo;
+                    </span>
+                  )}
+                  {isPlayingAudio && audioPlaybackTime > 4 && audioPlaybackTime <= 9 && (
+                    <span style={{ color: '#FBBF24' }}>
+                      <strong>Prospect:</strong> &ldquo;We currently have ZoomInfo and 2 human SDRs doing outreach. Why should we swap?&rdquo;
+                    </span>
+                  )}
+                  {isPlayingAudio && audioPlaybackTime > 9 && audioPlaybackTime <= 14 && (
+                    <span style={{ color: '#34D399' }}>
+                      <strong>Maya:</strong> &ldquo;Completely understand! But what if you could dial prospects in 14s flat and eliminate $290,000 in annual payroll overhead?&rdquo;
+                    </span>
+                  )}
+                  {isPlayingAudio && audioPlaybackTime > 14 && (
+                    <span style={{ color: '#A855F7' }}>
+                      <strong>Prospect:</strong> &ldquo;That sounds compelling. Can we see a demo?&rdquo; <strong>Maya:</strong> &ldquo;Done! Dispatched Cal.com invite right now!&rdquo;
+                    </span>
+                  )}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
-                  {isPlayingAudio ? `Streaming Live Telemetry: 00:${audioPlaybackTime < 10 ? '0' + audioPlaybackTime : audioPlaybackTime} / 00:18` : 'Click to test real-time speech response speed'}
+
+                {/* Frequency Audio Waveform */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '14px', marginTop: '6px' }}>
+                  {isPlayingAudio ? (
+                    [8, 14, 18, 10, 16, 12, 18, 14, 8, 16, 12, 14, 18, 10, 14, 12, 16, 8].map((h, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          width: '3px',
+                          height: `${h}px`,
+                          background: '#38BDF8',
+                          borderRadius: '2px',
+                          animation: `pulse ${(i % 4) * 0.12 + 0.35}s ease-in-out infinite alternate`,
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <div style={{ fontSize: '0.68rem', color: '#64748B', display: 'flex', gap: '8px' }}>
+                      <span>✓ Carrier: Bland.ai WebRTC</span>
+                      <span>•</span>
+                      <span>✓ Sub-700ms Latency</span>
+                      <span>•</span>
+                      <span>✓ Zero Voice Robotic Lag</span>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* Dynamic Sound Waveform */}
-              {isPlayingAudio ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '22px' }}>
-                  {[12, 22, 14, 28, 16, 26, 10, 24, 20, 15, 25, 18].map((h, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        width: '3px',
-                        height: `${h}px`,
-                        background: '#38BDF8',
-                        borderRadius: '2px',
-                        animation: `pulse ${(i % 3) * 0.15 + 0.4}s ease-in-out infinite alternate`,
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
-                  680ms Response
-                </span>
-              )}
             </div>
           </div>
+
 
           {/* Social Proof Stats */}
           <div style={{
@@ -759,6 +829,173 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Section 2.5: Animated Neural Customer Journey Map (Linear / Stripe Speed-to-Lead) */}
+      <section style={{
+        padding: '50px 24px 70px',
+        maxWidth: '1280px',
+        margin: '0 auto',
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          <span className="badge badge-cyan" style={{ marginBottom: '8px' }}>
+            Zero Human Latency Workflow
+          </span>
+          <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.4rem', fontWeight: '800', margin: '8px 0', color: '#FFFFFF' }}>
+            The 14-Second Speed-to-Lead Autonomous Pipeline
+          </h2>
+          <p style={{ color: '#94A3B8', fontSize: '0.95rem', maxWidth: '680px', margin: '0 auto' }}>
+            Traditional sales teams take 48+ hours to respond to an inbound form. VYUHOX scrapes, verifies, speed-dials, and books qualified demos in 14 seconds flat.
+          </p>
+        </div>
+
+        {/* Neural Pipeline Flow Canvas */}
+        <div className="specular-glass" style={{ padding: '32px 28px', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}>
+          {/* Background Ambient SVG Connecting Line */}
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '5%',
+            right: '5%',
+            height: '2px',
+            transform: 'translateY(-50%)',
+            background: 'linear-gradient(90deg, rgba(56, 189, 248, 0.15) 0%, rgba(16, 185, 129, 0.3) 50%, rgba(168, 85, 247, 0.2) 100%)',
+            zIndex: 0,
+            display: 'none', // Shown on desktop via media or layout flex
+          }} />
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '18px',
+            position: 'relative',
+            zIndex: 1,
+          }}>
+            {[
+              {
+                step: '01',
+                title: 'Target Lead Detected',
+                agent: 'Apollo / Hunter API',
+                metric: 'Intent > 85%',
+                desc: 'Website visitor or B2B intent keyword triggers instant enrichment query.',
+                color: '#38BDF8',
+              },
+              {
+                step: '02',
+                title: 'Waterfall Enrichment',
+                agent: 'Twilio TCR & Verifier',
+                metric: '100% Validated',
+                desc: 'Triple-verifies direct corporate email, phone, and DNC suppression status.',
+                color: '#0284C7',
+              },
+              {
+                step: '03',
+                title: '14s Instant Speed Dial',
+                agent: 'Bland.ai Dedicated Route',
+                metric: 'Sub-700ms Audio',
+                desc: 'Inbound prospect receives a warm voice bridge while browsing your product.',
+                color: '#10B981',
+              },
+              {
+                step: '04',
+                title: 'Maya Clears Objections',
+                agent: 'Maya Vance • AI Closer',
+                metric: '4.9/5 Naturalness',
+                desc: 'Answers pricing, technical integrations, and enterprise compliance hurdles.',
+                color: '#F59E0B',
+              },
+              {
+                step: '05',
+                title: 'Calendar Booked',
+                agent: 'Cal.com & Google Cal',
+                metric: 'Instant Sync',
+                desc: 'Dispatches Google Meet invitation directly to both client and prospect.',
+                color: '#A855F7',
+              },
+              {
+                step: '06',
+                title: 'ARR Margin Locked',
+                agent: 'Victoria CFO Guard',
+                metric: '78.4% Net Margin',
+                desc: 'Computes wholesale carrier expense and audits customer CAC/LTV health.',
+                color: '#EC4899',
+              },
+            ].map((node, i) => (
+              <div
+                key={node.step}
+                className="specular-card card-tilt-hover"
+                style={{
+                  padding: '20px 18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  position: 'relative',
+                  background: 'rgba(10, 14, 22, 0.85)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span className="tabular-nums" style={{
+                    fontSize: '0.72rem',
+                    fontWeight: '800',
+                    color: node.color,
+                    background: `${node.color}15`,
+                    padding: '2px 7px',
+                    borderRadius: '4px',
+                    border: `1px solid ${node.color}35`,
+                  }}>
+                    STAGE {node.step}
+                  </span>
+                  <span className="tabular-nums" style={{ fontSize: '0.68rem', color: '#10B981', fontWeight: '700' }}>
+                    {node.metric}
+                  </span>
+                </div>
+
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#FFFFFF', margin: 0 }}>
+                    {node.title}
+                  </h4>
+                  <div style={{ fontSize: '0.72rem', color: node.color, fontWeight: '600', marginTop: '2px' }}>
+                    {node.agent}
+                  </div>
+                </div>
+
+                <p style={{ fontSize: '0.76rem', color: '#94A3B8', lineHeight: '1.45', margin: 0, flex: 1 }}>
+                  {node.desc}
+                </p>
+
+                {i < 5 && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.5 }}>
+                    <ArrowRight size={13} color={node.color} />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Speed Indicator Footnote */}
+          <div style={{
+            marginTop: '22px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderTop: 'var(--border-hairline)',
+            paddingTop: '16px',
+            fontSize: '0.78rem',
+            color: '#64748B',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="pulse-emerald" />
+              <span>Full Pipeline End-to-End Execution: <strong style={{ color: '#F8FAFC' }}>&lt; 14 Seconds</strong></span>
+            </div>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <span>Average Meeting Show Rate: <strong style={{ color: '#10B981' }}>87.4%</strong></span>
+              <span>•</span>
+              <span>Human Reps Required: <strong style={{ color: '#38BDF8' }}>0</strong></span>
+            </div>
+          </div>
         </div>
       </section>
 
