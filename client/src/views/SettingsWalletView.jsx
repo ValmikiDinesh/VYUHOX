@@ -223,7 +223,7 @@ export default function SettingsWalletView({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <CreditCard size={18} color="#10B981" />
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: '800', color: '#0F172A' }}>
                 Prepaid Autonomous Wallet
               </h3>
             </div>
@@ -239,8 +239,8 @@ export default function SettingsWalletView({
 
           {/* Current Balance Display */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(2, 132, 199, 0.12) 100%)',
-            border: '1px solid rgba(16, 185, 129, 0.35)',
+            background: 'linear-gradient(135deg, #ECFDF5 0%, #E0F2FE 100%)',
+            border: '1px solid #A7F3D0',
             boxShadow: 'var(--shadow-specular)',
             borderRadius: '12px',
             padding: '20px',
@@ -252,7 +252,7 @@ export default function SettingsWalletView({
               fontFamily: 'var(--font-mono)',
               fontSize: '2.4rem',
               fontWeight: '900',
-              color: '#F8FAFC',
+              color: '#0F172A',
               margin: '4px 0',
               letterSpacing: '-0.02em',
             }}>
@@ -289,9 +289,9 @@ export default function SettingsWalletView({
                     flex: 1,
                     padding: '8px 0',
                     borderRadius: '8px',
-                    border: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '1px solid #10B981' : 'var(--border-hairline)',
-                    background: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
-                    color: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '#34D399' : 'var(--text-primary)',
+                    border: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '1px solid #059669' : '1px solid #E2E8F0',
+                    background: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '#ECFDF5' : '#FFFFFF',
+                    color: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '#059669' : 'var(--text-primary)',
                     fontSize: '0.8125rem',
                     fontWeight: '700',
                     cursor: 'pointer',

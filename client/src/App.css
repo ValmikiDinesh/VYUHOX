@@ -53,10 +53,10 @@
 
 @keyframes omnibarPulse {
   0%, 100% {
-    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.2), 0 20px 50px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.25), 0 20px 40px rgba(15, 23, 42, 0.12);
   }
   50% {
-    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4), 0 24px 60px rgba(0, 0, 0, 0.9);
+    box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.45), 0 24px 50px rgba(15, 23, 42, 0.18);
   }
 }
 
@@ -74,11 +74,11 @@
 
 .table-dense-container th {
   padding: 8px 12px;
-  background: var(--surface-1);
-  color: var(--text-tertiary);
+  background: #F8FAFC;
+  color: #475569;
   font-weight: 600;
   text-align: left;
-  border-bottom: var(--border-hairline);
+  border-bottom: 1px solid #E2E8F0;
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -87,7 +87,7 @@
 
 .table-dense-container td {
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid #F1F5F9;
   color: var(--text-primary);
   height: 38px;
   vertical-align: middle;
@@ -103,8 +103,8 @@
 }
 
 .table-row-selected {
-  background: rgba(2, 132, 199, 0.12) !important;
-  border-left: 2px solid #38BDF8;
+  background: #F0F9FF !important;
+  border-left: 2px solid #0284C7;
 }
 
 /* Subtle Shimmer for High-Priority KPI Cards */

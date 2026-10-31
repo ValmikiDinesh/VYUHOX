@@ -45,7 +45,7 @@ export default function ModeSwitchModal({
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(0, 0, 0, 0.75)',
+      background: 'rgba(15, 23, 42, 0.45)',
       backdropFilter: 'blur(10px)',
       display: 'flex',
       alignItems: 'center',
@@ -53,11 +53,13 @@ export default function ModeSwitchModal({
       zIndex: 100,
     }}>
       <div className="glass-panel" style={{
+        background: '#FFFFFF',
         width: '840px',
         maxWidth: '92vw',
         padding: '32px',
         borderRadius: '16px',
-        border: '1px solid rgba(6, 182, 212, 0.3)',
+        border: '1px solid #E2E8F0',
+        boxShadow: '0 25px 60px rgba(15, 23, 42, 0.2)',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -70,7 +72,7 @@ export default function ModeSwitchModal({
                 Dual-Mode Architecture
               </span>
             </div>
-            <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.45rem', fontWeight: '800', color: '#F8FAFC', marginTop: '6px' }}>
+            <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.45rem', fontWeight: '800', color: '#0F172A', marginTop: '6px' }}>
               Operating Mode & Autonomous Team Switchboard
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '2px' }}>
@@ -95,11 +97,11 @@ export default function ModeSwitchModal({
               padding: '24px',
               borderRadius: '14px',
               background: selectedMode === 'TOOL'
-                ? 'rgba(6, 182, 212, 0.08)'
-                : 'rgba(15, 23, 42, 0.6)',
+                ? '#F0F9FF'
+                : '#F8FAFC',
               border: selectedMode === 'TOOL'
-                ? '2px solid #06B6D4'
-                : '1px solid rgba(255, 255, 255, 0.08)',
+                ? '2px solid #0284C7'
+                : '1px solid #E2E8F0',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
@@ -122,14 +124,14 @@ export default function ModeSwitchModal({
                   <Wrench size={20} color="#38BDF8" />
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.35rem', fontWeight: '800', color: '#F8FAFC' }}>
+                  <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.35rem', fontWeight: '800', color: '#0F172A' }}>
                     $49<span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: '500' }}>/mo</span>
                   </div>
                   <div style={{ fontSize: '0.675rem', color: '#38BDF8', fontWeight: '700' }}>+ Usage Wallet</div>
                 </div>
               </div>
 
-              <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC', marginTop: '12px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0F172A', marginTop: '12px' }}>
                 Mode A: AI Starter Engine
               </h3>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px', lineHeight: '1.4' }}>
@@ -144,7 +146,7 @@ export default function ModeSwitchModal({
                   'Meta & Google Ads Campaign Manager',
                   'Modular "Hire As You Grow" Agent option ($39/mo)',
                 ].map((feat, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.725rem', color: '#CBD5E1' }}>
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.725rem', color: '#334155' }}>
                     <CheckCircle2 size={13} color="#06B6D4" style={{ flexShrink: 0 }} />
                     <span>{feat}</span>
                   </div>
@@ -169,11 +171,11 @@ export default function ModeSwitchModal({
               padding: '24px',
               borderRadius: '14px',
               background: selectedMode === 'AI_COMPANY'
-                ? 'rgba(16, 185, 129, 0.08)'
-                : 'rgba(15, 23, 42, 0.6)',
+                ? '#ECFDF5'
+                : '#F8FAFC',
               border: selectedMode === 'AI_COMPANY'
-                ? '2px solid #10B981'
-                : '1px solid rgba(255, 255, 255, 0.08)',
+                ? '2px solid #059669'
+                : '1px solid #E2E8F0',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
@@ -203,7 +205,7 @@ export default function ModeSwitchModal({
                 </div>
               </div>
 
-              <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC', marginTop: '12px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0F172A', marginTop: '12px' }}>
                 Mode B: Autonomous AI Company
               </h3>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px', lineHeight: '1.4' }}>
@@ -218,7 +220,7 @@ export default function ModeSwitchModal({
                   'Sub-45s Speed-to-Lead Inbound Voice Dialing',
                   'Autonomous Cross-Agent Feedback Loop',
                 ].map((feat, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.725rem', color: '#CBD5E1' }}>
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.725rem', color: '#334155' }}>
                     <CheckCircle2 size={13} color="#10B981" style={{ flexShrink: 0 }} />
                     <span>{feat}</span>
                   </div>

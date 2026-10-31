@@ -172,7 +172,7 @@ export default function ClientAuthPage({
           }}>
             V
           </div>
-          <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', color: '#F8FAFC', letterSpacing: '0.05em' }}>
+          <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', color: '#0F172A', letterSpacing: '0.05em' }}>
             VYUHOX
           </span>
           <span className="badge badge-cyan" style={{ fontSize: '0.65rem', marginLeft: '6px' }}>
@@ -187,8 +187,8 @@ export default function ClientAuthPage({
             alignItems: 'center',
             gap: '6px',
             background: 'transparent',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            color: '#CBD5E1',
+            border: '1px solid #E2E8F0',
+            color: '#475569',
             borderRadius: '8px',
             padding: '7px 14px',
             fontSize: '0.8rem',
@@ -233,7 +233,7 @@ export default function ClientAuthPage({
             )}
           </div>
 
-          <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.6rem', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px' }}>
+          <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.6rem', fontWeight: '800', color: '#0F172A', margin: '0 0 6px' }}>
             {mode === 'signup' ? 'Create Your Client Workspace' : 'Sign In to Your Workspace'}
           </h1>
           <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.5 }}>
@@ -246,11 +246,11 @@ export default function ClientAuthPage({
         {/* Tab Switcher: Sign In vs Create Account */}
         <div style={{
           display: 'flex',
-          background: 'rgba(255, 255, 255, 0.04)',
+          background: '#F1F5F9',
           borderRadius: '12px',
           padding: '4px',
           marginBottom: '24px',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          border: '1px solid #E2E8F0',
         }}>
           <button
             type="button"
@@ -260,8 +260,9 @@ export default function ClientAuthPage({
               padding: '10px',
               borderRadius: '9px',
               border: 'none',
-              background: mode === 'signin' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-              color: mode === 'signin' ? '#34D399' : '#94A3B8',
+              background: mode === 'signin' ? '#FFFFFF' : 'transparent',
+              boxShadow: mode === 'signin' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              color: mode === 'signin' ? '#0F172A' : '#64748B',
               fontWeight: '700',
               fontSize: '0.85rem',
               cursor: 'pointer',
@@ -283,8 +284,9 @@ export default function ClientAuthPage({
               padding: '10px',
               borderRadius: '9px',
               border: 'none',
-              background: mode === 'signup' ? 'rgba(6, 182, 212, 0.2)' : 'transparent',
-              color: mode === 'signup' ? '#38BDF8' : '#94A3B8',
+              background: mode === 'signup' ? '#FFFFFF' : 'transparent',
+              boxShadow: mode === 'signup' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              color: mode === 'signup' ? '#0F172A' : '#64748B',
               fontWeight: '700',
               fontSize: '0.85rem',
               cursor: 'pointer',

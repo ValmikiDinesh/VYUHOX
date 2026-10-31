@@ -91,7 +91,7 @@ export default function AddFundsModal({
     <div style={{
       position: 'fixed',
       inset: 0,
-      backgroundColor: 'rgba(3, 7, 18, 0.88)',
+      backgroundColor: 'rgba(15, 23, 42, 0.45)',
       backdropFilter: 'blur(10px)',
       display: 'flex',
       alignItems: 'center',
@@ -103,9 +103,9 @@ export default function AddFundsModal({
         width: '100%',
         maxWidth: '520px',
         padding: '24px',
-        background: '#0B1120',
-        border: '1px solid rgba(16, 185, 129, 0.4)',
-        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
+        background: '#FFFFFF',
+        border: '1px solid #E2E8F0',
+        boxShadow: '0 25px 60px rgba(15, 23, 42, 0.2)',
         borderRadius: '16px',
         position: 'relative',
       }}>
@@ -125,7 +125,7 @@ export default function AddFundsModal({
               <CreditCard size={18} color="#10B981" />
             </div>
             <div>
-              <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC', margin: 0 }}>
+              <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', color: '#0F172A', margin: 0 }}>
                 Recharge GTM Wallet
               </h3>
               <p style={{ margin: 0, fontSize: '0.75rem', color: '#94A3B8' }}>
@@ -141,11 +141,11 @@ export default function AddFundsModal({
         {/* Currency Switcher Tabs */}
         <div style={{
           display: 'flex',
-          background: 'rgba(255, 255, 255, 0.04)',
+          background: '#F1F5F9',
           borderRadius: '10px',
           padding: '4px',
           marginBottom: '16px',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          border: '1px solid #E2E8F0',
         }}>
           <button
             type="button"
@@ -155,8 +155,9 @@ export default function AddFundsModal({
               padding: '8px',
               borderRadius: '8px',
               border: 'none',
-              background: selectedCurrency === 'USD' ? 'linear-gradient(135deg, #06B6D4, #10B981)' : 'transparent',
-              color: selectedCurrency === 'USD' ? '#04101A' : '#94A3B8',
+              background: selectedCurrency === 'USD' ? '#FFFFFF' : 'transparent',
+              boxShadow: selectedCurrency === 'USD' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              color: selectedCurrency === 'USD' ? '#0F172A' : '#64748B',
               fontWeight: '700',
               fontSize: '0.8rem',
               cursor: 'pointer',
@@ -173,8 +174,9 @@ export default function AddFundsModal({
               padding: '8px',
               borderRadius: '8px',
               border: 'none',
-              background: selectedCurrency === 'INR' ? 'linear-gradient(135deg, #F59E0B, #10B981)' : 'transparent',
-              color: selectedCurrency === 'INR' ? '#04101A' : '#94A3B8',
+              background: selectedCurrency === 'INR' ? '#FFFFFF' : 'transparent',
+              boxShadow: selectedCurrency === 'INR' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              color: selectedCurrency === 'INR' ? '#0F172A' : '#64748B',
               fontWeight: '700',
               fontSize: '0.8rem',
               cursor: 'pointer',
@@ -189,8 +191,8 @@ export default function AddFundsModal({
         <div style={{
           padding: '12px 16px',
           borderRadius: '10px',
-          background: 'rgba(16, 185, 129, 0.08)',
-          border: '1px solid rgba(16, 185, 129, 0.25)',
+          background: '#ECFDF5',
+          border: '1px solid #A7F3D0',
           marginBottom: '16px',
           display: 'flex',
           alignItems: 'center',
@@ -226,9 +228,9 @@ export default function AddFundsModal({
                 style={{
                   padding: '10px 0',
                   borderRadius: '8px',
-                  border: amount === amt ? '1px solid #10B981' : '1px solid rgba(255, 255, 255, 0.08)',
-                  background: amount === amt ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
-                  color: amount === amt ? '#34D399' : '#CBD5E1',
+                  border: amount === amt ? '1px solid #059669' : '1px solid #E2E8F0',
+                  background: amount === amt ? '#ECFDF5' : '#F8FAFC',
+                  color: amount === amt ? '#059669' : '#334155',
                   fontSize: '0.875rem',
                   fontWeight: '700',
                   cursor: 'pointer',
@@ -378,8 +380,8 @@ export default function AddFundsModal({
             <div style={{
               padding: '14px',
               borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
               display: 'flex',
               alignItems: 'center',
               gap: '16px',
@@ -402,7 +404,7 @@ export default function AddFundsModal({
               </div>
 
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#F8FAFC', marginBottom: '4px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#0F172A', marginBottom: '4px' }}>
                   Scan with Google Pay, PhonePe, Paytm or CRED
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
@@ -445,8 +447,8 @@ export default function AddFundsModal({
             <div style={{
               padding: '12px',
               borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
             }}>
               <span style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '8px' }}>
                 Select Major Indian Bank
@@ -458,8 +460,8 @@ export default function AddFundsModal({
                     style={{
                       padding: '8px 4px',
                       borderRadius: '6px',
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: '#F1F5F9',
+                      border: '1px solid #E2E8F0',
                       textAlign: 'center',
                       fontSize: '0.725rem',
                       fontWeight: '600',
@@ -479,7 +481,7 @@ export default function AddFundsModal({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          borderTop: '1px solid #E2E8F0',
           paddingTop: '16px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: '#64748B' }}>

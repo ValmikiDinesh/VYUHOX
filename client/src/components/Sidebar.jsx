@@ -132,7 +132,7 @@ export default function Sidebar({
           {!collapsed && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '0.98rem', fontWeight: '800', letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+                <span style={{ fontSize: '0.98rem', fontWeight: '800', letterSpacing: '-0.02em', color: '#0F172A' }}>
                   {brandName}
                 </span>
                 <span
@@ -141,9 +141,9 @@ export default function Sidebar({
                     fontWeight: '800',
                     padding: '1px 5px',
                     borderRadius: '4px',
-                    background: 'rgba(56, 189, 248, 0.15)',
-                    color: '#38BDF8',
-                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    background: '#E0F2FE',
+                    color: '#0284C7',
+                    border: '1px solid #BAE6FD',
                   }}
                 >
                   GTM 1.0
@@ -172,7 +172,7 @@ export default function Sidebar({
               alignItems: 'center',
               justifyContent: 'center',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#0F172A')}
             onMouseLeave={(e) => (e.currentTarget.style.color = '#64748B')}
           >
             <PanelLeftClose size={16} />
@@ -193,7 +193,7 @@ export default function Sidebar({
               padding: '6px',
               borderRadius: '6px',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#0F172A')}
             onMouseLeave={(e) => (e.currentTarget.style.color = '#64748B')}
           >
             <PanelLeftOpen size={16} />
@@ -219,7 +219,7 @@ export default function Sidebar({
                 style={{
                   fontSize: '0.65rem',
                   fontWeight: '700',
-                  color: '#475569',
+                  color: '#64748B',
                   letterSpacing: '0.06em',
                   padding: '0 8px 6px',
                   textTransform: 'uppercase',
@@ -246,25 +246,25 @@ export default function Sidebar({
                       justifyContent: collapsed ? 'center' : 'flex-start',
                       borderRadius: '8px',
                       border: 'none',
-                      background: isActive ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
-                      color: isActive ? '#FFFFFF' : '#94A3B8',
+                      background: isActive ? '#F0F9FF' : 'transparent',
+                      color: isActive ? '#0284C7' : '#475569',
                       position: 'relative',
                       cursor: 'pointer',
                       fontSize: '0.8rem',
-                      fontWeight: isActive ? '600' : '500',
+                      fontWeight: isActive ? '700' : '500',
                       transition: 'all 0.12s ease',
-                      boxShadow: isActive ? 'inset 0 1px 0 0 rgba(255, 255, 255, 0.08)' : 'none',
+                      boxShadow: isActive ? '0 1px 2px rgba(2, 132, 199, 0.08)' : 'none',
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                        e.currentTarget.style.color = '#FFFFFF';
+                        e.currentTarget.style.background = '#F8FAFC';
+                        e.currentTarget.style.color = '#0F172A';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isActive) {
                         e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#94A3B8';
+                        e.currentTarget.style.color = '#475569';
                       }
                     }}
                   >
@@ -277,16 +277,16 @@ export default function Sidebar({
                           top: '6px',
                           bottom: '6px',
                           width: '3px',
-                          background: '#38BDF8',
+                          background: '#0284C7',
                           borderRadius: '0 2px 2px 0',
-                          boxShadow: '0 0 8px #38BDF8',
+                          boxShadow: '0 0 6px rgba(2, 132, 199, 0.4)',
                         }}
                       />
                     )}
                     <Icon
                       size={17}
                       style={{
-                        color: isActive ? '#38BDF8' : '#64748B',
+                        color: isActive ? '#0284C7' : '#64748B',
                         flexShrink: 0,
                       }}
                     />
@@ -304,7 +304,7 @@ export default function Sidebar({
         style={{
           padding: collapsed ? '12px 6px' : '14px 12px',
           borderTop: 'var(--border-hairline)',
-          background: 'rgba(4, 6, 10, 0.5)',
+          background: '#F8FAFC',
           display: 'flex',
           flexDirection: 'column',
           gap: '10px',
@@ -316,9 +316,9 @@ export default function Sidebar({
             style={{
               padding: '9px 12px',
               borderRadius: '8px',
-              background: 'var(--surface-2)',
+              background: '#FFFFFF',
               border: 'var(--border-hairline)',
-              boxShadow: 'var(--specular-top-subtle)',
+              boxShadow: 'var(--shadow-sm)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -328,7 +328,7 @@ export default function Sidebar({
               <div style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>
                 Pre-paid Compute
               </div>
-              <div className="tabular-nums" style={{ fontSize: '0.9rem', fontWeight: '800', color: '#10B981' }}>
+              <div className="tabular-nums" style={{ fontSize: '0.9rem', fontWeight: '800', color: '#059669' }}>
                 {formattedBalance}
               </div>
             </div>
@@ -348,9 +348,9 @@ export default function Sidebar({
               width: '100%',
               height: '36px',
               borderRadius: '8px',
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.25)',
-              color: '#10B981',
+              background: '#ECFDF5',
+              border: '1px solid #A7F3D0',
+              color: '#059669',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -382,7 +382,7 @@ export default function Sidebar({
               {currentUser?.name ? currentUser.name[0].toUpperCase() : 'F'}
             </div>
             <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#F8FAFC', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#0F172A', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                 {currentUser?.name || activeWorkspace?.name || 'Founder'}
               </div>
               <div style={{ fontSize: '0.65rem', color: '#64748B' }}>

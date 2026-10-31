@@ -842,28 +842,66 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
           <span className="badge badge-cyan" style={{ marginBottom: '8px' }}>
             Zero Human Latency Workflow
           </span>
-          <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.4rem', fontWeight: '800', margin: '8px 0', color: '#FFFFFF' }}>
+          <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.4rem', fontWeight: '800', margin: '8px 0', color: '#0F172A' }}>
             The 14-Second Speed-to-Lead Autonomous Pipeline
           </h2>
-          <p style={{ color: '#94A3B8', fontSize: '0.95rem', maxWidth: '680px', margin: '0 auto' }}>
+          <p style={{ color: '#64748B', fontSize: '0.95rem', maxWidth: '680px', margin: '0 auto' }}>
             Traditional sales teams take 48+ hours to respond to an inbound form. VYUHOX scrapes, verifies, speed-dials, and books qualified demos in 14 seconds flat.
           </p>
         </div>
 
         {/* Neural Pipeline Flow Canvas */}
-        <div className="specular-glass" style={{ padding: '32px 28px', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}>
-          {/* Background Ambient SVG Connecting Line */}
+        <div className="specular-glass" style={{ padding: '32px 28px', borderRadius: '16px', position: 'relative', overflow: 'hidden', background: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: 'var(--shadow-md)' }}>
+          {/* Continuous Horizontal Sequential Timeline Track */}
           <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '5%',
-            right: '5%',
-            height: '2px',
-            transform: 'translateY(-50%)',
-            background: 'linear-gradient(90deg, rgba(56, 189, 248, 0.15) 0%, rgba(16, 185, 129, 0.3) 50%, rgba(168, 85, 247, 0.2) 100%)',
-            zIndex: 0,
-            display: 'none', // Shown on desktop via media or layout flex
-          }} />
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '24px',
+            padding: '0 20px',
+            position: 'relative',
+          }}>
+            <div style={{
+              position: 'absolute',
+              left: '40px',
+              right: '40px',
+              top: '50%',
+              height: '2px',
+              background: 'linear-gradient(90deg, #0284C7 0%, #059669 50%, #7C3AED 100%)',
+              zIndex: 0,
+              opacity: 0.35,
+            }} />
+            {[
+              { step: '01', color: '#0284C7' },
+              { step: '02', color: '#0369A1' },
+              { step: '03', color: '#059669' },
+              { step: '04', color: '#D97706' },
+              { step: '05', color: '#7C3AED' },
+              { step: '06', color: '#DB2777' },
+            ].map((dot) => (
+              <div
+                key={dot.step}
+                style={{
+                  position: 'relative',
+                  zIndex: 1,
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: '#FFFFFF',
+                  border: `2px solid ${dot.color}`,
+                  boxShadow: `0 2px 6px ${dot.color}25`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.68rem',
+                  fontWeight: '800',
+                  color: dot.color,
+                }}
+              >
+                {dot.step}
+              </div>
+            ))}
+          </div>
 
           <div style={{
             display: 'grid',
@@ -879,7 +917,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
                 agent: 'Apollo / Hunter API',
                 metric: 'Intent > 85%',
                 desc: 'Website visitor or B2B intent keyword triggers instant enrichment query.',
-                color: '#38BDF8',
+                color: '#0284C7',
               },
               {
                 step: '02',
@@ -887,7 +925,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
                 agent: 'Twilio TCR & Verifier',
                 metric: '100% Validated',
                 desc: 'Triple-verifies direct corporate email, phone, and DNC suppression status.',
-                color: '#0284C7',
+                color: '#0369A1',
               },
               {
                 step: '03',
@@ -895,7 +933,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
                 agent: 'Bland.ai Dedicated Route',
                 metric: 'Sub-700ms Audio',
                 desc: 'Inbound prospect receives a warm voice bridge while browsing your product.',
-                color: '#10B981',
+                color: '#059669',
               },
               {
                 step: '04',
@@ -903,7 +941,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
                 agent: 'Maya Vance • AI Closer',
                 metric: '4.9/5 Naturalness',
                 desc: 'Answers pricing, technical integrations, and enterprise compliance hurdles.',
-                color: '#F59E0B',
+                color: '#D97706',
               },
               {
                 step: '05',
@@ -911,7 +949,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
                 agent: 'Cal.com & Google Cal',
                 metric: 'Instant Sync',
                 desc: 'Dispatches Google Meet invitation directly to both client and prospect.',
-                color: '#A855F7',
+                color: '#7C3AED',
               },
               {
                 step: '06',
@@ -919,56 +957,54 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
                 agent: 'Victoria CFO Guard',
                 metric: '78.4% Net Margin',
                 desc: 'Computes wholesale carrier expense and audits customer CAC/LTV health.',
-                color: '#EC4899',
+                color: '#DB2777',
               },
-            ].map((node, i) => (
+            ].map((node) => (
               <div
                 key={node.step}
                 className="specular-card card-tilt-hover"
                 style={{
-                  padding: '20px 18px',
+                  padding: '18px 16px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '10px',
                   position: 'relative',
-                  background: 'rgba(10, 14, 22, 0.85)',
+                  background: '#FFFFFF',
+                  borderTop: `3px solid ${node.color}`,
+                  border: '1px solid #E2E8F0',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '24px' }}>
                   <span className="tabular-nums" style={{
-                    fontSize: '0.72rem',
+                    fontSize: '0.68rem',
                     fontWeight: '800',
                     color: node.color,
-                    background: `${node.color}15`,
+                    background: `${node.color}12`,
                     padding: '2px 7px',
                     borderRadius: '4px',
-                    border: `1px solid ${node.color}35`,
+                    border: `1px solid ${node.color}30`,
+                    whiteSpace: 'nowrap',
                   }}>
                     STAGE {node.step}
                   </span>
-                  <span className="tabular-nums" style={{ fontSize: '0.68rem', color: '#10B981', fontWeight: '700' }}>
+                  <span className="tabular-nums" style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '700', whiteSpace: 'nowrap' }}>
                     {node.metric}
                   </span>
                 </div>
 
-                <div>
-                  <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#FFFFFF', margin: 0 }}>
+                <div style={{ minHeight: '44px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0F172A', margin: 0, lineHeight: '1.25' }}>
                     {node.title}
                   </h4>
-                  <div style={{ fontSize: '0.72rem', color: node.color, fontWeight: '600', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.72rem', color: node.color, fontWeight: '600', marginTop: '3px' }}>
                     {node.agent}
                   </div>
                 </div>
 
-                <p style={{ fontSize: '0.76rem', color: '#94A3B8', lineHeight: '1.45', margin: 0, flex: 1 }}>
+                <p style={{ fontSize: '0.76rem', color: '#64748B', lineHeight: '1.45', margin: 0, flex: 1 }}>
                   {node.desc}
                 </p>
-
-                {i < 5 && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.5 }}>
-                    <ArrowRight size={13} color={node.color} />
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -979,7 +1015,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderTop: 'var(--border-hairline)',
+            borderTop: '1px solid #E2E8F0',
             paddingTop: '16px',
             fontSize: '0.78rem',
             color: '#64748B',
@@ -988,12 +1024,12 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="pulse-emerald" />
-              <span>Full Pipeline End-to-End Execution: <strong style={{ color: '#F8FAFC' }}>&lt; 14 Seconds</strong></span>
+              <span>Full Pipeline End-to-End Execution: <strong style={{ color: '#0F172A' }}>&lt; 14 Seconds</strong></span>
             </div>
             <div style={{ display: 'flex', gap: '16px' }}>
-              <span>Average Meeting Show Rate: <strong style={{ color: '#10B981' }}>87.4%</strong></span>
+              <span>Average Meeting Show Rate: <strong style={{ color: '#059669' }}>87.4%</strong></span>
               <span>•</span>
-              <span>Human Reps Required: <strong style={{ color: '#38BDF8' }}>0</strong></span>
+              <span>Human Reps Required: <strong style={{ color: '#0284C7' }}>0</strong></span>
             </div>
           </div>
         </div>
@@ -1316,35 +1352,37 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
         }}>
           {/* Plan 1: AI Growth Starter */}
           <div style={{
-            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 17, 32, 0.95) 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
             borderRadius: '18px',
             padding: '32px 26px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+            boxShadow: 'var(--shadow-md)',
             transition: 'all 0.2s',
           }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div style={{ height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span className="badge badge-gray" style={{ fontSize: '0.7rem', fontWeight: '800', letterSpacing: '0.04em' }}>
                   AI STARTER
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>Autonomous</span>
+                <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '600' }}>Autonomous</span>
               </div>
 
-              <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '4px 0 10px', color: '#F8FAFC' }}>
-                AI Growth Engine
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.45' }}>
+              <div style={{ minHeight: '44px', display: 'flex', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: 0, color: '#0F172A' }}>
+                  AI Growth Engine
+                </h3>
+              </div>
+              <p style={{ minHeight: '52px', fontSize: '0.8rem', color: '#64748B', margin: '8px 0 16px', lineHeight: '1.45' }}>
                 Autonomous AI Lead Scraper, Waterfall Enrichment, AI Omnichannel Drafter &amp; Smart CRM.
               </p>
 
-              <div style={{ marginBottom: '18px' }}>
-                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
+              <div style={{ minHeight: '74px', marginBottom: '18px' }}>
+                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#0F172A', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
                   {currencySymbol}{getPlanPrice(49, 3999).toLocaleString(isINR ? 'en-IN' : 'en-US')}
-                  <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '500' }}>/mo</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500' }}>/mo</span>
                 </div>
                 <div style={{ fontSize: '0.725rem', color: '#64748B', marginTop: '4px' }}>
                   {isAnnual ? 'Billed annually ($470/yr)' : 'Flexible month-to-month'}
@@ -1353,36 +1391,37 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
               {/* Highlighted Lead Quota Pill */}
               <div style={{
-                background: 'rgba(6, 182, 212, 0.08)',
-                border: '1px solid rgba(6, 182, 212, 0.25)',
+                height: '40px',
+                background: '#E0F2FE',
+                border: '1px solid #BAE6FD',
                 borderRadius: '8px',
-                padding: '8px 12px',
+                padding: '0 12px',
                 marginBottom: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
               }}>
-                <Zap size={14} color="#06B6D4" />
-                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#38BDF8' }}>
+                <Zap size={14} color="#0284C7" />
+                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#0284C7' }}>
                   250 Verified Leads / month included
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '28px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#334155', marginBottom: '28px', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Waterfall Lead Scraper &amp; Enrichment</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Autonomous AI Drafts (Email, WhatsApp, Telegram, SMS)</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Omnichannel Unified Outreach Inbox</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Meta &amp; Google Autonomous Ads Manager</span>
                 </div>
               </div>
@@ -1401,35 +1440,37 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
           {/* Plan 2: Tool + 1 Agent */}
           <div style={{
-            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 17, 32, 0.95) 100%)',
-            border: '1px solid rgba(56, 189, 248, 0.3)',
+            background: '#FFFFFF',
+            border: '1px solid #CBD5E1',
             borderRadius: '18px',
             padding: '32px 26px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+            boxShadow: 'var(--shadow-md)',
             transition: 'all 0.2s',
           }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div style={{ height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span className="badge badge-cyan" style={{ fontSize: '0.7rem', fontWeight: '800', letterSpacing: '0.04em' }}>
                   MODULAR SCALING
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '600' }}>1 AI Employee</span>
+                <span style={{ fontSize: '0.7rem', color: '#0284C7', fontWeight: '600' }}>1 AI Employee</span>
               </div>
 
-              <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '4px 0 10px', color: '#F8FAFC' }}>
-                AI SDR Accelerator
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.45' }}>
+              <div style={{ minHeight: '44px', display: 'flex', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: 0, color: '#0F172A' }}>
+                  AI SDR Accelerator
+                </h3>
+              </div>
+              <p style={{ minHeight: '52px', fontSize: '0.8rem', color: '#64748B', margin: '8px 0 16px', lineHeight: '1.45' }}>
                 AI Growth Engine plus 1 dedicated autonomous digital employee (e.g. Maya Voice Closer or Sarah SDR).
               </p>
 
-              <div style={{ marginBottom: '18px' }}>
-                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
+              <div style={{ minHeight: '74px', marginBottom: '18px' }}>
+                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#0F172A', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
                   {currencySymbol}{getPlanPrice(99, 7999).toLocaleString(isINR ? 'en-IN' : 'en-US')}
-                  <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '500' }}>/mo</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500' }}>/mo</span>
                 </div>
                 <div style={{ fontSize: '0.725rem', color: '#64748B', marginTop: '4px' }}>
                   {isAnnual ? 'Billed annually ($950/yr)' : 'Flexible month-to-month'}
@@ -1438,41 +1479,42 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
               {/* Highlighted Lead Quota Pill */}
               <div style={{
-                background: 'rgba(56, 189, 248, 0.08)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
+                height: '40px',
+                background: '#E0F2FE',
+                border: '1px solid #BAE6FD',
                 borderRadius: '8px',
-                padding: '8px 12px',
+                padding: '0 12px',
                 marginBottom: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
               }}>
-                <Zap size={14} color="#38BDF8" />
-                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#38BDF8' }}>
+                <Zap size={14} color="#0284C7" />
+                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#0284C7' }}>
                   1,000 Verified Leads / month included (FREE)
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '28px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#334155', marginBottom: '28px', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Everything in AI Growth Starter</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span><strong>1 Dedicated AI Employee (Maya or Sarah)</strong></span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Sub-45s Inbound Speed-to-Lead Calling</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Add more agents for {currencySymbol}{isINR ? '2,999' : '39'}/mo each</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
-                  <span style={{ color: '#FBBF24', fontWeight: '600' }}>{currencySymbol}{isINR ? '6,000' : '75'} Welcome Usage Bonus</span>
+                  <CheckCircle size={14} color="#059669" />
+                  <span style={{ color: '#D97706', fontWeight: '600' }}>{currencySymbol}{isINR ? '6,000' : '75'} Welcome Usage Bonus</span>
                 </div>
               </div>
             </div>
@@ -1490,97 +1532,103 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
           {/* Plan 3: Full AI Company (Featured - Most Popular) */}
           <div style={{
-            background: 'linear-gradient(180deg, rgba(6, 182, 212, 0.14) 0%, rgba(15, 23, 42, 0.98) 100%)',
-            border: '2px solid #06B6D4',
+            background: '#FFFFFF',
+            border: '2px solid #0284C7',
             borderRadius: '18px',
             padding: '32px 26px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            boxShadow: '0 0 35px rgba(6, 182, 212, 0.35)',
+            boxShadow: '0 12px 35px -4px rgba(2, 132, 199, 0.18)',
             position: 'relative',
             transition: 'all 0.2s',
           }}>
+            {/* Single Elegant Floating Badge: No double text, no border clipping */}
             <div style={{
               position: 'absolute',
-              top: '-13px',
+              top: '-14px',
               left: '50%',
               transform: 'translateX(-50%)',
-              background: 'linear-gradient(135deg, #06B6D4, #10B981)',
-              color: '#030712',
+              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+              color: '#FFFFFF',
               padding: '4px 16px',
               borderRadius: '20px',
-              fontSize: '0.675rem',
+              fontSize: '0.68rem',
               fontWeight: '800',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
-              boxShadow: '0 2px 10px rgba(6, 182, 212, 0.5)',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 10px rgba(2, 132, 199, 0.35)',
+              zIndex: 2,
             }}>
-              ★ Most Popular • Full C-Suite Workforce
+              ★ MOST POPULAR • 6-AGENT WORKFORCE
             </div>
 
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div style={{ height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span className="badge badge-emerald" style={{ fontSize: '0.7rem', fontWeight: '800', letterSpacing: '0.04em' }}>
-                  AUTONOMOUS GTM CO.
+                  AUTONOMOUS AI SUITE
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '700' }}>All 6 Agents Active</span>
+                <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: '700' }}>All 6 Agents Active</span>
               </div>
 
-              <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '4px 0 10px', color: '#F8FAFC' }}>
-                Autonomous AI Company
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.45' }}>
+              <div style={{ minHeight: '44px', display: 'flex', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: 0, color: '#0284C7' }}>
+                  Autonomous AI Company
+                </h3>
+              </div>
+              <p style={{ minHeight: '52px', fontSize: '0.8rem', color: '#64748B', margin: '8px 0 16px', lineHeight: '1.45' }}>
                 All 6 digital C-Suite employees deployed 24/7. Marketing, outreach, inbound calling, finance &amp; CRM run on complete autopilot.
               </p>
 
-              <div style={{ marginBottom: '18px' }}>
-                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#38BDF8', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
+              <div style={{ minHeight: '74px', marginBottom: '18px' }}>
+                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#0284C7', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
                   {currencySymbol}{getPlanPrice(499, 39999).toLocaleString(isINR ? 'en-IN' : 'en-US')}
-                  <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '500' }}>/mo</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500' }}>/mo</span>
                 </div>
-                <div style={{ fontSize: '0.725rem', color: '#34D399', marginTop: '4px', fontWeight: '600' }}>
+                <div style={{ fontSize: '0.725rem', color: '#059669', marginTop: '4px', fontWeight: '600' }}>
                   Replaces ~$75,000/yr human SDR &amp; agency retainer costs
                 </div>
               </div>
 
               {/* Highlighted Lead Quota Pill */}
               <div style={{
-                background: 'rgba(16, 185, 129, 0.12)',
-                border: '1px solid rgba(16, 185, 129, 0.35)',
+                height: '40px',
+                background: '#ECFDF5',
+                border: '1px solid #A7F3D0',
                 borderRadius: '8px',
-                padding: '8px 12px',
+                padding: '0 12px',
                 marginBottom: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
               }}>
-                <Zap size={14} color="#10B981" />
-                <span style={{ fontSize: '0.775rem', fontWeight: '800', color: '#34D399' }}>
+                <Zap size={14} color="#059669" />
+                <span style={{ fontSize: '0.775rem', fontWeight: '800', color: '#059669' }}>
                   5,000 Verified Leads / month included (FREE)
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '28px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#334155', marginBottom: '28px', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span><strong>Complete 6-Agent AI C-Suite Included</strong></span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Ava CMO (Ads &amp; Social) + Sarah SDR (Outreach)</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Maya Vance (Sub-45s Voice AI Telephone Closer)</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Julian CFO (FinOps) + Chloe CS + Autonomous CEO</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
-                  <span style={{ color: '#FBBF24', fontWeight: '600' }}>{currencySymbol}{isINR ? '8,000' : '100'} Welcome Usage Bonus</span>
+                  <CheckCircle size={14} color="#059669" />
+                  <span style={{ color: '#D97706', fontWeight: '600' }}>{currencySymbol}{isINR ? '8,000' : '100'} Welcome Usage Bonus</span>
                 </div>
               </div>
             </div>
@@ -1598,77 +1646,80 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
           {/* Plan 4: Enterprise High-Scale */}
           <div style={{
-            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 17, 32, 0.95) 100%)',
-            border: '1px solid rgba(168, 85, 247, 0.4)',
+            background: '#FFFFFF',
+            border: '1px solid #CBD5E1',
             borderRadius: '18px',
             padding: '32px 26px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+            boxShadow: 'var(--shadow-md)',
             transition: 'all 0.2s',
           }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div style={{ height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span className="badge badge-purple" style={{ fontSize: '0.7rem', fontWeight: '800', letterSpacing: '0.04em' }}>
                   ENTERPRISE SCALE
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#C4B5FD', fontWeight: '600' }}>Custom SIP &amp; SLAs</span>
+                <span style={{ fontSize: '0.7rem', color: '#7C3AED', fontWeight: '600' }}>Custom SIP &amp; SLAs</span>
               </div>
 
-              <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '4px 0 10px', color: '#F8FAFC' }}>
-                Autonomous Enterprise
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.45' }}>
+              <div style={{ minHeight: '44px', display: 'flex', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '1.45rem', fontWeight: '800', margin: 0, color: '#0F172A' }}>
+                  Autonomous Enterprise
+                </h3>
+              </div>
+              <p style={{ minHeight: '52px', fontSize: '0.8rem', color: '#64748B', margin: '8px 0 16px', lineHeight: '1.45' }}>
                 Dedicated telecom trunking, high-throughput voice carriers, custom CRM webhooks, and 24/7 dedicated engineering SLA.
               </p>
 
-              <div style={{ marginBottom: '18px' }}>
-                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#C4B5FD', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
+              <div style={{ minHeight: '74px', marginBottom: '18px' }}>
+                <div style={{ fontSize: '2.6rem', fontWeight: '900', color: '#7C3AED', fontFamily: 'Outfit, sans-serif', lineHeight: '1' }}>
                   {currencySymbol}{getPlanPrice(1499, 119999).toLocaleString(isINR ? 'en-IN' : 'en-US')}
-                  <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '500' }}>/mo</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500' }}>/mo</span>
                 </div>
-                <div style={{ fontSize: '0.725rem', color: '#A78BFA', marginTop: '4px' }}>
+                <div style={{ fontSize: '0.725rem', color: '#7C3AED', marginTop: '4px' }}>
                   Custom high-volume billing available
                 </div>
               </div>
 
               {/* Highlighted Lead Quota Pill */}
               <div style={{
-                background: 'rgba(168, 85, 247, 0.08)',
-                border: '1px solid rgba(168, 85, 247, 0.25)',
+                height: '40px',
+                background: '#F5F3FF',
+                border: '1px solid #DDD6FE',
                 borderRadius: '8px',
-                padding: '8px 12px',
+                padding: '0 12px',
                 marginBottom: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
               }}>
-                <Zap size={14} color="#C4B5FD" />
-                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#C4B5FD' }}>
+                <Zap size={14} color="#7C3AED" />
+                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#7C3AED' }}>
                   25,000 Verified Leads / month included (FREE)
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1', marginBottom: '28px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#334155', marginBottom: '28px', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span><strong>Full 6-Agent C-Suite Workforce Active</strong></span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Private Dedicated Twilio / Carrier SIP Trunk</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>High-Volume Verified WhatsApp API Numbers</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Custom Bi-directional Webhooks &amp; Salesforce Sync</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle size={14} color="#10B981" />
+                  <CheckCircle size={14} color="#059669" />
                   <span>Priority 24/7 Dedicated Engineering Support</span>
                 </div>
               </div>
@@ -1679,7 +1730,7 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
                 window.location.hash = '#signup';
               }}
               className="btn btn-secondary"
-              style={{ width: '100%', padding: '12px', fontWeight: '700', fontSize: '0.85rem', borderColor: 'rgba(168, 85, 247, 0.45)' }}
+              style={{ width: '100%', padding: '12px', fontWeight: '700', fontSize: '0.85rem' }}
             >
               Deploy Enterprise Suite
             </button>

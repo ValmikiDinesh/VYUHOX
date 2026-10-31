@@ -185,10 +185,10 @@ export default function SupportHelpWidget({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        boxShadow: 'var(--specular-top-elevated), 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(2, 132, 199, 0.15)',
-        border: 'var(--border-hairline)',
+        boxShadow: 'var(--shadow-lg), 0 0 30px rgba(2, 132, 199, 0.1)',
+        border: '1px solid #E2E8F0',
         borderRadius: '16px',
-        background: 'rgba(8, 11, 18, 0.88)',
+        background: 'rgba(255, 255, 255, 0.96)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
       }}
@@ -210,12 +210,12 @@ export default function SupportHelpWidget({
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              background: 'rgba(2, 132, 199, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
+              background: '#E0F2FE',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#38BDF8',
+              color: '#0284C7',
             }}
           >
             <LifeBuoy size={18} />
@@ -224,7 +224,7 @@ export default function SupportHelpWidget({
             <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '800', color: 'var(--text-primary)' }}>
               VYUHOX Engineering Help Desk
             </h4>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#10B981' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#059669' }}>
               <span className="pulse-emerald" style={{ width: '6px', height: '6px' }} />
               Super Admin Desk Active • 2-Way Audit Trail
             </div>
@@ -241,7 +241,7 @@ export default function SupportHelpWidget({
             borderRadius: '6px',
             transition: 'color var(--duration-fast)',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#0F172A')}
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
         >
           <X size={18} />
@@ -261,10 +261,10 @@ export default function SupportHelpWidget({
           style={{
             flex: 1,
             padding: '10px',
-            background: activeView === 'new' ? 'rgba(2, 132, 199, 0.1)' : 'transparent',
+            background: activeView === 'new' ? '#FFFFFF' : 'transparent',
             border: 'none',
-            borderBottom: activeView === 'new' ? '2px solid #38BDF8' : '2px solid transparent',
-            color: activeView === 'new' ? '#38BDF8' : 'var(--text-secondary)',
+            borderBottom: activeView === 'new' ? '2px solid #0284C7' : '2px solid transparent',
+            color: activeView === 'new' ? '#0284C7' : 'var(--text-secondary)',
             fontSize: '0.78rem',
             fontWeight: '700',
             cursor: 'pointer',
@@ -281,10 +281,10 @@ export default function SupportHelpWidget({
           style={{
             flex: 1,
             padding: '10px',
-            background: activeView === 'history' ? 'rgba(2, 132, 199, 0.1)' : 'transparent',
+            background: activeView === 'history' ? '#FFFFFF' : 'transparent',
             border: 'none',
-            borderBottom: activeView === 'history' ? '2px solid #38BDF8' : '2px solid transparent',
-            color: activeView === 'history' ? '#38BDF8' : 'var(--text-secondary)',
+            borderBottom: activeView === 'history' ? '2px solid #0284C7' : '2px solid transparent',
+            color: activeView === 'history' ? '#0284C7' : 'var(--text-secondary)',
             fontSize: '0.78rem',
             fontWeight: '700',
             cursor: 'pointer',
@@ -346,17 +346,18 @@ export default function SupportHelpWidget({
                   padding: '10px 12px',
                   fontSize: '0.72rem',
                   color: 'var(--text-secondary)',
-                  background: 'var(--surface-1)',
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38BDF8', fontWeight: '700', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0284C7', fontWeight: '700', marginBottom: '4px' }}>
                   <Terminal size={12} />
                   <span>Auto-Attached Technical Diagnostics</span>
                 </div>
                 <div className="tabular-nums" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', color: 'var(--text-primary)' }}>
                   <span>Workspace: <strong>{activeWorkspace?.name || 'Current'}</strong></span>
                   <span>•</span>
-                  <span>Wallet: <strong style={{ color: '#10B981' }}>${(wallet?.balanceUSD || 0).toFixed(2)}</strong></span>
+                  <span>Wallet: <strong style={{ color: '#059669' }}>${(wallet?.balanceUSD || 0).toFixed(2)}</strong></span>
                   <span>•</span>
                   <span>Mode: <strong>{operatingMode}</strong></span>
                 </div>
@@ -376,9 +377,9 @@ export default function SupportHelpWidget({
                         flex: 1,
                         padding: '6px 0',
                         borderRadius: '6px',
-                        border: priority === lvl ? '1px solid #38BDF8' : 'var(--border-hairline)',
-                        background: priority === lvl ? 'rgba(2, 132, 199, 0.2)' : 'rgba(255, 255, 255, 0.03)',
-                        color: priority === lvl ? '#38BDF8' : 'var(--text-secondary)',
+                        border: priority === lvl ? '1px solid #0284C7' : '1px solid #E2E8F0',
+                        background: priority === lvl ? '#E0F2FE' : '#FFFFFF',
+                        color: priority === lvl ? '#0284C7' : 'var(--text-secondary)',
                         fontSize: '0.7rem',
                         fontWeight: '700',
                         cursor: 'pointer',

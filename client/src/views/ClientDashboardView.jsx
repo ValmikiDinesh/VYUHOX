@@ -531,14 +531,14 @@ export default function ClientDashboardView({
   const displayName = currentUser?.name || activeWorkspace?.branding?.companyName || activeWorkspace?.name || 'Founder';
 
   return (
-    <div style={{ padding: '28px', maxWidth: '1400px', margin: '0 auto', color: '#F8FAFC' }}>
+    <div style={{ padding: '28px', maxWidth: '1400px', margin: '0 auto', color: 'var(--text-primary)' }}>
       {/* IMMEDIATE ONE-TIME ONBOARDING MODAL POPUP */}
       {showOnboardingModal && !hasCompletedOnboarding && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(3, 7, 18, 0.85)',
+            background: 'rgba(15, 23, 42, 0.45)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             display: 'flex',
@@ -557,15 +557,15 @@ export default function ClientDashboardView({
         >
           <div
             style={{
-              background: 'linear-gradient(135deg, rgba(11, 17, 32, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%)',
-              border: '1px solid rgba(6, 182, 212, 0.45)',
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
               borderRadius: '20px',
               padding: '32px 36px',
               maxWidth: '780px',
               width: '100%',
               maxHeight: '92vh',
               overflowY: 'auto',
-              boxShadow: '0 25px 70px rgba(0, 0, 0, 0.85), 0 0 40px rgba(6, 182, 212, 0.2)',
+              boxShadow: '0 25px 70px rgba(15, 23, 42, 0.18)',
               position: 'relative',
             }}
           >
@@ -832,12 +832,12 @@ export default function ClientDashboardView({
 
       {/* 2. ACTION CENTER: LEADS NEEDING YOUR ATTENTION */}
       <div style={{
-        background: leads.length === 0 ? 'rgba(15, 23, 42, 0.65)' : 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)',
-        border: '1px solid rgba(245, 158, 11, 0.35)',
+        background: '#FFFBEB',
+        border: '1px solid #FDE68A',
         borderRadius: '14px',
         padding: '18px 22px',
         marginBottom: '24px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
+        boxShadow: 'var(--shadow-sm)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -855,14 +855,14 @@ export default function ClientDashboardView({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: '800', color: '#F8FAFC' }}>
+                <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: '800', color: '#0F172A' }}>
                   Action Center: Leads Needing Attention
                 </h3>
                 <span className="badge badge-amber" style={{ fontSize: '0.675rem' }}>
                   {leads.length > 0 ? `${Math.min(leads.length, 2)} Items Pending` : 'All Caught Up ✓'}
                 </span>
               </div>
-              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#94A3B8' }}>
+              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#92400E' }}>
                 VYUHOX alerts you when potential clients reply or need follow-ups so you never lose a paying customer.
               </p>
             </div>
@@ -876,7 +876,7 @@ export default function ClientDashboardView({
         {leads.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '12px' }}>
             <div style={{
-              background: 'rgba(11, 17, 32, 0.8)',
+              background: '#FFFFFF',
               border: '1px solid rgba(245, 158, 11, 0.25)',
               borderRadius: '10px',
               padding: '12px 16px',
@@ -889,7 +889,7 @@ export default function ClientDashboardView({
                 <div style={{ fontSize: '0.7rem', color: '#FBBF24', fontWeight: '800', textTransform: 'uppercase' }}>
                   ⚡ Hot Lead: Interested in Your Offer
                 </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#F8FAFC', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0F172A', marginTop: '2px' }}>
                   {leads[0]?.name || 'Executive Lead'} ({leads[0]?.company || 'Enterprise Company'})
                 </div>
                 <div style={{ fontSize: '0.725rem', color: '#94A3B8', marginTop: '2px' }}>
@@ -906,7 +906,7 @@ export default function ClientDashboardView({
             </div>
 
             <div style={{
-              background: 'rgba(11, 17, 32, 0.8)',
+              background: '#FFFFFF',
               border: '1px solid rgba(6, 182, 212, 0.25)',
               borderRadius: '10px',
               padding: '12px 16px',
@@ -919,7 +919,7 @@ export default function ClientDashboardView({
                 <div style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '800', textTransform: 'uppercase' }}>
                   🛡️ Ready for Follow-up Message
                 </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#F8FAFC', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0F172A', marginTop: '2px' }}>
                   {leads.length > 1 ? leads[1].company : 'Decision-Maker Accounts'}
                 </div>
                 <div style={{ fontSize: '0.725rem', color: '#94A3B8', marginTop: '2px' }}>
@@ -937,8 +937,8 @@ export default function ClientDashboardView({
           </div>
         ) : (
           <div style={{
-            background: 'rgba(11, 17, 32, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            background: '#FFFFFF',
+            border: '1px solid #FDE68A',
             borderRadius: '10px',
             padding: '14px 18px',
             display: 'flex',
@@ -947,7 +947,7 @@ export default function ClientDashboardView({
             flexWrap: 'wrap',
             gap: '10px',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#CBD5E1', fontSize: '0.8rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#92400E', fontSize: '0.8rem', fontWeight: '500' }}>
               <CheckCircle2 size={16} color="#10B981" />
               <span>Everything is running smoothly: No missed calls, no forgotten follow-ups.</span>
             </div>
@@ -995,7 +995,7 @@ export default function ClientDashboardView({
             <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>POTENTIAL CLIENTS FOUND</span>
             <Users size={18} color="#06B6D4" />
           </div>
-          <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#F8FAFC' }}>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#0F172A' }}>
             {leads.length} Contacts
           </div>
           <div style={{ fontSize: '0.725rem', color: leads.length > 0 ? '#38BDF8' : '#94A3B8', marginTop: '4px' }}>
@@ -1012,7 +1012,7 @@ export default function ClientDashboardView({
             <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>SCHEDULED MEETINGS</span>
             <Calendar size={18} color="#A78BFA" />
           </div>
-          <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#C4B5FD' }}>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#7C3AED' }}>
             {stats?.meetingsBooked || 0} Booked
           </div>
           <div style={{ fontSize: '0.725rem', color: '#94A3B8', marginTop: '4px' }}>
@@ -1060,8 +1060,8 @@ export default function ClientDashboardView({
 
       {/* 4. HOW CLIENTS MOVE THROUGH YOUR SALES FUNNEL */}
       <div style={{
-        background: 'rgba(11, 17, 32, 0.85)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        background: '#FFFFFF',
+        border: '1px solid #E2E8F0',
         borderRadius: '14px',
         padding: '20px 24px',
         marginBottom: '28px',
@@ -1070,7 +1070,7 @@ export default function ClientDashboardView({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <BarChart3 size={18} color="#06B6D4" />
-              <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
+              <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: '800', color: '#0F172A' }}>
                 Your Sales Progress &amp; Customer Journey
               </h3>
             </div>
@@ -1090,9 +1090,9 @@ export default function ClientDashboardView({
           gap: '12px',
         }}>
           {/* Stage 1 */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px' }}>
             <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>1. Businesses Found</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#F8FAFC', margin: '4px 0' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0F172A', margin: '4px 0' }}>
               {leads.length > 0 ? leads.length * 3 : 0}
             </div>
             <div style={{ fontSize: '0.72rem', color: '#10B981', fontWeight: '600' }}>
@@ -1101,7 +1101,7 @@ export default function ClientDashboardView({
           </div>
 
           {/* Stage 2 */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px' }}>
             <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>2. Verified Emails &amp; Phones</div>
             <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#38BDF8', margin: '4px 0' }}>
               {leads.length > 0 ? leads.length : 0}
@@ -1112,7 +1112,7 @@ export default function ClientDashboardView({
           </div>
 
           {/* Stage 3 */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px' }}>
             <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' }}>3. Messages Sent</div>
             <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#FBBF24', margin: '4px 0' }}>
               {leads.length > 0 ? Math.floor(leads.length * 0.85) : 0}
@@ -1123,7 +1123,7 @@ export default function ClientDashboardView({
           </div>
 
           {/* Stage 4 */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(139, 92, 246, 0.25)', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ background: '#F8FAFC', border: '1px solid #DDD6FE', borderRadius: '10px', padding: '14px' }}>
             <div style={{ fontSize: '0.7rem', color: '#C4B5FD', textTransform: 'uppercase', fontWeight: '700' }}>4. Meetings Scheduled</div>
             <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#A78BFA', margin: '4px 0' }}>
               {stats?.meetingsBooked || 0}
@@ -1152,7 +1152,7 @@ export default function ClientDashboardView({
                   Interested Prospects Right Now
                 </h3>
               </div>
-              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#94A3B8' }}>
+              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#92400E' }}>
                 Decision-makers who recently viewed your offer or engaged with messages.
               </p>
             </div>
@@ -1236,7 +1236,7 @@ export default function ClientDashboardView({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Cpu size={16} color="#34D399" />
-              <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
+              <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: '800', color: '#0F172A' }}>
                 Recent Automated Activity
               </h3>
             </div>
@@ -1246,14 +1246,14 @@ export default function ClientDashboardView({
           </div>
 
           <div style={{
-            background: 'rgba(0, 0, 0, 0.4)',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
             borderRadius: '10px',
             padding: '14px',
             fontFamily: 'Inter, sans-serif',
             fontSize: '0.75rem',
             lineHeight: '1.7',
-            color: '#CBD5E1',
+            color: '#334155',
             maxHeight: '260px',
             overflowY: 'auto',
           }}>
