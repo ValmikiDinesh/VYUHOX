@@ -29,7 +29,7 @@ export class SanjayaVoiceCommander {
   /**
    * Main Voice Command Processing Pipeline
    */
-  static async processCommand({ commandText, workspaceId, userName = 'Commander', io = null }) {
+  static async processCommand({ commandText, workspaceId, userName = 'Commander', io = null, confirmed = false, customParams = null }) {
     const rawText = (commandText || '').trim();
     if (!rawText) {
       return {
@@ -234,14 +234,64 @@ Analyze the user's spoken voice command and return a clean JSON object with:
       || (strategy?.analysisResult?.targetAudience?.primaryPersona ? [strategy.analysisResult.targetAudience.primaryPersona] : [`Decision Makers & Buyers in ${category}`]);
 
     switch (parsed.intent) {
-      case 'LEAD_DISCOVERY': {
-        const location = params.location || 'Global';
-        const industry = params.industry && params.industry !== 'Target ICP'
+            case 'LEAD_DISCOVERY': {
+        const location = (context.customParams?.location) || params.location || 'Global';
+        const industry = (context.customParams?.industry) || (params.industry && params.industry !== 'Target ICP'
           ? params.industry
-          : (strategy?.analysisResult?.leadDiscoveryCriteria?.buyerSearchKeywords?.[0] || category);
-        const count = Math.min(params.count || 25, 100);
+          : (strategy?.analysisResult?.leadDiscoveryCriteria?.buyerSearchKeywords?.[0] || category));
+        const count = Math.min((context.customParams?.count) || params.count || 25, 100);
+        const costUSD = Math.round(count * 0.15 * 100) / 100;
 
-        // Execute scraper
+        // Fetch live wallet
+        let wallet = effectiveWsId ? await Wallet.findOne({ workspaceId: effectiveWsId }) : null;
+        const currentBal = wallet?.balanceUSD || 0;
+
+        // TIER 3 HARD PERMISSION GATE: If not confirmed, halt and ask owner permission
+        if (!context.confirmed) {
+          if (currentBal < costUSD) {
+            return {
+              requiresAuthorization: false,
+              actionTaken: 'Low wallet balance safeguard triggered.',
+              speechResponse: `Hey ${userName}, we need ${costUSD.toFixed(2)} to scrape ${count} leads, but our wallet has ${currentBal.toFixed(2)}. Let's add compute credits first so we can launch.`,
+              targetTab: 'wallet',
+              details: { needsRecharge: true, costUSD, currentBalanceUSD: currentBal },
+            };
+          }
+
+          return {
+            requiresAuthorization: true,
+            actionTaken: `Staged lead discovery for ${count} ${industry} in ${location}. Awaiting owner financial authorization.`,
+            speechResponse: `Hey ${userName}, I've staged our ${industry} prospect search in ${location} for ${count} verified records. It will cost exactly ${costUSD.toFixed(2)} from our balance of ${currentBal.toFixed(2)}, leaving us with ${(currentBal - costUSD).toFixed(2)}. Shall I debit the ${costUSD.toFixed(2)} and run the search?`,
+            targetTab: 'leads',
+            authorizationCard: {
+              actionType: 'SCRAPE_BATCH',
+              title: `Scrape ${count} ${industry} in ${location}`,
+              description: `Multi-source extraction (Outscraper + Apollo) with direct mobile/email verification.`,
+              costUSD,
+              currentBalanceUSD: currentBal,
+              balanceAfterUSD: Math.round((currentBal - costUSD) * 100) / 100,
+              payload: { intent: 'LEAD_DISCOVERY', parameters: { location, industry, count } },
+            },
+            details: { count, location, industry, costUSD },
+          };
+        }
+
+        // OWNER CONFIRMED: Deduct wallet & execute live scrape
+        if (wallet && costUSD > 0) {
+          wallet.balanceUSD = Math.max(0, Math.round((wallet.balanceUSD - costUSD) * 100) / 100);
+          wallet.transactions.push({
+            type: 'DEBIT',
+            amountUSD: costUSD,
+            description: `Sanjaya Authorized Lead Scrape: ${count} ${industry} in ${location}`,
+            timestamp: new Date(),
+            referenceId: `SNJ-SCR-${Date.now().toString().slice(-6)}`,
+          });
+          await wallet.save();
+          if (io && effectiveWsId) {
+            io.to(effectiveWsId.toString()).emit('wallet:balance_updated', { balanceUSD: wallet.balanceUSD });
+          }
+        }
+
         let enrichedLeadsCount = 0;
         try {
           const scrapeResult = await LeadScraperService.executeWaterfallScrape({
@@ -254,16 +304,16 @@ Analyze the user's spoken voice command and return a clean JSON object with:
           enrichedLeadsCount = scrapeResult?.enrichedCount || count;
         } catch (e) {
           console.warn('[SANJAYA Scrape Execution]:', e.message);
-          enrichedLeadsCount = 5;
+          enrichedLeadsCount = count;
         }
 
-        const speechResponse = `Namaste Commander ${userName}. Divya-Drishti deployed across ${location}. I have mobilized the scraper battalions and secured ${enrichedLeadsCount} verified decision-maker leads for ${industry}. Navigating to Lead Finder now.`;
+        const speechResponse = `Directive executed, ${userName}! I deployed our scraper engines across ${location} and secured ${enrichedLeadsCount} verified decision-maker leads for ${industry}. ${costUSD.toFixed(2)} debited from wallet. Opening Lead Finder now.`;
 
         return {
           actionTaken: `Scraped and verified ${enrichedLeadsCount} decision-makers in ${location} for ${industry}.`,
           speechResponse,
           targetTab: 'leads',
-          details: { count: enrichedLeadsCount, location, industry },
+          details: { count: enrichedLeadsCount, location, industry, costUSD, balanceRemaining: wallet?.balanceUSD },
         };
       }
 

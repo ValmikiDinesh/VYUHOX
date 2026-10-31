@@ -671,6 +671,86 @@ export default function SanjayaVoiceCommander({
                 <div>{item.message}</div>
 
                 {/* Structured metrics summary card if available */}
+                
+                {item.authorizationCard && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#FBBF24' }}>
+                        💳 FINANCIAL AUTHORIZATION REQUIRED
+                      </span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#38BDF8' }}>
+                        Cost: ${item.authorizationCard.costUSD.toFixed(2)} USD
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#F8FAFC', fontWeight: '700', marginBottom: '4px' }}>
+                      {item.authorizationCard.title}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginBottom: '10px' }}>
+                      {item.authorizationCard.description}
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: 'rgba(0, 0, 0, 0.35)',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.72rem',
+                        color: '#CBD5E1',
+                        marginBottom: '12px',
+                      }}
+                    >
+                      <span>Wallet Balance: <strong>${item.authorizationCard.currentBalanceUSD.toFixed(2)}</strong></span>
+                      <span>➔</span>
+                      <span>After Debit: <strong style={{ color: '#10B981' }}>${item.authorizationCard.balanceAfterUSD.toFixed(2)}</strong></span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        onClick={() => handleAuthorizeAction(item.authorizationCard)}
+                        style={{
+                          flex: 1,
+                          padding: '9px',
+                          borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                          border: 'none',
+                          color: '#0F172A',
+                          fontWeight: '800',
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ✅ Authorize ${item.authorizationCard.costUSD.toFixed(2)} & Launch
+                      </button>
+                      <button
+                        onClick={() => {
+                          setResponseLog(prev => prev.filter(msg => msg.id !== item.id));
+                        }}
+                        style={{
+                          padding: '9px 14px',
+                          borderRadius: '8px',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#94A3B8',
+                          fontWeight: '700',
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {item.summary && (
                   <div
                     style={{

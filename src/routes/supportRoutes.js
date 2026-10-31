@@ -1,4 +1,7 @@
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import multer from 'multer';
 import { SupportTicket } from '../models/SupportTicket.js';
 import { Wallet } from '../models/Wallet.js';
 import { AuditLog } from '../models/AuditLog.js';
@@ -6,6 +9,62 @@ import { PlatformConfig } from '../models/PlatformConfig.js';
 import { Workspace } from '../models/Workspace.js';
 
 const router = express.Router();
+
+// Ensure uploads/support directory exists
+const uploadDir = path.resolve(process.cwd(), 'client', 'public', 'uploads', 'support');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `support-${uniqueSuffix}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    const allowed = /jpeg|jpg|png|webp|gif|pdf|txt|log/;
+    const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+    if (allowed.test(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images, PDFs, or log files are permitted.'));
+    }
+  },
+});
+
+/**
+ * POST /api/support/upload
+ * Two-way upload endpoint: client error screenshots & super admin resolution receipts
+ */
+router.post('/upload', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    const fileUrl = `/uploads/support/${req.file.filename}`;
+    return res.json({
+      success: true,
+      file: {
+        fileUrl,
+        fileName: req.file.originalname,
+        fileType: req.file.mimetype,
+        fileSizeKb: Math.round(req.file.size / 1024),
+      },
+    });
+  } catch (err) {
+    console.error('[SupportRoutes] Upload error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 /**
  * GET /api/support/announcement
@@ -39,6 +98,7 @@ router.post('/ticket', async (req, res) => {
       message,
       priority = 'MEDIUM',
       diagnosticsSnapshot = {},
+      attachments = [],
     } = req.body;
 
     if (!workspaceId || !userEmail || !subject || !message) {
@@ -74,6 +134,7 @@ router.post('/ticket', async (req, res) => {
       message,
       priority,
       diagnosticsSnapshot: enrichedDiagnostics,
+      attachments: Array.isArray(attachments) ? attachments : [],
       status: 'OPEN',
     });
 
@@ -131,6 +192,7 @@ router.put('/tickets/:id', async (req, res) => {
       creditAmountUSD = 0,
       adminEmail = 'founder@vyuhox.ai',
       adminName = 'Super Admin',
+      attachments = [],
     } = req.body;
 
     const ticket = await SupportTicket.findById(id);
@@ -140,6 +202,10 @@ router.put('/tickets/:id', async (req, res) => {
 
     if (status) ticket.status = status;
     if (adminNotes !== undefined) ticket.adminNotes = adminNotes;
+    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      ticket.attachments = ticket.attachments || [];
+      ticket.attachments.push(...attachments);
+    }
 
     let credited = 0;
     let updatedWalletBalance = null;

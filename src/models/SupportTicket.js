@@ -67,6 +67,17 @@ const supportTicketSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    attachments: [
+      {
+        uploaderRole: { type: String, enum: ['CLIENT', 'SUPER_ADMIN'], default: 'CLIENT' },
+        uploaderEmail: { type: String, default: '' },
+        fileUrl: { type: String, required: true },
+        fileName: { type: String, default: 'screenshot.png' },
+        fileType: { type: String, default: 'image/png' },
+        fileSizeKb: { type: Number, default: 0 },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
     resolvedBy: {
       type: String,
       default: '',

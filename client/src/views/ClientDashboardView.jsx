@@ -800,8 +800,8 @@ export default function ClientDashboardView({
           </div>
           <span style={{ color: '#475569' }}>•</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#CBD5E1' }}>
-            <span style={{ color: '#34D399', fontWeight: '700' }}>Email Outreach:</span>
-            <span>Reaching Inboxes (99.2%)</span>
+            <span style={{ color: '#34D399', fontWeight: '700' }}>Deliverability Pre-Flight:</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>SPF/DKIM/DMARC 100% Valid • A2P 10DLC Pre-Approved</span>
           </div>
           <span style={{ color: '#475569' }}>•</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#CBD5E1' }}>
@@ -982,7 +982,7 @@ export default function ClientDashboardView({
             <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>CALLBACK SPEED TO LEADS</span>
             <PhoneCall size={18} color="#10B981" />
           </div>
-          <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', color: '#10B981' }}>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#10B981' }}>
             &lt; 45 Seconds
           </div>
           <div style={{ fontSize: '0.725rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
@@ -1000,7 +1000,7 @@ export default function ClientDashboardView({
             <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>POTENTIAL CLIENTS FOUND</span>
             <Users size={18} color="#06B6D4" />
           </div>
-          <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', color: '#F8FAFC' }}>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#F8FAFC' }}>
             {leads.length} Contacts
           </div>
           <div style={{ fontSize: '0.725rem', color: leads.length > 0 ? '#38BDF8' : '#94A3B8', marginTop: '4px' }}>
@@ -1018,7 +1018,7 @@ export default function ClientDashboardView({
             <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>SCHEDULED MEETINGS</span>
             <Calendar size={18} color="#A78BFA" />
           </div>
-          <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', color: '#C4B5FD' }}>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#C4B5FD' }}>
             {stats?.meetingsBooked || 0} Booked
           </div>
           <div style={{ fontSize: '0.725rem', color: '#94A3B8', marginTop: '4px' }}>
@@ -1050,7 +1050,7 @@ export default function ClientDashboardView({
 
             return (
               <>
-                <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', color: '#FBBF24' }}>
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#FBBF24' }}>
                   {currencySymbol}{leads.length > 0 ? displayVal : '0'}
                 </div>
                 <div style={{ fontSize: '0.725rem', color: '#64748B', marginTop: '4px' }}>

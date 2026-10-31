@@ -365,7 +365,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
               {orgData.leader.keyMetrics?.map((m, idx) => (
                 <div key={idx} style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>{m.label}</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: '800', color: '#38BDF8' }}>{m.value}</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: '800', color: '#38BDF8', fontVariantNumeric: 'tabular-nums' }}>{m.value}</div>
                 </div>
               ))}
             </div>
@@ -446,7 +446,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                 {agent.keyMetrics?.slice(0, 2).map((m, idx) => (
                   <div key={idx}>
                     <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>{m.label}</div>
-                    <div style={{ fontSize: '0.825rem', fontWeight: '700', color: '#10B981' }}>{m.value}</div>
+                    <div style={{ fontSize: '0.825rem', fontWeight: '700', color: '#10B981', fontVariantNumeric: 'tabular-nums' }}>{m.value}</div>
                   </div>
                 ))}
               </div>
@@ -485,25 +485,25 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
             <div style={{ display: 'flex', gap: '16px', background: 'rgba(255,255,255,0.03)', padding: '6px 14px', borderRadius: '10px' }}>
               <div>
                 <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>MRR</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#10B981' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#10B981' }}>
                   ${(latestBriefing.metricsSnapshot?.mrr || 48500).toLocaleString()}
                 </div>
               </div>
               <div style={{ borderLeft: '1px solid rgba(255,255,255,0.08)', paddingLeft: '14px' }}>
                 <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>CAC</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#38BDF8' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#38BDF8', fontVariantNumeric: 'tabular-nums' }}>
                   ${latestBriefing.metricsSnapshot?.cac || 215}
                 </div>
               </div>
               <div style={{ borderLeft: '1px solid rgba(255,255,255,0.08)', paddingLeft: '14px' }}>
                 <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>LTV/CAC</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#A855F7' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#A855F7' }}>
                   {latestBriefing.metricsSnapshot?.ltvCacRatio || 21.4}x
                 </div>
               </div>
               <div style={{ borderLeft: '1px solid rgba(255,255,255,0.08)', paddingLeft: '14px' }}>
                 <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>Blended ROAS</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#F59E0B' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: '800', fontVariantNumeric: 'tabular-nums', color: '#F59E0B' }}>
                   {latestBriefing.metricsSnapshot?.roas || 4.12}x
                 </div>
               </div>
@@ -844,7 +844,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                   </div>
                   <div style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>Mode</div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#38BDF8' }}>Autonomous</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#38BDF8', fontVariantNumeric: 'tabular-nums' }}>Autonomous</div>
                   </div>
                 </div>
               </div>

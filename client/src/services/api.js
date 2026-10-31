@@ -940,61 +940,6 @@ export const api = {
     return res.json();
   },
 
-  // Phase 12: Self-Growing SaaS Flywheel
-  getFlywheelOverview: async () => {
-    const res = await authedFetch(`${API_BASE}/flywheel/overview`);
-    return res.json();
-  },
-  runFlywheelProspecting: async () => {
-    const res = await authedFetch(`${API_BASE}/flywheel/prospect`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return res.json();
-  },
-  triggerSelfDemoVoice: async (data) => {
-    const res = await authedFetch(`${API_BASE}/flywheel/voice-demo`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return res.json();
-  },
-  simulateFlywheelCheckout: async (data) => {
-    const res = await authedFetch(`${API_BASE}/flywheel/checkout/simulate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return res.json();
-  },
-
-  // Continuous Multi-Round AI Brain & Evolution
-  getBusinessBrain: async (workspaceId) => {
-    const res = await authedFetch(`${API_BASE}/flywheel/brain/${workspaceId}`);
-    return res.json();
-  },
-  askBusinessBrain: async (workspaceId, data) => {
-    const res = await authedFetch(`${API_BASE}/flywheel/brain/${workspaceId}/ask`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return res.json();
-  },
-  advanceBrainRound: async (workspaceId, data = {}) => {
-    const res = await authedFetch(`${API_BASE}/flywheel/brain/${workspaceId}/advance-round`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return res.json();
-  },
-  getSuperAdminBrainOverview: async () => {
-    const res = await authedFetch(`${API_BASE}/flywheel/brain-superadmin/overview`);
-    return res.json();
-  },
-
   // Auth
   login: async (credentials) => {
     const res = await authedFetch(`${API_BASE}/auth/login`, {
@@ -1465,10 +1410,18 @@ export const api = {
       body: JSON.stringify(payload),
     });
   },
+  authorizeSanjayaAction: async (payload) => {
+    return safeFetchJson(`${API_BASE}/sanjaya/authorize-action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
+  uploadSupportAttachment: async (formData) => {
+    const res = await authedFetch(`${API_BASE}/support/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    return res.json();
+  },
 };
-
-
-
-
-
-

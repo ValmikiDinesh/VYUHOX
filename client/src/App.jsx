@@ -5,6 +5,8 @@ import TopBar from './components/TopBar';
 import DashboardView from './views/DashboardView';
 import ClientDashboardView from './views/ClientDashboardView';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import SuperAdminSidebar from './components/admin/SuperAdminSidebar';
+import SuperAdminTopBar from './components/admin/SuperAdminTopBar';
 import LeadsView from './views/LeadsView';
 import SettingsWalletView from './views/SettingsWalletView';
 import PhaseRoadmapPreview from './views/PhaseRoadmapPreview';
@@ -35,6 +37,7 @@ import BulkImportModal from './components/modals/BulkImportModal';
 import ConnectChannelsModal from './components/modals/ConnectChannelsModal';
 import SanjayaVoiceCommander from './components/SanjayaVoiceCommander';
 import SupportHelpWidget from './components/SupportHelpWidget';
+import TacticalCommandDock from './components/TacticalCommandDock';
 import { Mic, Sparkles } from 'lucide-react';
 
 import { api } from './services/api';
@@ -162,6 +165,44 @@ export default function App() {
     return 'client_tool';
   });
   const [isAdminInspectionMode, setIsAdminInspectionMode] = useState(false);
+  const [adminActivePillar, setAdminActivePillar] = useState('vitals');
+  const [pendingTicketsCount, setPendingTicketsCount] = useState(0);
+
+  // Super Admin Pending Support Tickets Counter
+  useEffect(() => {
+    if (rolePersona === 'superadmin' || currentUser?.role === 'superadmin') {
+      const fetchPendingTickets = async () => {
+        try {
+          const res = await api.getSupportTickets({ status: 'OPEN' });
+          if (res?.success && Array.isArray(res.tickets)) {
+            setPendingTicketsCount(res.tickets.length);
+          }
+        } catch (e) {}
+      };
+      fetchPendingTickets();
+      const interval = setInterval(fetchPendingTickets, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [rolePersona, currentUser]);
+
+  const handleSwitchToPlatformHQ = () => {
+    const hqWs =
+      workspaces.find(
+        (w) =>
+          w.name?.toLowerCase().includes('platform hq') ||
+          w.name?.toLowerCase().includes('vyuhox')
+      ) || workspaces[0];
+    if (hqWs) {
+      setActiveWorkspace(hqWs);
+      authStorage.setActiveWsId(hqWs._id);
+      setOperatingMode(hqWs.operatingMode || 'AI_COMPANY');
+      setIsAdminInspectionMode(true);
+      setActiveTab('dashboard');
+    } else {
+      setIsNewWorkspaceModalOpen(true);
+    }
+  };
+
 
   // Sync hash and history state changes with currentView
   useEffect(() => {
@@ -184,6 +225,7 @@ export default function App() {
   const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
   const [isConnectChannelsModalOpen, setIsConnectChannelsModalOpen] = useState(false);
   const [isSanjayaOpen, setIsSanjayaOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
 
   // Global Keyboard Shortcut: Cmd+J or Ctrl+J opens SANJAYA Voice Commander
   useEffect(() => {
@@ -709,8 +751,93 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Responsive Multi-Tenant Navigation Sidebar */}
-      <Sidebar
+      {rolePersona === 'superadmin' && !isAdminInspectionMode ? (
+        <>
+          <SuperAdminSidebar
+            activePillar={adminActivePillar}
+            setActivePillar={setAdminActivePillar}
+            onSwitchToPlatformHQ={handleSwitchToPlatformHQ}
+            onLogout={handleSignOut}
+            pendingTicketsCount={pendingTicketsCount}
+          />
+          <main className="main-content">
+            <SuperAdminTopBar
+              currentUser={currentUser}
+              activePillar={adminActivePillar}
+              workspaces={workspaces}
+              onSwitchToPlatformHQ={handleSwitchToPlatformHQ}
+              currency={currency}
+              onToggleCurrency={(c) => setCurrency(c)}
+              exchangeRate={exchangeRate}
+              pendingTicketsCount={pendingTicketsCount}
+              onLogout={handleSignOut}
+              onViewLanding={handleViewLanding}
+            />
+
+            {/* Global System Announcement Banner */}
+            {globalAnnouncement?.active && globalAnnouncement.message && (
+              <div
+                style={{
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 9999,
+                  background:
+                    globalAnnouncement.severity === 'MAINTENANCE'
+                      ? 'linear-gradient(90deg, #DC2626 0%, #991B1B 100%)'
+                      : globalAnnouncement.severity === 'WARNING'
+                      ? 'linear-gradient(90deg, #D97706 0%, #B45309 100%)'
+                      : 'linear-gradient(90deg, #0284C7 0%, #0369A1 100%)',
+                  color: '#FFFFFF',
+                  padding: '10px 24px',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.4)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📢</span>
+                  <span>{globalAnnouncement.message}</span>
+                </div>
+                <button
+                  onClick={() => setGlobalAnnouncement(prev => prev ? { ...prev, active: false } : null)}
+                  style={{
+                    background: 'rgba(0,0,0,0.25)',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    borderRadius: '4px',
+                    padding: '2px 8px',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            <SuperAdminDashboard
+              workspaces={workspaces}
+              currency={currency}
+              exchangeRate={exchangeRate}
+              activePillar={adminActivePillar}
+              onSelectPillar={setAdminActivePillar}
+              onInspectWorkspace={(ws) => {
+                setActiveWorkspace(ws);
+                setOperatingMode(ws.operatingMode || 'TOOL');
+                setIsAdminInspectionMode(true);
+                setActiveTab('dashboard');
+              }}
+              onRefreshWorkspaces={refreshWorkspaces}
+            />
+          </main>
+        </>
+      ) : (
+        <>
+          {/* Responsive Multi-Tenant Navigation Sidebar */}
+          <Sidebar
         workspaces={workspaces}
         activeWorkspace={activeWorkspace}
         currentUser={currentUser}
@@ -1054,6 +1181,9 @@ export default function App() {
 
               </main>
 
+        </>
+      )}
+
       {/* Interactive Modals */}
       <NewLeadModal
         isOpen={isNewLeadModalOpen}
@@ -1104,64 +1234,22 @@ export default function App() {
         onRefreshData={refreshWorkspaceData}
       />
 
-      {/* Floating Client Support Desk Widget */}
-      <SupportHelpWidget activeWorkspace={activeWorkspace} wallet={wallet} operatingMode={operatingMode} />
+      {/* Unified Tactical Command Dock (Sanjaya + Support with zero overlap) */}
+      <TacticalCommandDock
+        isSanjayaOpen={isSanjayaOpen}
+        setIsSanjayaOpen={setIsSanjayaOpen}
+        isSupportOpen={isSupportOpen}
+        setIsSupportOpen={setIsSupportOpen}
+      />
 
-      {/* Floating Bottom-Right Voice Commander Summon Orb */}
-      <button
-        onClick={() => setIsSanjayaOpen(true)}
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          zIndex: 900,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '10px 18px',
-          borderRadius: '30px',
-          background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 60%, #06B6D4 100%)',
-          color: '#FFFFFF',
-          border: '1px solid rgba(255, 255, 255, 0.25)',
-          boxShadow: '0 8px 30px rgba(245, 158, 11, 0.45)',
-          cursor: 'pointer',
-          fontWeight: '800',
-          fontSize: '0.82rem',
-          letterSpacing: '0.02em',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-        title="Summon SANJAYA Voice Commander (Cmd+J / Ctrl+J)"
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)';
-          e.currentTarget.style.boxShadow = '0 12px 35px rgba(245, 158, 11, 0.6)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0) scale(1)';
-          e.currentTarget.style.boxShadow = '0 8px 30px rgba(245, 158, 11, 0.45)';
-        }}
-      >
-        <div style={{
-          width: '26px',
-          height: '26px',
-          borderRadius: '50%',
-          background: 'rgba(0, 0, 0, 0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Mic size={15} color="#FFFFFF" />
-        </div>
-        <span>Sanjaya Voice AI</span>
-        <span style={{
-          fontSize: '0.62rem',
-          padding: '2px 6px',
-          borderRadius: '10px',
-          background: 'rgba(0, 0, 0, 0.25)',
-          color: '#FDE68A',
-        }}>
-          ⌘J
-        </span>
-      </button>
+      {/* Controlled Support Desk Modal */}
+      <SupportHelpWidget
+        activeWorkspace={activeWorkspace}
+        wallet={wallet}
+        operatingMode={operatingMode}
+        isOpen={isSupportOpen}
+        onClose={() => setIsSupportOpen(false)}
+      />
     </div>
   );
 }

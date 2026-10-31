@@ -565,6 +565,39 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
             </button>
           </form>
 
+          {/* Quick 1-Click Test Suggestions */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', margin: '-16px auto 26px', maxWidth: '680px' }}>
+            <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: '600' }}>Instant 1-Click Tests:</span>
+            {['https://stripe.com', 'https://linear.app', 'https://ramp.com', 'https://notion.so'].map((demoUrl) => (
+              <button
+                key={demoUrl}
+                type="button"
+                onClick={() => setScanUrl(demoUrl)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#38BDF8',
+                  borderRadius: '9999px',
+                  padding: '3px 11px',
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)';
+                  e.currentTarget.style.borderColor = '#38BDF8';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }}
+              >
+                {demoUrl.replace('https://', '')}
+              </button>
+            ))}
+          </div>
+
           {/* Interactive Strategy Card Result */}
           {scanResult && (
             <div style={{
@@ -682,44 +715,88 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
               Dials inbound prospects within 14 seconds. Handles deep technical objections, qualifies high-intent enterprise accounts, and secures calendar bookings directly into Google Calendar.
             </p>
 
-            {/* Playable Interactive Audio Demo */}
+            {/* Playable Interactive Audio Demo with Reactive WebRTC Equalizer */}
             <div style={{
-              background: 'rgba(0, 0, 0, 0.4)',
-              borderRadius: '10px',
-              padding: '14px 18px',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              background: 'rgba(0, 0, 0, 0.5)',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              boxShadow: '0 8px 24px rgba(244, 63, 94, 0.15)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <button
-                  onClick={togglePlayAudio}
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '50%',
-                    background: '#F43F5E',
-                    border: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: '#FFFFFF',
-                  }}
-                >
-                  {isPlayingAudio ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: '2px' }} />}
-                </button>
-                <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>
-                    {isPlayingAudio ? 'Playing Live Inbound Audio Bridge...' : 'Listen to 680ms Live Audio Sample'}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>
-                    {isPlayingAudio ? `00:${audioPlaybackTime < 10 ? '0' + audioPlaybackTime : audioPlaybackTime} / 00:18` : 'Maya Vance speed-to-lead qualification'}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <button
+                    onClick={togglePlayAudio}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #F43F5E 0%, #BE123C 100%)',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: '#FFFFFF',
+                      boxShadow: '0 0 16px rgba(244, 63, 94, 0.5)',
+                      transition: 'transform 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                  >
+                    {isPlayingAudio ? <Pause size={18} /> : <Play size={18} style={{ marginLeft: '2px' }} />}
+                  </button>
+                  <div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: '800', color: '#F8FAFC' }}>
+                      {isPlayingAudio ? '🔴 Bland.ai WebRTC Carrier Streaming...' : 'Listen to 680ms Live Audio Sample'}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>
+                      {isPlayingAudio ? `00:${audioPlaybackTime < 10 ? '0' + audioPlaybackTime : audioPlaybackTime} / 00:18 • Neural TTS Stream` : 'Maya Vance enterprise objection qualification'}
+                    </div>
                   </div>
                 </div>
+                <span className="badge badge-rose" style={{ fontSize: '0.72rem', fontWeight: '800' }}>680ms Carrier</span>
               </div>
-              <span className="badge badge-rose" style={{ fontSize: '0.7rem' }}>680ms Carrier</span>
+
+              {/* Dynamic Equalizer Waveform */}
+              {isPlayingAudio && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', height: '26px', margin: '14px 0 6px' }}>
+                  {[12, 22, 10, 26, 18, 30, 8, 24, 28, 14, 20, 16, 26, 12].map((h, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: '3.5px',
+                        height: `${h}px`,
+                        background: 'linear-gradient(180deg, #FB7185 0%, #F43F5E 100%)',
+                        borderRadius: '2px',
+                        boxShadow: '0 0 6px rgba(244, 63, 94, 0.6)',
+                        animation: `pulse ${(i % 3) * 0.15 + 0.4}s ease-in-out infinite alternate`,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Real-Time Live Objection Handling Dialogue */}
+              <div style={{
+                marginTop: '12px',
+                background: 'rgba(15, 23, 42, 0.6)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                fontSize: '0.75rem',
+                lineHeight: '1.45',
+                color: '#CBD5E1',
+              }}>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ color: '#94A3B8', fontWeight: '700', flexShrink: 0 }}>Prospect:</span>
+                  <span style={{ fontStyle: 'italic' }}>"We already have an in-house SDR team and budget is tightly locked."</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <span style={{ color: '#FB7185', fontWeight: '800', flexShrink: 0 }}>Maya Vance (680ms):</span>
+                  <span>"Understood! Keep your human SDRs focused solely on warm demos while VYUHOX filters 2,000 cold leads automatically. Zero payroll risk. Can we test 50 leads this Thursday?"</span>
+                </div>
+              </div>
             </div>
           </div>
 

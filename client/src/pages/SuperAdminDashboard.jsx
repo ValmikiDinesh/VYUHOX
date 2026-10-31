@@ -54,10 +54,14 @@ export default function SuperAdminDashboard({
   onInspectWorkspace,
   onSwitchWorkspace,
   onRefreshWorkspaces,
+  activePillar,
+  onSelectPillar,
 }) {
   // 4 Consolidated Unified Pillars
   // 'vitals' | 'tenants' | 'integrations' | 'finops'
-  const [activeTab, setActiveTab] = useState('vitals');
+  const [internalTab, setInternalTab] = useState('vitals');
+  const activeTab = activePillar || internalTab;
+  const setActiveTab = onSelectPillar || setInternalTab;
 
   // Pillar 1: Vitals & Watchdog
   const [metrics, setMetrics] = useState(null);
@@ -76,6 +80,8 @@ export default function SuperAdminDashboard({
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketResolutionNote, setTicketResolutionNote] = useState('');
   const [ticketCreditAmount, setTicketCreditAmount] = useState('');
+  const [adminAttachments, setAdminAttachments] = useState([]);
+  const [isUploadingAdminFile, setIsUploadingAdminFile] = useState(false);
   const [resolvingTicket, setResolvingTicket] = useState(false);
 
   // Standalone Credit Injector Modal
@@ -327,6 +333,7 @@ export default function SuperAdminDashboard({
         status: ticketStatus,
         adminNotes: ticketResolutionNote,
         creditAmountUSD: ticketCreditAmount ? Number(ticketCreditAmount) : 0,
+        attachments: adminAttachments,
       };
       const res = await api.updateSupportTicket(selectedTicket._id, payload);
       if (res?.success) {
@@ -334,6 +341,7 @@ export default function SuperAdminDashboard({
         setSelectedTicket(null);
         setTicketResolutionNote('');
         setTicketCreditAmount('');
+        setAdminAttachments([]);
         loadTenantsAndTickets();
         loadAuditLogs();
       }
@@ -1096,6 +1104,41 @@ export default function SuperAdminDashboard({
                     </div>
 
                     {/* Auto-Attached Technical Diagnostics Box */}
+                    
+                    {/* Render Attached Screenshots / Files */}
+                    {tick.attachments && tick.attachments.length > 0 && (
+                      <div style={{ marginBottom: '10px' }}>
+                        <div style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', marginBottom: '6px' }}>
+                          ATTACHED SCREENSHOTS & FILES:
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {tick.attachments.map((att, aIdx) => (
+                            <a
+                              key={aIdx}
+                              href={att.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: 'rgba(56, 189, 248, 0.1)',
+                                border: '1px solid rgba(56, 189, 248, 0.3)',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                color: '#38BDF8',
+                                fontSize: '0.72rem',
+                                textDecoration: 'none',
+                              }}
+                            >
+                              <span>📎 {att.fileName}</span>
+                              <span style={{ color: '#94A3B8', fontSize: '0.65rem' }}>({att.uploaderRole})</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {tick.diagnosticsSnapshot && (
                       <div
                         style={{
@@ -1143,6 +1186,7 @@ export default function SuperAdminDashboard({
                           setSelectedTicket(tick);
                           setTicketResolutionNote(tick.adminNotes || '');
                           setTicketCreditAmount('');
+                          setAdminAttachments([]);
                         }}
                         style={{
                           padding: '6px 14px',
@@ -2101,6 +2145,59 @@ export default function SuperAdminDashboard({
                     boxSizing: 'border-box',
                   }}
                 />
+              </div>
+
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#CBD5E1', marginBottom: '4px' }}>
+                  Attach Verification / Proof Screenshot (Super Admin)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf,.txt"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    setIsUploadingAdminFile(true);
+                    try {
+                      const fd = new FormData();
+                      fd.append('file', f);
+                      const upRes = await api.uploadSupportAttachment(fd);
+                      if (upRes?.success && upRes.file) {
+                        setAdminAttachments(prev => [...prev, {
+                          uploaderRole: 'SUPER_ADMIN',
+                          uploaderEmail: 'founder@vyuhox.ai',
+                          fileUrl: upRes.file.fileUrl,
+                          fileName: upRes.file.fileName,
+                          fileType: upRes.file.fileType,
+                          fileSizeKb: upRes.file.fileSizeKb,
+                        }]);
+                      }
+                    } catch(err) {
+                      console.error('Admin upload error:', err);
+                    } finally {
+                      setIsUploadingAdminFile(false);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    borderRadius: '6px',
+                    background: '#1E293B',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#94A3B8',
+                    fontSize: '0.72rem',
+                  }}
+                />
+                {adminAttachments.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                    {adminAttachments.map((at, idx) => (
+                      <span key={idx} style={{ background: '#0284C7', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>
+                        📎 {at.fileName}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>

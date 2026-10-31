@@ -6,11 +6,11 @@ const router = express.Router();
 
 /**
  * POST /api/sanjaya/command
- * Spoken Voice Command Endpoint (Jarvis for Marketing)
+ * Processes voice and text commands through SANJAYA's celestial intelligence matrix
  */
 router.post('/command', authMiddleware, async (req, res) => {
   try {
-    const { commandText, workspaceId: bodyWsId } = req.body;
+    const { commandText, workspaceId: bodyWsId, confirmed, customParams } = req.body;
     const workspaceId = bodyWsId || req.workspaceId;
     const userName = req.user?.name || 'Commander';
     const io = req.app.get('io');
@@ -18,7 +18,7 @@ router.post('/command', authMiddleware, async (req, res) => {
     if (!commandText || !commandText.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'No voice command text provided.',
+        message: 'Command text is required for Sanjaya to process.',
       });
     }
 
@@ -27,6 +27,8 @@ router.post('/command', authMiddleware, async (req, res) => {
       workspaceId,
       userName,
       io,
+      confirmed: !!confirmed,
+      customParams,
     });
 
     // Broadcast to workspace room so all screens update in real-time
@@ -40,6 +42,40 @@ router.post('/command', authMiddleware, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || 'Sanjaya encountered an execution obstacle.',
+    });
+  }
+});
+
+/**
+ * POST /api/sanjaya/authorize-action
+ * Physical 1-click confirmation endpoint for financial transactions
+ */
+router.post('/authorize-action', authMiddleware, async (req, res) => {
+  try {
+    const { commandText, workspaceId: bodyWsId, parameters } = req.body;
+    const workspaceId = bodyWsId || req.workspaceId;
+    const userName = req.user?.name || 'Commander';
+    const io = req.app.get('io');
+
+    const result = await SanjayaVoiceCommander.processCommand({
+      commandText: commandText || 'Execute confirmed batch',
+      workspaceId,
+      userName,
+      io,
+      confirmed: true,
+      customParams: parameters,
+    });
+
+    if (io && workspaceId) {
+      io.to(workspaceId.toString()).emit('sanjaya:executed', result);
+    }
+
+    return res.json(result);
+  } catch (error) {
+    console.error('[Sanjaya Authorize Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Action authorization failed.',
     });
   }
 });
