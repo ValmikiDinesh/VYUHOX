@@ -38,6 +38,7 @@ import ConnectChannelsModal from './components/modals/ConnectChannelsModal';
 import SanjayaVoiceCommander from './components/SanjayaVoiceCommander';
 import SupportHelpWidget from './components/SupportHelpWidget';
 import TacticalCommandDock from './components/TacticalCommandDock';
+import UniversalCommandPalette from './components/UniversalCommandPalette';
 import { Mic, Sparkles } from 'lucide-react';
 
 import { api } from './services/api';
@@ -226,6 +227,19 @@ export default function App() {
   const [isConnectChannelsModalOpen, setIsConnectChannelsModalOpen] = useState(false);
   const [isSanjayaOpen, setIsSanjayaOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+    // Global Keyboard Shortcut: Cmd+K or Ctrl+K opens Universal Omnibar
+  useEffect(() => {
+    const handleCmdK = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleCmdK);
+    return () => window.removeEventListener('keydown', handleCmdK);
+  }, []);
 
   // Global Keyboard Shortcut: Cmd+J or Ctrl+J opens SANJAYA Voice Commander
   useEffect(() => {
@@ -878,6 +892,7 @@ export default function App() {
           onChangeRolePersona={handleChangeRolePersona}
           onNavigateTab={(tab) => setActiveTab(tab)}
           onOpenSanjayaVoiceModal={() => setIsSanjayaOpen(true)}
+              onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         />
 
         
@@ -1249,6 +1264,23 @@ export default function App() {
         operatingMode={operatingMode}
         isOpen={isSupportOpen}
         onClose={() => setIsSupportOpen(false)}
+      />
+
+      {/* Raycast / Linear Style Universal Omnibar Command Palette (Cmd+K) */}
+      <UniversalCommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onNavigateTab={(tab) => setActiveTab(tab)}
+        onOpenSanjaya={() => setIsSanjayaOpen(true)}
+        onOpenAddFunds={() => setIsAddFundsModalOpen(true)}
+        onOpenNewLead={() => setIsNewLeadModalOpen(true)}
+        workspaces={workspaces}
+        activeWorkspace={activeWorkspace}
+        onSelectWorkspace={(ws) => {
+          setActiveWorkspace(ws);
+          authStorage.setActiveWsId(ws._id);
+        }}
+        onViewLanding={handleViewLanding}
       />
     </div>
   );

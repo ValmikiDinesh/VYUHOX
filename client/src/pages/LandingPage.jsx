@@ -84,6 +84,9 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
   // FAQ accordion state
   const [openFaq, setOpenFaq] = useState(0);
+  const [acvValue, setAcvValue] = useState(3500);
+  const [dealsTarget, setDealsTarget] = useState(8);
+  const [isOrbActive, setIsOrbActive] = useState(false);
 
   // Handle live scan - saves pending URL and guides client through signup/signin to dashboard
   const handleScanBusiness = (e) => {
@@ -443,47 +446,127 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
             {geoData?.intent?.subHeadline || 'Replace fragmented sales teams and disconnected point solutions. VYUHOX deploys an autonomous AI C-Suite that scrapes leads, dials high-intent prospects in 14 seconds, and runs multi-channel outreach 24/7.'}
           </p>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '48px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '36px', flexWrap: 'wrap' }}>
             <button
               onClick={() => {
                 const el = document.getElementById('scanner');
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="btn btn-primary"
+              className="btn-primary"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
                 padding: '14px 28px',
-                fontSize: '1rem',
+                fontSize: '0.95rem',
                 fontWeight: '700',
-                boxShadow: '0 0 24px rgba(6, 182, 212, 0.45)',
+                borderRadius: '10px',
               }}
             >
-              <span>Scan Your Business Free</span>
-              <ArrowRight size={18} />
+              <Sparkles size={18} />
+              <span>Audit Your GTM Free (10s)</span>
+              <ArrowRight size={16} />
             </button>
 
             <button
               onClick={onEnterApp}
+              className="btn-secondary"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
                 padding: '14px 28px',
                 borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#F8FAFC',
-                fontSize: '1rem',
+                fontSize: '0.95rem',
                 fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
               }}
             >
-              <Cpu size={18} color="#A78BFA" />
-              <span>Launch AI Company Console</span>
+              <Cpu size={18} color="#38BDF8" />
+              <span>Launch Autonomous Cockpit</span>
             </button>
+          </div>
+
+          {/* Living 3D Voice Orb Hero Simulator */}
+          <div
+            style={{
+              maxWidth: '680px',
+              margin: '0 auto 40px',
+              background: 'rgba(14, 18, 28, 0.7)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '16px',
+              boxShadow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.12), 0 20px 40px rgba(0, 0, 0, 0.6)',
+              padding: '20px 24px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="pulse-emerald" />
+                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>
+                  Live Voice AE Simulator • Maya Vance
+                </span>
+                <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
+                  Sub-700ms Bland.ai
+                </span>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Try without signing up</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(4, 6, 10, 0.6)', padding: '12px 18px', borderRadius: '12px', border: 'var(--border-hairline)' }}>
+              <button
+                onClick={togglePlayAudio}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  background: isPlayingAudio ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' : 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: isPlayingAudio ? '0 0 20px rgba(239, 68, 68, 0.5)' : '0 0 20px rgba(2, 132, 199, 0.5)',
+                  flexShrink: 0,
+                  transition: 'transform 0.15s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                {isPlayingAudio ? <Pause size={18} /> : <Play size={18} style={{ marginLeft: '2px' }} />}
+              </button>
+
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <div style={{ fontSize: '0.84rem', fontWeight: '700', color: '#FFFFFF' }}>
+                  {isPlayingAudio ? '🔴 Maya Vance Handling Inbound Enterprise Objection...' : 'Listen to 680ms Live Objection Dial'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
+                  {isPlayingAudio ? `Streaming Live Telemetry: 00:${audioPlaybackTime < 10 ? '0' + audioPlaybackTime : audioPlaybackTime} / 00:18` : 'Click to test real-time speech response speed'}
+                </div>
+              </div>
+
+              {/* Dynamic Sound Waveform */}
+              {isPlayingAudio ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '22px' }}>
+                  {[12, 22, 14, 28, 16, 26, 10, 24, 20, 15, 25, 18].map((h, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: '3px',
+                        height: `${h}px`,
+                        background: '#38BDF8',
+                        borderRadius: '2px',
+                        animation: `pulse ${(i % 3) * 0.15 + 0.4}s ease-in-out infinite alternate`,
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
+                  680ms Response
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Social Proof Stats */}
@@ -1363,6 +1446,120 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
             >
               Deploy Enterprise Suite
             </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 4.5: Interactive GTM ROI & Payroll Replacement Engine */}
+      <section style={{
+        padding: '70px 24px',
+        maxWidth: '1100px',
+        margin: '0 auto',
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          <span className="badge badge-emerald" style={{ marginBottom: '8px' }}>
+            Deterministic Financial Economics
+          </span>
+          <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.4rem', fontWeight: '800', margin: '8px 0', color: '#FFFFFF' }}>
+            Calculate Your Payroll Replacement &amp; Net ROI
+          </h2>
+          <p style={{ color: '#94A3B8', fontSize: '0.95rem', maxWidth: '640px', margin: '0 auto' }}>
+            See how much capital you save by replacing human sales overhead with an autonomous AI C-Suite team.
+          </p>
+        </div>
+
+        <div className="specular-glass" style={{ padding: '36px 40px', borderRadius: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '36px' }}>
+            {/* Left Controls: Sliders */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '0.84rem', fontWeight: '700', color: '#FFFFFF' }}>
+                    Average Deal Value (ACV):
+                  </label>
+                  <span className="tabular-nums" style={{ fontSize: '0.95rem', fontWeight: '800', color: '#38BDF8' }}>
+                    {isINR ? `₹${(acvValue * 83.5).toLocaleString('en-IN')}` : `${acvValue.toLocaleString()}`}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="500"
+                  max="25000"
+                  step="500"
+                  value={acvValue}
+                  onChange={(e) => setAcvValue(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#0284C7', cursor: 'pointer' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748B', marginTop: '4px' }}>
+                  <span>$500</span>
+                  <span>$25,000+</span>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '0.84rem', fontWeight: '700', color: '#FFFFFF' }}>
+                    Target Closed Deals / Month:
+                  </label>
+                  <span className="tabular-nums" style={{ fontSize: '0.95rem', fontWeight: '800', color: '#10B981' }}>
+                    {dealsTarget} Deals
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="40"
+                  step="1"
+                  value={dealsTarget}
+                  onChange={(e) => setDealsTarget(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#10B981', cursor: 'pointer' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748B', marginTop: '4px' }}>
+                  <span>1 Deal</span>
+                  <span>40 Deals</span>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px 18px', borderRadius: '10px', border: 'var(--border-hairline)' }}>
+                <div style={{ fontSize: '0.78rem', color: '#94A3B8', lineHeight: '1.5' }}>
+                  <strong style={{ color: '#F8FAFC' }}>What VYUHOX Replaces:</strong> 2 Human SDRs ($120k) + 1 Account Executive ($150k) + ZoomInfo/Apollo/Salesloft licenses ($25k) = <strong style={{ color: '#EF4444' }}>$295,000/year</strong> in legacy payroll overhead.
+                </div>
+              </div>
+            </div>
+
+            {/* Right Output: ROI & Savings Card */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'rgba(4, 6, 10, 0.7)', padding: '28px', borderRadius: '14px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+              <div style={{ fontSize: '0.72rem', color: '#10B981', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Annual Capital Saved by Founder
+              </div>
+              <div className="tabular-nums" style={{ fontSize: '2.4rem', fontWeight: '900', color: '#10B981', margin: '6px 0 14px' }}>
+                {isINR ? `₹${(290000 * 83.5).toLocaleString('en-IN')}` : '$290,000'}<span style={{ fontSize: '1rem', color: '#64748B', fontWeight: '600' }}> / yr</span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', borderTop: 'var(--border-hairline)', paddingTop: '14px' }}>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: '#64748B' }}>Generated Pipeline / Mo</div>
+                  <div className="tabular-nums" style={{ fontSize: '1.1rem', fontWeight: '800', color: '#38BDF8' }}>
+                    {isINR ? `₹${(acvValue * dealsTarget * 83.5).toLocaleString('en-IN')}` : `${(acvValue * dealsTarget).toLocaleString()}`}
+                  </div>
+                </div>
+                <div style={{ borderLeft: 'var(--border-hairline)', paddingLeft: '16px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#64748B' }}>Net ROI Multiple</div>
+                  <div className="tabular-nums" style={{ fontSize: '1.1rem', fontWeight: '800', color: '#A855F7' }}>
+                    {Math.round(((acvValue * dealsTarget * 12) / 2988) * 10) / 10}x Annual
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={onEnterApp}
+                className="btn-primary"
+                style={{ marginTop: '20px', padding: '12px 20px', fontSize: '0.85rem' }}
+              >
+                <span>Deploy Autonomous Engine in Workspace</span>
+                <ArrowRight size={15} />
+              </button>
+            </div>
           </div>
         </div>
       </section>

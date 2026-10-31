@@ -1,22 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Search,
-  Plus,
   Sparkles,
-  Bell,
-  Globe,
-  Radio,
-  UserCheck,
   CreditCard,
-  Share2,
   ChevronDown,
-  Settings,
   LogOut,
-  User,
-  Shield,
-  Layers,
   ExternalLink,
-  Mic,
+  Plus,
+  Shield,
+  Bot,
+  Zap,
 } from 'lucide-react';
 
 export default function TopBar({
@@ -34,513 +27,363 @@ export default function TopBar({
   onToggleCurrency,
   rolePersona = 'superadmin',
   onChangeRolePersona,
-  onOpenConnectChannels,
   onNavigateTab,
   onOpenSanjayaVoiceModal,
+  onOpenCommandPalette,
 }) {
-  const isAiMode = operatingMode === 'AI_COMPANY';
   const isINR = currency === 'INR';
   const exchangeRate = 83.5;
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
 
-  // Dropdown States
-  const [actionMenuOpen, setActionMenuOpen] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const actionMenuRef = useRef(null);
-  const profileMenuRef = useRef(null);
-
-  // Close menus on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
-        setActionMenuOpen(false);
-      }
-      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
-        setProfileMenuOpen(false);
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const roles = [
-    { id: 'client_ai', label: 'Client (Autonomous AI Co.)', badge: 'Client', color: '#10B981' },
-    { id: 'client_tool', label: 'Client (Self-Serve Tool)', badge: 'Tool', color: '#F59E0B' },
-    { id: 'superadmin', label: 'Superadmin (Platform Owner)', badge: 'Master', color: '#06B6D4' },
-  ];
-
-  const currentRoleObj = roles.find((r) => r.id === rolePersona) || roles[0];
-
-  const walletBalance = wallet?.balanceUSD || 0;
+  const walletBalance = Number(wallet?.balanceUSD ?? 0);
   const formattedBalance = isINR
     ? `₹${(walletBalance * exchangeRate).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
     : `$${walletBalance.toFixed(2)}`;
 
   return (
-    <header style={{
-      height: '62px',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-      background: 'rgba(11, 17, 32, 0.88)',
-      backdropFilter: 'blur(20px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 24px',
-      position: 'sticky',
-      top: 0,
-      zIndex: 40,
-    }}>
-      {/* Left: Active workspace breadcrumb & Live status */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <h1 style={{
-            fontFamily: 'Outfit, sans-serif',
-            fontSize: '1.05rem',
-            fontWeight: '800',
-            color: '#F8FAFC',
-            letterSpacing: '-0.01em',
-            margin: 0,
-          }}>
-            {activeWorkspace?.name || 'VYUHOX Platform'}
-          </h1>
-          <span className={`badge ${
-            activeWorkspace?.industry === 'Crypto' ? 'badge-cyan' :
-            activeWorkspace?.industry === 'D2C' ? 'badge-rose' : 'badge-emerald'
-          }`} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
-            {activeWorkspace?.industry || 'B2B'}
+    <header
+      style={{
+        height: '48px',
+        background: 'rgba(8, 11, 18, 0.85)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: 'var(--border-hairline)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 20px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}
+    >
+      {/* Left: Breadcrumbs & Living Heartbeat Indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+          <span style={{ color: '#64748B', fontWeight: '500' }}>VYUHOX</span>
+          <span style={{ color: '#334155' }}>/</span>
+          <span style={{ color: '#F8FAFC', fontWeight: '700' }}>
+            {activeWorkspace?.name || 'Workspace'}
+          </span>
+          <span
+            style={{
+              fontSize: '0.65rem',
+              fontWeight: '700',
+              padding: '1px 6px',
+              borderRadius: '9999px',
+              background: 'rgba(56, 189, 248, 0.1)',
+              color: '#38BDF8',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              marginLeft: '4px',
+            }}
+          >
+            {operatingMode === 'AI_COMPANY' ? 'Autonomous AI' : 'Tool Mode'}
           </span>
         </div>
 
-        {/* Real-time gateway status indicator */}
-        <div style={{
+        {/* Live Socket Telemetry Dot */}
+        <div
+          title={socketConnected ? 'Cluster Live & Synchronized' : 'Connecting to Cluster...'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '2px 8px',
+            borderRadius: '9999px',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            fontSize: '0.68rem',
+            color: '#10B981',
+            fontWeight: '600',
+          }}
+        >
+          <span className="pulse-emerald" />
+          <span>{socketConnected ? 'Live' : 'Reconnecting'}</span>
+        </div>
+      </div>
+
+      {/* Center: Spotlight Omnibar Search Input */}
+      <div
+        onClick={() => {
+          if (onOpenCommandPalette) onOpenCommandPalette();
+          else if (onOpenSanjayaVoiceModal) onOpenSanjayaVoiceModal();
+        }}
+        style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '5px',
-          background: 'rgba(16, 185, 129, 0.08)',
-          padding: '3px 7px',
-          borderRadius: '999px',
-          border: '1px solid rgba(16, 185, 129, 0.2)',
-          fontSize: '0.675rem',
-          color: '#34D399',
-          fontWeight: '600',
-        }}>
-          <Radio size={10} color="#10B981" />
-          <span>{socketConnected ? 'Live' : 'Connecting'}</span>
-        </div>
-      </div>
-
-      {/* Center: Sleek Search Bar */}
-      <div style={{ position: 'relative', width: '300px' }}>
-        <Search size={14} color="#64748B" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-        <input
-          type="text"
-          placeholder="Search leads, calls, campaigns... (Ctrl+K)"
-          className="input-glass"
-          style={{ paddingLeft: '34px', height: '34px', fontSize: '0.8rem', borderRadius: '8px' }}
-        />
-      </div>
-
-      {/* Right: Clean, Uncluttered Executive Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {/* 1. Currency Switcher Pill */}
-        <div style={{
-          display: 'flex',
+          gap: '8px',
+          width: '320px',
+          height: '30px',
           background: 'rgba(255, 255, 255, 0.04)',
+          border: 'var(--border-hairline)',
           borderRadius: '8px',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          padding: '2px',
-        }}>
-          <button
-            onClick={() => onToggleCurrency && onToggleCurrency('INR')}
-            style={{
-              padding: '3px 8px',
-              borderRadius: '6px',
-              border: 'none',
-              background: isINR ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
-              color: isINR ? '#FBBF24' : '#94A3B8',
-              fontSize: '0.7rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-            }}
-            title="Display in INR (₹)"
-          >
-            INR ₹
-          </button>
-          <button
-            onClick={() => onToggleCurrency && onToggleCurrency('USD')}
-            style={{
-              padding: '3px 8px',
-              borderRadius: '6px',
-              border: 'none',
-              background: !isINR ? 'rgba(6, 182, 212, 0.2)' : 'transparent',
-              color: !isINR ? '#38BDF8' : '#94A3B8',
-              fontSize: '0.7rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-            }}
-            title="Display in USD ($)"
-          >
-            USD $
-          </button>
-        </div>
+          padding: '0 10px',
+          cursor: 'pointer',
+          color: '#64748B',
+          fontSize: '0.78rem',
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.07)';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.14)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+        }}
+      >
+        <Search size={14} style={{ color: '#64748B' }} />
+        <span style={{ flex: 1, color: '#64748B' }}>Search or command...</span>
+        <kbd
+          style={{
+            fontSize: '0.65rem',
+            padding: '1px 5px',
+            borderRadius: '4px',
+            background: 'rgba(255, 255, 255, 0.08)',
+            color: '#94A3B8',
+            fontFamily: 'monospace',
+          }}
+        >
+          ⌘K
+        </kbd>
+      </div>
 
-        {/* 2. Wallet Credit Chip */}
+      {/* Right: Currency Toggle, Compute Wallet, Quick Action, Profile */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Currency Switcher Pill */}
+        {onToggleCurrency && (
+          <div
+            style={{
+              display: 'flex',
+              background: 'rgba(255, 255, 255, 0.04)',
+              borderRadius: '6px',
+              border: 'var(--border-hairline)',
+              padding: '1px',
+            }}
+          >
+            <button
+              onClick={() => onToggleCurrency('USD')}
+              style={{
+                border: 'none',
+                background: !isINR ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                color: !isINR ? '#38BDF8' : '#64748B',
+                borderRadius: '5px',
+                padding: '2px 7px',
+                fontSize: '0.68rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+              }}
+            >
+              $ USD
+            </button>
+            <button
+              onClick={() => onToggleCurrency('INR')}
+              style={{
+                border: 'none',
+                background: isINR ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+                color: isINR ? '#FBBF24' : '#64748B',
+                borderRadius: '5px',
+                padding: '2px 7px',
+                fontSize: '0.68rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+              }}
+            >
+              ₹ INR
+            </button>
+          </div>
+        )}
+
+        {/* Compute Wallet Pill */}
         <button
           onClick={onOpenAddFundsModal}
+          title="Deposit prepaid compute funds"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '5px 10px',
-            borderRadius: '8px',
-            background: 'rgba(16, 185, 129, 0.1)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            background: 'rgba(16, 185, 129, 0.08)',
             border: '1px solid rgba(16, 185, 129, 0.25)',
             color: '#10B981',
             fontSize: '0.75rem',
             fontWeight: '700',
             cursor: 'pointer',
+            transition: 'all 0.15s ease',
           }}
-          title="Deposit compute credit"
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)')}
         >
-          <CreditCard size={13} />
-          <span>{formattedBalance}</span>
-          <span style={{
-            fontSize: '0.625rem',
-            padding: '1px 5px',
-            borderRadius: '4px',
-            background: '#10B981',
-            color: '#04101A',
-            fontWeight: '800',
-          }}>
-            + Add
-          </span>
+          <CreditCard size={12} />
+          <span className="tabular-nums">{formattedBalance}</span>
+          <span style={{ fontSize: '0.65rem', color: '#34D399', opacity: 0.8 }}>+ Add</span>
         </button>
 
-        {/* 2.5 Prominent Live Public Site Button */}
+        {/* 1-Click Fast Action */}
         <button
-          onClick={onViewLanding}
+          onClick={onOpenNewLeadModal}
+          className="btn-primary"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            background: 'rgba(6, 182, 212, 0.12)',
-            border: '1px solid rgba(6, 182, 212, 0.35)',
-            color: '#38BDF8',
-            fontSize: '0.78rem',
-            fontWeight: '700',
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-            boxShadow: '0 0 12px rgba(6, 182, 212, 0.15)',
+            height: '28px',
+            padding: '0 10px',
+            fontSize: '0.75rem',
+            gap: '4px',
+            borderRadius: '6px',
           }}
-          title="Switch to public live website"
         >
-          <Globe size={13} color="#38BDF8" />
-          <span>Public Site</span>
-          <ExternalLink size={12} color="#38BDF8" />
+          <Plus size={13} />
+          <span>New Lead</span>
         </button>
 
-        {/* 2.6 SANJAYA AI Voice Commander Trigger Button */}
-        <button
-          onClick={onOpenSanjayaVoiceModal}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.12) 100%)',
-            border: '1px solid rgba(245, 158, 11, 0.45)',
-            color: '#FBBF24',
-            fontSize: '0.78rem',
-            fontWeight: '800',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            boxShadow: '0 0 16px rgba(245, 158, 11, 0.25)',
-          }}
-          title="Launch SANJAYA (सञ्जय) Voice Commander (Shortcut: ⌘J / Ctrl+J)"
-        >
-          <Mic size={14} color="#FBBF24" />
-          <span>Sanjaya Voice</span>
-          <span
-            style={{
-              fontSize: '0.62rem',
-              background: 'rgba(245, 158, 11, 0.25)',
-              padding: '1px 5px',
-              borderRadius: '4px',
-              color: '#FDE68A',
-            }}
-          >
-            ⌘J
-          </span>
-        </button>
-        {/* 3. Consolidated '+ Action' Dropdown Button */}
-        <div ref={actionMenuRef} style={{ position: 'relative' }}>
+        {/* Consolidated Profile Popover */}
+        <div style={{ position: 'relative' }} ref={profileRef}>
           <button
-            onClick={() => setActionMenuOpen(!actionMenuOpen)}
-            className="btn-primary"
+            onClick={() => setProfileOpen(!profileOpen)}
             style={{
-              padding: '6px 12px',
-              fontSize: '0.78rem',
-              fontWeight: '700',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              borderRadius: '8px',
-            }}
-          >
-            <Plus size={14} />
-            <span>Action</span>
-            <ChevronDown size={13} />
-          </button>
-
-          {actionMenuOpen && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              right: 0,
-              marginTop: '6px',
-              background: '#0D1527',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '10px',
-              padding: '6px',
-              width: '210px',
-              zIndex: 60,
-              boxShadow: '0 12px 30px rgba(0,0,0,0.8)',
-            }}>
-              <div
-                onClick={() => { onOpenNewLeadModal(); setActionMenuOpen(false); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 10px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.78rem',
-                  color: '#F8FAFC',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(6, 182, 212, 0.15)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <Plus size={14} color="#06B6D4" />
-                <span>Add Inbound Lead</span>
-              </div>
-
-              <div
-                onClick={() => {
-                  if (onNavigateTab) onNavigateTab('integrations');
-                  setActionMenuOpen(false);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 10px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.78rem',
-                  color: '#F8FAFC',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(37, 211, 102, 0.15)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <Share2 size={14} color="#25D366" />
-                <span>Channel Integrations (WA/TG/Ads)</span>
-              </div>
-
-              <div
-                onClick={() => {
-                  if (onNavigateTab) onNavigateTab('ai-company');
-                  setActionMenuOpen(false);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 10px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.78rem',
-                  color: '#10B981',
-                  fontWeight: '600',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <Sparkles size={14} color="#10B981" />
-                <span>AI Company HQ (24/7 Multi-Agent)</span>
-              </div>
-
-              <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
-
-              <div
-                onClick={() => { onViewLanding(); setActionMenuOpen(false); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 10px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.78rem',
-                  color: '#94A3B8',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <Globe size={14} color="#38BDF8" />
-                <span>View Public Site</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 4. User Profile Avatar Dropdown */}
-        <div ref={profileMenuRef} style={{ position: 'relative' }}>
-          <button
-            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              background: rolePersona === 'superadmin'
-                ? 'linear-gradient(135deg, #06B6D4, #8B5CF6)'
-                : 'linear-gradient(135deg, #10B981, #06B6D4)',
+              background: 'transparent',
               border: 'none',
-              color: '#FFFFFF',
-              fontWeight: '700',
-              fontSize: '0.75rem',
               cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              padding: '2px',
             }}
-            title={currentUser?.name || "User Profile"}
           >
-            {currentUser?.name
-              ? currentUser.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
-              : activeWorkspace?.ownerName
-              ? activeWorkspace.ownerName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
-              : rolePersona === 'superadmin'
-              ? 'SA'
-              : (activeWorkspace?.name ? activeWorkspace.name.substring(0, 2).toUpperCase() : 'DV')}
+            <div
+              style={{
+                width: '26px',
+                height: '26px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.7rem',
+                fontWeight: '800',
+                color: '#FFFFFF',
+              }}
+            >
+              {currentUser?.name ? currentUser.name[0].toUpperCase() : 'U'}
+            </div>
+            <ChevronDown size={12} style={{ color: '#64748B' }} />
           </button>
 
-          {profileMenuOpen && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              right: 0,
-              marginTop: '6px',
-              background: '#0D1527',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '10px',
-              padding: '8px',
-              width: '240px',
-              zIndex: 60,
-              boxShadow: '0 12px 30px rgba(0,0,0,0.85)',
-            }}>
-              {/* Profile Card Header */}
-              <div style={{ padding: '8px 10px 12px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#F8FAFC' }}>
-                  {currentUser?.name || activeWorkspace?.ownerName || (rolePersona === 'superadmin' ? 'Platform Administrator' : activeWorkspace?.name || 'Workspace Account')}
+          {profileOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: 'calc(100% + 8px)',
+                width: '220px',
+                background: '#0B0F19',
+                border: 'var(--border-hairline)',
+                boxShadow: 'var(--specular-top-elevated), 0 20px 40px rgba(0,0,0,0.7)',
+                borderRadius: '10px',
+                padding: '6px',
+                zIndex: 100,
+              }}
+            >
+              <div style={{ padding: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#FFFFFF' }}>
+                  {currentUser?.name || 'Founder'}
                 </div>
-                <div style={{ fontSize: '0.725rem', color: '#94A3B8', marginTop: '2px', wordBreak: 'break-all' }}>
-                  {currentUser?.email || activeWorkspace?.ownerEmail || (rolePersona === 'superadmin' ? 'admin@vyuhox.ai' : '')}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
-                  <span className={`badge ${rolePersona === 'superadmin' ? 'badge-purple' : 'badge-cyan'}`} style={{ fontSize: '0.625rem' }}>
-                    {rolePersona === 'superadmin' ? 'Platform Super Admin' : 'Workspace Owner'}
-                  </span>
-                  {activeWorkspace?.name && (
-                    <span className="badge badge-emerald" style={{ fontSize: '0.625rem' }}>
-                      {activeWorkspace.name}
-                    </span>
-                  )}
+                <div style={{ fontSize: '0.68rem', color: '#64748B' }}>
+                  {currentUser?.email || 'client@vyuhox.ai'}
                 </div>
               </div>
 
-              {/* Only Super Admin can see developer perspective switcher */}
-              {rolePersona === 'superadmin' && (
-                <div style={{ padding: '8px 8px 4px' }}>
-                  <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>
-                    Admin Preview Persona:
-                  </span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
-                    {roles.map((r) => (
-                      <div
-                        key={r.id}
-                        onClick={() => {
-                          onChangeRolePersona && onChangeRolePersona(r.id);
-                          setProfileMenuOpen(false);
-                        }}
-                        style={{
-                          padding: '6px 8px',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '0.725rem',
-                          color: rolePersona === r.id ? '#F8FAFC' : '#94A3B8',
-                          background: rolePersona === r.id ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <span>{r.label}</span>
-                        <span style={{ fontSize: '0.6rem', color: r.color, fontWeight: '700' }}>{r.badge}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div style={{ padding: '4px 0' }}>
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    if (onToggleOperatingMode) onToggleOperatingMode();
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '7px 8px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#94A3B8',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <Bot size={13} />
+                  <span>Toggle Operating Mode</span>
+                </button>
 
-              {/* Direct Client Account Details */}
-              {rolePersona !== 'superadmin' && (
-                <div style={{ padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748B' }}>Workspace:</span>
-                    <strong style={{ color: '#38BDF8' }}>{activeWorkspace?.name || 'Active Workspace'}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748B' }}>Industry:</span>
-                    <span>{activeWorkspace?.industry || 'B2B'}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748B' }}>Plan:</span>
-                    <span style={{ color: (!activeWorkspace?.subscription?.planTier || activeWorkspace?.subscription?.planTier === 'NONE') ? '#94A3B8' : '#10B981', fontWeight: '600' }}>
-                      {(!activeWorkspace?.subscription?.planTier || activeWorkspace?.subscription?.planTier === 'NONE')
-                        ? 'None (Free Audit)'
-                        : activeWorkspace.subscription.planTier.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                </div>
-              )}
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    if (onViewLanding) onViewLanding();
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '7px 8px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#94A3B8',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <ExternalLink size={13} />
+                  <span>View Public Marketing Site</span>
+                </button>
 
-              <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '6px 0' }} />
-
-              <div
-                onClick={() => {
-                  if (onSignOut) {
-                    onSignOut();
-                  } else {
-                    onViewLanding();
-                  }
-                  setProfileMenuOpen(false);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '7px 8px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  color: '#EF4444',
-                }}
-              >
-                <LogOut size={13} />
-                <span>Sign Out</span>
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    if (onSignOut) onSignOut();
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '7px 8px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#EF4444',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.1)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <LogOut size={13} />
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           )}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -13,9 +13,14 @@ import {
   Sparkles,
   Cpu,
   ShoppingBag,
-  RefreshCw,
   Globe,
   Link2,
+  ChevronDown,
+  ChevronRight,
+  ShieldCheck,
+  CreditCard,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -35,280 +40,357 @@ export default function Sidebar({
   onViewLanding,
   currentUser,
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   const isSuperadmin = rolePersona === 'superadmin' || currentUser?.role === 'superadmin';
 
-  // Filter navigation items dynamically based on user role / package
-  const allNavItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'strategy', label: 'Strategy & Business Plan', icon: Globe, count: 'Live' },
-    { id: 'leads', label: 'Lead Prospecting', icon: Users, count: 'CRM' },
-    { id: 'inbox', label: 'Omnichannel Outreach', icon: MessageSquare, count: 'AI SDR' },
-    { id: 'voice', label: 'Voice AI Closer Maya', icon: Mic, count: 'Sub-45s' },
-    { id: 'calendar', label: 'Calendar & Demos', icon: Calendar, count: 'Meetings' },
-    { id: 'social', label: 'Social Studio', icon: Video, count: 'Live' },
-    { id: 'ads', label: 'Ads Manager', icon: TrendingUp, count: 'Live' },
-    { id: 'integrations', label: 'Channel Integrations', icon: Link2, count: 'Multi-Tenant' },
-    { id: 'compliance', label: 'Deliverability & DNC', icon: Shield, count: '10DLC' },
-    { id: 'seo-aeo', label: 'SEO & AEO Authority', icon: Sparkles, count: 'DR 50+' },
-    { id: 'ai-company', label: 'AI Company HQ', icon: Bot, count: 'Live' },
-    { id: 'agent-store', label: 'AI Employee Store', icon: ShoppingBag, count: 'New' },
-    { id: 'admin-plans', label: 'Super Admin Governance', icon: Shield, count: 'Admin', superadminOnly: true },
-    { id: 'public-site', label: 'Live Public Website', icon: Globe, count: 'Site' },
-    { id: 'settings', label: 'Settings & Billing', icon: Settings },
+  // 3 Clean Grouped Accordions
+  const navGroups = [
+    {
+      group: 'OPERATIONAL COCKPIT',
+      items: [
+        { id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard },
+        { id: 'ai-company', label: 'Autonomous Boardroom', icon: Bot },
+        { id: 'leads', label: 'Lead Discovery & CRM', icon: Users },
+        { id: 'inbox', label: 'Omnichannel Inbox', icon: MessageSquare },
+      ],
+    },
+    {
+      group: 'AUTONOMOUS ENGINES',
+      items: [
+        { id: 'voice', label: 'Maya Voice Closer', icon: Mic },
+        { id: 'calendar', label: 'Calendar & Bookings', icon: Calendar },
+        { id: 'strategy', label: 'Strategy & Brain', icon: Globe },
+        { id: 'social', label: 'Social Video Studio', icon: Video },
+        { id: 'ads', label: 'Paid Ads Optimizer', icon: TrendingUp },
+      ],
+    },
+    {
+      group: 'GOVERNANCE & FINOPS',
+      items: [
+        { id: 'integrations', label: 'Carrier Integrations', icon: Link2 },
+        { id: 'compliance', label: 'Deliverability & DNC', icon: Shield },
+        { id: 'seo-aeo', label: 'SEO / AEO Engine', icon: Sparkles },
+        { id: 'settings', label: 'Settings & Wallet', icon: Settings },
+        ...(isSuperadmin
+          ? [{ id: 'admin-plans', label: 'Super Admin Console', icon: ShieldCheck, superadminOnly: true }]
+          : []),
+      ],
+    },
   ];
 
-  const navItems = allNavItems.filter((item) => {
-    if (item.superadminOnly && rolePersona !== 'superadmin') return false;
-    return true;
-  });
-
-  const isAiMode = operatingMode === 'AI_COMPANY';
   const brandName = 'VYUHOX';
-  const primaryGrad = 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)';
+
+  const walletBalanceNum = Number(wallet?.balanceUSD ?? 0);
+  const formattedBalance = currency === 'INR'
+    ? `₹${(walletBalanceNum * exchangeRate).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+    : `$${walletBalanceNum.toFixed(2)}`;
 
   return (
-    <aside style={{
-      width: '280px',
-      minWidth: '280px',
-      height: '100vh',
-      background: 'rgba(11, 17, 32, 0.95)',
-      backdropFilter: 'blur(20px)',
-      borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 40,
-    }}>
-      {/* Platform Header */}
-      <div style={{
-        padding: '20px 20px 16px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-      }}>
+    <aside
+      style={{
+        width: collapsed ? '68px' : '260px',
+        minWidth: collapsed ? '68px' : '260px',
+        height: '100vh',
+        background: 'var(--surface-1)',
+        borderRight: 'var(--border-hairline)',
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 50,
+        transition: 'width 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        userSelect: 'none',
+      }}
+    >
+      {/* Brand & Workspace Header */}
+      <div
+        style={{
+          height: '56px',
+          padding: collapsed ? '0 12px' : '0 16px',
+          borderBottom: 'var(--border-hairline)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'space-between',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            background: primaryGrad,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 16px rgba(6, 182, 212, 0.45)',
-          }}>
-            <Cpu size={22} color="#04101A" strokeWidth={2.5} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{
-                fontFamily: 'Outfit, sans-serif',
-                fontSize: '1.25rem',
-                fontWeight: '800',
-                letterSpacing: '0.02em',
-                background: 'linear-gradient(90deg, #F8FAFC, #38BDF8)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}>
-                {brandName}
-              </span>
-              <span style={{
-                fontSize: '0.625rem',
-                fontWeight: '700',
-                padding: '2px 5px',
-                borderRadius: '4px',
-                background: 'rgba(6, 182, 212, 0.15)',
-                color: '#38BDF8',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
-              }}>
-                GTM 1.0
-              </span>
-            </div>
-            <p style={{
-              fontSize: '0.7rem',
-              color: 'var(--text-dim)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              fontWeight: '600',
-            }}>
-              Autonomous GTM SaaS
-            </p>
-          </div>
-        </div>
-
-
-      </div>
-
-      {/* Navigation List */}
-      <nav style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '16px 12px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-      }}>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (item.id === 'public-site') {
-                  if (onViewLanding) onViewLanding();
-                  return;
-                }
-                setActiveTab(item.id);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '9px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                background: isActive ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
-                color: isActive ? '#38BDF8' : '#94A3B8',
-                cursor: 'pointer',
-                textAlign: 'left',
-                fontSize: '0.8125rem',
-                fontWeight: isActive ? '600' : '500',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                  e.currentTarget.style.color = '#F8FAFC';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = '#94A3B8';
-                }
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Icon size={18} color={isActive ? '#38BDF8' : '#64748B'} />
-                <span>{item.label}</span>
-              </div>
-              {item.badge && (
-                <span style={{
-                  fontSize: '0.625rem',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  color: '#64748B',
-                }}>
-                  {item.badge}
-                </span>
-              )}
-              {item.count && (
-                <span style={{
-                  fontSize: '0.625rem',
-                  padding: '2px 6px',
-                  borderRadius: '999px',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#34D399',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                }}>
-                  {item.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Bottom Section: Wallet Card & User Profile */}
-      <div style={{
-        padding: '16px',
-        borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-      }}>
-        {/* Wallet Balance Card */}
-        <div style={{
-          padding: '12px',
-          borderRadius: '10px',
-          background: 'rgba(15, 23, 42, 0.65)',
-          border: '1px solid rgba(6, 182, 212, 0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <div>
-            <div style={{ fontSize: '0.675rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '600' }}>
-              GTM Compute Credit
-            </div>
-            <div style={{
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '1.15rem',
-              fontWeight: '700',
-              color: '#10B981',
-            }}>
-              {currency === 'INR'
-                ? `₹${(((wallet?.balanceUSD || 0) * exchangeRate)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-                : `$${wallet ? wallet.balanceUSD?.toFixed(2) : '0.00'}`}
-            </div>
-          </div>
-          <button
-            onClick={onOpenAddFundsModal}
-            className="btn-primary"
-            style={{ padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px' }}
-          >
-            + Add
-          </button>
-        </div>
-
-        {/* User Profile & Role Indicator */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '4px 6px',
-        }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            background: rolePersona === 'client_ai'
-              ? 'linear-gradient(135deg, #10B981, #06B6D4)'
-              : rolePersona === 'client_tool'
-              ? 'linear-gradient(135deg, #F59E0B, #10B981)'
-              : 'linear-gradient(135deg, #06B6D4, #8B5CF6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '0.8rem',
-            fontWeight: '700',
-            color: '#FFFFFF',
-          }}>
-            {currentUser?.name
-              ? currentUser.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
-              : (rolePersona.startsWith('client') ? 'CL' : 'NS')}
-          </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#F8FAFC' }}>
-              {currentUser?.name || (rolePersona.startsWith('client') ? activeWorkspace?.name || 'Client User' : 'Nanda Sai')}
-            </div>
-            <div style={{
-              fontSize: '0.675rem',
-              color: isSuperadmin ? '#10B981' : (!activeWorkspace?.subscription?.planTier || activeWorkspace?.subscription?.planTier === 'NONE') ? '#94A3B8' : rolePersona === 'client_ai' ? '#34D399' : '#FBBF24',
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-            }}>
-              <Shield size={10} />
-              {isSuperadmin
-                ? 'Superadmin'
-                : (!activeWorkspace?.subscription?.planTier || activeWorkspace?.subscription?.planTier === 'NONE')
-                ? 'Plan: None (Free Audit)'
-                : activeWorkspace?.subscription?.planTier === 'TOOL_MODE'
-                ? 'Tool User ($49)'
-                : 'AI Company ($249)'}
+              justifyContent: 'center',
+              boxShadow: '0 0 14px rgba(2, 132, 199, 0.4)',
+              color: '#FFFFFF',
+              flexShrink: 0,
+            }}
+          >
+            <Cpu size={18} />
+          </div>
+          {!collapsed && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.98rem', fontWeight: '800', letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+                  {brandName}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.62rem',
+                    fontWeight: '800',
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    color: '#38BDF8',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                  }}
+                >
+                  GTM 1.0
+                </span>
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                Autonomous Cockpit
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Collapse Toggle Button */}
+        {!collapsed && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            title="Collapse Sidebar (Cmd+B)"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#64748B',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#64748B')}
+          >
+            <PanelLeftClose size={16} />
+          </button>
+        )}
+      </div>
+
+      {collapsed && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+          <button
+            onClick={() => setCollapsed(false)}
+            title="Expand Sidebar"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#64748B',
+              cursor: 'pointer',
+              padding: '6px',
+              borderRadius: '6px',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#64748B')}
+          >
+            <PanelLeftOpen size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Navigation Groups */}
+      <nav
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: collapsed ? '12px 6px' : '16px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '18px',
+        }}
+      >
+        {navGroups.map((group) => (
+          <div key={group.group}>
+            {!collapsed && (
+              <div
+                style={{
+                  fontSize: '0.65rem',
+                  fontWeight: '700',
+                  color: '#475569',
+                  letterSpacing: '0.06em',
+                  padding: '0 8px 6px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {group.group}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    title={collapsed ? item.label : undefined}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: collapsed ? '9px 0' : '8px 10px',
+                      justifyContent: collapsed ? 'center' : 'flex-start',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: isActive ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
+                      color: isActive ? '#FFFFFF' : '#94A3B8',
+                      position: 'relative',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: isActive ? '600' : '500',
+                      transition: 'all 0.12s ease',
+                      boxShadow: isActive ? 'inset 0 1px 0 0 rgba(255, 255, 255, 0.08)' : 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                        e.currentTarget.style.color = '#FFFFFF';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#94A3B8';
+                      }
+                    }}
+                  >
+                    {/* Active Left Indicator Bar */}
+                    {isActive && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: '6px',
+                          bottom: '6px',
+                          width: '3px',
+                          background: '#38BDF8',
+                          borderRadius: '0 2px 2px 0',
+                          boxShadow: '0 0 8px #38BDF8',
+                        }}
+                      />
+                    )}
+                    <Icon
+                      size={17}
+                      style={{
+                        color: isActive ? '#38BDF8' : '#64748B',
+                        flexShrink: 0,
+                      }}
+                    />
+                    {!collapsed && <span>{item.label}</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
-        </div>
+        ))}
+      </nav>
+
+      {/* Bottom Footer: Wallet & Profile */}
+      <div
+        style={{
+          padding: collapsed ? '12px 6px' : '14px 12px',
+          borderTop: 'var(--border-hairline)',
+          background: 'rgba(4, 6, 10, 0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        }}
+      >
+        {/* Wallet Mini-Pill */}
+        {!collapsed ? (
+          <div
+            style={{
+              padding: '9px 12px',
+              borderRadius: '8px',
+              background: 'var(--surface-2)',
+              border: 'var(--border-hairline)',
+              boxShadow: 'var(--specular-top-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>
+                Pre-paid Compute
+              </div>
+              <div className="tabular-nums" style={{ fontSize: '0.9rem', fontWeight: '800', color: '#10B981' }}>
+                {formattedBalance}
+              </div>
+            </div>
+            <button
+              onClick={onOpenAddFundsModal}
+              className="btn-primary"
+              style={{ padding: '4px 10px', fontSize: '0.72rem', borderRadius: '6px' }}
+            >
+              + Add
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onOpenAddFundsModal}
+            title={`Compute Balance: ${formattedBalance}`}
+            style={{
+              width: '100%',
+              height: '36px',
+              borderRadius: '8px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              color: '#10B981',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <CreditCard size={16} />
+          </button>
+        )}
+
+        {/* User Identity */}
+        {!collapsed && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '2px 4px' }}>
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.72rem',
+                fontWeight: '800',
+                color: '#FFFFFF',
+                flexShrink: 0,
+              }}
+            >
+              {currentUser?.name ? currentUser.name[0].toUpperCase() : 'F'}
+            </div>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#F8FAFC', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                {currentUser?.name || activeWorkspace?.name || 'Founder'}
+              </div>
+              <div style={{ fontSize: '0.65rem', color: '#64748B' }}>
+                {activeWorkspace?.industry || 'Enterprise'}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );

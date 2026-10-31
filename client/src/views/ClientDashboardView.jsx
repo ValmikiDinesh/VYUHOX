@@ -772,19 +772,16 @@ export default function ClientDashboardView({
 
 
 
-      {/* 1. GROWTH ENGINE STATUS BAR (SIMPLE & CLEAR) */}
-      <div style={{
-        background: 'rgba(11, 17, 32, 0.95)',
-        border: '1px solid rgba(6, 182, 212, 0.3)',
+      {/* 1. LIVING AUTONOMOUS EXECUTION TICKER & TELEMETRY STRIP */}
+      <div className="specular-glass" style={{
         borderRadius: '12px',
-        padding: '14px 20px',
+        padding: '12px 18px',
         marginBottom: '20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '14px',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+        gap: '12px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -975,8 +972,7 @@ export default function ClientDashboardView({
         {/* KPI 1: Speed to Call Back */}
         <div
           onClick={() => onNavigateTab('voice')}
-          className="card"
-          style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.8)', cursor: 'pointer', border: '1px solid rgba(16, 185, 129, 0.25)' }}
+          className="specular-card" style={{ padding: '20px', cursor: 'pointer' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>CALLBACK SPEED TO LEADS</span>
@@ -993,8 +989,7 @@ export default function ClientDashboardView({
         {/* KPI 2: Potential Clients Discovered */}
         <div
           onClick={() => onNavigateTab('leads')}
-          className="card"
-          style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.8)', cursor: 'pointer', border: '1px solid rgba(6, 182, 212, 0.25)' }}
+          className="specular-card" style={{ padding: '20px', cursor: 'pointer' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>POTENTIAL CLIENTS FOUND</span>
@@ -1011,8 +1006,7 @@ export default function ClientDashboardView({
         {/* KPI 3: Scheduled Client Meetings */}
         <div
           onClick={() => onNavigateTab('calendar')}
-          className="card"
-          style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.8)', cursor: 'pointer', border: '1px solid rgba(139, 92, 246, 0.25)' }}
+          className="specular-card" style={{ padding: '20px', cursor: 'pointer' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>SCHEDULED MEETINGS</span>
@@ -1027,7 +1021,7 @@ export default function ClientDashboardView({
         </div>
 
         {/* KPI 4: Estimated Deal Value */}
-        <div className="card" style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+        <div className="specular-card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '700', letterSpacing: '0.04em' }}>ESTIMATED DEAL PIPELINE</span>
             <DollarSign size={18} color="#F59E0B" />

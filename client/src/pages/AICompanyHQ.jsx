@@ -312,7 +312,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
         {orgData?.leader && (
           <div
             onClick={() => setSelectedAgentDetail(orgData.leader)}
-            className="glass-panel"
+            className="specular-card"
             style={{
               padding: '20px 24px',
               borderRadius: '14px',
@@ -378,7 +378,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
             <div
               key={agent.role}
               onClick={() => setSelectedAgentDetail(agent)}
-              className="glass-panel"
+              className="specular-card"
               style={{
                 padding: '18px',
                 borderRadius: '12px',
@@ -457,7 +457,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
 
       {/* 3. CEO Daily Briefing Log & 1-Click Action Proposals */}
       {latestBriefing && (
-        <div className="glass-panel" style={{ padding: '24px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+        <div className="specular-card" style={{ padding: '24px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
@@ -650,7 +650,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
       )}
 
       {/* 4. Live Multi-Agent Activity Terminal Stream */}
-      <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div className="specular-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -778,7 +778,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
           justifyContent: 'center',
           zIndex: 100,
         }}>
-          <div className="glass-panel" style={{ width: '560px', maxWidth: '90vw', padding: '28px' }}>
+          <div className="specular-card" style={{ width: '560px', maxWidth: '90vw', padding: '28px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
