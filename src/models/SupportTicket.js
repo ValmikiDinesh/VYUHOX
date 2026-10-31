@@ -84,3 +84,4 @@ supportTicketSchema.index({ status: 1, createdAt: -1 });
 
 export const SupportTicket = mongoose.model('SupportTicket', supportTicketSchema);
 export default SupportTicket;
+

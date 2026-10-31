@@ -504,3 +504,4 @@ export default function SupportHelpWidget({ activeWorkspace, wallet, operatingMo
     </>
   );
 }
+
