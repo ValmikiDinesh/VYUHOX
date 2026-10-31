@@ -52,8 +52,7 @@ export default function Sidebar({
     { id: 'seo-aeo', label: 'SEO & AEO Authority', icon: Sparkles, count: 'DR 50+' },
     { id: 'ai-company', label: 'AI Company HQ', icon: Bot, count: 'Live' },
     { id: 'agent-store', label: 'AI Employee Store', icon: ShoppingBag, count: 'New' },
-    { id: 'admin-plans', label: 'Plans & Pricing Admin', icon: Shield, count: 'Admin', superadminOnly: true },
-    { id: 'flywheel', label: 'Growth Flywheel', icon: RefreshCw, count: 'Auto', superadminOnly: true },
+    { id: 'admin-plans', label: 'Super Admin Governance', icon: Shield, count: 'Admin', superadminOnly: true },
     { id: 'public-site', label: 'Live Public Website', icon: Globe, count: 'Site' },
     { id: 'settings', label: 'Settings & Billing', icon: Settings },
   ];

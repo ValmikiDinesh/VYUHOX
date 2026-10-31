@@ -1383,10 +1383,90 @@ export const api = {
       body: JSON.stringify({ commandText, workspaceId }),
     });
   },
-  getSanjayaSuggestions: async () => {
+    getSanjayaSuggestions: async () => {
     return safeFetchJson(`${API_BASE}/sanjaya/suggestions`);
   },
+
+  // Generic HTTP helpers (Axios-compatible)
+  get: async (url) => {
+    const data = await safeFetchJson(url);
+    return { data };
+  },
+  post: async (url, body) => {
+    const data = await safeFetchJson(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    return { data };
+  },
+  put: async (url, body) => {
+    const data = await safeFetchJson(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    return { data };
+  },
+
+  // Super Admin GTM Governance APIs (4 Pillars)
+  getAdminMetrics: async () => {
+    return safeFetchJson(`${API_BASE}/billing/admin-metrics`);
+  },
+  getTenants: async () => {
+    return safeFetchJson(`${API_BASE}/billing/tenants`);
+  },
+  injectWalletCredit: async (payload) => {
+    return safeFetchJson(`${API_BASE}/billing/inject-wallet-credit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
+  getOnboardingDropoffs: async () => {
+    return safeFetchJson(`${API_BASE}/billing/onboarding-dropoffs`);
+  },
+  getInfrastructureHealth: async () => {
+    return safeFetchJson(`${API_BASE}/billing/infrastructure-health`);
+  },
+  getAuditLogs: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return safeFetchJson(`${API_BASE}/billing/audit-logs?${query}`);
+  },
+  updateCircuitBreakers: async (payload) => {
+    return safeFetchJson(`${API_BASE}/billing/circuit-breakers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
+  updateGlobalDnc: async (payload) => {
+    return safeFetchJson(`${API_BASE}/billing/global-dnc`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
+  updateAnnouncement: async (payload) => {
+    return safeFetchJson(`${API_BASE}/billing/announcement`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
+  getSupportTickets: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return safeFetchJson(`${API_BASE}/support/tickets?${query}`);
+  },
+  updateSupportTicket: async (ticketId, payload) => {
+    return safeFetchJson(`${API_BASE}/support/tickets/${ticketId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
 };
+
 
 
 

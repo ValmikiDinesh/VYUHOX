@@ -19,7 +19,6 @@ import CalendarSettings from './pages/CalendarSettings';
 import ComplianceSettings from './pages/ComplianceSettings';
 import AICompanyHQ from './pages/AICompanyHQ';
 import AgentStore from './pages/AgentStore';
-import FlywheelHub from './pages/FlywheelHub';
 import LandingPage from './pages/LandingPage';
 import ClientAuthPage from './pages/ClientAuthPage';
 import AdminAuthPage from './pages/AdminAuthPage';
@@ -35,6 +34,7 @@ import AddFundsModal from './components/modals/AddFundsModal';
 import BulkImportModal from './components/modals/BulkImportModal';
 import ConnectChannelsModal from './components/modals/ConnectChannelsModal';
 import SanjayaVoiceCommander from './components/SanjayaVoiceCommander';
+import SupportHelpWidget from './components/SupportHelpWidget';
 import { Mic, Sparkles } from 'lucide-react';
 
 import { api } from './services/api';
@@ -56,6 +56,7 @@ export default function App() {
   const [socket, setSocket] = useState(null);
   const [socketConnected, setSocketConnected] = useState(false);
   const [targetChatConversationId, setTargetChatConversationId] = useState(null);
+  const [globalAnnouncement, setGlobalAnnouncement] = useState(null);
 
   // Dedicated URL Route Detection:
   // - '#admin', '#admin-login', '/admin' -> 'admin_login' (Super Admin Master Portal)
@@ -254,6 +255,28 @@ export default function App() {
     };
     initApp();
   }, []);
+
+  
+  // Super Admin Global Announcement Listener
+  useEffect(() => {
+    const fetchGlobalAnnouncement = async () => {
+      try {
+        const res = await api.get('/api/support/announcement');
+        if (res?.data?.success && res.data.announcement) {
+          setGlobalAnnouncement(res.data.announcement);
+        }
+      } catch (e) {}
+    };
+    fetchGlobalAnnouncement();
+
+    if (socket) {
+      socket.on('global:announcement_updated', (data) => {
+        if (data?.announcement) {
+          setGlobalAnnouncement(data.announcement);
+        }
+      });
+    }
+  }, [socket]);
 
   // 2. Setup Socket.io connection
   useEffect(() => {
@@ -730,6 +753,51 @@ export default function App() {
           onOpenSanjayaVoiceModal={() => setIsSanjayaOpen(true)}
         />
 
+        
+        {/* Global System Announcement Banner */}
+        {globalAnnouncement?.active && globalAnnouncement.message && (
+          <div
+            style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 9999,
+              background:
+                globalAnnouncement.severity === 'MAINTENANCE'
+                  ? 'linear-gradient(90deg, #DC2626 0%, #991B1B 100%)'
+                  : globalAnnouncement.severity === 'WARNING'
+                  ? 'linear-gradient(90deg, #D97706 0%, #B45309 100%)'
+                  : 'linear-gradient(90deg, #0284C7 0%, #0369A1 100%)',
+              color: '#FFFFFF',
+              padding: '10px 24px',
+              fontSize: '0.82rem',
+              fontWeight: '700',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.4)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>📢</span>
+              <span>{globalAnnouncement.message}</span>
+            </div>
+            <button
+              onClick={() => setGlobalAnnouncement(prev => prev ? { ...prev, active: false } : null)}
+              style={{
+                background: 'rgba(0,0,0,0.25)',
+                border: 'none',
+                color: '#FFFFFF',
+                borderRadius: '4px',
+                padding: '2px 8px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Super Admin Inspection Mode Banner */}
         {isAdminInspectionMode && (
           <div style={{
@@ -984,13 +1052,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'flywheel' && (
-          <FlywheelHub
-            activeWorkspace={activeWorkspace}
-            socket={socket}
-          />
-        )}
-      </main>
+              </main>
 
       {/* Interactive Modals */}
       <NewLeadModal
@@ -1041,6 +1103,9 @@ export default function App() {
         onOpenAddFundsModal={() => setIsAddFundsModalOpen(true)}
         onRefreshData={refreshWorkspaceData}
       />
+
+      {/* Floating Client Support Desk Widget */}
+      <SupportHelpWidget activeWorkspace={activeWorkspace} wallet={wallet} operatingMode={operatingMode} />
 
       {/* Floating Bottom-Right Voice Commander Summon Orb */}
       <button

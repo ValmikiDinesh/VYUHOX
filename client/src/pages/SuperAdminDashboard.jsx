@@ -24,9 +24,10 @@ import {
   Zap,
   Globe,
   Lock,
+  Eye,
+  EyeOff,
   Key,
   Palette,
-  Presentation,
   Database,
   Search,
   Activity,
@@ -35,9 +36,16 @@ import {
   Server,
   ArrowRight,
   ShieldAlert,
+  LifeBuoy,
+  Download,
+  AlertTriangle,
+  Terminal,
+  Send,
+  Clock,
+  UserCheck,
+  X,
 } from 'lucide-react';
 import { api } from '../services/api';
-import VisualCreativeStudio from '../components/VisualCreativeStudio';
 
 export default function SuperAdminDashboard({
   workspaces = [],
@@ -47,525 +55,574 @@ export default function SuperAdminDashboard({
   onSwitchWorkspace,
   onRefreshWorkspaces,
 }) {
-  const [activeTab, setActiveTab] = useState('plans'); // 'plans' | 'rates' | 'integrations' | 'tenants'
-  const [regionFilter, setRegionFilter] = useState('ALL'); // 'ALL' | 'INDIA_ONLY' | 'GLOBAL_ONLY'
-  const [workspaceSearch, setWorkspaceSearch] = useState('');
-  const [workspaceTypeFilter, setWorkspaceTypeFilter] = useState('ALL'); // 'ALL' | 'AI_COMPANY' | 'TOOL'
+  // 4 Consolidated Unified Pillars
+  // 'vitals' | 'tenants' | 'integrations' | 'finops'
+  const [activeTab, setActiveTab] = useState('vitals');
 
-  // Workspace Feature Management Modal State
-  const [managingWorkspace, setManagingWorkspace] = useState(null);
-  const [manageForm, setManageForm] = useState(null);
-  const [savingManage, setSavingManage] = useState(false);
+  // Pillar 1: Vitals & Watchdog
+  const [metrics, setMetrics] = useState(null);
+  const [infraHealth, setInfraHealth] = useState(null);
+  const [dropoffs, setDropoffs] = useState([]);
+  const [loadingVitals, setLoadingVitals] = useState(false);
 
-  // Pricing Plans State
+  // Pillar 2: Client Accounts & Two-Sided Support Desk
+  const [tenants, setTenants] = useState([]);
+  const [loadingTenants, setLoadingTenants] = useState(false);
+  const [tenantSearch, setTenantSearch] = useState('');
+  const [tenantFilter, setTenantFilter] = useState('ALL'); // 'ALL' | 'AI_COMPANY' | 'TOOL'
+  const [supportTickets, setSupportTickets] = useState([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [ticketFilter, setTicketFilter] = useState('ALL'); // 'ALL' | 'OPEN' | 'IN_REVIEW' | 'RESOLVED'
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketResolutionNote, setTicketResolutionNote] = useState('');
+  const [ticketCreditAmount, setTicketCreditAmount] = useState('');
+  const [resolvingTicket, setResolvingTicket] = useState(false);
+
+  // Standalone Credit Injector Modal
+  const [injectModalOpen, setInjectModalOpen] = useState(false);
+  const [injectTargetWs, setInjectTargetWs] = useState(null);
+  const [injectAmount, setInjectAmount] = useState('');
+  const [injectReason, setInjectReason] = useState('');
+  const [injectingCredit, setInjectingCredit] = useState(false);
+
+  // Pillar 3: Master Integrations & Circuit Breaker
+  const [platformConfig, setPlatformConfig] = useState(null);
+  const [loadingConfig, setLoadingConfig] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [revealedKeys, setRevealedKeys] = useState({});
+  const [pingStatus, setPingStatus] = useState({});
+  const [circuitBreakerForm, setCircuitBreakerForm] = useState({
+    pauseAllVoice: false,
+    pauseAllScraping: false,
+    pauseAllEmail: false,
+    hourlyRateLimitPerWorkspace: 250,
+    reason: '',
+  });
+  const [savingBreaker, setSavingBreaker] = useState(false);
+
+  // Pillar 4: FinOps, Rates, Plans, DNC & Audit Trail
   const [plans, setPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [editingPlanId, setEditingPlanId] = useState(null);
   const [editForm, setEditForm] = useState(null);
-  const [isNewPlanModalOpen, setIsNewPlanModalOpen] = useState(false);
-  const [newPlanData, setNewPlanData] = useState({
-    planId: '',
-    name: '',
-    tagline: '',
-    category: 'CLIENT_AI',
-    targetRegion: 'ALL',
-    priceUSD: { monthly: 149, annualMonthly: 119 },
-    priceINR: { monthly: 11999, annualMonthly: 9499 },
-    features: ['Custom AI SDR Outreach', 'Priority Speed-to-Lead Calling', '5,000 Verified Leads/mo'],
-    badge: 'Custom',
-    isPopular: false,
-  });
-
-  // Platform Config & Utility Usage Rates State
-  const [platformConfig, setPlatformConfig] = useState(null);
-  const [loadingConfig, setLoadingConfig] = useState(false);
-  const [savingConfig, setSavingConfig] = useState(false);
-  const [pingStatus, setPingStatus] = useState({});
-  const [toastMessage, setToastMessage] = useState(null);
   const [finopsData, setFinopsData] = useState(null);
   const [evaluatingFinops, setEvaluatingFinops] = useState(false);
   const [applyingFinops, setApplyingFinops] = useState(false);
+  const [globalDncList, setGlobalDncList] = useState([]);
+  const [newDncIdentifier, setNewDncIdentifier] = useState('');
+  const [newDncType, setNewDncType] = useState('DOMAIN');
+  const [newDncReason, setNewDncReason] = useState('');
+  const [savingDnc, setSavingDnc] = useState(false);
+  const [announcementState, setAnnouncementState] = useState({
+    active: false,
+    message: '',
+    severity: 'INFO',
+  });
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [auditFilter, setAuditFilter] = useState('ALL');
 
-  // Business Brain & Continuous Evolution State
-  const [brainOverview, setBrainOverview] = useState(null);
-  const [loadingBrain, setLoadingBrain] = useState(false);
-  const [selectedBrainWorkspace, setSelectedBrainWorkspace] = useState('');
-  const [testQuestion, setTestQuestion] = useState('What are your core enterprise solutions, pricing model, and competitive advantages?');
-  const [testAnswerResult, setTestAnswerResult] = useState(null);
-  const [askingBrain, setAskingBrain] = useState(false);
-  const [advancingRoundId, setAdvancingRoundId] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
 
-  // Market Intelligence Radar & Voice Studio State
-  const [marketRadarData, setMarketRadarData] = useState([]);
-  const [loadingRadar, setLoadingRadar] = useState(false);
-  const [sweepingRadar, setSweepingRadar] = useState(false);
-  const [selectedRadarCategory, setSelectedRadarCategory] = useState(null);
-  const [radarSubView, setRadarSubView] = useState('ARCHETYPES'); // 'ARCHETYPES' | 'ROLES'
-  const [employeeRoles, setEmployeeRoles] = useState([]);
-  const [roleEchelonFilter, setRoleEchelonFilter] = useState('ALL');
-  const [voicesList, setVoicesList] = useState([]);
-  const [playingVoiceId, setPlayingVoiceId] = useState(null);
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const isINR = currency === 'INR';
   const currencySymbol = isINR ? '₹' : '$';
 
-  // Load plans & platform config
-  const fetchPlans = async () => {
+  // Toggle mask state for API keys
+  const toggleKeyVisibility = (keyId) => {
+    setRevealedKeys((prev) => ({ ...prev, [keyId]: !prev[keyId] }));
+  };
+
+  // Mask string helper
+  const maskKey = (keyVal, isRevealed) => {
+    if (!keyVal) return '••••••••••••••••';
+    if (isRevealed) return keyVal;
+    if (keyVal.length <= 8) return '••••••••';
+    return `${keyVal.slice(0, 4)}••••••••${keyVal.slice(-4)}`;
+  };
+
+  // Initial Load
+  useEffect(() => {
+    loadVitalsData();
+    loadTenantsAndTickets();
+    loadConfigAndPlans();
+    loadAuditLogs();
+  }, []);
+
+  const loadVitalsData = async () => {
+    setLoadingVitals(true);
     try {
-      setLoadingPlans(true);
-      const res = await api.getPricingPlans({ includeInactive: true });
-      if (res.success) setPlans(res.plans);
+      const [metricsRes, healthRes, dropoffsRes] = await Promise.all([
+        api.getAdminMetrics(),
+        api.getInfrastructureHealth(),
+        api.getOnboardingDropoffs(),
+      ]);
+      if (metricsRes?.success) setMetrics(metricsRes.metrics);
+      if (healthRes?.success) setInfraHealth(healthRes.health);
+      if (dropoffsRes?.success) setDropoffs(dropoffsRes.dropoffs || []);
     } catch (err) {
-      console.error('Failed to fetch pricing plans:', err);
+      console.warn('Error loading vitals:', err);
     } finally {
+      setLoadingVitals(false);
+    }
+  };
+
+  const loadTenantsAndTickets = async () => {
+    setLoadingTenants(true);
+    setLoadingTickets(true);
+    try {
+      const [tenantsRes, ticketsRes] = await Promise.all([
+        api.getTenants(),
+        api.getSupportTickets(),
+      ]);
+      if (tenantsRes?.success) setTenants(tenantsRes.tenants || []);
+      if (ticketsRes?.success) setSupportTickets(ticketsRes.tickets || []);
+    } catch (err) {
+      console.warn('Error loading tenants/tickets:', err);
+    } finally {
+      setLoadingTenants(false);
+      setLoadingTickets(false);
+    }
+  };
+
+  const loadConfigAndPlans = async () => {
+    setLoadingConfig(true);
+    setLoadingPlans(true);
+    try {
+      const [cfgRes, plansRes] = await Promise.all([
+        api.getPlatformConfig(),
+        api.getPricingPlans({ includeInactive: true }),
+      ]);
+      if (cfgRes?.success && cfgRes.config) {
+        setPlatformConfig(cfgRes.config);
+        if (cfgRes.config.circuitBreakers) {
+          setCircuitBreakerForm({
+            pauseAllVoice: !!cfgRes.config.circuitBreakers.pauseAllVoice,
+            pauseAllScraping: !!cfgRes.config.circuitBreakers.pauseAllScraping,
+            pauseAllEmail: !!cfgRes.config.circuitBreakers.pauseAllEmail,
+            hourlyRateLimitPerWorkspace: cfgRes.config.circuitBreakers.hourlyRateLimitPerWorkspace || 250,
+            reason: cfgRes.config.circuitBreakers.reason || '',
+          });
+        }
+        if (cfgRes.config.globalDncList) {
+          setGlobalDncList(cfgRes.config.globalDncList);
+        }
+        if (cfgRes.config.globalAnnouncement) {
+          setAnnouncementState(cfgRes.config.globalAnnouncement);
+        }
+      }
+      if (plansRes?.success) setPlans(plansRes.plans || []);
+    } catch (err) {
+      console.warn('Error loading config/plans:', err);
+    } finally {
+      setLoadingConfig(false);
       setLoadingPlans(false);
     }
   };
 
-  const fetchPlatformConfig = async () => {
+  const loadAuditLogs = async () => {
+    setLoadingLogs(true);
     try {
-      setLoadingConfig(true);
-      const res = await api.getPlatformConfig();
-      if (res.success) setPlatformConfig(res.config);
+      const res = await api.getAuditLogs({ limit: 100 });
+      if (res?.success) setAuditLogs(res.logs || []);
     } catch (err) {
-      console.error('Failed to fetch platform config:', err);
+      console.warn('Error loading audit logs:', err);
     } finally {
-      setLoadingConfig(false);
+      setLoadingLogs(false);
     }
   };
 
-  const fetchBrainOverview = async () => {
+  // Integration Ping Test
+  const handleTestPing = async (provider) => {
     try {
-      setLoadingBrain(true);
-      const res = await api.getSuperAdminBrainOverview();
-      if (res.success) {
-        setBrainOverview(res);
-        if (res.clientsEvolution && res.clientsEvolution.length > 0 && !selectedBrainWorkspace) {
-          setSelectedBrainWorkspace(res.clientsEvolution[0].workspaceId);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch brain overview:', err);
-    } finally {
-      setLoadingBrain(false);
-    }
-  };
-
-  const fetchMarketRadar = async () => {
-    try {
-      setLoadingRadar(true);
-      const res = await api.getMarketRadar();
-      if (res.success && res.categories) {
-        setMarketRadarData(res.categories);
-        if (res.categories.length > 0 && !selectedRadarCategory) {
-          setSelectedRadarCategory(res.categories[0]);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch market radar:', err);
-    } finally {
-      setLoadingRadar(false);
-    }
-  };
-
-  const fetchVoices = async () => {
-    try {
-      const res = await api.getVoices();
-      if (res.success && res.voices) {
-        setVoicesList(res.voices);
-      }
-    } catch (err) {
-      console.error('Failed to fetch voices:', err);
-    }
-  };
-
-  const handleSweepRadar = async () => {
-    try {
-      setSweepingRadar(true);
-      const res = await api.sweepMarketRadar();
-      if (res.success && res.categories) {
-        setMarketRadarData(res.categories);
-        showToast('Autonomous Trend Radar swept! New viral models assimilated into VYUHOX.');
-      }
-    } catch (err) {
-      console.error('Sweep radar error:', err);
-      showToast('Sweep failed');
-    } finally {
-      setSweepingRadar(false);
-    }
-  };
-
-  const handlePlayVoicePreview = async (voiceId) => {
-    try {
-      setPlayingVoiceId(voiceId);
-      const res = await api.previewVoice(voiceId);
-      if (res.success && res.audioUrl) {
-        const audio = new Audio(res.audioUrl);
-        audio.play();
-        audio.onended = () => setPlayingVoiceId(null);
-        audio.onerror = () => setPlayingVoiceId(null);
+      setPingStatus((prev) => ({ ...prev, [provider]: { status: 'TESTING' } }));
+      const res = await api.testIntegrationPing(provider);
+      if (res?.success && res.result) {
+        setPingStatus((prev) => ({ ...prev, [provider]: res.result }));
+        showToast(`✅ ${provider} ping: ${res.result.status} (${res.result.latencyMs}ms)`);
       } else {
-        setPlayingVoiceId(null);
+        setPingStatus((prev) => ({ ...prev, [provider]: { status: 'FAILED', message: res?.message || 'Check credentials' } }));
       }
     } catch (err) {
-      console.error('Voice preview error:', err);
-      setPlayingVoiceId(null);
+      setPingStatus((prev) => ({ ...prev, [provider]: { status: 'ERROR', message: err.message } }));
     }
   };
 
-  const fetchEmployeeRoles = async () => {
+  // Save Platform Config (Integrations or Rates)
+  const handleSaveConfig = async (partialConfig) => {
+    setSavingConfig(true);
     try {
-      const res = await api.getEmployeeRoles();
-      if (res.success && res.roles) {
-        setEmployeeRoles(res.roles);
-      }
-    } catch (err) {
-      console.error('Failed to fetch employee roles:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchPlans();
-    fetchPlatformConfig();
-    fetchBrainOverview();
-    fetchMarketRadar();
-    fetchVoices();
-    fetchEmployeeRoles();
-  }, []);
-
-  const handleAskTestQuestion = async () => {
-    const targetWs = selectedBrainWorkspace || (workspaces[0]?._id);
-    if (!targetWs || !testQuestion.trim()) return;
-    try {
-      setAskingBrain(true);
-      setTestAnswerResult(null);
-      const res = await api.askBusinessBrain(targetWs, {
-        question: testQuestion.trim(),
-        channel: 'SUPER_ADMIN_TESTER',
-      });
-      if (res.success) {
-        setTestAnswerResult(res);
-        showToast('✅ Brain answered accurately and saved to permanent QA Ledger!');
-        fetchBrainOverview();
-      }
-    } catch (err) {
-      alert('Brain Q&A query error: ' + err.message);
-    } finally {
-      setAskingBrain(false);
-    }
-  };
-
-  const handleAdvanceRound = async (workspaceId) => {
-    try {
-      setAdvancingRoundId(workspaceId);
-      const res = await api.advanceBrainRound(workspaceId, {
-        summaryNotes: 'Super Admin accelerated evolution round with preserved historical memory.',
-      });
-      if (res.success) {
-        showToast(`🚀 Successfully evolved to Round ${res.currentRound}! 100% data preserved.`);
-        fetchBrainOverview();
-      }
-    } catch (err) {
-      alert('Advance round error: ' + err.message);
-    } finally {
-      setAdvancingRoundId(null);
-    }
-  };
-
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
-
-  // Start editing a plan
-  const handleStartEdit = (plan) => {
-    setEditingPlanId(plan._id);
-    setEditForm({
-      name: plan.name,
-      tagline: plan.tagline || '',
-      category: plan.category || 'CLIENT_AI',
-      targetRegion: plan.targetRegion || 'ALL',
-      priceUSD: { ...plan.priceUSD },
-      priceINR: { ...plan.priceINR },
-      features: [...plan.features],
-      badge: plan.badge || '',
-      isPopular: plan.isPopular,
-      isActive: plan.isActive,
-    });
-  };
-
-  // Save updated plan
-  const handleSavePlan = async (id) => {
-    try {
-      const res = await api.updatePricingPlan(id, editForm);
-      if (res.success) {
-        setPlans((prev) => prev.map((p) => (p._id === id ? res.plan : p)));
-        setEditingPlanId(null);
-        showToast('Pricing plan updated successfully!');
-      }
-    } catch (err) {
-      console.error('Failed to update plan:', err);
-      showToast('Error updating plan');
-    }
-  };
-
-  // Toggle Plan Active State
-  const handleTogglePlanActive = async (id) => {
-    try {
-      const res = await api.deletePricingPlan(id, false);
-      if (res.success) {
-        setPlans((prev) => prev.map((p) => (p._id === id ? res.plan : p)));
-        showToast('Plan status updated!');
-      }
-    } catch (err) {
-      console.error('Error toggling plan:', err);
-    }
-  };
-
-  // Create New Plan
-  const handleCreatePlanSubmit = async (e) => {
-    e.preventDefault();
-    if (!newPlanData.planId || !newPlanData.name) return;
-
-    try {
-      const res = await api.createPricingPlan(newPlanData);
-      if (res.success) {
-        setPlans((prev) => [...prev, res.plan]);
-        setIsNewPlanModalOpen(false);
-        showToast(`New Plan "${res.plan.name}" created successfully!`);
-        setNewPlanData({
-          planId: '',
-          name: '',
-          tagline: '',
-          category: 'CLIENT_AI',
-          targetRegion: 'ALL',
-          priceUSD: { monthly: 149, annualMonthly: 119 },
-          priceINR: { monthly: 11999, annualMonthly: 9499 },
-          features: ['Custom AI SDR Outreach', 'Priority Speed-to-Lead Calling', '5,000 Verified Leads/mo'],
-          badge: 'Custom',
-          isPopular: false,
-        });
-      }
-    } catch (err) {
-      console.error('Error creating plan:', err);
-      showToast('Failed to create plan');
-    }
-  };
-
-  // Save Platform Config (Utility Rates, Integrations & Visual Tools)
-  const handleSavePlatformConfig = async () => {
-    if (!platformConfig) return;
-    try {
-      setSavingConfig(true);
-      const res = await api.updatePlatformConfig({
-        usageRates: platformConfig.usageRates,
-        integrations: platformConfig.integrations,
-        canvaConnect: platformConfig.canvaConnect,
-        googleFlowWorkspace: platformConfig.googleFlowWorkspace,
-        pollinationsVisualAi: platformConfig.pollinationsVisualAi,
-        dalleVisualAi: platformConfig.dalleVisualAi,
-        shortVideoEngine: platformConfig.shortVideoEngine,
-        visualToolsGovernance: platformConfig.visualToolsGovernance,
-        llmCascadeConfig: platformConfig.llmCascadeConfig,
-        finOpsConfig: platformConfig.finOpsConfig,
-      });
-      if (res.success) {
+      const res = await api.updatePlatformConfig({ ...platformConfig, ...partialConfig });
+      if (res?.success) {
         setPlatformConfig(res.config);
-        showToast('Platform rates, Multi-LLM cascade & FinOps config saved successfully!');
+        showToast('Platform configuration saved and audit-logged.');
+        loadAuditLogs();
+      } else {
+        showToast('Failed to save configuration');
       }
     } catch (err) {
-      console.error('Failed to save platform config:', err);
-      showToast('Failed to save config');
+      showToast('Error saving configuration');
     } finally {
       setSavingConfig(false);
     }
   };
 
-  // Autonomous FinOps Evaluation & Live Rate Application Handlers
-  const handleEvaluateFinops = async () => {
+  // Circuit Breaker Trigger
+  const handleSaveCircuitBreaker = async () => {
+    setSavingBreaker(true);
     try {
-      setEvaluatingFinops(true);
-      const res = await api.evaluateFinOps();
-      if (res.success) {
-        setFinopsData(res);
-        showToast('FinOps Cost-Plus audit complete! Live unit margins recalculated.');
-      } else {
-        showToast(res.message || 'FinOps evaluation notice');
+      const res = await api.updateCircuitBreakers(circuitBreakerForm);
+      if (res?.success) {
+        showToast('Circuit breakers updated in real-time across all nodes.');
+        loadAuditLogs();
+        loadVitalsData();
       }
     } catch (err) {
-      console.error('Failed to run FinOps evaluation:', err);
-      showToast('FinOps evaluation failed');
+      showToast('Error updating circuit breakers');
+    } finally {
+      setSavingBreaker(false);
+    }
+  };
+
+  // Inject Wallet Credit
+  const handleInjectCreditSubmit = async (e) => {
+    e.preventDefault();
+    if (!injectTargetWs || !injectAmount || Number(injectAmount) <= 0) return;
+
+    setInjectingCredit(true);
+    try {
+      const res = await api.injectWalletCredit({
+        workspaceId: injectTargetWs._id,
+        amountUSD: Number(injectAmount),
+        reason: injectReason || 'Super Admin Platform Adjustment',
+      });
+      if (res?.success) {
+        showToast(`✅ Credited $${Number(injectAmount).toFixed(2)} to ${injectTargetWs.name}`);
+        setInjectModalOpen(false);
+        setInjectAmount('');
+        setInjectReason('');
+        loadTenantsAndTickets();
+        loadAuditLogs();
+      } else {
+        showToast(res?.message || 'Credit injection failed');
+      }
+    } catch (err) {
+      showToast('Error injecting credit');
+    } finally {
+      setInjectingCredit(false);
+    }
+  };
+
+  // Support Ticket Resolution
+  const handleResolveTicketSubmit = async (ticketStatus) => {
+    if (!selectedTicket) return;
+    setResolvingTicket(true);
+    try {
+      const payload = {
+        status: ticketStatus,
+        adminNotes: ticketResolutionNote,
+        creditAmountUSD: ticketCreditAmount ? Number(ticketCreditAmount) : 0,
+      };
+      const res = await api.updateSupportTicket(selectedTicket._id, payload);
+      if (res?.success) {
+        showToast(`Ticket #${selectedTicket.ticketNumber} updated (${ticketStatus})`);
+        setSelectedTicket(null);
+        setTicketResolutionNote('');
+        setTicketCreditAmount('');
+        loadTenantsAndTickets();
+        loadAuditLogs();
+      }
+    } catch (err) {
+      showToast('Failed to update ticket');
+    } finally {
+      setResolvingTicket(false);
+    }
+  };
+
+  // Global DNC
+  const handleAddDncSubmit = async (e) => {
+    e.preventDefault();
+    if (!newDncIdentifier.trim()) return;
+
+    setSavingDnc(true);
+    try {
+      const res = await api.updateGlobalDnc({
+        action: 'ADD',
+        identifier: newDncIdentifier.trim(),
+        type: newDncType,
+        reason: newDncReason || 'Regulatory & TCPA Protection',
+      });
+      if (res?.success) {
+        setGlobalDncList(res.globalDncList);
+        setNewDncIdentifier('');
+        setNewDncReason('');
+        showToast('Identifier added to Tier-2 Global DNC blacklist.');
+        loadAuditLogs();
+      }
+    } catch (err) {
+      showToast('Failed to update DNC');
+    } finally {
+      setSavingDnc(false);
+    }
+  };
+
+  const handleRemoveDnc = async (identifier) => {
+    try {
+      const res = await api.updateGlobalDnc({ action: 'REMOVE', identifier });
+      if (res?.success) {
+        setGlobalDncList(res.globalDncList);
+        showToast(`Removed ${identifier} from Global DNC.`);
+        loadAuditLogs();
+      }
+    } catch (err) {
+      showToast('Error removing identifier');
+    }
+  };
+
+  // Global Announcement
+  const handleSaveAnnouncement = async () => {
+    setSavingAnnouncement(true);
+    try {
+      const res = await api.updateAnnouncement(announcementState);
+      if (res?.success) {
+        showToast('Global announcement updated and broadcast to all clients.');
+        loadAuditLogs();
+      }
+    } catch (err) {
+      showToast('Error broadcasting announcement');
+    } finally {
+      setSavingAnnouncement(false);
+    }
+  };
+
+  // FinOps AI CFO Evaluation
+  const handleEvaluateFinOps = async () => {
+    setEvaluatingFinops(true);
+    try {
+      const res = await api.evaluateFinOps();
+      if (res?.success) {
+        setFinopsData(res.analysis);
+        showToast('Autonomous AI CFO analyzed wholesale telemetry & margin thresholds.');
+      }
+    } catch (err) {
+      showToast('Failed to evaluate FinOps');
     } finally {
       setEvaluatingFinops(false);
     }
   };
 
-  const handleApplyFinopsRates = async () => {
+  const handleApplyFinOpsRates = async () => {
+    setApplyingFinops(true);
     try {
-      setApplyingFinops(true);
       const res = await api.applyFinOpsRates();
-      if (res.success) {
-        showToast('80%+ Margin Recommended Rates applied live to platform!');
-        fetchPlatformConfig();
-        handleEvaluateFinops();
-      } else {
-        showToast(res.message || 'Failed to apply recommended rates');
+      if (res?.success) {
+        showToast('Recommended dynamic rates applied to live billing engine.');
+        loadConfigAndPlans();
+        loadAuditLogs();
       }
     } catch (err) {
-      console.error('Failed to apply FinOps rates:', err);
-      showToast('Error applying rates');
+      showToast('Failed to apply rates');
     } finally {
       setApplyingFinops(false);
     }
   };
 
-  // Test live ping for any tool / carrier provider
-  const handleTestPing = async (provider) => {
-    setPingStatus((prev) => ({ ...prev, [provider]: { loading: true } }));
-    try {
-      const res = await api.testIntegrationPing(provider);
-      if (res.success) {
-        setPingStatus((prev) => ({
-          ...prev,
-          [provider]: { loading: false, live: true, latency: res.result.latencyMs, message: res.result.message },
-        }));
-      }
-    } catch (err) {
-      setPingStatus((prev) => ({
-        ...prev,
-        [provider]: { loading: false, live: false, message: 'Ping failed' },
-      }));
+  // 1-Click CSV Export
+  const handleExportCSV = () => {
+    if (!tenants || tenants.length === 0) {
+      showToast('No tenant data to export');
+      return;
     }
+
+    const headers = [
+      'Workspace Name',
+      'Slug',
+      'Domain',
+      'Owner Email',
+      'Industry',
+      'Mode',
+      'Onboarding Completed',
+      'Plan Tier',
+      'Wallet Balance USD',
+      'Created At',
+    ];
+
+    const rows = tenants.map((t) => [
+      `"${(t.name || '').replace(/"/g, '""')}"`,
+      `"${t.slug || ''}"`,
+      `"${t.domain || ''}"`,
+      `"${t.ownerEmail || ''}"`,
+      `"${t.industry || ''}"`,
+      `"${t.operatingMode || ''}"`,
+      t.onboardingCompleted ? 'YES' : 'NO',
+      `"${t.subscription?.planTier || 'FREE_AUDIT'}"`,
+      (t.walletBalanceUSD || 0).toFixed(2),
+      `"${new Date(t.createdAt).toISOString()}"`,
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `vyuhox_gtm_governance_report_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Governance CSV Report exported successfully.');
   };
 
-  // Workspace Feature Management Handlers
-  const handleOpenManageModal = (ws) => {
-    setManagingWorkspace(ws);
-    setManageForm({
-      operatingMode: ws.operatingMode || 'TOOL',
-      planTier: ws.subscription?.planTier || (ws.operatingMode === 'AI_COMPANY' ? 'AI_COMPANY_STARTER' : 'TOOL_MODE'),
-      hiredAgents: ws.hiredAgents && ws.hiredAgents.length > 0 ? [...ws.hiredAgents] : [
-        { agentRole: 'CMO', name: 'Ava Vance', monthlyCost: 39, active: ws.operatingMode === 'AI_COMPANY' },
-        { agentRole: 'SDR', name: 'Caleb Reed', monthlyCost: 39, active: ws.operatingMode === 'AI_COMPANY' },
-        { agentRole: 'VOICE_CLOSER', name: 'Declan Hayes', monthlyCost: 49, active: ws.operatingMode === 'AI_COMPANY' },
-        { agentRole: 'CFO', name: 'Warren Cruz', monthlyCost: 39, active: ws.operatingMode === 'AI_COMPANY' },
-        { agentRole: 'CUSTOMER_SUCCESS', name: 'Sophia Chen', monthlyCost: 39, active: ws.operatingMode === 'AI_COMPANY' },
-        { agentRole: 'CEO', name: 'Astraea Vance', monthlyCost: 49, active: ws.operatingMode === 'AI_COMPANY' },
-      ],
-      addCreditsUSD: 0,
-    });
-  };
+  // Filtered lists
+  const filteredTenants = tenants.filter((t) => {
+    const matchesSearch =
+      (t.name || '').toLowerCase().includes(tenantSearch.toLowerCase()) ||
+      (t.ownerEmail || '').toLowerCase().includes(tenantSearch.toLowerCase()) ||
+      (t.domain || '').toLowerCase().includes(tenantSearch.toLowerCase());
+    const matchesType =
+      tenantFilter === 'ALL'
+        ? true
+        : tenantFilter === 'AI_COMPANY'
+        ? t.operatingMode === 'AI_COMPANY'
+        : t.operatingMode !== 'AI_COMPANY';
+    return matchesSearch && matchesType;
+  });
 
-  const handleSaveManageWorkspace = async (e) => {
-    e.preventDefault();
-    if (!managingWorkspace || !manageForm) return;
-    try {
-      setSavingManage(true);
-      const res = await api.superadminManageWorkspace(managingWorkspace._id, manageForm);
-      if (res.success) {
-        showToast(`Workspace "${managingWorkspace.name}" updated successfully!`);
-        setManagingWorkspace(null);
-        if (onRefreshWorkspaces) onRefreshWorkspaces();
-      }
-    } catch (err) {
-      console.error('Failed to update workspace:', err);
-      showToast('Error updating workspace features');
-    } finally {
-      setSavingManage(false);
-    }
-  };
+  const filteredTickets = supportTickets.filter((tick) => {
+    if (ticketFilter === 'ALL') return true;
+    return tick.status === ticketFilter;
+  });
 
-  // Filter plans based on region
-  const filteredPlans = plans.filter((p) => {
-    if (regionFilter === 'ALL') return true;
-    return p.targetRegion === regionFilter;
+  const filteredAuditLogs = auditLogs.filter((log) => {
+    if (auditFilter === 'ALL') return true;
+    return log.actionType === auditFilter;
   });
 
   return (
-    <div style={{ padding: '28px', maxWidth: '1400px', margin: '0 auto', color: '#F8FAFC' }}>
-      {/* Toast Alert */}
+    <div style={{ padding: '24px 32px', maxWidth: '1440px', margin: '0 auto', color: '#F8FAFC', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* Toast Notification */}
       {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '30px',
-          zIndex: 1000,
-          background: 'rgba(15, 23, 42, 0.95)',
-          border: '1px solid rgba(16, 185, 129, 0.5)',
-          borderRadius: '10px',
-          padding: '12px 20px',
-          color: '#34D399',
-          fontSize: '0.875rem',
-          fontWeight: '700',
-          backdropFilter: 'blur(16px)',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
-        }}>
-          {toastMessage}
+        <div
+          style={{
+            position: 'fixed',
+            top: '24px',
+            right: '24px',
+            zIndex: 10000,
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+            color: '#FFFFFF',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            fontWeight: '700',
+            fontSize: '0.84rem',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <Sparkles size={16} />
+          <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Header */}
+      {/* Top Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #06B6D4 0%, #8B5CF6 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)',
-          }}>
-            <ShieldCheck size={26} color="#FFFFFF" />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.6rem', fontWeight: '800', margin: 0 }}>
-                Super Admin Master Control
-              </h1>
-              <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
-                Governance &amp; Rates
-              </span>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFFFFF',
+              }}
+            >
+              <ShieldCheck size={22} />
             </div>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8' }}>
-              Configure subscription plans, geo-targeted country pricing, wholesale calling/messaging rates, and tool integrations.
-            </p>
+            <div>
+              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: '900', letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+                Super Admin GTM Governance Platform
+              </h1>
+              <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>
+                Multi-Tenant Architecture • Zero-Overdraft Pre-emptive Billing • Global Carrier Infrastructure
+              </div>
+            </div>
           </div>
         </div>
 
-        {activeTab === 'plans' && (
+        {/* Global Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
-            onClick={() => setIsNewPlanModalOpen(true)}
-            className="btn-primary"
-            style={{ padding: '9px 18px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
+            onClick={handleExportCSV}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 16px',
+              borderRadius: '8px',
+              background: 'rgba(56, 189, 248, 0.1)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              color: '#38BDF8',
+              fontSize: '0.8rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+            }}
           >
-            <Plus size={16} />
-            <span>Create New Plan</span>
+            <Download size={15} />
+            <span>Export CSV</span>
           </button>
-        )}
+          <button
+            onClick={() => {
+              loadVitalsData();
+              loadTenantsAndTickets();
+              loadConfigAndPlans();
+              loadAuditLogs();
+              showToast('Refreshed all GTM governance data');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 16px',
+              borderRadius: '8px',
+              background: '#1E293B',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#F8FAFC',
+              fontSize: '0.8rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+            }}
+          >
+            <RefreshCw size={15} />
+            <span>Refresh State</span>
+          </button>
+        </div>
       </div>
 
-      {/* Navigation Sub-Tabs */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        padding: '4px',
-        background: 'rgba(255, 255, 255, 0.04)',
-        borderRadius: '12px',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        marginBottom: '28px',
-        flexWrap: 'wrap',
-      }}>
+      {/* The 4 Consolidated Pillars Navigation Tabs */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '8px',
+          padding: '4px',
+          background: 'rgba(15, 23, 42, 0.8)',
+          borderRadius: '12px',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          marginBottom: '28px',
+        }}
+      >
         {[
-          { id: 'plans', label: 'Subscription Plans & Country Targeting', icon: DollarSign },
-          { id: 'rates', label: 'Utility Rates (Calling, WhatsApp, Email, SMS)', icon: Zap },
-          { id: 'llmFinops', label: '⚡ Multi-LLM Master Gateway & FinOps Pricing', icon: Cpu },
-          { id: 'integrations', label: 'Master Carrier & Tool Integrations (Twilio, AiSensy, etc.)', icon: Radio },
-          { id: 'marketRadar', label: '🌐 Autonomous Market Brain & Radar (All Business Models)', icon: Globe },
-          { id: 'visualTools', label: '🎨 Visual AI, Reel Video & Voice Studio Hub', icon: Presentation },
-          { id: 'brainEvolution', label: '🧠 AI Compounding Brain & Client Growth (Rounds 1→N, L1→L6)', icon: Sparkles },
-          { id: 'tenants', label: 'Active Business Workspaces & Actual Features', icon: Building2 },
+          { id: 'vitals', label: 'Pillar 1: Executive Command & Platform Vitals', icon: Activity },
+          { id: 'tenants', label: 'Pillar 2: Client Accounts & Two-Sided Support Desk', icon: Building2 },
+          { id: 'integrations', label: 'Pillar 3: Master Integrations & Kill-Switch', icon: Radio },
+          { id: 'finops', label: 'Pillar 4: FinOps, Rates, Plans & Audit Trail', icon: DollarSign },
         ].map((tab) => {
           const active = activeTab === tab.id;
           const Icon = tab.icon;
@@ -574,21 +631,23 @@ export default function SuperAdminDashboard({
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{
+                flex: 1,
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '8px',
-                padding: '9px 16px',
+                padding: '11px 16px',
                 borderRadius: '8px',
                 border: 'none',
-                background: active ? 'linear-gradient(135deg, #06B6D4, #8B5CF6)' : 'transparent',
+                background: active ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
                 color: active ? '#FFFFFF' : '#94A3B8',
-                fontWeight: active ? '700' : '500',
-                fontSize: '0.8125rem',
+                fontWeight: active ? '800' : '600',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
             >
-              <Icon size={15} />
+              <Icon size={16} />
               <span>{tab.label}</span>
             </button>
           );
@@ -596,3690 +655,1488 @@ export default function SuperAdminDashboard({
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: SUBSCRIPTION PLANS & GEO-TARGETING */}
+      {/* PILLAR 1: EXECUTIVE COMMAND & PLATFORM VITALS                             */}
       {/* ========================================================================= */}
-      {activeTab === 'plans' && (
-        <div>
-          {/* Controls: Region Filter & Refresh */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: '600' }}>Filter by Region:</span>
-              <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', padding: '2px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                {[
-                  { id: 'ALL', label: 'All Regions' },
-                  { id: 'INDIA_ONLY', label: 'India Only (INR ₹)' },
-                  { id: 'GLOBAL_ONLY', label: 'International Only (USD $)' },
-                ].map((r) => (
+      {activeTab === 'vitals' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Executive KPI Metrics Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+            <div style={{ background: '#1E293B', padding: '18px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase' }}>Total Workspaces</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#38BDF8', marginTop: '4px' }}>
+                {metrics?.totalWorkspaces ?? workspaces.length}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>Multi-tenant registered workspaces</div>
+            </div>
+
+            <div style={{ background: '#1E293B', padding: '18px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+              <div style={{ fontSize: '0.72rem', color: '#A7F3D0', fontWeight: '700', textTransform: 'uppercase' }}>Platform MRR</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#34D399', marginTop: '4px' }}>
+                ${(metrics?.totalMRR ?? 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>Combined active client subscriptions</div>
+            </div>
+
+            <div style={{ background: '#1E293B', padding: '18px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase' }}>Verified Leads Scraped</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#F8FAFC', marginTop: '4px' }}>
+                {(metrics?.totalLeads ?? 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>Total outbound contacts in CRM pool</div>
+            </div>
+
+            <div style={{ background: '#1E293B', padding: '18px', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+              <div style={{ fontSize: '0.72rem', color: '#FDE68A', fontWeight: '700', textTransform: 'uppercase' }}>Client Wallet Pool</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#F59E0B', marginTop: '4px' }}>
+                ${(metrics?.totalWalletUSD ?? 0).toFixed(2)}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>Prepaid escrow usage funds</div>
+            </div>
+
+            <div style={{ background: '#1E293B', padding: '18px', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+              <div style={{ fontSize: '0.72rem', color: '#FCA5A5', fontWeight: '700', textTransform: 'uppercase' }}>Open Support Tickets</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: '900', color: metrics?.openTicketsCount > 0 ? '#EF4444' : '#10B981', marginTop: '4px' }}>
+                {metrics?.openTicketsCount ?? 0}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>Requires engineering review</div>
+            </div>
+          </div>
+
+          {/* Infrastructure Health Watchdog */}
+          <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Activity size={18} color="#38BDF8" />
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800' }}>Platform Infrastructure Watchdog</h3>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#10B981', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                All Primary Pipelines Online
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+              <div style={{ background: '#0F172A', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>DATABASE CLUSTER</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: '800', color: '#10B981', margin: '4px 0' }}>
+                  {infraHealth?.database?.status || 'CONNECTED'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                  Latency: {infraHealth?.database?.latencyMs || 12}ms • Mongo Primary
+                </div>
+              </div>
+
+              <div style={{ background: '#0F172A', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>AI LLM GATEWAY</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: '800', color: '#10B981', margin: '4px 0' }}>
+                  {infraHealth?.aiGateway?.status || 'ONLINE'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                  Provider: Google Gemini 1.5 Pro • 92ms
+                </div>
+              </div>
+
+              <div style={{ background: '#0F172A', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>VOICE TELEPHONY TRUNK</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: '800', color: '#10B981', margin: '4px 0' }}>
+                  {infraHealth?.telephony?.status || 'ONLINE'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                  Trunk: {infraHealth?.telephony?.trunk || '+1 (800) 555-GTM1'}
+                </div>
+              </div>
+
+              <div style={{ background: '#0F172A', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>EMAIL SMTP DISPATCHER</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: '800', color: '#10B981', margin: '4px 0' }}>
+                  {infraHealth?.emailOutbound?.status || 'ONLINE'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                  Sender: {infraHealth?.emailOutbound?.sender || 'noreply@vyuhox.ai'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Onboarding Drop-Off Radar */}
+          <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
+                  Onboarding Drop-Off Radar
+                </h3>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Identifies prospect workspaces that stalled before completing autonomous setup
+                </div>
+              </div>
+              <span
+                style={{
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  color: '#F59E0B',
+                  padding: '4px 10px',
+                  borderRadius: '12px',
+                  fontSize: '0.72rem',
+                  fontWeight: '800',
+                }}
+              >
+                {dropoffs.length} Stalled Workspaces
+              </span>
+            </div>
+
+            {dropoffs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: '#64748B', fontSize: '0.82rem' }}>
+                🎉 Outstanding conversion: Zero onboarding drop-offs recorded.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', textAlign: 'left', color: '#94A3B8' }}>
+                      <th style={{ padding: '10px 14px' }}>Workspace</th>
+                      <th style={{ padding: '10px 14px' }}>Owner Email</th>
+                      <th style={{ padding: '10px 14px' }}>Industry</th>
+                      <th style={{ padding: '10px 14px' }}>Created</th>
+                      <th style={{ padding: '10px 14px' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dropoffs.map((d) => (
+                      <tr key={d._id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: '700', color: '#F1F5F9' }}>{d.name}</td>
+                        <td style={{ padding: '10px 14px', color: '#38BDF8' }}>{d.ownerEmail || 'Pending user email'}</td>
+                        <td style={{ padding: '10px 14px', color: '#94A3B8' }}>{d.industry || 'B2B'}</td>
+                        <td style={{ padding: '10px 14px', color: '#64748B' }}>{new Date(d.createdAt).toLocaleDateString()}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <button
+                            onClick={() => onInspectWorkspace && onInspectWorkspace(d)}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              background: 'rgba(56, 189, 248, 0.1)',
+                              border: '1px solid rgba(56, 189, 248, 0.3)',
+                              color: '#38BDF8',
+                              fontSize: '0.72rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Inspect Step →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PILLAR 2: CLIENT ACCOUNTS & TWO-SIDED SUPPORT DESK                        */}
+      {/* ========================================================================= */}
+      {activeTab === 'tenants' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Sub-Header: Search & Filters */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '280px' }}>
+              <div style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
+                <Search size={16} color="#64748B" style={{ position: 'absolute', left: '12px', top: '10px' }} />
+                <input
+                  type="text"
+                  placeholder="Search client workspaces, emails, domains..."
+                  value={tenantSearch}
+                  onChange={(e) => setTenantSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 36px',
+                    borderRadius: '8px',
+                    background: '#1E293B',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#F8FAFC',
+                    fontSize: '0.82rem',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {['ALL', 'AI_COMPANY', 'TOOL'].map((mode) => (
                   <button
-                    key={r.id}
-                    onClick={() => setRegionFilter(r.id)}
+                    key={mode}
+                    onClick={() => setTenantFilter(mode)}
                     style={{
-                      padding: '4px 10px',
+                      padding: '7px 12px',
                       borderRadius: '6px',
-                      border: 'none',
-                      background: regionFilter === r.id ? 'rgba(6, 182, 212, 0.25)' : 'transparent',
-                      color: regionFilter === r.id ? '#38BDF8' : '#94A3B8',
-                      fontSize: '0.75rem',
+                      border: tenantFilter === mode ? '1px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: tenantFilter === mode ? 'rgba(56, 189, 248, 0.15)' : '#0F172A',
+                      color: tenantFilter === mode ? '#38BDF8' : '#94A3B8',
+                      fontSize: '0.74rem',
                       fontWeight: '700',
                       cursor: 'pointer',
                     }}
                   >
-                    {r.label}
+                    {mode === 'ALL' ? 'All Modes' : mode === 'AI_COMPANY' ? 'AI Company' : 'Tool Mode'}
                   </button>
                 ))}
               </div>
             </div>
 
-            <button
-              onClick={fetchPlans}
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '8px',
-                padding: '6px 12px',
-                color: '#94A3B8',
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <RefreshCw size={13} className={loadingPlans ? 'spin-icon' : ''} />
-              <span>Refresh Plans</span>
-            </button>
+            <div style={{ fontSize: '0.8rem', color: '#94A3B8' }}>
+              Showing <strong>{filteredTenants.length}</strong> of <strong>{tenants.length}</strong> client workspaces
+            </div>
           </div>
 
-          {/* Plans Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: '20px' }}>
-            {filteredPlans.map((plan) => {
-              const isEditing = editingPlanId === plan._id;
-
-              return (
-                <div
-                  key={plan._id}
-                  className="card"
-                  style={{
-                    padding: '24px',
-                    background: plan.isActive ? '#0D1527' : 'rgba(15, 23, 42, 0.4)',
-                    border: isEditing
-                      ? '2px solid #06B6D4'
-                      : plan.isPopular
-                      ? '1px solid rgba(6, 182, 212, 0.5)'
-                      : '1px solid rgba(255, 255, 255, 0.08)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    boxShadow: plan.isPopular ? '0 0 25px rgba(6, 182, 212, 0.15)' : 'none',
-                    opacity: plan.isActive ? 1 : 0.6,
-                  }}
-                >
-                  <div>
-                    {/* Tags & Action Icons */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span className={`badge ${plan.category === 'ENTERPRISE' ? 'badge-purple' : plan.category === 'CLIENT_AI' ? 'badge-emerald' : 'badge-cyan'}`}>
-                          {plan.category}
+          {/* Client Workspaces Table */}
+          <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', background: '#0F172A', textAlign: 'left', color: '#94A3B8' }}>
+                    <th style={{ padding: '12px 16px' }}>Workspace</th>
+                    <th style={{ padding: '12px 16px' }}>Owner</th>
+                    <th style={{ padding: '12px 16px' }}>Plan / Tier</th>
+                    <th style={{ padding: '12px 16px' }}>Mode</th>
+                    <th style={{ padding: '12px 16px' }}>Wallet Balance</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTenants.map((w) => (
+                    <tr key={w._id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ fontWeight: '800', color: '#F8FAFC' }}>{w.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{w.domain || w.slug}</div>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ color: '#38BDF8', fontWeight: '600' }}>{w.ownerEmail || '—'}</div>
+                        <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{w.ownerName || 'Client User'}</div>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '10px',
+                            background: 'rgba(56, 189, 248, 0.1)',
+                            color: '#38BDF8',
+                            fontSize: '0.72rem',
+                            fontWeight: '700',
+                          }}
+                        >
+                          {w.subscription?.planTier || 'FREE_AUDIT'}
                         </span>
-                        <span className="badge badge-gray" style={{ fontSize: '0.65rem' }}>
-                          {plan.targetRegion === 'INDIA_ONLY' ? '🇮🇳 India Only' : plan.targetRegion === 'GLOBAL_ONLY' ? '🌐 Global Only' : '🌍 All Regions'}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '10px',
+                            background: w.operatingMode === 'AI_COMPANY' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                            color: w.operatingMode === 'AI_COMPANY' ? '#10B981' : '#CBD5E1',
+                            fontSize: '0.72rem',
+                            fontWeight: '700',
+                          }}
+                        >
+                          {w.operatingMode === 'AI_COMPANY' ? 'AI Company' : 'Tool Mode'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ fontWeight: '800', color: (w.walletBalanceUSD || 0) <= 0 ? '#EF4444' : '#10B981' }}>
+                          ${(w.walletBalanceUSD || 0).toFixed(2)}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Strict $0.00 Floor</div>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                          <button
+                            onClick={() => {
+                              setInjectTargetWs(w);
+                              setInjectModalOpen(true);
+                            }}
+                            title="Inject credit into client wallet"
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              background: 'rgba(245, 158, 11, 0.15)',
+                              border: '1px solid rgba(245, 158, 11, 0.35)',
+                              color: '#F59E0B',
+                              fontSize: '0.72rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            + Credit
+                          </button>
+                          <button
+                            onClick={() => onInspectWorkspace && onInspectWorkspace(w)}
+                            title="1-Click inspect client workspace view"
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                              border: 'none',
+                              color: '#FFFFFF',
+                              fontSize: '0.72rem',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            👁️ Inspect View
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Two-Sided Support Desk Section */}
+          <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <LifeBuoy size={18} color="#38BDF8" />
+                  <span>Two-Sided Support Desk (Auto-Attached Diagnostics)</span>
+                </h3>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Review client reports with auto-captured technical diagnostics, resolve tickets, and credit wallets
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {['ALL', 'OPEN', 'IN_REVIEW', 'RESOLVED'].map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setTicketFilter(st)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: ticketFilter === st ? '1px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: ticketFilter === st ? 'rgba(56, 189, 248, 0.15)' : '#0F172A',
+                      color: ticketFilter === st ? '#38BDF8' : '#94A3B8',
+                      fontSize: '0.72rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredTickets.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px', color: '#64748B', fontSize: '0.82rem' }}>
+                No support tickets found for filter: {ticketFilter}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {filteredTickets.map((tick) => (
+                  <div
+                    key={tick._id}
+                    style={{
+                      background: '#0F172A',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      padding: '16px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#38BDF8' }}>
+                          #{tick.ticketNumber}
+                        </span>
+                        <span
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            background:
+                              tick.priority === 'URGENT'
+                                ? 'rgba(239, 68, 68, 0.2)'
+                                : tick.priority === 'HIGH'
+                                ? 'rgba(245, 158, 11, 0.2)'
+                                : 'rgba(56, 189, 248, 0.15)',
+                            color:
+                              tick.priority === 'URGENT'
+                                ? '#EF4444'
+                                : tick.priority === 'HIGH'
+                                ? '#F59E0B'
+                                : '#38BDF8',
+                            fontSize: '0.68rem',
+                            fontWeight: '800',
+                          }}
+                        >
+                          {tick.priority}
+                        </span>
+                        <span
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            background: tick.status === 'RESOLVED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                            color: tick.status === 'RESOLVED' ? '#10B981' : '#F59E0B',
+                            fontSize: '0.68rem',
+                            fontWeight: '800',
+                          }}
+                        >
+                          {tick.status}
                         </span>
                       </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {!isEditing ? (
-                          <>
-                            <button
-                              onClick={() => handleStartEdit(plan)}
-                              className="btn-icon"
-                              style={{ width: '28px', height: '28px', padding: 0 }}
-                              title="Edit Pricing & Features"
-                            >
-                              <Edit2 size={13} color="#38BDF8" />
-                            </button>
-                            <button
-                              onClick={() => handleTogglePlanActive(plan._id)}
-                              className="btn-icon"
-                              style={{ width: '28px', height: '28px', padding: 0 }}
-                              title={plan.isActive ? 'Deactivate Plan' : 'Activate Plan'}
-                            >
-                              <Trash2 size={13} color={plan.isActive ? '#94A3B8' : '#34D399'} />
-                            </button>
-                          </>
-                        ) : (
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <button
-                              onClick={() => handleSavePlan(plan._id)}
-                              style={{
-                                background: '#10B981',
-                                border: 'none',
-                                color: '#04101A',
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                fontSize: '0.725rem',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingPlanId(null)}
-                              style={{
-                                background: 'rgba(255,255,255,0.08)',
-                                border: 'none',
-                                color: '#CBD5E1',
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                fontSize: '0.725rem',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        )}
+                      <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                        {new Date(tick.createdAt).toLocaleString()}
                       </div>
                     </div>
 
-                    {/* Plan Name & Tagline */}
-                    {!isEditing ? (
-                      <>
-                        <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px' }}>
-                          {plan.name}
-                        </h3>
-                        <p style={{ fontSize: '0.78rem', color: '#94A3B8', margin: '0 0 16px', lineHeight: '1.4' }}>
-                          {plan.tagline}
-                        </p>
-                      </>
-                    ) : (
-                      <div style={{ marginBottom: '14px' }}>
-                        <input
-                          type="text"
-                          value={editForm.name}
-                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                          className="input-glass"
-                          style={{ height: '32px', fontSize: '0.85rem', fontWeight: '700', marginBottom: '6px' }}
-                        />
-                        <select
-                          value={editForm.targetRegion}
-                          onChange={(e) => setEditForm({ ...editForm, targetRegion: e.target.value })}
-                          className="input-glass"
-                          style={{ height: '30px', fontSize: '0.75rem', marginBottom: '6px' }}
-                        >
-                          <option value="ALL">Visible in All Regions</option>
-                          <option value="INDIA_ONLY">India Only (Visible in INR)</option>
-                          <option value="GLOBAL_ONLY">International Only (Visible in USD)</option>
-                        </select>
+                    <div style={{ marginBottom: '8px' }}>
+                      <h4 style={{ margin: '0 0 4px', fontSize: '0.92rem', color: '#F8FAFC' }}>{tick.subject}</h4>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#94A3B8', lineHeight: '1.4' }}>{tick.message}</p>
+                    </div>
+
+                    {/* Auto-Attached Technical Diagnostics Box */}
+                    {tick.diagnosticsSnapshot && (
+                      <div
+                        style={{
+                          background: 'rgba(30, 41, 59, 0.6)',
+                          border: '1px solid rgba(56, 189, 248, 0.2)',
+                          borderRadius: '8px',
+                          padding: '10px 14px',
+                          fontSize: '0.72rem',
+                          color: '#CBD5E1',
+                          marginBottom: '10px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38BDF8', fontWeight: '700', marginBottom: '4px' }}>
+                          <Terminal size={12} />
+                          <span>Technical Diagnostics Snapshot</span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '6px' }}>
+                          <div>User: <strong>{tick.userEmail}</strong></div>
+                          <div>Workspace: <strong>{tick.workspaceName}</strong></div>
+                          <div>Wallet at ticket: <strong>${(tick.diagnosticsSnapshot.walletBalanceUSD || 0).toFixed(2)}</strong></div>
+                          <div>Mode: <strong>{tick.diagnosticsSnapshot.operatingMode || 'AI_COMPANY'}</strong></div>
+                          <div style={{ gridColumn: '1 / -1', wordBreak: 'break-all' }}>
+                            Last Error: <code style={{ color: '#F87171' }}>{tick.diagnosticsSnapshot.lastApiError || 'None'}</code>
+                          </div>
+                        </div>
                       </div>
                     )}
 
-                    {/* Pricing Box (USD & INR) */}
-                    <div style={{
-                      padding: '12px 14px',
-                      borderRadius: '10px',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      marginBottom: '16px',
-                    }}>
-                      {!isEditing ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                          <div>
-                            <span style={{ fontSize: '0.675rem', color: '#94A3B8', display: 'block', textTransform: 'uppercase', fontWeight: '600' }}>
-                              USD ($) Rate
-                            </span>
-                            <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', fontWeight: '800', color: '#38BDF8' }}>
-                              ${plan.priceUSD?.monthly}
-                              <span style={{ fontSize: '0.75rem', color: '#64748B' }}>/mo</span>
-                            </div>
-                            <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
-                              ${plan.priceUSD?.annualMonthly}/mo annual
-                            </span>
-                          </div>
-
-                          <div>
-                            <span style={{ fontSize: '0.675rem', color: '#94A3B8', display: 'block', textTransform: 'uppercase', fontWeight: '600' }}>
-                              INR (₹) Rate
-                            </span>
-                            <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', fontWeight: '800', color: '#FBBF24' }}>
-                              ₹{plan.priceINR?.monthly?.toLocaleString('en-IN')}
-                              <span style={{ fontSize: '0.75rem', color: '#64748B' }}>/mo</span>
-                            </div>
-                            <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
-                              ₹{plan.priceINR?.annualMonthly?.toLocaleString('en-IN')}/mo annual
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                          <div>
-                            <label style={{ fontSize: '0.65rem', color: '#94A3B8', display: 'block' }}>USD Monthly ($)</label>
-                            <input
-                              type="number"
-                              value={editForm.priceUSD.monthly}
-                              onChange={(e) => setEditForm({
-                                ...editForm,
-                                priceUSD: { ...editForm.priceUSD, monthly: parseFloat(e.target.value) || 0 },
-                              })}
-                              className="input-glass"
-                              style={{ height: '30px', fontSize: '0.85rem' }}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '0.65rem', color: '#94A3B8', display: 'block' }}>INR Monthly (₹)</label>
-                            <input
-                              type="number"
-                              value={editForm.priceINR.monthly}
-                              onChange={(e) => setEditForm({
-                                ...editForm,
-                                priceINR: { ...editForm.priceINR, monthly: parseFloat(e.target.value) || 0 },
-                              })}
-                              className="input-glass"
-                              style={{ height: '30px', fontSize: '0.85rem' }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Features List */}
-                    <div>
-                      <span style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700', display: 'block', marginBottom: '8px' }}>
-                        Included Features:
-                      </span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {plan.features.slice(0, 4).map((feat, idx) => (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
-                            <Check size={13} color="#10B981" style={{ flexShrink: 0, marginTop: '2px' }} />
-                            <span>{feat}</span>
-                          </div>
-                        ))}
+                    {tick.creditedAmountUSD > 0 && (
+                      <div style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: '700', marginBottom: '8px' }}>
+                        ✅ Compensation Injected: +${tick.creditedAmountUSD.toFixed(2)} USD
                       </div>
-                    </div>
-                  </div>
+                    )}
 
-                  <div style={{ marginTop: '18px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.7rem', color: plan.isActive ? '#10B981' : '#EF4444', fontWeight: '700' }}>
-                      {plan.isActive ? '● Active in Store' : '○ Inactive / Hidden'}
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
-                      ID: {plan.planId}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 2: UTILITY USAGE RATES (DIRECT CLIENT BILLING) */}
-      {/* ========================================================================= */}
-      {activeTab === 'rates' && platformConfig && (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <div>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', fontWeight: '800', margin: '0 0 4px', color: '#F8FAFC' }}>
-                Platform Utility Usage Pricing
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.825rem', color: '#94A3B8' }}>
-                Fix the exact per-minute, per-message, and per-lead rates deducted from client wallets when agents execute calls or outreach.
-              </p>
-            </div>
-
-            <button
-              onClick={handleSavePlatformConfig}
-              disabled={savingConfig}
-              className="btn-emerald"
-              style={{ padding: '9px 20px', fontWeight: '700', fontSize: '0.825rem' }}
-            >
-              {savingConfig ? 'Saving Rates...' : 'Save Utility Pricing'}
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '24px' }}>
-            {/* Rate 1: Voice Calling Rate */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <PhoneCall size={20} color="#06B6D4" />
-                <h3 style={{ fontSize: '1.05rem', fontWeight: '700', margin: 0, color: '#F8FAFC' }}>
-                  AI Voice Calling Rate (per minute)
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.78rem', color: '#94A3B8', marginBottom: '14px' }}>
-                Sub-800ms Bland.ai carrier pipeline usage charged per minute of connected call time.
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in USD ($)</label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    value={platformConfig.usageRates?.voicePerMinuteUSD || 0.012}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      usageRates: { ...platformConfig.usageRates, voicePerMinuteUSD: parseFloat(e.target.value) || 0 },
-                    })}
-                    className="input-glass"
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in INR (₹)</label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={platformConfig.usageRates?.voicePerMinuteINR || 1.0}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      usageRates: { ...platformConfig.usageRates, voicePerMinuteINR: parseFloat(e.target.value) || 0 },
-                    })}
-                    className="input-glass"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Rate 2: WhatsApp Business Messaging Rate */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <MessageSquare size={20} color="#25D366" />
-                <h3 style={{ fontSize: '1.05rem', fontWeight: '700', margin: 0, color: '#F8FAFC' }}>
-                  WhatsApp Message Rate (per msg)
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.78rem', color: '#94A3B8', marginBottom: '14px' }}>
-                AiSensy / Meta Cloud API marketing and utility template conversations.
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in USD ($)</label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    value={platformConfig.usageRates?.whatsappPerMessageUSD || 0.005}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      usageRates: { ...platformConfig.usageRates, whatsappPerMessageUSD: parseFloat(e.target.value) || 0 },
-                    })}
-                    className="input-glass"
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in INR (₹)</label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={platformConfig.usageRates?.whatsappPerMessageINR || 0.4}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      usageRates: { ...platformConfig.usageRates, whatsappPerMessageINR: parseFloat(e.target.value) || 0 },
-                    })}
-                    className="input-glass"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Rate 3: Cold Email Dispatch Rate */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <Mail size={20} color="#38BDF8" />
-                <h3 style={{ fontSize: '1.05rem', fontWeight: '700', margin: 0, color: '#F8FAFC' }}>
-                  Cold Email Rate (per 1,000 emails)
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.78rem', color: '#94A3B8', marginBottom: '14px' }}>
-                Automated multi-mailbox dispatch via Instantly / SendGrid with secondary warmup.
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in USD ($/1k)</label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={platformConfig.usageRates?.emailPer1000USD || 0.8}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      usageRates: { ...platformConfig.usageRates, emailPer1000USD: parseFloat(e.target.value) || 0 },
-                    })}
-                    className="input-glass"
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in INR (₹/1k)</label>
-                  <input
-                    type="number"
-                    step="1.0"
-                    value={platformConfig.usageRates?.emailPer1000INR || 65.0}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      usageRates: { ...platformConfig.usageRates, emailPer1000INR: parseFloat(e.target.value) || 0 },
-                    })}
-                    className="input-glass"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Rate 4: Waterfall Lead Enrichment */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <Users size={20} color="#8B5CF6" />
-                <h3 style={{ fontSize: '1.05rem', fontWeight: '700', margin: 0, color: '#F8FAFC' }}>
-                  Lead Enrichment Rate (per contact)
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.78rem', color: '#94A3B8', marginBottom: '14px' }}>
-                Waterfall verification across Apollo, Hunter, and LinkedIn phone scrapers.
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in USD ($/lead)</label>
-                  <input
-                    type="number"
-                    step="0.005"
-                    value={platformConfig.usageRates?.enrichmentPerLeadUSD || 0.02}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      usageRates: { ...platformConfig.usageRates, enrichmentPerLeadUSD: parseFloat(e.target.value) || 0 },
-                    })}
-                    className="input-glass"
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in INR (₹/lead)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={platformConfig.usageRates?.enrichmentPerLeadINR || 1.65}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      usageRates: { ...platformConfig.usageRates, enrichmentPerLeadINR: parseFloat(e.target.value) || 0 },
-                    })}
-                    className="input-glass"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Rate 5: AI Multi-Source Lead Scraping */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <Database size={20} color="#06B6D4" />
-                <h3 style={{ fontSize: '1.05rem', fontWeight: '700', margin: 0, color: '#F8FAFC' }}>
-                  AI Lead Scraping Rate (per lead)
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.78rem', color: '#94A3B8', marginBottom: '14px' }}>
-                Multi-source genuine lead generation across DuckDuckGo, OpenStreetMap, GitHub APIs, and live DNS MX verification.
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in USD ($/lead)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={platformConfig.usageRates?.scrapingPerLeadUSD ?? 0.15}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      usageRates: { ...platformConfig.usageRates, scrapingPerLeadUSD: parseFloat(e.target.value) || 0 },
-                    })}
-                    className="input-glass"
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rate in INR (₹/lead)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={platformConfig.usageRates?.scrapingPerLeadINR ?? 12.5}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      usageRates: { ...platformConfig.usageRates, scrapingPerLeadINR: parseFloat(e.target.value) || 0 },
-                    })}
-                    className="input-glass"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 2.5: MULTI-LLM MASTER GATEWAY & AUTONOMOUS FINOPS ENGINE */}
-      {/* ========================================================================= */}
-      {activeTab === 'llmFinops' && platformConfig && (() => {
-        const cascadeConfig = platformConfig.llmCascadeConfig || {
-          activeExecutionMode: 'CASCADE_FAILOVER',
-          providers: [
-            { providerId: 'gemini', modelName: 'gemini-1.5-flash', priority: 1, timeoutMs: 6000, maxRetries: 2, apiKeys: [] },
-            { providerId: 'openai', modelName: 'gpt-4o-mini', priority: 2, timeoutMs: 8000, maxRetries: 2, apiKeys: [] },
-            { providerId: 'groq', modelName: 'llama-3.3-70b-versatile', priority: 3, timeoutMs: 5000, maxRetries: 2, apiKeys: [] },
-            { providerId: 'deepseek', modelName: 'deepseek-chat', priority: 4, timeoutMs: 10000, maxRetries: 2, apiKeys: [] },
-          ],
-        };
-
-        const finOps = platformConfig.finOpsConfig || {
-          autoMarginPricingEnabled: false,
-          targetGrossMarginPercent: 80,
-          priceIncreasePolicy: 'NEW_SIGNUPS_ONLY',
-          wholesaleCostTracking: {
-            geminiInputPerMillionUSD: 0.075,
-            geminiOutputPerMillionUSD: 0.30,
-            openAiInputPerMillionUSD: 0.15,
-            openAiOutputPerMillionUSD: 0.60,
-            blandCallingPerMinuteUSD: 0.09,
-            metaWhatsAppPerMsgINR: 0.75,
-            serverFixedOverheadMonthlyUSD: 40.0,
-          },
-        };
-
-        const getProvider = (id) => {
-          return (cascadeConfig.providers || []).find((p) => p.providerId === id) || {
-            providerId: id,
-            modelName: id === 'gemini' ? 'gemini-1.5-flash' : id === 'openai' ? 'gpt-4o-mini' : id === 'groq' ? 'llama-3.3-70b-versatile' : 'deepseek-chat',
-            priority: id === 'gemini' ? 1 : id === 'openai' ? 2 : id === 'groq' ? 3 : 4,
-            timeoutMs: 6000,
-            maxRetries: 2,
-            apiKeys: [],
-            isActive: true,
-          };
-        };
-
-        const updateProviderField = (providerId, field, value) => {
-          const current = cascadeConfig.providers || [];
-          const exists = current.some((p) => p.providerId === providerId);
-          let updated;
-          if (exists) {
-            updated = current.map((p) => (p.providerId === providerId ? { ...p, [field]: value } : p));
-          } else {
-            const p = getProvider(providerId);
-            updated = [...current, { ...p, [field]: value }];
-          }
-          setPlatformConfig({
-            ...platformConfig,
-            llmCascadeConfig: { ...cascadeConfig, providers: updated },
-          });
-        };
-
-        const updateKeysString = (providerId, str) => {
-          const keys = str.split(/[\n,]+/).map((k) => k.trim()).filter(Boolean);
-          updateProviderField(providerId, 'apiKeys', keys);
-        };
-
-        const rec = finopsData?.recommendations || finOps.lastCalculatedRecommendations || {
-          suggestedScrapingPerLeadUSD: 0.15,
-          suggestedScrapingPerLeadINR: 12.50,
-          suggestedVoicePerMinuteUSD: 0.35,
-          suggestedVoicePerMinuteINR: 29.0,
-          suggestedWhatsappUSD: 0.045,
-          suggestedWhatsappINR: 3.75,
-          marginAchievedPercent: 80,
-          wholesaleUnitCosts: {
-            totalScrapeWholesaleUSD: 0.0003,
-            voiceWholesaleUSD: 0.09,
-            whatsappWholesaleINR: 0.75,
-          },
-        };
-
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            {/* Header Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-              <div>
-                <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: '800', margin: '0 0 4px', color: '#F8FAFC' }}>
-                  ⚡ Multi-LLM Master Gateway &amp; Autonomous FinOps Engine
-                </h2>
-                <p style={{ margin: 0, fontSize: '0.825rem', color: '#94A3B8' }}>
-                  Failover cascade (&lt;200ms switchover), API key pooling (round-robin), wholesale token telemetry, and mathematical Cost-Plus 80%+ margin guarantee.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  onClick={handleEvaluateFinops}
-                  disabled={evaluatingFinops}
-                  className="btn-primary"
-                  style={{ padding: '9px 18px', fontWeight: '700', fontSize: '0.825rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Activity size={16} />
-                  <span>{evaluatingFinops ? 'Auditing Live Costs...' : 'Audit Unit Margins'}</span>
-                </button>
-                <button
-                  onClick={handleSavePlatformConfig}
-                  disabled={savingConfig}
-                  className="btn-emerald"
-                  style={{ padding: '9px 22px', fontWeight: '700', fontSize: '0.825rem' }}
-                >
-                  {savingConfig ? 'Saving...' : 'Save Gateway & FinOps'}
-                </button>
-              </div>
-            </div>
-
-            {/* SECTION 1: MULTI-LLM CASCADE ROUTING & FAILOVER */}
-            <div className="card" style={{ padding: '24px', background: '#0D1527', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Cpu size={20} color="#06B6D4" />
-                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
-                      Multi-LLM Master Gateway Architecture
-                    </h3>
-                    <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Sub-200ms Failover</span>
-                  </div>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#94A3B8' }}>
-                    If Primary LLM experiences a 429 rate limit or outage, the cascade instantly executes on Secondary fallback with zero user disruption.
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>Active Execution Mode:</span>
-                  <select
-                    value={cascadeConfig.activeExecutionMode || 'CASCADE_FAILOVER'}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      llmCascadeConfig: { ...cascadeConfig, activeExecutionMode: e.target.value },
-                    })}
-                    className="input-glass"
-                    style={{ height: '34px', fontSize: '0.78rem', fontWeight: '700', color: '#38BDF8' }}
-                  >
-                    <option value="CASCADE_FAILOVER">Cascade Failover (Priority 1st → 2nd → 3rd → 4th)</option>
-                    <option value="COST_OPTIMIZED">Cost Optimized (Lowest Wholesale Unit Cost First)</option>
-                    <option value="ROUND_ROBIN">Round Robin Key Pool Distribution</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Providers Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
-                {/* 1. Google Gemini */}
-                {(() => {
-                  const p = getProvider('gemini');
-                  const ping = pingStatus.geminiLlm;
-                  return (
-                    <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '1.2rem' }}>💎</span>
-                          <div>
-                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Google Gemini</h4>
-                            <span style={{ fontSize: '0.7rem', color: '#38BDF8' }}>Cost: $0.075 / 1M Tokens (Ultra-low)</span>
-                          </div>
-                        </div>
-                        <select
-                          value={p.priority}
-                          onChange={(e) => updateProviderField('gemini', 'priority', parseInt(e.target.value, 10))}
-                          className="input-glass"
-                          style={{ height: '28px', fontSize: '0.7rem', padding: '0 8px', fontWeight: '700' }}
-                        >
-                          <option value="1">Priority #1 (Primary)</option>
-                          <option value="2">Priority #2 (Secondary)</option>
-                          <option value="3">Priority #3 (Tertiary)</option>
-                          <option value="4">Priority #4 (Fallback)</option>
-                        </select>
+                    {tick.adminNotes && (
+                      <div style={{ fontSize: '0.74rem', color: '#E2E8F0', background: 'rgba(0, 0, 0, 0.3)', padding: '6px 10px', borderRadius: '6px', marginBottom: '8px' }}>
+                        <strong>Admin Notes:</strong> {tick.adminNotes}
                       </div>
+                    )}
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Model Name</label>
-                          <input
-                            type="text"
-                            value={p.modelName || 'gemini-1.5-flash'}
-                            onChange={(e) => updateProviderField('gemini', 'modelName', e.target.value)}
-                            className="input-glass"
-                            style={{ height: '32px', fontSize: '0.78rem' }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>
-                            API Keys Pool (one per line or comma-separated)
-                          </label>
-                          <textarea
-                            rows={2}
-                            placeholder="AIzaSy... (supports multi-key round robin)"
-                            value={(p.apiKeys || []).join('\n')}
-                            onChange={(e) => updateKeysString('gemini', e.target.value)}
-                            className="input-glass"
-                            style={{ fontSize: '0.75rem', fontFamily: 'monospace', resize: 'vertical' }}
-                          />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                          <div>
-                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Timeout (ms)</label>
-                            <input
-                              type="number"
-                              value={p.timeoutMs || 6000}
-                              onChange={(e) => updateProviderField('gemini', 'timeoutMs', parseInt(e.target.value, 10))}
-                              className="input-glass"
-                              style={{ height: '30px', fontSize: '0.75rem' }}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Max Retries</label>
-                            <input
-                              type="number"
-                              value={p.maxRetries || 2}
-                              onChange={(e) => updateProviderField('gemini', 'maxRetries', parseInt(e.target.value, 10))}
-                              className="input-glass"
-                              style={{ height: '30px', fontSize: '0.75rem' }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
+                    {/* Action button */}
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                       <button
-                        onClick={() => handleTestPing('geminiLlm')}
-                        className="btn-secondary"
-                        style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
+                        onClick={() => {
+                          setSelectedTicket(tick);
+                          setTicketResolutionNote(tick.adminNotes || '');
+                          setTicketCreditAmount('');
+                        }}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '6px',
+                          background: '#0284C7',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          fontSize: '0.74rem',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                        }}
                       >
-                        {ping?.loading ? 'Pinging Gemini Gateway...' : 'Ping Test Gemini Gateway'}
+                        Resolve / Credit Client →
                       </button>
-                      {ping?.message && (
-                        <div style={{ fontSize: '0.7rem', color: ping.live ? '#34D399' : '#FBBF24', marginTop: '6px' }}>
-                          {ping.message} {ping.latency && `(${ping.latency}ms)`}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* 2. OpenAI GPT */}
-                {(() => {
-                  const p = getProvider('openai');
-                  const ping = pingStatus.openAiLlm;
-                  return (
-                    <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '1.2rem' }}>🧠</span>
-                          <div>
-                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>OpenAI GPT</h4>
-                            <span style={{ fontSize: '0.7rem', color: '#34D399' }}>Cost: $0.15 / 1M Tokens (High Accuracy)</span>
-                          </div>
-                        </div>
-                        <select
-                          value={p.priority}
-                          onChange={(e) => updateProviderField('openai', 'priority', parseInt(e.target.value, 10))}
-                          className="input-glass"
-                          style={{ height: '28px', fontSize: '0.7rem', padding: '0 8px', fontWeight: '700' }}
-                        >
-                          <option value="1">Priority #1 (Primary)</option>
-                          <option value="2">Priority #2 (Secondary)</option>
-                          <option value="3">Priority #3 (Tertiary)</option>
-                          <option value="4">Priority #4 (Fallback)</option>
-                        </select>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Model Name</label>
-                          <input
-                            type="text"
-                            value={p.modelName || 'gpt-4o-mini'}
-                            onChange={(e) => updateProviderField('openai', 'modelName', e.target.value)}
-                            className="input-glass"
-                            style={{ height: '32px', fontSize: '0.78rem' }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>
-                            API Keys Pool (one per line or comma-separated)
-                          </label>
-                          <textarea
-                            rows={2}
-                            placeholder="sk-proj-... (round-robin rotation)"
-                            value={(p.apiKeys || []).join('\n')}
-                            onChange={(e) => updateKeysString('openai', e.target.value)}
-                            className="input-glass"
-                            style={{ fontSize: '0.75rem', fontFamily: 'monospace', resize: 'vertical' }}
-                          />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                          <div>
-                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Timeout (ms)</label>
-                            <input
-                              type="number"
-                              value={p.timeoutMs || 8000}
-                              onChange={(e) => updateProviderField('openai', 'timeoutMs', parseInt(e.target.value, 10))}
-                              className="input-glass"
-                              style={{ height: '30px', fontSize: '0.75rem' }}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Max Retries</label>
-                            <input
-                              type="number"
-                              value={p.maxRetries || 2}
-                              onChange={(e) => updateProviderField('openai', 'maxRetries', parseInt(e.target.value, 10))}
-                              className="input-glass"
-                              style={{ height: '30px', fontSize: '0.75rem' }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleTestPing('openAiLlm')}
-                        className="btn-secondary"
-                        style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
-                      >
-                        {ping?.loading ? 'Pinging OpenAI Gateway...' : 'Ping Test OpenAI Gateway'}
-                      </button>
-                      {ping?.message && (
-                        <div style={{ fontSize: '0.7rem', color: ping.live ? '#34D399' : '#FBBF24', marginTop: '6px' }}>
-                          {ping.message} {ping.latency && `(${ping.latency}ms)`}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* 3. Groq (Llama 3.3 70B) */}
-                {(() => {
-                  const p = getProvider('groq');
-                  const ping = pingStatus.groqLlm;
-                  return (
-                    <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '1.2rem' }}>⚡</span>
-                          <div>
-                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Groq LPUs</h4>
-                            <span style={{ fontSize: '0.7rem', color: '#FBBF24' }}>Speed: Sub-200ms Inference</span>
-                          </div>
-                        </div>
-                        <select
-                          value={p.priority}
-                          onChange={(e) => updateProviderField('groq', 'priority', parseInt(e.target.value, 10))}
-                          className="input-glass"
-                          style={{ height: '28px', fontSize: '0.7rem', padding: '0 8px', fontWeight: '700' }}
-                        >
-                          <option value="1">Priority #1 (Primary)</option>
-                          <option value="2">Priority #2 (Secondary)</option>
-                          <option value="3">Priority #3 (Tertiary)</option>
-                          <option value="4">Priority #4 (Fallback)</option>
-                        </select>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Model Name</label>
-                          <input
-                            type="text"
-                            value={p.modelName || 'llama-3.3-70b-versatile'}
-                            onChange={(e) => updateProviderField('groq', 'modelName', e.target.value)}
-                            className="input-glass"
-                            style={{ height: '32px', fontSize: '0.78rem' }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>
-                            API Keys Pool (one per line or comma-separated)
-                          </label>
-                          <textarea
-                            rows={2}
-                            placeholder="gsk_... (round-robin rotation)"
-                            value={(p.apiKeys || []).join('\n')}
-                            onChange={(e) => updateKeysString('groq', e.target.value)}
-                            className="input-glass"
-                            style={{ fontSize: '0.75rem', fontFamily: 'monospace', resize: 'vertical' }}
-                          />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                          <div>
-                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Timeout (ms)</label>
-                            <input
-                              type="number"
-                              value={p.timeoutMs || 5000}
-                              onChange={(e) => updateProviderField('groq', 'timeoutMs', parseInt(e.target.value, 10))}
-                              className="input-glass"
-                              style={{ height: '30px', fontSize: '0.75rem' }}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Max Retries</label>
-                            <input
-                              type="number"
-                              value={p.maxRetries || 2}
-                              onChange={(e) => updateProviderField('groq', 'maxRetries', parseInt(e.target.value, 10))}
-                              className="input-glass"
-                              style={{ height: '30px', fontSize: '0.75rem' }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleTestPing('groqLlm')}
-                        className="btn-secondary"
-                        style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
-                      >
-                        {ping?.loading ? 'Pinging Groq Gateway...' : 'Ping Test Groq Gateway'}
-                      </button>
-                      {ping?.message && (
-                        <div style={{ fontSize: '0.7rem', color: ping.live ? '#34D399' : '#FBBF24', marginTop: '6px' }}>
-                          {ping.message} {ping.latency && `(${ping.latency}ms)`}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* 4. DeepSeek V3 */}
-                {(() => {
-                  const p = getProvider('deepseek');
-                  const ping = pingStatus.deepseekLlm;
-                  return (
-                    <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '1.2rem' }}>🌊</span>
-                          <div>
-                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>DeepSeek V3</h4>
-                            <span style={{ fontSize: '0.7rem', color: '#A78BFA' }}>Cost: Sub-cent Token Architecture</span>
-                          </div>
-                        </div>
-                        <select
-                          value={p.priority}
-                          onChange={(e) => updateProviderField('deepseek', 'priority', parseInt(e.target.value, 10))}
-                          className="input-glass"
-                          style={{ height: '28px', fontSize: '0.7rem', padding: '0 8px', fontWeight: '700' }}
-                        >
-                          <option value="1">Priority #1 (Primary)</option>
-                          <option value="2">Priority #2 (Secondary)</option>
-                          <option value="3">Priority #3 (Tertiary)</option>
-                          <option value="4">Priority #4 (Fallback)</option>
-                        </select>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Model Name</label>
-                          <input
-                            type="text"
-                            value={p.modelName || 'deepseek-chat'}
-                            onChange={(e) => updateProviderField('deepseek', 'modelName', e.target.value)}
-                            className="input-glass"
-                            style={{ height: '32px', fontSize: '0.78rem' }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>
-                            API Keys Pool (one per line or comma-separated)
-                          </label>
-                          <textarea
-                            rows={2}
-                            placeholder="sk-... (round-robin rotation)"
-                            value={(p.apiKeys || []).join('\n')}
-                            onChange={(e) => updateKeysString('deepseek', e.target.value)}
-                            className="input-glass"
-                            style={{ fontSize: '0.75rem', fontFamily: 'monospace', resize: 'vertical' }}
-                          />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                          <div>
-                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Timeout (ms)</label>
-                            <input
-                              type="number"
-                              value={p.timeoutMs || 10000}
-                              onChange={(e) => updateProviderField('deepseek', 'timeoutMs', parseInt(e.target.value, 10))}
-                              className="input-glass"
-                              style={{ height: '30px', fontSize: '0.75rem' }}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Max Retries</label>
-                            <input
-                              type="number"
-                              value={p.maxRetries || 2}
-                              onChange={(e) => updateProviderField('deepseek', 'maxRetries', parseInt(e.target.value, 10))}
-                              className="input-glass"
-                              style={{ height: '30px', fontSize: '0.75rem' }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleTestPing('deepseekLlm')}
-                        className="btn-secondary"
-                        style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
-                      >
-                        {ping?.loading ? 'Pinging DeepSeek Gateway...' : 'Ping Test DeepSeek Gateway'}
-                      </button>
-                      {ping?.message && (
-                        <div style={{ fontSize: '0.7rem', color: ping.live ? '#34D399' : '#FBBF24', marginTop: '6px' }}>
-                          {ping.message} {ping.latency && `(${ping.latency}ms)`}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-
-            {/* SECTION 2: AUTONOMOUS FINOPS & COST-PLUS 80%+ GROSS MARGIN ENGINE */}
-            <div className="card" style={{ padding: '24px', background: '#0D1527', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-              <div style={{ marginBottom: '18px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <TrendingUp size={20} color="#10B981" />
-                  <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
-                    Autonomous FinOps &amp; Cost-Plus Pricing Engine
-                  </h3>
-                  <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Guaranteed 80%+ Margin</span>
-                </div>
-                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94A3B8' }}>
-                  Eliminates underpricing risks. Mathematical Cost-Plus formula automatically sets client utility rates to guarantee platform profitability.
-                </p>
-              </div>
-
-              {/* Mathematical Formula Display Banner */}
-              <div style={{
-                padding: '14px 18px',
-                borderRadius: '10px',
-                background: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                marginBottom: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}>
-                <div>
-                  <div style={{ fontSize: '0.72rem', color: '#6EE7B7', fontWeight: '700', textTransform: 'uppercase' }}>
-                    MATHEMATICAL COST-PLUS PRICING FORMULA
-                  </div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC', marginTop: '3px', fontFamily: 'monospace' }}>
-                    Platform Price = Wholesale Real Cost / (1 - Target Margin)
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '2px' }}>
-                    At 80% Target Margin, Selling Price is strictly 5x Wholesale Cost. Zero margin leakage.
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '2px' }}>Target Gross Margin</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <input
-                        type="range"
-                        min="50"
-                        max="95"
-                        value={finOps.targetGrossMarginPercent || 80}
-                        onChange={(e) => setPlatformConfig({
-                          ...platformConfig,
-                          finOpsConfig: { ...finOps, targetGrossMarginPercent: parseInt(e.target.value, 10) },
-                        })}
-                        style={{ width: '100px', cursor: 'pointer' }}
-                      />
-                      <span style={{ fontSize: '1rem', fontWeight: '800', color: '#34D399', minWidth: '40px' }}>
-                        {finOps.targetGrossMarginPercent || 80}%
-                      </span>
                     </div>
                   </div>
-
-                  <div style={{ borderLeft: '1px solid rgba(255, 255, 255, 0.1)', paddingLeft: '16px' }}>
-                    <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Autonomous Auto-Apply</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="checkbox"
-                        id="autoMarginPricingEnabled"
-                        checked={finOps.autoMarginPricingEnabled || false}
-                        onChange={(e) => setPlatformConfig({
-                          ...platformConfig,
-                          finOpsConfig: { ...finOps, autoMarginPricingEnabled: e.target.checked },
-                        })}
-                      />
-                      <label htmlFor="autoMarginPricingEnabled" style={{ fontSize: '0.75rem', color: '#CBD5E1', cursor: 'pointer', fontWeight: '600' }}>
-                        Auto-Update Rates
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Wholesale Cost Tracking Parameters */}
-              <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: '#CBD5E1', margin: '0 0 10px' }}>
-                  Wholesale Supplier Unit Costs (Baseline Inputs)
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                  <div style={{ padding: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Bland AI Voice / min</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748B' }}>$</span>
-                      <input
-                        type="number"
-                        step="0.005"
-                        value={finOps.wholesaleCostTracking?.blandCallingPerMinuteUSD || 0.09}
-                        onChange={(e) => setPlatformConfig({
-                          ...platformConfig,
-                          finOpsConfig: {
-                            ...finOps,
-                            wholesaleCostTracking: { ...finOps.wholesaleCostTracking, blandCallingPerMinuteUSD: parseFloat(e.target.value) || 0 },
-                          },
-                        })}
-                        className="input-glass"
-                        style={{ height: '28px', fontSize: '0.78rem' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ padding: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Meta WhatsApp / msg</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748B' }}>₹</span>
-                      <input
-                        type="number"
-                        step="0.05"
-                        value={finOps.wholesaleCostTracking?.metaWhatsAppPerMsgINR || 0.75}
-                        onChange={(e) => setPlatformConfig({
-                          ...platformConfig,
-                          finOpsConfig: {
-                            ...finOps,
-                            wholesaleCostTracking: { ...finOps.wholesaleCostTracking, metaWhatsAppPerMsgINR: parseFloat(e.target.value) || 0 },
-                          },
-                        })}
-                        className="input-glass"
-                        style={{ height: '28px', fontSize: '0.78rem' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ padding: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Gemini Tokens (In/Out 1M)</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748B' }}>$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={finOps.wholesaleCostTracking?.geminiInputPerMillionUSD || 0.075}
-                        onChange={(e) => setPlatformConfig({
-                          ...platformConfig,
-                          finOpsConfig: {
-                            ...finOps,
-                            wholesaleCostTracking: { ...finOps.wholesaleCostTracking, geminiInputPerMillionUSD: parseFloat(e.target.value) || 0 },
-                          },
-                        })}
-                        className="input-glass"
-                        style={{ height: '28px', fontSize: '0.78rem' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ padding: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Price Policy (Grandfathering)</div>
-                    <select
-                      value={finOps.priceIncreasePolicy || 'NEW_SIGNUPS_ONLY'}
-                      onChange={(e) => setPlatformConfig({
-                        ...platformConfig,
-                        finOpsConfig: { ...finOps, priceIncreasePolicy: e.target.value },
-                      })}
-                      className="input-glass"
-                      style={{ height: '28px', fontSize: '0.72rem', marginTop: '4px' }}
-                    >
-                      <option value="NEW_SIGNUPS_ONLY">New Signups Only (Grandfather)</option>
-                      <option value="NEXT_RENEWAL_WITH_30_DAYS_NOTICE">Next Renewal (30d Notice)</option>
-                      <option value="ANNUAL_ANNIVERSARY_ONLY">Annual Anniversary Only</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Live Cost-Plus Comparison Table */}
-              <div style={{
-                background: 'rgba(15, 23, 42, 0.6)',
-                borderRadius: '10px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                overflow: 'hidden',
-                marginBottom: '16px',
-              }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
-                  <thead>
-                    <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: '#94A3B8' }}>
-                      <th style={{ padding: '10px 14px' }}>Platform Utility Service</th>
-                      <th style={{ padding: '10px 14px' }}>Wholesale Real Cost</th>
-                      <th style={{ padding: '10px 14px' }}>Current Live Rate</th>
-                      <th style={{ padding: '10px 14px' }}>Recommended Rate (80% Margin)</th>
-                      <th style={{ padding: '10px 14px' }}>Calculated Margin</th>
-                      <th style={{ padding: '10px 14px' }}>FinOps Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* Lead Scraping */}
-                    <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                      <td style={{ padding: '12px 14px', fontWeight: '700', color: '#F8FAFC' }}>
-                        AI Multi-Source Lead Scraping (per lead)
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#94A3B8', fontFamily: 'monospace' }}>
-                        ${rec.wholesaleUnitCosts?.totalScrapeWholesaleUSD || 0.0003}
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#CBD5E1', fontWeight: '600' }}>
-                        ${platformConfig.usageRates?.scrapingPerLeadUSD ?? 0.15} / ₹{platformConfig.usageRates?.scrapingPerLeadINR ?? 12.50}
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#34D399', fontWeight: '700' }}>
-                        ${rec.suggestedScrapingPerLeadUSD} / ₹{rec.suggestedScrapingPerLeadINR}
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#38BDF8', fontWeight: '700' }}>
-                        {rec.marginAchievedPercent || 80}%
-                      </td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Protected Margin</span>
-                      </td>
-                    </tr>
-
-                    {/* AI Voice Calling */}
-                    <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                      <td style={{ padding: '12px 14px', fontWeight: '700', color: '#F8FAFC' }}>
-                        Bland AI Sub-800ms Voice Closer (per minute)
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#94A3B8', fontFamily: 'monospace' }}>
-                        ${rec.wholesaleUnitCosts?.voiceWholesaleUSD || 0.0900}
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#CBD5E1', fontWeight: '600' }}>
-                        ${platformConfig.usageRates?.voicePerMinuteUSD ?? 0.012} / ₹{platformConfig.usageRates?.voicePerMinuteINR ?? 1.00}
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#34D399', fontWeight: '700' }}>
-                        ${rec.suggestedVoicePerMinuteUSD} / ₹{rec.suggestedVoicePerMinuteINR}
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#38BDF8', fontWeight: '700' }}>
-                        {rec.marginAchievedPercent || 80}%
-                      </td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Protected Margin</span>
-                      </td>
-                    </tr>
-
-                    {/* WhatsApp Outreach */}
-                    <tr>
-                      <td style={{ padding: '12px 14px', fontWeight: '700', color: '#F8FAFC' }}>
-                        WhatsApp Business Marketing (per message)
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#94A3B8', fontFamily: 'monospace' }}>
-                        ₹{rec.wholesaleUnitCosts?.whatsappWholesaleINR || 0.75}
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#CBD5E1', fontWeight: '600' }}>
-                        ${platformConfig.usageRates?.whatsappPerMessageUSD ?? 0.005} / ₹{platformConfig.usageRates?.whatsappPerMessageINR ?? 0.40}
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#34D399', fontWeight: '700' }}>
-                        ${rec.suggestedWhatsappUSD} / ₹{rec.suggestedWhatsappINR}
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#38BDF8', fontWeight: '700' }}>
-                        {rec.marginAchievedPercent || 80}%
-                      </td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Protected Margin</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* 1-Click Apply Button */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-                  Audited timestamp: {rec.calculatedAt ? new Date(rec.calculatedAt).toLocaleTimeString() : 'Live Calculated'}
-                </span>
-
-                <button
-                  onClick={handleApplyFinopsRates}
-                  disabled={applyingFinops}
-                  className="btn-emerald"
-                  style={{ padding: '10px 24px', fontWeight: '800', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}
-                >
-                  <CheckCircle2 size={16} />
-                  <span>{applyingFinops ? 'Applying Rates...' : '⚡ 1-Click Apply Recommended Rates to Live Platform'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ========================================================================= */}
-      {/* TAB 3: MASTER CARRIER & TOOL INTEGRATIONS */}
-      {/* ========================================================================= */}
-      {activeTab === 'integrations' && platformConfig && (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <div>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', fontWeight: '800', margin: '0 0 4px', color: '#F8FAFC' }}>
-                Master Provider &amp; Toolchain Integrations
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.825rem', color: '#94A3B8' }}>
-                Configure and verify the master API credentials that power telephony, WhatsApp, email deliverability, and payment processing.
-              </p>
-            </div>
-
-            <button
-              onClick={handleSavePlatformConfig}
-              disabled={savingConfig}
-              className="btn-emerald"
-              style={{ padding: '9px 20px', fontWeight: '700', fontSize: '0.825rem' }}
-            >
-              {savingConfig ? 'Saving...' : 'Save API Credentials'}
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', gap: '20px' }}>
-            {/* Tool 1: Twilio Telephony */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <PhoneCall size={18} color="#F87171" />
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Twilio Carrier Telephony</h4>
-                </div>
-                <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Active</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                A2P 10DLC registration, WebRTC phone dialer, and voice DID number pooling.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                <input
-                  type="text"
-                  placeholder="Account SID"
-                  value={platformConfig.integrations?.twilio?.accountSid || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: { ...platformConfig.integrations, twilio: { ...platformConfig.integrations?.twilio, accountSid: e.target.value } },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem' }}
-                />
-                <input
-                  type="password"
-                  placeholder="Auth Token"
-                  value={platformConfig.integrations?.twilio?.authToken || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: { ...platformConfig.integrations, twilio: { ...platformConfig.integrations?.twilio, authToken: e.target.value } },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem' }}
-                />
-              </div>
-              <button
-                onClick={() => handleTestPing('twilio')}
-                className="btn-secondary"
-                style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
-              >
-                {pingStatus.twilio?.loading ? 'Pinging Twilio...' : 'Ping Test Connection'}
-              </button>
-              {pingStatus.twilio?.message && (
-                <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '6px' }}>{pingStatus.twilio.message}</div>
-              )}
-            </div>
-
-            {/* Tool 2: Bland.ai Sub-800ms Voice AI */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Cpu size={18} color="#06B6D4" />
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Bland.ai Conversational Voice</h4>
-                </div>
-                <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>Sub-800ms</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                Ultra-low latency conversational AI engine powering Maya Vance Voice Closer.
-              </p>
-              <div style={{ marginBottom: '12px' }}>
-                <input
-                  type="password"
-                  placeholder="Bland.ai API Key"
-                  value={platformConfig.integrations?.blandAi?.apiKey || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: { ...platformConfig.integrations, blandAi: { ...platformConfig.integrations?.blandAi, apiKey: e.target.value } },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem' }}
-                />
-              </div>
-              <button
-                onClick={() => handleTestPing('blandAi')}
-                className="btn-secondary"
-                style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
-              >
-                {pingStatus.blandAi?.loading ? 'Pinging Carrier...' : 'Ping Test Connection'}
-              </button>
-              {pingStatus.blandAi?.message && (
-                <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '6px' }}>{pingStatus.blandAi.message}</div>
-              )}
-            </div>
-
-            {/* Tool 3: AiSensy WhatsApp Marketing */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MessageSquare size={18} color="#25D366" />
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>AiSensy / WhatsApp Gateway</h4>
-                </div>
-                <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>WhatsApp Live</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                Official WhatsApp Business Platform for broadcasts and inbound SDR automation.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                <input
-                  type="password"
-                  placeholder="AiSensy API Key"
-                  value={platformConfig.integrations?.aisensy?.apiKey || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: { ...platformConfig.integrations, aisensy: { ...platformConfig.integrations?.aisensy, apiKey: e.target.value } },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem' }}
-                />
-                <input
-                  type="text"
-                  placeholder="Business Number (+91...)"
-                  value={platformConfig.integrations?.aisensy?.businessNumber || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: { ...platformConfig.integrations, aisensy: { ...platformConfig.integrations?.aisensy, businessNumber: e.target.value } },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem' }}
-                />
-              </div>
-              <button
-                onClick={() => handleTestPing('aisensy')}
-                className="btn-secondary"
-                style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
-              >
-                {pingStatus.aisensy?.loading ? 'Pinging WhatsApp...' : 'Ping Test Connection'}
-              </button>
-              {pingStatus.aisensy?.message && (
-                <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '6px' }}>{pingStatus.aisensy.message}</div>
-              )}
-            </div>
-
-            {/* Tool 4: Instantly Email Warmup & Sequences */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Mail size={18} color="#38BDF8" />
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Instantly / Smartlead Warmup</h4>
-                </div>
-                <span className="badge badge-blue" style={{ fontSize: '0.65rem' }}>Warmup 100%</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                Secondary domain warmup and automated cold email delivery safeguards.
-              </p>
-              <div style={{ marginBottom: '12px' }}>
-                <input
-                  type="password"
-                  placeholder="Instantly.ai API Key"
-                  value={platformConfig.integrations?.instantlyEmail?.apiKey || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: { ...platformConfig.integrations, instantlyEmail: { ...platformConfig.integrations?.instantlyEmail, apiKey: e.target.value } },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem' }}
-                />
-              </div>
-              <button
-                onClick={() => handleTestPing('instantlyEmail')}
-                className="btn-secondary"
-                style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
-              >
-                {pingStatus.instantlyEmail?.loading ? 'Pinging Instantly...' : 'Ping Test Connection'}
-              </button>
-              {pingStatus.instantlyEmail?.message && (
-                <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '6px' }}>{pingStatus.instantlyEmail.message}</div>
-              )}
-            </div>
-
-            {/* Tool 5: Razorpay (India Payments) */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <DollarSign size={18} color="#FBBF24" />
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Razorpay (India Gateway)</h4>
-                </div>
-                <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>UPI / Netbanking</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                Instant BHIM UPI, PhonePe, GPay, and Indian RuPay card processing.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                <input
-                  type="text"
-                  placeholder="Key ID (rzp_live...)"
-                  value={platformConfig.integrations?.razorpayIndia?.keyId || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: { ...platformConfig.integrations, razorpayIndia: { ...platformConfig.integrations?.razorpayIndia, keyId: e.target.value } },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem' }}
-                />
-                <input
-                  type="password"
-                  placeholder="Key Secret"
-                  value={platformConfig.integrations?.razorpayIndia?.keySecret || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: { ...platformConfig.integrations, razorpayIndia: { ...platformConfig.integrations?.razorpayIndia, keySecret: e.target.value } },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem' }}
-                />
-              </div>
-              <button
-                onClick={() => handleTestPing('razorpayIndia')}
-                className="btn-secondary"
-                style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
-              >
-                {pingStatus.razorpayIndia?.loading ? 'Pinging Razorpay...' : 'Ping Test Connection'}
-              </button>
-              {pingStatus.razorpayIndia?.message && (
-                <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '6px' }}>{pingStatus.razorpayIndia.message}</div>
-              )}
-            </div>
-
-            {/* Tool 6: Stripe (Global Payments & Connect) */}
-            <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <DollarSign size={18} color="#60A5FA" />
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Stripe (Global &amp; Connect)</h4>
-                </div>
-                <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>Global Cards</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                International credit cards, UPI, and automated payment gateway webhooks.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                <input
-                  type="text"
-                  placeholder="Publishable Key (pk_live...)"
-                  value={platformConfig.integrations?.stripeGlobal?.publishableKey || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: { ...platformConfig.integrations, stripeGlobal: { ...platformConfig.integrations?.stripeGlobal, publishableKey: e.target.value } },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem' }}
-                />
-                <input
-                  type="password"
-                  placeholder="Secret Key (sk_live...)"
-                  value={platformConfig.integrations?.stripeGlobal?.secretKey || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: { ...platformConfig.integrations, stripeGlobal: { ...platformConfig.integrations?.stripeGlobal, secretKey: e.target.value } },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem' }}
-                />
-              </div>
-              <button
-                onClick={() => handleTestPing('stripeGlobal')}
-                className="btn-secondary"
-                style={{ width: '100%', padding: '6px', fontSize: '0.75rem' }}
-              >
-                {pingStatus.stripeGlobal?.loading ? 'Pinging Stripe...' : 'Ping Test Connection'}
-              </button>
-              {pingStatus.stripeGlobal?.message && (
-                <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '6px' }}>{pingStatus.stripeGlobal.message}</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB: AUTONOMOUS MARKET BRAIN & RADAR (ALL BUSINESS MODELS) */}
-      {/* ========================================================================= */}
-      {activeTab === 'marketRadar' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <span className="badge badge-cyan" style={{ fontSize: '0.72rem' }}>
-                  PERPETUAL BUSINESS RADAR
-                </span>
-                <span className="badge badge-purple" style={{ fontSize: '0.72rem' }}>
-                  UNIVERSAL MULTI-CATEGORY INTELLIGENCE
-                </span>
-              </div>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.45rem', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px' }}>
-                🌐 Autonomous Business Model &amp; Market Intelligence Radar
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', maxWidth: '900px' }}>
-                Continuously tracks, analyzes, executes SWOT analysis, and trains VYUHOX on global business models, viral startups, and diverse niche industries (SaaS, D2C Apparel, Beauty, Dental Clinics, Chit Funds, Real Estate, Restaurants, Manufacturing, Gyms, EdTech, etc.). VYUHOX uses this cumulative knowledge base to instantly understand ANY client's business model and craft high-converting campaigns.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <button
-                onClick={fetchMarketRadar}
-                disabled={loadingRadar}
-                className="btn-secondary"
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', fontSize: '0.8rem' }}
-              >
-                <RefreshCw size={14} className={loadingRadar ? 'animate-spin' : ''} />
-                <span>Refresh Radar</span>
-              </button>
-
-              <button
-                onClick={handleSweepRadar}
-                disabled={sweepingRadar}
-                className="btn-cyan"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', fontWeight: '700', fontSize: '0.825rem' }}
-              >
-                <Sparkles size={15} className={sweepingRadar ? 'animate-spin' : ''} />
-                <span>{sweepingRadar ? 'Sweeping Trends...' : '⚡ Sweep & Train VYUHOX Brain'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* KPI Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
-              <div style={{ fontSize: '0.725rem', fontWeight: '700', color: '#38BDF8', textTransform: 'uppercase' }}>STUDIED ARCHETYPES</div>
-              <div style={{ fontSize: '1.7rem', fontWeight: '800', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif', marginTop: '4px' }}>
-                {marketRadarData.length || 12} Global Categories
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Pre-trained in VYUHOX Memory</div>
-            </div>
-
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-              <div style={{ fontSize: '0.725rem', fontWeight: '700', color: '#34D399', textTransform: 'uppercase' }}>SWOT ANALYSIS ENGINE</div>
-              <div style={{ fontSize: '1.7rem', fontWeight: '800', color: '#34D399', fontFamily: 'Outfit, sans-serif', marginTop: '4px' }}>
-                100% Comprehensive
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Strengths, Weaknesses, Opps, Threats</div>
-            </div>
-
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
-              <div style={{ fontSize: '0.725rem', fontWeight: '700', color: '#A78BFA', textTransform: 'uppercase' }}>TOTAL CASE STUDIES</div>
-              <div style={{ fontSize: '1.7rem', fontWeight: '800', color: '#DDD6FE', fontFamily: 'Outfit, sans-serif', marginTop: '4px' }}>
-                {marketRadarData.reduce((acc, c) => acc + (c.learnedCaseStudiesCount || 15), 0)}+ Live Studies
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Assimilated into Brain</div>
-            </div>
-
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
-              <div style={{ fontSize: '0.725rem', fontWeight: '700', color: '#FBBF24', textTransform: 'uppercase' }}>RADAR STATUS</div>
-              <div style={{ fontSize: '1.7rem', fontWeight: '800', color: '#FCD34D', fontFamily: 'Outfit, sans-serif', marginTop: '4px' }}>
-                Active &amp; Autonomous
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Zero-friction link crawling</div>
-            </div>
-          </div>
-
-          {/* Sub-View Navigation Switcher */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'rgba(255, 255, 255, 0.03)',
-            padding: '6px',
-            borderRadius: '10px',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            flexWrap: 'wrap',
-            gap: '8px',
-          }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setRadarSubView('ARCHETYPES')}
-                style={{
-                  padding: '7px 16px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  background: radarSubView === 'ARCHETYPES' ? 'linear-gradient(135deg, #06B6D4, #8B5CF6)' : 'transparent',
-                  color: radarSubView === 'ARCHETYPES' ? '#FFF' : '#94A3B8',
-                  fontWeight: '700',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <Layers size={14} />
-                <span>Studied Business Archetypes &amp; SWOT ({marketRadarData.length || 12})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRadarSubView('ROLES')}
-                style={{
-                  padding: '7px 16px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  background: radarSubView === 'ROLES' ? 'linear-gradient(135deg, #06B6D4, #8B5CF6)' : 'transparent',
-                  color: radarSubView === 'ROLES' ? '#FFF' : '#94A3B8',
-                  fontWeight: '700',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <Users size={14} />
-                <span>👥 Corporate Roles &amp; Dynamic Workforce Matrix ({employeeRoles.length || '50+'})</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Master Two-Column Explorer: Archetypes */}
-          {radarSubView === 'ARCHETYPES' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 340px) 1fr', gap: '20px', alignItems: 'start' }}>
-            {/* Left: Category Selector List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '720px', overflowY: 'auto', paddingRight: '6px' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '4px' }}>
-                Studied Business Archetypes ({marketRadarData.length})
-              </div>
-              {marketRadarData.map((cat) => {
-                const isSelected = selectedRadarCategory?._id === cat._id || selectedRadarCategory?.categoryKey === cat.categoryKey;
-                return (
-                  <div
-                    key={cat._id || cat.categoryKey}
-                    onClick={() => setSelectedRadarCategory(cat)}
-                    style={{
-                      padding: '14px',
-                      borderRadius: '10px',
-                      background: isSelected ? 'rgba(6, 182, 212, 0.15)' : 'rgba(15, 23, 42, 0.65)',
-                      border: isSelected ? '1px solid #06B6D4' : '1px solid rgba(255, 255, 255, 0.08)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '0.875rem', fontWeight: '700', color: isSelected ? '#38BDF8' : '#F8FAFC' }}>
-                        {cat.categoryName}
-                      </span>
-                      <span className="badge badge-purple" style={{ fontSize: '0.62rem' }}>
-                        {cat.businessModel?.split('_')[0] || 'ARCHETYPE'}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '8px', lineHeight: '1.3' }}>
-                      {cat.targetAudience?.primaryPersona?.slice(0, 75)}...
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748B' }}>
-                      <span>📚 {cat.learnedCaseStudiesCount || 18} Studies</span>
-                      <span>Signal: {cat.trendingSignals?.length || 1} Trends</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Right: Selected Category Deep Dossier */}
-            {selectedRadarCategory ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Archetype Overview Banner */}
-                <div className="card" style={{ padding: '22px', background: '#0D1527', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
-                    <div>
-                      <span className="badge badge-cyan" style={{ fontSize: '0.68rem', marginBottom: '6px' }}>
-                        {selectedRadarCategory.categoryKey}
-                      </span>
-                      <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.35rem', fontWeight: '800', color: '#F8FAFC' }}>
-                        {selectedRadarCategory.categoryName}
-                      </h3>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>TYPICAL DEAL SIZE / ACV</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#34D399' }}>
-                        {selectedRadarCategory.targetAudience?.typicalACV || '$50 - $5,000'}
-                      </div>
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '0.825rem', color: '#CBD5E1', margin: '0 0 12px' }}>
-                    Target Customer Profile: <strong style={{ color: '#F8FAFC' }}>{selectedRadarCategory.targetAudience?.primaryPersona}</strong>
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {(selectedRadarCategory.industryKeywords || []).slice(0, 8).map((kw, idx) => (
-                      <span key={idx} style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#94A3B8', fontSize: '0.7rem', padding: '3px 8px', borderRadius: '4px' }}>
-                        #{kw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* SWOT Analysis Matrix (4 Quadrants) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#F8FAFC' }}>
-                    📊 Universal SWOT Matrix (Trained into VYUHOX Brain)
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-                    {/* Strengths */}
-                    <div className="card" style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#34D399', fontWeight: '700', fontSize: '0.825rem' }}>
-                        <CheckCircle2 size={16} />
-                        <span>STRENGTHS</span>
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {(selectedRadarCategory.swotMatrix?.strengths || []).map((s, idx) => (
-                          <li key={idx}>{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Weaknesses */}
-                    <div className="card" style={{ padding: '16px', background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#FBBF24', fontWeight: '700', fontSize: '0.825rem' }}>
-                        <AlertCircle size={16} />
-                        <span>WEAKNESSES</span>
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {(selectedRadarCategory.swotMatrix?.weaknesses || []).map((w, idx) => (
-                          <li key={idx}>{w}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Opportunities */}
-                    <div className="card" style={{ padding: '16px', background: 'rgba(6, 182, 212, 0.06)', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#38BDF8', fontWeight: '700', fontSize: '0.825rem' }}>
-                        <TrendingUp size={16} />
-                        <span>OPPORTUNITIES</span>
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {(selectedRadarCategory.swotMatrix?.opportunities || []).map((o, idx) => (
-                          <li key={idx}>{o}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Threats */}
-                    <div className="card" style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', color: '#F87171', fontWeight: '700', fontSize: '0.825rem' }}>
-                        <ShieldAlert size={16} />
-                        <span>THREATS</span>
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.78rem', color: '#CBD5E1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {(selectedRadarCategory.swotMatrix?.threats || []).map((t, idx) => (
-                          <li key={idx}>{t}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Creative Ad Angles & Hooks */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#F8FAFC' }}>
-                    🎯 Proven Creative Ad Hooks &amp; 8K Visual Directives
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
-                    {(selectedRadarCategory.creativeAdStrategies || []).map((ad, idx) => (
-                      <div key={idx} className="card" style={{ padding: '16px', background: '#0D1527', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>{ad.platform || 'META_FEED'}</span>
-                          <span style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '700' }}>{ad.angleName || 'Angle'}</span>
-                        </div>
-                        <h4 style={{ margin: '0 0 8px', fontSize: '0.9rem', color: '#F8FAFC', fontWeight: '700' }}>
-                          "{ad.headlineHook}"
-                        </h4>
-                        <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '10px', whiteSpace: 'pre-line' }}>
-                          {ad.primaryTextTemplate}
-                        </p>
-                        <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '8px 10px', borderRadius: '6px', fontSize: '0.7rem', color: '#A78BFA' }}>
-                          <strong>📸 8K Visual Directive:</strong> {ad.visualDirective}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Trending Signals */}
-                {(selectedRadarCategory.trendingSignals || []).length > 0 && (
-                  <div className="card" style={{ padding: '16px', background: 'rgba(6, 182, 212, 0.05)', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#38BDF8', fontWeight: '700', fontSize: '0.825rem' }}>
-                      <Radio size={16} />
-                      <span>LIVE DISCOVERED TREND SIGNALS</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {selectedRadarCategory.trendingSignals.map((ts, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: '#F8FAFC' }}>
-                          <span>🔥 {ts.trendTitle}</span>
-                          <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>Score {ts.momentumScore || 92}/100</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="card" style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>
-                Select a business archetype from the left to inspect its SWOT and creative directives.
+                ))}
               </div>
             )}
           </div>
-          )}
+        </div>
+      )}
 
-          {/* Master View: Corporate Roles & Dynamic Workforce Matrix */}
-          {radarSubView === 'ROLES' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Echelon Filter Tabs */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: '700' }}>Filter Echelon:</span>
-                  {[
-                    { id: 'ALL', label: 'All Corporate Echelons' },
-                    { id: 'EXECUTIVE_LEADERSHIP', label: '👑 C-Suite & Founders' },
-                    { id: 'SALES_REVENUE', label: '💼 Sales & Closers' },
-                    { id: 'STRATEGY_GROWTH', label: '🎯 Strategy & Growth' },
-                    { id: 'MARKETING_CREATIVE', label: '🚀 Marketing & Media' },
-                    { id: 'OPERATIONS_SUPPORT', label: '🛡️ Operations & CSM' },
-                    { id: 'INDUSTRY_SPECIALISTS', label: '🏥 Industry Specialists' },
-                  ].map((ech) => (
+      {/* ========================================================================= */}
+      {/* PILLAR 3: MASTER INTEGRATIONS & KILL-SWITCH                               */}
+      {/* ========================================================================= */}
+      {activeTab === 'integrations' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Master Emergency Circuit Breaker (Kill-Switch) */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.1) 100%)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              borderRadius: '14px',
+              padding: '20px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              <ShieldAlert size={22} color="#EF4444" />
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: '#EF4444' }}>
+                  Master Emergency Circuit Breaker (Global Kill-Switch & Throttling)
+                </h3>
+                <div style={{ fontSize: '0.75rem', color: '#FCA5A5' }}>
+                  Instantly halt outbound telephony, scrapers, or emails across all client tenants in the event of upstream carrier outages or abuse
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  background: '#0F172A',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  border: circuitBreakerForm.pauseAllVoice ? '1px solid #EF4444' : '1px solid rgba(255, 255, 255, 0.08)',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={circuitBreakerForm.pauseAllVoice}
+                  onChange={(e) => setCircuitBreakerForm({ ...circuitBreakerForm, pauseAllVoice: e.target.checked })}
+                />
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '800', color: circuitBreakerForm.pauseAllVoice ? '#EF4444' : '#F8FAFC' }}>
+                    Pause All Voice Calls
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Blocks Twilio & Bland.ai outbound calls</div>
+                </div>
+              </label>
+
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  background: '#0F172A',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  border: circuitBreakerForm.pauseAllScraping ? '1px solid #EF4444' : '1px solid rgba(255, 255, 255, 0.08)',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={circuitBreakerForm.pauseAllScraping}
+                  onChange={(e) => setCircuitBreakerForm({ ...circuitBreakerForm, pauseAllScraping: e.target.checked })}
+                />
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '800', color: circuitBreakerForm.pauseAllScraping ? '#EF4444' : '#F8FAFC' }}>
+                    Pause All Scraper Engines
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Stops Outscraper & Apollo harvests</div>
+                </div>
+              </label>
+
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  background: '#0F172A',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  border: circuitBreakerForm.pauseAllEmail ? '1px solid #EF4444' : '1px solid rgba(255, 255, 255, 0.08)',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={circuitBreakerForm.pauseAllEmail}
+                  onChange={(e) => setCircuitBreakerForm({ ...circuitBreakerForm, pauseAllEmail: e.target.checked })}
+                />
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '800', color: circuitBreakerForm.pauseAllEmail ? '#EF4444' : '#F8FAFC' }}>
+                    Pause All Outbound Email
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Halts SendGrid & Instantly sequences</div>
+                </div>
+              </label>
+
+              <div style={{ background: '#0F172A', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700', marginBottom: '4px' }}>
+                  HOURLY RATE LIMIT / WORKSPACE
+                </div>
+                <input
+                  type="number"
+                  value={circuitBreakerForm.hourlyRateLimitPerWorkspace}
+                  onChange={(e) => setCircuitBreakerForm({ ...circuitBreakerForm, hourlyRateLimitPerWorkspace: Number(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    background: '#1E293B',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#F8FAFC',
+                    fontSize: '0.82rem',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Reason for kill-switch trigger (required for audit trail)..."
+                value={circuitBreakerForm.reason}
+                onChange={(e) => setCircuitBreakerForm({ ...circuitBreakerForm, reason: e.target.value })}
+                style={{
+                  flex: 1,
+                  minWidth: '260px',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#F8FAFC',
+                  fontSize: '0.82rem',
+                }}
+              />
+              <button
+                onClick={handleSaveCircuitBreaker}
+                disabled={savingBreaker}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontWeight: '800',
+                  fontSize: '0.82rem',
+                  cursor: savingBreaker ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {savingBreaker ? 'Applying Override...' : 'Apply Circuit Breaker'}
+              </button>
+            </div>
+          </div>
+
+          {/* Master Integrations Switchboard */}
+          <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
+                  Master Integrations Switchboard (Screen-Share Safe)
+                </h3>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  API keys are masked by default (••••••••) to protect platform secrets during founder presentations
+                </div>
+              </div>
+              <button
+                onClick={() => handleSaveConfig({ integrations: platformConfig?.integrations })}
+                disabled={savingConfig}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  background: '#0284C7',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                }}
+              >
+                {savingConfig ? 'Saving...' : 'Save All Keys'}
+              </button>
+            </div>
+
+            {/* Integrations Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+              {/* Apollo.io */}
+              <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Apollo.io B2B Enrichment</div>
+                  <button
+                    onClick={() => handleTestPing('apollo')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      color: '#38BDF8',
+                      fontSize: '0.7rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Test Ping
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+                  <input
+                    type={revealedKeys.apollo ? 'text' : 'password'}
+                    value={platformConfig?.integrations?.apollo?.apiKey || 'sk_live_apollo_vyuhox_prod'}
+                    onChange={(e) =>
+                      setPlatformConfig({
+                        ...platformConfig,
+                        integrations: {
+                          ...platformConfig.integrations,
+                          apollo: { ...platformConfig?.integrations?.apollo, apiKey: e.target.value },
+                        },
+                      })
+                    }
+                    style={{
+                      flex: 1,
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      background: '#1E293B',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#F8FAFC',
+                      fontSize: '0.8rem',
+                    }}
+                  />
+                  <button
+                    onClick={() => toggleKeyVisibility('apollo')}
+                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                  >
+                    {revealedKeys.apollo ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {pingStatus.apollo && (
+                  <div style={{ fontSize: '0.72rem', color: pingStatus.apollo.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
+                    Status: {pingStatus.apollo.status} ({pingStatus.apollo.latencyMs}ms)
+                  </div>
+                )}
+              </div>
+
+              {/* Outscraper */}
+              <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Outscraper Maps Extractor</div>
+                  <button
+                    onClick={() => handleTestPing('outscraper')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      color: '#38BDF8',
+                      fontSize: '0.7rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Test Ping
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+                  <input
+                    type={revealedKeys.outscraper ? 'text' : 'password'}
+                    value={platformConfig?.integrations?.outscraper?.apiKey || 'outscraper_prod_key_771'}
+                    onChange={(e) =>
+                      setPlatformConfig({
+                        ...platformConfig,
+                        integrations: {
+                          ...platformConfig.integrations,
+                          outscraper: { ...platformConfig?.integrations?.outscraper, apiKey: e.target.value },
+                        },
+                      })
+                    }
+                    style={{
+                      flex: 1,
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      background: '#1E293B',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#F8FAFC',
+                      fontSize: '0.8rem',
+                    }}
+                  />
+                  <button
+                    onClick={() => toggleKeyVisibility('outscraper')}
+                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                  >
+                    {revealedKeys.outscraper ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {pingStatus.outscraper && (
+                  <div style={{ fontSize: '0.72rem', color: pingStatus.outscraper.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
+                    Status: {pingStatus.outscraper.status} ({pingStatus.outscraper.latencyMs}ms)
+                  </div>
+                )}
+              </div>
+
+              {/* Twilio Telephony */}
+              <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Twilio Voice Gateway</div>
+                  <button
+                    onClick={() => handleTestPing('twilio')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      color: '#38BDF8',
+                      fontSize: '0.7rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Test Ping
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+                  <input
+                    type={revealedKeys.twilio ? 'text' : 'password'}
+                    value={platformConfig?.integrations?.twilio?.authToken || 'auth_secret_master_token'}
+                    onChange={(e) =>
+                      setPlatformConfig({
+                        ...platformConfig,
+                        integrations: {
+                          ...platformConfig.integrations,
+                          twilio: { ...platformConfig?.integrations?.twilio, authToken: e.target.value },
+                        },
+                      })
+                    }
+                    style={{
+                      flex: 1,
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      background: '#1E293B',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#F8FAFC',
+                      fontSize: '0.8rem',
+                    }}
+                  />
+                  <button
+                    onClick={() => toggleKeyVisibility('twilio')}
+                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                  >
+                    {revealedKeys.twilio ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {pingStatus.twilio && (
+                  <div style={{ fontSize: '0.72rem', color: pingStatus.twilio.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
+                    Status: {pingStatus.twilio.status} ({pingStatus.twilio.latencyMs}ms)
+                  </div>
+                )}
+              </div>
+
+              {/* Gemini 1.5 Master LLM */}
+              <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Google Gemini 1.5 AI Master</div>
+                  <button
+                    onClick={() => handleTestPing('geminiMaster')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      color: '#38BDF8',
+                      fontSize: '0.7rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Test Ping
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+                  <input
+                    type={revealedKeys.gemini ? 'text' : 'password'}
+                    value={platformConfig?.integrations?.geminiMaster?.apiKey || 'AIzaSyVyuhoxGeminiMaster_2026'}
+                    onChange={(e) =>
+                      setPlatformConfig({
+                        ...platformConfig,
+                        integrations: {
+                          ...platformConfig.integrations,
+                          geminiMaster: { ...platformConfig?.integrations?.geminiMaster, apiKey: e.target.value },
+                        },
+                      })
+                    }
+                    style={{
+                      flex: 1,
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      background: '#1E293B',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#F8FAFC',
+                      fontSize: '0.8rem',
+                    }}
+                  />
+                  <button
+                    onClick={() => toggleKeyVisibility('gemini')}
+                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                  >
+                    {revealedKeys.gemini ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {pingStatus.geminiMaster && (
+                  <div style={{ fontSize: '0.72rem', color: pingStatus.geminiMaster.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
+                    Status: {pingStatus.geminiMaster.status} ({pingStatus.geminiMaster.latencyMs}ms)
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PILLAR 4: FINOPS, RATES, PLANS, DNC & AUDIT TRAIL                          */}
+      {/* ========================================================================= */}
+      {activeTab === 'finops' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Autonomous AI CFO & Gross Margin Guard */}
+          <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Cpu size={18} color="#38BDF8" />
+                  <span>Autonomous AI CFO & Cost-Plus Margin Engine (80% Guaranteed Margin)</span>
+                </h3>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Continuously tracks wholesale carrier rates (Twilio, Gemini, Meta) and enforces cost-plus pricing
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleEvaluateFinOps}
+                  disabled={evaluatingFinops}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(56, 189, 248, 0.1)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    color: '#38BDF8',
+                    fontSize: '0.78rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {evaluatingFinops ? 'Analyzing Carrier Costs...' : 'Recalculate Margins'}
+                </button>
+                <button
+                  onClick={handleApplyFinOpsRates}
+                  disabled={applyingFinops}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '0.78rem',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {applyingFinops ? 'Applying...' : '1-Click Apply AI CFO Rates'}
+                </button>
+              </div>
+            </div>
+
+            {finopsData && (
+              <div style={{ background: '#0F172A', borderRadius: '10px', padding: '14px', border: '1px solid rgba(16, 185, 129, 0.25)', marginBottom: '12px' }}>
+                <div style={{ fontSize: '0.78rem', color: '#10B981', fontWeight: '800', marginBottom: '4px' }}>
+                  AI CFO Target Gross Margin: {finopsData.targetGrossMarginPercent || 80}%
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#CBD5E1' }}>
+                  Recommended Scraper Rate: ${finopsData.suggestedScrapingPerLeadUSD} / lead • Voice: ${finopsData.suggestedVoicePerMinuteUSD} / min
+                </div>
+              </div>
+            )}
+
+            {/* Zero-Overdraft Pre-Emptive Utility Usage Rates Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+              <div style={{ background: '#0F172A', padding: '14px', borderRadius: '10px' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>AI VOICE (PER MINUTE)</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#F8FAFC', margin: '4px 0' }}>
+                  ${platformConfig?.usageRates?.voicePerMinuteUSD || 0.012} <span style={{ fontSize: '0.75rem', color: '#64748B' }}>/ ₹{platformConfig?.usageRates?.voicePerMinuteINR || 1.0}</span>
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#10B981' }}>Floor: $0.00 • Low Warning: $10/$3</div>
+              </div>
+
+              <div style={{ background: '#0F172A', padding: '14px', borderRadius: '10px' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>WHATSAPP (PER MESSAGE)</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#F8FAFC', margin: '4px 0' }}>
+                  ${platformConfig?.usageRates?.whatsappPerMessageUSD || 0.005} <span style={{ fontSize: '0.75rem', color: '#64748B' }}>/ ₹{platformConfig?.usageRates?.whatsappPerMessageINR || 0.4}</span>
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#10B981' }}>Meta Cloud Direct Gateway</div>
+              </div>
+
+              <div style={{ background: '#0F172A', padding: '14px', borderRadius: '10px' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>COLD EMAIL (PER 1,000)</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#F8FAFC', margin: '4px 0' }}>
+                  ${platformConfig?.usageRates?.emailPer1000USD || 0.8} <span style={{ fontSize: '0.75rem', color: '#64748B' }}>/ ₹{platformConfig?.usageRates?.emailPer1000INR || 65.0}</span>
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#10B981' }}>SendGrid SMTP High Deliverability</div>
+              </div>
+
+              <div style={{ background: '#0F172A', padding: '14px', borderRadius: '10px' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>MAPS SCRAPER (PER LEAD)</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#F8FAFC', margin: '4px 0' }}>
+                  ${platformConfig?.usageRates?.scrapingPerLeadUSD || 0.15} <span style={{ fontSize: '0.75rem', color: '#64748B' }}>/ ₹{platformConfig?.usageRates?.scrapingPerLeadINR || 12.5}</span>
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#10B981' }}>Multi-source enrichments</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Subscription Plans Matrix */}
+          <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>Live Subscription Plans & Limits</h3>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Geo-targeted tiers (USD for Global, INR for India)
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+              {plans.map((p) => (
+                <div
+                  key={p._id || p.planId}
+                  style={{
+                    background: '#0F172A',
+                    borderRadius: '10px',
+                    padding: '16px',
+                    border: p.isPopular ? '1px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.06)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#38BDF8' }}>{p.badge || 'Tier'}</span>
+                    <span style={{ fontSize: '0.68rem', color: p.isActive ? '#10B981' : '#64748B' }}>
+                      {p.isActive ? 'ACTIVE' : 'INACTIVE'}
+                    </span>
+                  </div>
+                  <h4 style={{ margin: '0 0 4px', fontSize: '1rem', color: '#F8FAFC' }}>{p.name}</h4>
+                  <div style={{ fontSize: '1.35rem', fontWeight: '900', color: '#FFFFFF', margin: '6px 0' }}>
+                    ${p.priceUSD?.monthly || 0} <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>/mo (₹{p.priceINR?.monthly || 0})</span>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginBottom: '10px' }}>{p.tagline}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.72rem', color: '#CBD5E1' }}>
+                    <div>• Leads Included: {p.limits?.leadsPerMonth || 500}/mo</div>
+                    <div>• Voice Minutes: {p.limits?.voiceMinutesPerMonth || 60}/mo</div>
+                    <div>• WhatsApp: {p.limits?.whatsappMessages || 1000}/mo</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tier-2 Global Regulatory Blacklist (Master DNC) */}
+          <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
+                  Tier-2 Global Regulatory Blacklist (Master DNC Isolation)
+                </h3>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Protected federal domains (e.g. @fbi.gov) and serial litigators blocked globally across ALL client accounts. Tier-1 opt-outs remain isolated per client workspace.
+                </div>
+              </div>
+            </div>
+
+            {/* Add DNC Form */}
+            <form onSubmit={handleAddDncSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Identifier (e.g. @fbi.gov, @gov.in, or +18005550199)"
+                value={newDncIdentifier}
+                onChange={(e) => setNewDncIdentifier(e.target.value)}
+                required
+                style={{
+                  flex: 1,
+                  minWidth: '220px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#F8FAFC',
+                  fontSize: '0.8rem',
+                }}
+              />
+              <select
+                value={newDncType}
+                onChange={(e) => setNewDncType(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#F8FAFC',
+                  fontSize: '0.8rem',
+                }}
+              >
+                <option value="DOMAIN">DOMAIN</option>
+                <option value="PHONE">PHONE</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Regulatory Reason (e.g. TCPA Serial Litigator / Federal Agency)"
+                value={newDncReason}
+                onChange={(e) => setNewDncReason(e.target.value)}
+                style={{
+                  flex: 1,
+                  minWidth: '220px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#F8FAFC',
+                  fontSize: '0.8rem',
+                }}
+              />
+              <button
+                type="submit"
+                disabled={savingDnc}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: '8px',
+                  background: '#0284C7',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontSize: '0.8rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                }}
+              >
+                {savingDnc ? 'Adding...' : '+ Blacklist'}
+              </button>
+            </form>
+
+            {/* List */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {globalDncList.length === 0 ? (
+                <div style={{ fontSize: '0.78rem', color: '#64748B' }}>
+                  No global regulatory blacklists added yet.
+                </div>
+              ) : (
+                globalDncList.map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      background: '#0F172A',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    <span style={{ color: '#EF4444', fontWeight: '800' }}>{item.identifier}</span>
+                    <span style={{ color: '#94A3B8' }}>({item.type})</span>
                     <button
-                      key={ech.id}
+                      onClick={() => handleRemoveDnc(item.identifier)}
+                      style={{ background: 'transparent', border: 'none', color: '#64748B', cursor: 'pointer', padding: '0 2px' }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Global Maintenance & Incident Broadcast Dispatcher */}
+          <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px' }}>
+            <div style={{ marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
+                Global Maintenance & Incident Broadcast Dispatcher
+              </h3>
+              <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                Pushes a sticky banner across all active client dashboards in real-time
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={announcementState.active}
+                    onChange={(e) => setAnnouncementState({ ...announcementState, active: e.target.checked })}
+                  />
+                  <span>Active Broadcast</span>
+                </label>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {['INFO', 'WARNING', 'MAINTENANCE'].map((sev) => (
+                    <button
+                      key={sev}
                       type="button"
-                      onClick={() => setRoleEchelonFilter(ech.id)}
+                      onClick={() => setAnnouncementState({ ...announcementState, severity: sev })}
                       style={{
                         padding: '4px 10px',
                         borderRadius: '6px',
-                        border: 'none',
-                        background: roleEchelonFilter === ech.id ? 'rgba(6, 182, 212, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                        color: roleEchelonFilter === ech.id ? '#38BDF8' : '#94A3B8',
-                        fontSize: '0.74rem',
+                        border: announcementState.severity === sev ? '1px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.08)',
+                        background: announcementState.severity === sev ? 'rgba(56, 189, 248, 0.15)' : '#0F172A',
+                        color: announcementState.severity === sev ? '#38BDF8' : '#94A3B8',
+                        fontSize: '0.72rem',
                         fontWeight: '700',
                         cursor: 'pointer',
                       }}
                     >
-                      {ech.label}
+                      {sev}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Roles Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
-                {employeeRoles
-                  .filter((r) => roleEchelonFilter === 'ALL' || r.echelon === roleEchelonFilter)
-                  .map((role) => (
-                    <div
-                      key={role.id}
-                      className="card"
-                      style={{
-                        padding: '18px',
-                        background: '#0D1527',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '12px',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>{role.echelon}</span>
-                          <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '700' }}>
-                            ⚡ {role.aiAgentMapping?.name} ({role.aiAgentMapping?.role})
-                          </span>
-                        </div>
-                        <h4 style={{ margin: '0 0 8px', fontSize: '0.95rem', fontWeight: '800', color: '#F8FAFC' }}>
-                          {role.title}
-                        </h4>
-                        <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginBottom: '10px' }}>
-                          <strong>Core Corporate Responsibilities:</strong>
-                          <ul style={{ margin: '4px 0 0', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            {(role.coreResponsibilities || []).map((resp, idx) => (
-                              <li key={idx}>{resp}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-
-                      <div style={{ background: 'rgba(6, 182, 212, 0.05)', padding: '8px 12px', borderRadius: '6px', fontSize: '0.72rem', color: '#38BDF8', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
-                        <strong>📈 Quantified Impact:</strong> {role.expectedImpact}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB: VISUAL AI, REEL VIDEO & VOICE STUDIO CREDENTIALS HUB */}
-      {/* ========================================================================= */}
-      {activeTab === 'visualTools' && platformConfig && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <span className="badge badge-purple" style={{ fontSize: '0.72rem' }}>
-                  VISUAL &amp; VOICE CREATIVE HUB
-                </span>
-                <span className="badge badge-cyan" style={{ fontSize: '0.72rem' }}>
-                  AVAILABLE TO ALL CLIENT ACCOUNTS
-                </span>
-              </div>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.45rem', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px' }}>
-                🎨 Generative Visual AI, Video Reels &amp; Voice Studio
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', maxWidth: '850px' }}>
-                Super Admin credential hub for Nano Banana GPU, Google Flow, Fal.ai, Pollinations, and Multi-Persona Voiceover Narration. Configured credentials cascade automatically to every client workspace with zero rate-limit crashes.
-              </p>
-            </div>
-
-            <button
-              onClick={handleSavePlatformConfig}
-              disabled={savingConfig}
-              className="btn-emerald"
-              style={{ padding: '10px 24px', fontWeight: '700', fontSize: '0.85rem' }}
-            >
-              {savingConfig ? 'Saving Settings...' : 'Save Visual & Voice Engine Settings'}
-            </button>
-          </div>
-
-          {/* Visual AI Engines Credentials Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-            {/* 1. Nano Banana Serverless GPU */}
-            <div className="card" style={{ padding: '20px', background: '#0D1527', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Zap size={18} color="#FBBF24" />
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Nano Banana / Serverless GPU</h4>
-                </div>
-                <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>SDXL Turbo</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                Ultra-fast serverless SDXL image inference pipeline for product ads and studio lighting.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <input
-                  type="text"
-                  placeholder="Banana API Key / Token"
-                  value={platformConfig.integrations?.nanoBananaGpu?.apiKey || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: {
-                      ...platformConfig.integrations,
-                      nanoBananaGpu: { ...platformConfig.integrations?.nanoBananaGpu, apiKey: e.target.value },
-                    },
-                  })}
-                  className="input-glass"
-                  style={{ height: '34px', fontSize: '0.78rem' }}
-                />
-                <select
-                  value={platformConfig.integrations?.nanoBananaGpu?.model || 'sdxl-turbo'}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: {
-                      ...platformConfig.integrations,
-                      nanoBananaGpu: { ...platformConfig.integrations?.nanoBananaGpu, model: e.target.value },
-                    },
-                  })}
-                  className="input-glass"
-                  style={{ height: '34px', fontSize: '0.78rem' }}
-                >
-                  <option value="sdxl-turbo">SDXL Turbo (High Velocity)</option>
-                  <option value="sdxl-lightning">SDXL Lightning (4-Step 8K)</option>
-                  <option value="banana-photoreal">Photoreal Studio Mode</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 2. Google Flow & Imagen 3 */}
-            <div className="card" style={{ padding: '20px', background: '#0D1527', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Globe size={18} color="#38BDF8" />
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Google Flow &amp; Imagen 3</h4>
-                </div>
-                <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>Imagen 3</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                Google's premier photorealistic vision model with rich typography and brand asset composition.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <input
-                  type="text"
-                  placeholder="Google Cloud / Gemini API Key"
-                  value={platformConfig.integrations?.googleFlowVision?.apiKey || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: {
-                      ...platformConfig.integrations,
-                      googleFlowVision: { ...platformConfig.integrations?.googleFlowVision, apiKey: e.target.value },
-                    },
-                  })}
-                  className="input-glass"
-                  style={{ height: '34px', fontSize: '0.78rem' }}
-                />
-                <select
-                  value={platformConfig.integrations?.googleFlowVision?.model || 'imagen-3'}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: {
-                      ...platformConfig.integrations,
-                      googleFlowVision: { ...platformConfig.integrations?.googleFlowVision, model: e.target.value },
-                    },
-                  })}
-                  className="input-glass"
-                  style={{ height: '34px', fontSize: '0.78rem' }}
-                >
-                  <option value="imagen-3">Imagen 3 Commercial Standard</option>
-                  <option value="imagen-3-fast">Imagen 3 Fast (Sub-2s)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 3. Fal.ai / Flux Pro */}
-            <div className="card" style={{ padding: '20px', background: '#0D1527', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Sparkles size={18} color="#A78BFA" />
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Fal.ai / Flux Pro Engine</h4>
-                </div>
-                <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>FLUX.1 Pro</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                Award-winning text-to-image engine delivering sharp commercial product ads and typography.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <input
-                  type="text"
-                  placeholder="Fal.ai Key (fal_key_...)"
-                  value={platformConfig.integrations?.falAiFlux?.apiKey || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: {
-                      ...platformConfig.integrations,
-                      falAiFlux: { ...platformConfig.integrations?.falAiFlux, apiKey: e.target.value },
-                    },
-                  })}
-                  className="input-glass"
-                  style={{ height: '34px', fontSize: '0.78rem' }}
-                />
-                <select
-                  value={platformConfig.integrations?.falAiFlux?.model || 'fal-ai/flux-pro'}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: {
-                      ...platformConfig.integrations,
-                      falAiFlux: { ...platformConfig.integrations?.falAiFlux, model: e.target.value },
-                    },
-                  })}
-                  className="input-glass"
-                  style={{ height: '34px', fontSize: '0.78rem' }}
-                >
-                  <option value="fal-ai/flux-pro">FLUX.1 Pro (Commercial Master)</option>
-                  <option value="fal-ai/flux-realism">FLUX Realism Studio</option>
-                  <option value="fal-ai/flux/schnell">FLUX Schnell (Instant Preview)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 4. Pollinations Neural & DALL-E 3 */}
-            <div className="card" style={{ padding: '20px', background: '#0D1527', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Palette size={18} color="#34D399" />
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F8FAFC' }}>Pollinations &amp; DALL-E 3</h4>
-                </div>
-                <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Auto-Rotated</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                Zero-cost neural engine mirror with automatic multi-node rotation preventing free limit exhaustion.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <select
-                  value={platformConfig.integrations?.pollinationsVisualAi?.defaultModel || 'flux'}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: {
-                      ...platformConfig.integrations,
-                      pollinationsVisualAi: { ...platformConfig.integrations?.pollinationsVisualAi, defaultModel: e.target.value },
-                    },
-                  })}
-                  className="input-glass"
-                  style={{ height: '34px', fontSize: '0.78rem' }}
-                >
-                  <option value="flux">FLUX Neural Engine (Default)</option>
-                  <option value="flux-realism">FLUX Realism / Octane Render</option>
-                  <option value="turbo">Turbo Speed (Sub-1s)</option>
-                </select>
-                <input
-                  type="text"
-                  placeholder="OpenAI API Key (Optional sk-...)"
-                  value={platformConfig.integrations?.dalleVisualAi?.apiKey || ''}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: {
-                      ...platformConfig.integrations,
-                      dalleVisualAi: { ...platformConfig.integrations?.dalleVisualAi, apiKey: e.target.value },
-                    },
-                  })}
-                  className="input-glass"
-                  style={{ height: '34px', fontSize: '0.78rem' }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Voice Narration & Studio Engine (Requirement 9) */}
-          <div className="card" style={{ padding: '24px', background: '#0D1527', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-              <div>
-                <h3 style={{ margin: '0 0 4px', fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', color: '#F8FAFC' }}>
-                  🎙️ Multi-Voice Studio Engine &amp; Audio Persona Switchboard
-                </h3>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94A3B8' }}>
-                  Multiple distinct voice personalities for phone closers, reels narration, and video ads. Preview any voice with 1 click.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.78rem', color: '#94A3B8' }}>Default Video Voice:</span>
-                <select
-                  value={platformConfig.integrations?.shortVideoEngine?.defaultVoiceId || 'maya'}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    integrations: {
-                      ...platformConfig.integrations,
-                      shortVideoEngine: { ...platformConfig.integrations?.shortVideoEngine, defaultVoiceId: e.target.value },
-                    },
-                  })}
-                  className="input-glass"
-                  style={{ height: '32px', fontSize: '0.78rem', minWidth: '130px' }}
-                >
-                  <option value="maya">Maya (US Female)</option>
-                  <option value="marcus">Marcus (US Male Baritone)</option>
-                  <option value="elena">Elena (UK Female)</option>
-                  <option value="david">David (UK Male)</option>
-                  <option value="priya">Priya (India Global Female)</option>
-                  <option value="mateo">Mateo (LatAm Male)</option>
-                  <option value="kenji">Kenji (Global Male)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Voices Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
-              {[
-                { id: 'maya', name: 'Maya Vance', gender: 'Female', accent: 'US', profile: 'Energetic, High-Conversion Female Closer' },
-                { id: 'marcus', name: 'Marcus Kane', gender: 'Male', accent: 'US Baritone', profile: 'Deep Baritone, Institutional Authority' },
-                { id: 'elena', name: 'Elena Rostova', gender: 'Female', accent: 'UK Executive', profile: 'Sharp, Sophisticated Executive Female' },
-                { id: 'david', name: 'David Sterling', gender: 'Male', accent: 'UK Founder', profile: 'Confident Tech Founder & Strategist' },
-                { id: 'priya', name: 'Priya Sharma', gender: 'Female', accent: 'India Global', profile: 'Fast, High-Energy Tech Executive' },
-                { id: 'mateo', name: 'Mateo Alvarez', gender: 'Male', accent: 'ES/LatAm', profile: 'Warm, Charismatic High-Energy Male' },
-                { id: 'kenji', name: 'Kenji Sato', gender: 'Male', accent: 'JP/Global', profile: 'Calm, Precision Quant Specialist' },
-              ].map((v) => {
-                const isPlaying = playingVoiceId === v.id;
-                return (
-                  <div
-                    key={v.id}
-                    style={{
-                      padding: '14px',
-                      borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: '10px',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#F8FAFC' }}>{v.name}</span>
-                        <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>{v.accent}</span>
-                      </div>
-                      <div style={{ fontSize: '0.73rem', color: '#94A3B8' }}>{v.profile}</div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handlePlayVoicePreview(v.id)}
-                      disabled={isPlaying}
-                      className="btn-secondary"
-                      style={{
-                        padding: '6px 12px',
-                        fontSize: '0.75rem',
-                        fontWeight: '700',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        background: isPlaying ? 'rgba(6, 182, 212, 0.3)' : 'rgba(255, 255, 255, 0.05)',
-                        borderColor: isPlaying ? '#06B6D4' : 'rgba(255, 255, 255, 0.1)',
-                      }}
-                    >
-                      <Radio size={13} className={isPlaying ? 'animate-pulse' : ''} />
-                      <span>{isPlaying ? 'Synthesizing Audio...' : '▶ Listen Voice Preview'}</span>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-      {activeTab === 'brainEvolution' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <span className="badge badge-purple" style={{ fontSize: '0.72rem' }}>
-                  PERPETUAL BUSINESS INTELLIGENCE
-                </span>
-                <span className="badge badge-cyan" style={{ fontSize: '0.72rem' }}>
-                  ROUNDS 1 → N • NEVER LOSES DATA
-                </span>
-              </div>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.45rem', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px' }}>
-                🧠 AI Compounding Brain &amp; Client Growth Flywheel
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', maxWidth: '850px' }}>
-                Every workspace compounds across multiple rounds: Round 1 (L1..L6), Round 2 (R1 + L1..L6), Round 3 (R1 + R2 + L1..L6)... Every question asked by leads or clients is answered using authentic business data and permanently indexed in the immutable QA Ledger.
-              </p>
-            </div>
-
-            <button
-              onClick={fetchBrainOverview}
-              disabled={loadingBrain}
-              className="btn-secondary"
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', fontSize: '0.825rem' }}
-            >
-              <RefreshCw size={15} className={loadingBrain ? 'animate-spin' : ''} />
-              <span>Refresh Brain Telemetry</span>
-            </button>
-          </div>
-
-          {/* Top KPI Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
-            <div className="card" style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#38BDF8', textTransform: 'uppercase', marginBottom: '8px' }}>
-                ACTIVE CLIENT BRAINS
-              </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
-                {brainOverview?.totalActiveBrains || workspaces.length}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '6px' }}>
-                Autonomous evolving memories
-              </div>
-            </div>
-
-            <div className="card" style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#C4B5FD', textTransform: 'uppercase', marginBottom: '8px' }}>
-                ROUNDS EVOLVED ACROSS PLATFORM
-              </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
-                Round {brainOverview?.totalRoundsExecuted || workspaces.length * 2}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '6px' }}>
-                Continuous training iterations
-              </div>
-            </div>
-
-            <div className="card" style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#34D399', textTransform: 'uppercase', marginBottom: '8px' }}>
-                LEARNED FACTS &amp; INSIGHTS
-              </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
-                {(brainOverview?.totalFactsLearned || 48).toLocaleString()}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '6px' }}>
-                Zero data loss guarantee
-              </div>
-            </div>
-
-            <div className="card" style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#FCD34D', textTransform: 'uppercase', marginBottom: '8px' }}>
-                QUESTIONS ANSWERED
-              </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
-                {(brainOverview?.totalQuestionsAnswered || 34).toLocaleString()}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '6px' }}>
-                Grounded via authentic business facts
-              </div>
-            </div>
-          </div>
-
-          {/* Evolution Flywheel Architecture Blueprint */}
-          <div className="card" style={{ padding: '22px', background: 'rgba(15, 23, 42, 0.75)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-              <Sparkles size={20} color="#06B6D4" />
-              <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC', margin: 0 }}>
-                Compounding Data Flywheel: Never-Stop Training Cycle
-              </h3>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-              <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#38BDF8', marginBottom: '6px' }}>
-                  ROUND 1 (FOUNDATION CYCLE)
-                </div>
-                <div style={{ fontSize: '0.78rem', color: '#CBD5E1', lineHeight: '1.6' }}>
-                  • <strong>Level 1:</strong> Crawl Website, Maps, IG, 60s Voice Brief<br />
-                  • <strong>Level 2:</strong> Level 1 + Lead Prospecting &amp; ICP<br />
-                  • <strong>Level 3:</strong> Level 1 + 2 + Omnichannel Outreach (WhatsApp, Email)<br />
-                  • <strong>Level 4:</strong> Level 1 + 2 + 3 + Voice AI Closer Maya<br />
-                  • <strong>Level 5:</strong> Level 1 + 2 + 3 + 4 + 5 (Social Studio &amp; Paid Ads)<br />
-                  • <strong>Level 6:</strong> Level 1 + 2 + 3 + 4 + 5 + 6 (Demo Appointments &amp; Revenue)
-                </div>
-              </div>
-
-              <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#C4B5FD', marginBottom: '6px' }}>
-                  ROUND 2 (COMPOUNDED ACCELERATION)
-                </div>
-                <div style={{ fontSize: '0.78rem', color: '#CBD5E1', lineHeight: '1.6' }}>
-                  • <strong>Level 1:</strong> R1 Brain Memory + Updated Briefs<br />
-                  • <strong>Level 2:</strong> R1 + L1 + L2 (Verified decision maker feedback)<br />
-                  • <strong>Level 3:</strong> R1 + L1 + L2 + L3 (Past FAQ Ledger + New Chats)<br />
-                  • <strong>Level 4:</strong> R1 + L1 + L2 + L3 + L4 (Maya call learnings &amp; objections)<br />
-                  • <strong>Level 5:</strong> R1 + L1 + 2 + 3 + 4 + 5 (Winning ROAS creative angles)<br />
-                  • <strong>Level 6:</strong> R1 + L1 + 2 + 3 + 4 + 5 + 6 (Closed customer retention)
-                </div>
-              </div>
-
-              <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#34D399', marginBottom: '6px' }}>
-                  ROUND 3+ (PERPETUAL EXPERT BRAIN)
-                </div>
-                <div style={{ fontSize: '0.78rem', color: '#CBD5E1', lineHeight: '1.6' }}>
-                  • <strong>Level 1:</strong> (R1 + R2) + New Product Lines<br />
-                  • <strong>Level 2:</strong> (R1 + R2) + New Territories (Multi-city expansion)<br />
-                  • <strong>Level 3..6:</strong> Cumulative synthesis across all past rounds.<br />
-                  • <strong>Core Guarantee:</strong> System never misses any data, objection, or question. It continually trains itself for each business.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Interactive Business Brain Q&A Simulator (Test answering using real business data) */}
-          <div className="card" style={{ padding: '22px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(6, 182, 212, 0.35)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MessageSquare size={18} color="#06B6D4" />
-                  <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC', margin: 0 }}>
-                    Live Lead Question &amp; Business Brain Grounding Tester
-                  </h3>
-                </div>
-                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#94A3B8' }}>
-                  Simulate any question asked by a lead to verify the AI answers appropriately using authentic business data and permanently stores it into the QA Ledger.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '600' }}>Select Workspace:</span>
-                <select
-                  value={selectedBrainWorkspace}
-                  onChange={(e) => setSelectedBrainWorkspace(e.target.value)}
-                  className="input-glass"
-                  style={{ height: '36px', fontSize: '0.8rem', padding: '0 12px' }}
-                >
-                  {workspaces.map((ws) => (
-                    <option key={ws._id} value={ws._id}>
-                      {ws.name} ({ws.industry || 'B2B'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
-              <input
-                type="text"
-                value={testQuestion}
-                onChange={(e) => setTestQuestion(e.target.value)}
-                placeholder="Ask any question (e.g. 'What is your core value proposition and pricing tier?')"
-                className="input-glass"
-                style={{ flex: 1, minWidth: '320px', height: '42px', fontSize: '0.85rem' }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAskTestQuestion();
+              <textarea
+                value={announcementState.message}
+                onChange={(e) => setAnnouncementState({ ...announcementState, message: e.target.value })}
+                placeholder="e.g. Scheduled Twilio carrier maintenance tonight at 02:00 UTC. Outbound voice calling will pause for 15 minutes."
+                rows={2}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#F8FAFC',
+                  fontSize: '0.82rem',
+                  boxSizing: 'border-box',
                 }}
               />
-              <button
-                type="button"
-                onClick={handleAskTestQuestion}
-                disabled={askingBrain || !testQuestion.trim()}
-                className="btn-primary"
-                style={{ height: '42px', padding: '0 20px', fontSize: '0.825rem' }}
-              >
-                {askingBrain ? (
-                  <>
-                    <RefreshCw size={14} className="animate-spin" /> Grounding with Business Brain...
-                  </>
-                ) : (
-                  <>
-                    <Zap size={14} /> Ask Business Brain (Test Grounded AI)
-                  </>
-                )}
-              </button>
-            </div>
 
-            {testAnswerResult && (
-              <div style={{
-                padding: '16px',
-                borderRadius: '10px',
-                background: 'rgba(6, 182, 212, 0.08)',
-                border: '1px solid rgba(6, 182, 212, 0.35)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#38BDF8' }}>
-                    ✅ VERIFIED GROUNDED ANSWER FROM {testAnswerResult.businessName?.toUpperCase()} BRAIN (ROUND {testAnswerResult.round || 1})
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: '#34D399', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
-                    Confidence: {Math.round((testAnswerResult.confidenceScore || 0.95) * 100)}% • Recorded to QA Ledger
-                  </span>
-                </div>
-                <div style={{ fontSize: '0.875rem', color: '#F8FAFC', lineHeight: '1.6' }}>
-                  "{testAnswerResult.answer}"
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={handleSaveAnnouncement}
+                  disabled={savingAnnouncement}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '8px',
+                    background: '#0284C7',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {savingAnnouncement ? 'Broadcasting...' : 'Broadcast Announcement'}
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Registered Workspaces Evolution Matrix Table */}
-          <div className="card" style={{ padding: '20px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          {/* Tamper-Evident Admin Security Audit Log */}
+          <div style={{ background: '#1E293B', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC', margin: 0 }}>
-                  Client Businesses Evolution Matrix
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
+                  Tamper-Evident Admin Security Audit Log
                 </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#94A3B8' }}>
-                  Autonomous learning status, accumulated rounds, active levels, and training evolution controls for all client workspaces.
-                </p>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Chronological, immutable ledger of all super admin actions (rate updates, wallet credits, kill switches)
+                </div>
               </div>
+
+              {/* Action Filter */}
+              <select
+                value={auditFilter}
+                onChange={(e) => setAuditFilter(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#F8FAFC',
+                  fontSize: '0.75rem',
+                }}
+              >
+                <option value="ALL">All Actions</option>
+                <option value="WALLET_CREDITED">WALLET_CREDITED</option>
+                <option value="CIRCUIT_BREAKER_TRIGGERED">CIRCUIT_BREAKER_TRIGGERED</option>
+                <option value="RATE_UPDATED">RATE_UPDATED</option>
+                <option value="INTEGRATION_KEY_UPDATED">INTEGRATION_KEY_UPDATED</option>
+                <option value="GLOBAL_DNC_ADDED">GLOBAL_DNC_ADDED</option>
+                <option value="ANNOUNCEMENT_BROADCAST">ANNOUNCEMENT_BROADCAST</option>
+                <option value="SUPPORT_TICKET_RESOLVED">SUPPORT_TICKET_RESOLVED</option>
+              </select>
             </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', textAlign: 'left', color: '#94A3B8' }}>
-                    <th style={{ padding: '10px 12px' }}>Business Workspace</th>
-                    <th style={{ padding: '10px 12px' }}>Evolution Round</th>
-                    <th style={{ padding: '10px 12px' }}>Compounding Stages</th>
-                    <th style={{ padding: '10px 12px' }}>Learned Facts</th>
-                    <th style={{ padding: '10px 12px' }}>Questions Answered</th>
-                    <th style={{ padding: '10px 12px' }}>Accuracy</th>
-                    <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(brainOverview?.clientsEvolution && brainOverview.clientsEvolution.length > 0
-                    ? brainOverview.clientsEvolution
-                    : workspaces.map((w, idx) => ({
-                        workspaceId: w._id,
-                        businessName: w.name,
-                        currentRound: 1,
-                        activeLevels: 'L1 + L2 + L3 + L4 + L5 + L6',
-                        totalFacts: 14 + idx * 5,
-                        questionsAnswered: 8 + idx * 4,
-                        accuracyScore: 98.8,
-                      }))
-                  ).map((client) => (
-                    <tr
-                      key={client.workspaceId}
-                      style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', transition: 'background 0.15s' }}
-                    >
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ fontWeight: '700', color: '#F8FAFC' }}>{client.businessName}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#64748B' }}>ID: {client.workspaceId}</div>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span className="badge badge-purple" style={{ fontSize: '0.72rem', fontWeight: '800' }}>
-                          Round {client.currentRound || 1}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ color: '#38BDF8', fontSize: '0.75rem', fontWeight: '600' }}>
-                          L1 + L2 + L3 + L4 + L5 + L6
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ color: '#34D399', fontWeight: '700' }}>
-                          {(client.totalFacts || 14).toLocaleString()} facts
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ color: '#FCD34D', fontWeight: '700' }}>
-                          {(client.questionsAnswered || 8).toLocaleString()} Q&amp;As
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ color: '#C4B5FD', fontWeight: '700' }}>
-                          {client.accuracyScore || 98.5}%
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'right' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleAdvanceRound(client.workspaceId)}
-                          disabled={advancingRoundId === client.workspaceId}
-                          className="btn-cyan"
-                          style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: '700' }}
-                        >
-                          {advancingRoundId === client.workspaceId ? (
-                            'Advancing...'
-                          ) : (
-                            <>
-                              <TrendingUp size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                              Advance to Round {(client.currentRound || 1) + 1}
-                            </>
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 4: ACTIVE BUSINESS WORKSPACES & ACTUAL FEATURES */}
-      {/* ========================================================================= */}
-      {activeTab === 'tenants' && (
-        <div>
-          {/* Header & Subtitle */}
-          <div style={{ marginBottom: '20px' }}>
-            <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.35rem', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px' }}>
-              Active Business Workspaces & Actual Features
-            </h2>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8' }}>
-              Inspect and configure actual features, operating modes, AI C-Suite staff, and live pipeline metrics for every registered business workspace.
-            </p>
-          </div>
-
-          {/* KPI Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px', marginBottom: '22px' }}>
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-              <div style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase' }}>Total Active Tenants</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#38BDF8', marginTop: '4px' }}>{workspaces.length}</div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Registered business workspaces</div>
-            </div>
-
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-              <div style={{ fontSize: '0.725rem', color: '#A7F3D0', fontWeight: '600', textTransform: 'uppercase' }}>Autonomous AI Companies</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#34D399', marginTop: '4px' }}>
-                {workspaces.filter((w) => w.operatingMode === 'AI_COMPANY').length}
+            {filteredAuditLogs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: '#64748B', fontSize: '0.8rem' }}>
+                No audit entries found.
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Running full AI C-Suite staff</div>
-            </div>
-
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
-              <div style={{ fontSize: '0.725rem', color: '#BAE6FD', fontWeight: '600', textTransform: 'uppercase' }}>AI Starter Engine</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#06B6D4', marginTop: '4px' }}>
-                {workspaces.filter((w) => w.operatingMode !== 'AI_COMPANY').length}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Using dialer, scraper &amp; inbox</div>
-            </div>
-
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
-              <div style={{ fontSize: '0.725rem', color: '#DDD6FE', fontWeight: '600', textTransform: 'uppercase' }}>Active AI Employees</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#A78BFA', marginTop: '4px' }}>
-                {workspaces.reduce((acc, w) => acc + (w.hiredAgents ? w.hiredAgents.filter(a => a.active).length : (w.operatingMode === 'AI_COMPANY' ? 6 : 0)), 0)}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Deployed 24/7 autonomous agents</div>
-            </div>
-
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-              <div style={{ fontSize: '0.725rem', color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase' }}>Total Leads in CRM</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#F8FAFC', marginTop: '4px' }}>
-                {workspaces.reduce((acc, w) => acc + (w.leadCount || 0), 0).toLocaleString()}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Active contacts across all CRMs</div>
-            </div>
-
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
-              <div style={{ fontSize: '0.725rem', color: '#38BDF8', fontWeight: '600', textTransform: 'uppercase' }}>AI Leads Scraped</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#38BDF8', marginTop: '4px' }}>
-                {workspaces.reduce((acc, w) => acc + (w.scrapedLeadsCount || 0), 0).toLocaleString()}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Harvested by multi-source scraper</div>
-            </div>
-
-            <div className="card" style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-              <div style={{ fontSize: '0.725rem', color: '#34D399', fontWeight: '600', textTransform: 'uppercase' }}>Platform Paid Revenue</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#34D399', marginTop: '4px' }}>
-                {isINR
-                  ? `₹${Math.round(workspaces.reduce((acc, w) => acc + (w.totalPaidUSD || 0), 0) * exchangeRate).toLocaleString('en-IN')}`
-                  : `$${workspaces.reduce((acc, w) => acc + (w.totalPaidUSD || 0), 0).toFixed(2)}`}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Total client wallet top-ups</div>
-            </div>
-          </div>
-
-          {/* Search & Filter Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '280px' }}>
-              <input
-                type="text"
-                placeholder="Search business name, domain, or slug..."
-                value={workspaceSearch}
-                onChange={(e) => setWorkspaceSearch(e.target.value)}
-                className="input-glass"
-                style={{ height: '36px', fontSize: '0.8125rem', maxWidth: '320px' }}
-              />
-              <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', padding: '2px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                {[
-                  { id: 'ALL', label: 'All Tenants' },
-                  { id: 'AI_COMPANY', label: 'Autonomous AI' },
-                  { id: 'TOOL', label: 'AI Starter' },
-                ].map((tf) => (
-                  <button
-                    key={tf.id}
-                    onClick={() => setWorkspaceTypeFilter(tf.id)}
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '350px', overflowY: 'auto' }}>
+                {filteredAuditLogs.map((log) => (
+                  <div
+                    key={log._id}
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background: workspaceTypeFilter === tf.id ? 'rgba(6, 182, 212, 0.25)' : 'transparent',
-                      color: workspaceTypeFilter === tf.id ? '#38BDF8' : '#94A3B8',
+                      background: '#0F172A',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.04)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
                       fontSize: '0.75rem',
-                      fontWeight: '700',
-                      cursor: 'pointer',
                     }}
                   >
-                    {tf.label}
-                  </button>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                        <span style={{ fontWeight: '800', color: '#38BDF8' }}>{log.actionType}</span>
+                        <span style={{ color: '#94A3B8' }}>•</span>
+                        <span style={{ color: '#E2E8F0' }}>{log.adminEmail}</span>
+                        {log.targetWorkspaceName && (
+                          <>
+                            <span style={{ color: '#94A3B8' }}>→</span>
+                            <span style={{ color: '#FCD34D' }}>{log.targetWorkspaceName}</span>
+                          </>
+                        )}
+                      </div>
+                      <div style={{ color: '#94A3B8' }}>{log.details}</div>
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748B' }}>
+                      {new Date(log.createdAt).toLocaleString()}
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
-
-            <button
-              onClick={() => onRefreshWorkspaces && onRefreshWorkspaces()}
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '8px',
-                padding: '6px 14px',
-                color: '#94A3B8',
-                fontSize: '0.775rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <RefreshCw size={14} />
-              <span>Refresh Tenant Workspaces</span>
-            </button>
-          </div>
-
-          {/* Workspaces Master Table */}
-          <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', background: 'rgba(255, 255, 255, 0.02)', textAlign: 'left', color: '#64748B' }}>
-                    <th style={{ padding: '12px 18px' }}>BUSINESS WORKSPACE</th>
-                    <th style={{ padding: '12px 14px' }}>TYPE &amp; INDUSTRY</th>
-                    <th style={{ padding: '12px 14px' }}>MODE &amp; SUBSCRIPTION PLAN</th>
-                    <th style={{ padding: '12px 14px' }}>ACTIVE AI C-SUITE STAFF</th>
-                    <th style={{ padding: '12px 14px' }}>SCRAPED / CRM LEADS</th>
-                    <th style={{ padding: '12px 14px' }}>FINANCIALS (PAID / SPENT / WALLET)</th>
-                    <th style={{ padding: '12px 18px', textAlign: 'right' }}>ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {workspaces
-                    .filter((ws) => {
-                      if (workspaceSearch) {
-                        const q = workspaceSearch.toLowerCase();
-                        const matchName = ws.name?.toLowerCase().includes(q);
-                        const matchDomain = ws.domain?.toLowerCase().includes(q);
-                        const matchSlug = ws.slug?.toLowerCase().includes(q);
-                        if (!matchName && !matchDomain && !matchSlug) return false;
-                      }
-                      if (workspaceTypeFilter === 'AI_COMPANY') return ws.operatingMode === 'AI_COMPANY';
-                      if (workspaceTypeFilter === 'TOOL') return ws.operatingMode !== 'AI_COMPANY';
-                      return true;
-                    })
-                    .map((ws) => {
-                      const isAi = ws.operatingMode === 'AI_COMPANY';
-                      const hiredList = ws.hiredAgents || [];
-
-                      return (
-                        <tr key={ws._id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                          {/* Business Workspace */}
-                          <td style={{ padding: '14px 18px', fontWeight: '700', color: '#F8FAFC' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <div style={{
-                                width: '34px',
-                                height: '34px',
-                                borderRadius: '8px',
-                                background: isAi ? 'rgba(16, 185, 129, 0.2)' : 'rgba(6, 182, 212, 0.2)',
-                                border: isAi ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(6, 182, 212, 0.4)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: isAi ? '#34D399' : '#38BDF8',
-                                fontSize: '0.85rem',
-                                fontWeight: '800',
-                              }}>
-                                {ws.name ? ws.name.substring(0, 1).toUpperCase() : 'W'}
-                              </div>
-                              <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10B981' }} />
-                                  <span>{ws.name}</span>
-                                </div>
-                                <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>
-                                  {ws.domain ? ws.domain : `slug: ${ws.slug}`}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Type & Industry */}
-                          <td style={{ padding: '14px 14px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              <span className="badge badge-gray" style={{ fontSize: '0.675rem' }}>
-                                {ws.industry || 'B2B'}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Mode & Subscription Plan */}
-                          <td style={{ padding: '14px 14px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              <span className={`badge ${isAi ? 'badge-emerald' : 'badge-cyan'}`} style={{ fontSize: '0.675rem' }}>
-                                {isAi ? '⚡ Autonomous AI Co.' : '⚡ AI Starter Engine'}
-                              </span>
-                              <span style={{ fontSize: '0.7rem', color: '#CBD5E1', fontWeight: '600' }}>
-                                {ws.subscription?.planTier ? ws.subscription.planTier.replace(/_/g, ' ') : (isAi ? 'AI STARTER ($249/mo)' : 'AI STARTER ($49/mo)')}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Active AI C-Suite Staff */}
-                          <td style={{ padding: '14px 14px' }}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '240px' }}>
-                              {['CMO', 'SDR', 'VOICE_CLOSER', 'CFO', 'CUSTOMER_SUCCESS', 'CEO'].map((role) => {
-                                const isHired = isAi || hiredList.some((a) => a.agentRole === role && a.active);
-                                const shortLabel = role === 'VOICE_CLOSER' ? 'Closer' : role === 'CUSTOMER_SUCCESS' ? 'CS' : role;
-                                return (
-                                  <span
-                                    key={role}
-                                    style={{
-                                      fontSize: '0.65rem',
-                                      padding: '2px 6px',
-                                      borderRadius: '4px',
-                                      fontWeight: '700',
-                                      background: isHired ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                                      color: isHired ? '#34D399' : '#475569',
-                                      border: isHired ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
-                                    }}
-                                  >
-                                    {shortLabel} {isHired ? '✓' : '—'}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          </td>
-
-                          {/* Scraped / CRM Leads */}
-                          <td style={{ padding: '14px 14px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <span className="badge badge-cyan" style={{ fontSize: '0.675rem', padding: '2px 7px' }}>
-                                  🔍 {ws.scrapedLeadsCount || 0} scraped
-                                </span>
-                              </div>
-                              <div style={{ fontSize: '0.725rem', color: '#94A3B8' }}>
-                                {(ws.leadCount || 0).toLocaleString()} in CRM
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Financials (Paid / Spent / Wallet) */}
-                          <td style={{ padding: '14px 14px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                              <div style={{ fontSize: '0.725rem', color: '#10B981', fontWeight: '700' }}>
-                                Paid: {isINR ? `₹${Math.round((ws.totalPaidUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : `$${(ws.totalPaidUSD || 0).toFixed(2)}`}
-                              </div>
-                              <div style={{ fontSize: '0.7rem', color: '#F59E0B', fontWeight: '600' }}>
-                                Spent: {isINR ? `₹${Math.round((ws.totalSpentUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : `$${(ws.totalSpentUSD || 0).toFixed(2)}`}
-                              </div>
-                              <div style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '600' }}>
-                                Bal: {isINR ? `₹${Math.round((ws.walletBalanceUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : `$${(ws.walletBalanceUSD || 0).toFixed(2)}`}
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Actions */}
-                          <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                              <button
-                                onClick={() => {
-                                  if (onInspectWorkspace) onInspectWorkspace(ws);
-                                  else if (onSwitchWorkspace) onSwitchWorkspace(ws);
-                                }}
-                                className="btn-secondary"
-                                style={{
-                                  padding: '5px 10px',
-                                  fontSize: '0.725rem',
-                                  background: 'rgba(139, 92, 246, 0.15)',
-                                  border: '1px solid rgba(139, 92, 246, 0.35)',
-                                  color: '#C084FC',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  fontWeight: '700',
-                                }}
-                                title="Inspect this client account with full Universal AI Creative Director, SWOT, and Omnichannel capabilities"
-                              >
-                                <Sparkles size={12} color="#C084FC" />
-                                <span>AI Creative &amp; SWOT</span>
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  if (onInspectWorkspace) onInspectWorkspace(ws);
-                                  else if (onSwitchWorkspace) onSwitchWorkspace(ws);
-                                }}
-                                className="btn-primary"
-                                style={{ padding: '5px 12px', fontSize: '0.725rem', display: 'flex', alignItems: 'center', gap: '5px' }}
-                                title="Open and preview workspace as its owner"
-                              >
-                                <span>Inspect View</span>
-                              </button>
-
-                              <button
-                                onClick={() => handleOpenManageModal(ws)}
-                                className="btn-secondary"
-                                style={{ padding: '5px 10px', fontSize: '0.725rem' }}
-                                title="Configure operating mode, features, and wallet credits"
-                              >
-                                Configure
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
+            )}
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 5: VISUAL AI, CANVA & GOOGLE FLOW TOOLS (SUPER ADMIN CONTROL) */}
+      {/* MODAL: STANDALONE WALLET CREDIT INJECTOR                                  */}
       {/* ========================================================================= */}
-      {activeTab === 'visualTools' && platformConfig && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-          {/* Header Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-            <div>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: '800', margin: '0 0 4px', color: '#F8FAFC' }}>
-                🎨 Master Visual AI, Canva Connect & Google Flow Tools
-              </h2>
-              <p style={{ margin: 0, fontSize: '0.825rem', color: '#94A3B8' }}>
-                Super Admin Master Control: Test live connections, manage API credentials, open provider login consoles, and use the unified creative studio on the spot.
-              </p>
-            </div>
-
-            <button
-              onClick={handleSavePlatformConfig}
-              disabled={savingConfig}
-              className="btn-emerald"
-              style={{ padding: '9px 22px', fontWeight: '700', fontSize: '0.825rem' }}
-            >
-              {savingConfig ? 'Saving Settings...' : 'Save Visual Tool Settings'}
-            </button>
-          </div>
-
-          {/* Section 1: Live Interactive Creative Studio (Admin Generator) */}
-          <div className="card" style={{ padding: '24px', background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
-            <div style={{ marginBottom: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={18} color="#06B6D4" />
-                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
-                  Live Creative Studio Sandbox (Direct Use & Generation)
-                </h3>
-              </div>
-              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#94A3B8' }}>
-                Generate Pitch Decks, AI Ad Creatives, Canva Designs, and GTM Pipeline Flowcharts directly in the Super Admin dashboard.
-              </p>
-            </div>
-
-            <VisualCreativeStudio isSuperAdmin={true} />
-          </div>
-
-          {/* Section 2: Visual Providers Credentials & Quick Login Hub */}
-          <div>
-            <div style={{ marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.2rem', fontWeight: '800', margin: '0 0 4px', color: '#F8FAFC' }}>
-                🛠️ Visual Toolchain Configurations & Direct Provider Login Links
-              </h3>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: '#94A3B8' }}>
-                Configure credentials, verify live connectivity, and access developer portals for each visual representation tool.
-              </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
-              {/* Tool 1: Pollinations FLUX.1 (Free AI Images) */}
-              <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Sparkles size={18} color="#06B6D4" />
-                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Pollinations FLUX.1 Visual AI</h4>
-                  </div>
-                  <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>Free &amp; Unlimited</span>
-                </div>
-                <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                  Open-source FLUX.1 high-resolution image engine. Zero-cost, zero API key required, commercial rights included.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Default Image Model</label>
-                    <select
-                      value={platformConfig.pollinationsVisualAi?.defaultModel || 'flux'}
-                      onChange={(e) => setPlatformConfig({
-                        ...platformConfig,
-                        pollinationsVisualAi: { ...platformConfig.pollinationsVisualAi, defaultModel: e.target.value },
-                      })}
-                      className="input-glass"
-                      style={{ height: '34px', fontSize: '0.78rem' }}
-                    >
-                      <option value="flux">FLUX.1 Schnell (Fast &amp; High Detail)</option>
-                      <option value="flux-realism">FLUX Photorealism (Ad Creatives)</option>
-                      <option value="turbo">SDXL Turbo (Ultra-Fast)</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                    <input
-                      type="checkbox"
-                      id="enableHd"
-                      checked={platformConfig.pollinationsVisualAi?.enableHd !== false}
-                      onChange={(e) => setPlatformConfig({
-                        ...platformConfig,
-                        pollinationsVisualAi: { ...platformConfig.pollinationsVisualAi, enableHd: e.target.checked },
-                      })}
-                    />
-                    <label htmlFor="enableHd" style={{ fontSize: '0.75rem', color: '#CBD5E1', cursor: 'pointer' }}>
-                      Enable 8K HD Upscaling on all prompts
-                    </label>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <a
-                    href="https://pollinations.ai"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-secondary"
-                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', textDecoration: 'none' }}
-                  >
-                    <span>Pollinations Docs</span>
-                    <ExternalLink size={12} />
-                  </a>
-                  <button
-                    onClick={() => handleTestPing('pollinationsVisualAi')}
-                    className="btn-secondary"
-                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem' }}
-                  >
-                    {pingStatus.pollinationsVisualAi?.loading ? 'Testing...' : 'Ping Test'}
-                  </button>
-                </div>
-                {pingStatus.pollinationsVisualAi?.message && (
-                  <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '8px' }}>{pingStatus.pollinationsVisualAi.message}</div>
-                )}
-              </div>
-
-              {/* Tool 2: Autonomous PowerPoint (.PPTX) Presentation Engine */}
-              <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Presentation size={18} color="#06B6D4" />
-                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>PowerPoint (.PPTX) Engine</h4>
-                  </div>
-                  <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>Active / Built-in</span>
-                </div>
-                <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                  Autonomous Microsoft PowerPoint compiler. Synthesizes crawled strategy, ICP matrix, value prop, channels, and 30-day roadmap into 16:9 executive pitch decks.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '700' }}>SLIDE COMPILER ENGINE</div>
-                    <div style={{ fontSize: '0.8rem', color: '#CBD5E1', marginTop: '2px' }}>pptxgenjs • 16:9 Widescreen • Dark Obsidian Layout</div>
-                  </div>
-                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '700' }}>OUTPUT FORMATS</div>
-                    <div style={{ fontSize: '0.8rem', color: '#CBD5E1', marginTop: '2px' }}>Direct .pptx File Download, In-Dashboard Presenter, .HTML Deck</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <button
-                    onClick={() => handleTestPing('pptxEngine')}
-                    className="btn-secondary"
-                    style={{ width: '100%', padding: '7px', fontSize: '0.75rem' }}
-                  >
-                    {pingStatus.pptxEngine?.loading ? 'Verifying Compiler...' : 'Ping Test PPTX Engine'}
-                  </button>
-                </div>
-                {pingStatus.pptxEngine?.message && (
-                  <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '8px' }}>{pingStatus.pptxEngine.message}</div>
-                )}
-              </div>
-
-              {/* Tool 3: Google Flow AI & Google Slides Workspace */}
-              <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Layers size={18} color="#FBBF24" />
-                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Google Flow AI &amp; Slides</h4>
-                  </div>
-                  <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>Workspace Cloud</span>
-                </div>
-                <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                  Google Slides presentation automation &amp; strategy flowchart sync for enterprise decks.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                  <input
-                    type="text"
-                    placeholder="OAuth Client ID (.apps.googleusercontent.com)"
-                    value={platformConfig.googleFlowWorkspace?.clientId || ''}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      googleFlowWorkspace: { ...platformConfig.googleFlowWorkspace, clientId: e.target.value },
-                    })}
-                    className="input-glass"
-                    style={{ height: '34px', fontSize: '0.78rem' }}
-                  />
-                  <input
-                    type="password"
-                    placeholder="Google Cloud API Key"
-                    value={platformConfig.googleFlowWorkspace?.apiKey || ''}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      googleFlowWorkspace: { ...platformConfig.googleFlowWorkspace, apiKey: e.target.value },
-                    })}
-                    className="input-glass"
-                    style={{ height: '34px', fontSize: '0.78rem' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Default Google Slides Master Template ID (optional)"
-                    value={platformConfig.googleFlowWorkspace?.defaultTemplateId || ''}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      googleFlowWorkspace: { ...platformConfig.googleFlowWorkspace, defaultTemplateId: e.target.value },
-                    })}
-                    className="input-glass"
-                    style={{ height: '34px', fontSize: '0.78rem' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <a
-                    href="https://console.cloud.google.com"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-secondary"
-                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', textDecoration: 'none' }}
-                  >
-                    <span>Google Cloud</span>
-                    <ExternalLink size={12} />
-                  </a>
-                  <a
-                    href="https://slides.google.com"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-secondary"
-                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', textDecoration: 'none' }}
-                  >
-                    <span>Google Slides</span>
-                    <ExternalLink size={12} />
-                  </a>
-                  <button
-                    onClick={() => handleTestPing('googleFlowWorkspace')}
-                    className="btn-secondary"
-                    style={{ padding: '7px 12px', fontSize: '0.75rem' }}
-                  >
-                    {pingStatus.googleFlowWorkspace?.loading ? '...' : 'Ping'}
-                  </button>
-                </div>
-                {pingStatus.googleFlowWorkspace?.message && (
-                  <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '8px' }}>{pingStatus.googleFlowWorkspace.message}</div>
-                )}
-              </div>
-
-              {/* Tool 4: OpenAI DALL-E 3 Visual Engine */}
-              <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Cpu size={18} color="#A78BFA" />
-                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>OpenAI DALL-E 3 Engine</h4>
-                  </div>
-                  <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>Photorealistic</span>
-                </div>
-                <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                  Secondary high-precision visual engine for hyper-targeted product mockups and advertising.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                  <input
-                    type="password"
-                    placeholder="OpenAI API Key (sk-...)"
-                    value={platformConfig.dalleVisualAi?.apiKey || ''}
-                    onChange={(e) => setPlatformConfig({
-                      ...platformConfig,
-                      dalleVisualAi: { ...platformConfig.dalleVisualAi, apiKey: e.target.value },
-                    })}
-                    className="input-glass"
-                    style={{ height: '34px', fontSize: '0.78rem' }}
-                  />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Model</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value="dall-e-3"
-                        className="input-glass"
-                        style={{ height: '34px', fontSize: '0.78rem', opacity: 0.8 }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Quality</label>
-                      <select
-                        value={platformConfig.dalleVisualAi?.quality || 'standard'}
-                        onChange={(e) => setPlatformConfig({
-                          ...platformConfig,
-                          dalleVisualAi: { ...platformConfig.dalleVisualAi, quality: e.target.value },
-                        })}
-                        className="input-glass"
-                        style={{ height: '34px', fontSize: '0.78rem' }}
-                      >
-                        <option value="standard">Standard Quality</option>
-                        <option value="hd">HD Ultra Definition</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <a
-                    href="https://platform.openai.com/api-keys"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-secondary"
-                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', textDecoration: 'none' }}
-                  >
-                    <span>OpenAI Keys</span>
-                    <ExternalLink size={12} />
-                  </a>
-                  <button
-                    onClick={() => handleTestPing('dalleVisualAi')}
-                    className="btn-secondary"
-                    style={{ flex: 1, padding: '7px', fontSize: '0.75rem' }}
-                  >
-                    {pingStatus.dalleVisualAi?.loading ? 'Testing...' : 'Ping Test'}
-                  </button>
-                </div>
-                {pingStatus.dalleVisualAi?.message && (
-                  <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '8px' }}>{pingStatus.dalleVisualAi.message}</div>
-                )}
-              </div>
-
-              {/* Tool 5: Vertical Short Video Reel Engine */}
-              <div className="card" style={{ padding: '22px', background: '#0D1527' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Radio size={18} color="#EC4899" />
-                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', color: '#F8FAFC' }}>Vertical Video Reel Engine</h4>
-                  </div>
-                  <span className="badge badge-pink" style={{ fontSize: '0.65rem' }}>9:16 Shorts/Reels</span>
-                </div>
-                <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px' }}>
-                  Programmatic short video engine powering Ava Vance CMO social reels and TikTok/IG marketing.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '3px' }}>Default B-Roll Preset</label>
-                    <select
-                      value={platformConfig.shortVideoEngine?.defaultPreset || 'modern_fintech'}
-                      onChange={(e) => setPlatformConfig({
-                        ...platformConfig,
-                        shortVideoEngine: { ...platformConfig.shortVideoEngine, defaultPreset: e.target.value },
-                      })}
-                      className="input-glass"
-                      style={{ height: '34px', fontSize: '0.78rem' }}
-                    >
-                      <option value="modern_fintech">Modern Fintech &amp; Web3 Cyber</option>
-                      <option value="saas_dark">SaaS Dark Obsidian Minimal</option>
-                      <option value="neon_agency">Neon Agency Kinetic Flow</option>
-                      <option value="minimal_clean">Clean Corporate &amp; Healthcare</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                    <input
-                      type="checkbox"
-                      id="videoWatermark"
-                      checked={platformConfig.shortVideoEngine?.includeWatermark !== false}
-                      onChange={(e) => setPlatformConfig({
-                        ...platformConfig,
-                        shortVideoEngine: { ...platformConfig.shortVideoEngine, includeWatermark: e.target.checked },
-                      })}
-                    />
-                    <label htmlFor="videoWatermark" style={{ fontSize: '0.75rem', color: '#CBD5E1', cursor: 'pointer' }}>
-                      Include VYUHOX Branding watermark on free tier
-                    </label>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <button
-                    onClick={() => handleTestPing('shortVideoEngine')}
-                    className="btn-secondary"
-                    style={{ width: '100%', padding: '7px', fontSize: '0.75rem' }}
-                  >
-                    {pingStatus.shortVideoEngine?.loading ? 'Pinging Reel Engine...' : 'Ping Test Connection'}
-                  </button>
-                </div>
-                {pingStatus.shortVideoEngine?.message && (
-                  <div style={{ fontSize: '0.7rem', color: '#34D399', marginTop: '8px' }}>{pingStatus.shortVideoEngine.message}</div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Client Workspace Feature Governance & Access Controls */}
-          <div className="card" style={{ padding: '24px', background: '#0D1527', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <div style={{ marginBottom: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ShieldCheck size={18} color="#10B981" />
-                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
-                  🛡️ Client Access Governance &amp; Usage Limits
-                </h3>
-              </div>
-              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#94A3B8' }}>
-                Specify which visual generation tools are available to client workspaces and configure monthly AI creation limits.
-              </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={platformConfig.visualToolsGovernance?.enableAiImageGen !== false}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    visualToolsGovernance: { ...platformConfig.visualToolsGovernance, enableAiImageGen: e.target.checked },
-                  })}
-                />
-                <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>AI Image Generator</div>
-                  <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Allow clients to create FLUX.1 images</div>
-                </div>
-              </label>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={platformConfig.visualToolsGovernance?.enablePptxForClients !== false}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    visualToolsGovernance: { ...platformConfig.visualToolsGovernance, enablePptxForClients: e.target.checked },
-                  })}
-                />
-                <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>PowerPoint (.PPTX) Download</div>
-                  <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Allow clients to download full Microsoft PowerPoint presentations</div>
-                </div>
-              </label>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={platformConfig.visualToolsGovernance?.enablePitchDecksForClients !== false}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    visualToolsGovernance: { ...platformConfig.visualToolsGovernance, enablePitchDecksForClients: e.target.checked },
-                  })}
-                />
-                <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>GTM Pitch Decks</div>
-                  <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Generate 6-slide executive PPT decks</div>
-                </div>
-              </label>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.03)', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={platformConfig.visualToolsGovernance?.enableVideoReelsForClients !== false}
-                  onChange={(e) => setPlatformConfig({
-                    ...platformConfig,
-                    visualToolsGovernance: { ...platformConfig.visualToolsGovernance, enableVideoReelsForClients: e.target.checked },
-                  })}
-                />
-                <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F8FAFC' }}>Short Video Reels</div>
-                  <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Render 9:16 vertical reels for social ads</div>
-                </div>
-              </label>
-            </div>
-
-            <div style={{ marginTop: '16px', maxWidth: '320px' }}>
-              <label style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>
-                Monthly AI Image Generations Quota per Workspace
-              </label>
-              <input
-                type="number"
-                value={platformConfig.visualToolsGovernance?.maxAiImagesPerWorkspaceMonthly || 250}
-                onChange={(e) => setPlatformConfig({
-                  ...platformConfig,
-                  visualToolsGovernance: { ...platformConfig.visualToolsGovernance, maxAiImagesPerWorkspaceMonthly: parseInt(e.target.value, 10) || 0 },
-                })}
-                className="input-glass"
-                style={{ height: '36px', fontSize: '0.825rem' }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: CONFIGURE WORKSPACE FEATURES & PLAN */}
-      {managingWorkspace && manageForm && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(3, 7, 18, 0.88)',
-          backdropFilter: 'blur(10px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 300,
-          padding: '20px',
-        }}>
-          <div className="card" style={{ width: '100%', maxWidth: '580px', background: '#0B1120', padding: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
+      {injectModalOpen && injectTargetWs && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+          }}
+        >
+          <div
+            style={{
+              background: '#0F172A',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '420px',
+              maxWidth: '90vw',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9)',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <div>
-                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', margin: '0 0 4px', color: '#F8FAFC' }}>
-                  Configure Workspace Features: {managingWorkspace.name}
-                </h3>
-                <p style={{ fontSize: '0.78rem', color: '#94A3B8', margin: 0 }}>
-                  Adjust operating mode, assign subscription plan, toggle AI employees, or grant courtesy usage credits.
-                </p>
-              </div>
-              <button onClick={() => setManagingWorkspace(null)} style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: '1.2rem' }}>
-                ✕
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#F59E0B' }}>
+                Inject Wallet Credit
+              </h3>
+              <button
+                onClick={() => setInjectModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+              >
+                <X size={18} />
               </button>
             </div>
 
-            {/* Financial & Scraped Leads Audit */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '10px',
-              padding: '12px 14px',
-              borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              marginBottom: '16px',
-            }}>
-              <div>
-                <span style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>Paid to Us</span>
-                <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#10B981', marginTop: '2px' }}>
-                  {isINR ? `₹${Math.round((managingWorkspace.totalPaidUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : `$${(managingWorkspace.totalPaidUSD || 0).toFixed(2)}`}
-                </div>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>Platform Spent</span>
-                <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#F59E0B', marginTop: '2px' }}>
-                  {isINR ? `₹${Math.round((managingWorkspace.totalSpentUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : `$${(managingWorkspace.totalSpentUSD || 0).toFixed(2)}`}
-                </div>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.68rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>Leads Scraped</span>
-                <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#38BDF8', marginTop: '2px' }}>
-                  {managingWorkspace.scrapedLeadsCount || 0}
-                </div>
-              </div>
-            </div>
+            <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: '#94A3B8' }}>
+              Credit funds directly into <strong>{injectTargetWs.name}</strong>. Logged immediately into the security audit trail.
+            </p>
 
-            {/* Recent Scrape & Usage Deductions */}
-            {managingWorkspace.recentTransactions && managingWorkspace.recentTransactions.length > 0 && (
-              <div style={{ marginBottom: '16px' }}>
-                <span style={{ fontSize: '0.72rem', color: '#CBD5E1', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
-                  Recent Transactions & Scrape Deductions
-                </span>
-                <div style={{ maxHeight: '110px', overflowY: 'auto', background: 'rgba(0,0,0,0.25)', borderRadius: '8px', padding: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  {managingWorkspace.recentTransactions.map((tx, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 8px', fontSize: '0.725rem', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <span style={{ color: '#E2E8F0' }}>{tx.description || tx.type}</span>
-                      <span style={{ color: tx.type === 'CREDIT' ? '#34D399' : '#F43F5E', fontWeight: '700' }}>
-                        {tx.type === 'CREDIT' ? '+' : '-'}${Math.abs(tx.amountUSD || 0).toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleSaveManageWorkspace} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Operating Mode Selector */}
+            <form onSubmit={handleInjectCreditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
-                  Operating Mode
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#CBD5E1', marginBottom: '4px' }}>
+                  Amount in USD ($)
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const updatedAgents = manageForm.hiredAgents.map((a) => ({ ...a, active: false }));
-                      setManageForm({ ...manageForm, operatingMode: 'TOOL', planTier: 'TOOL_MODE', hiredAgents: updatedAgents });
-                    }}
-                    style={{
-                      padding: '12px',
-                      borderRadius: '8px',
-                      border: manageForm.operatingMode === 'TOOL' ? '2px solid #06B6D4' : '1px solid rgba(255, 255, 255, 0.1)',
-                      background: manageForm.operatingMode === 'TOOL' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                      color: manageForm.operatingMode === 'TOOL' ? '#38BDF8' : '#94A3B8',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <div style={{ fontWeight: '700', fontSize: '0.825rem' }}>⚡ AI Starter Engine</div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>Autonomous scraper, omnichannel AI drafter &amp; CRM ($49/mo).</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const updatedAgents = manageForm.hiredAgents.map((a) => ({ ...a, active: true }));
-                      setManageForm({ ...manageForm, operatingMode: 'AI_COMPANY', planTier: 'AI_COMPANY_STARTER', hiredAgents: updatedAgents });
-                    }}
-                    style={{
-                      padding: '12px',
-                      borderRadius: '8px',
-                      border: manageForm.operatingMode === 'AI_COMPANY' ? '2px solid #10B981' : '1px solid rgba(255, 255, 255, 0.1)',
-                      background: manageForm.operatingMode === 'AI_COMPANY' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                      color: manageForm.operatingMode === 'AI_COMPANY' ? '#34D399' : '#94A3B8',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <div style={{ fontWeight: '700', fontSize: '0.825rem' }}>⚡ Autonomous AI Company</div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>All 6 AI C-Suite agents run GTM 24/7 autonomously ($249 - $599/mo).</div>
-                  </button>
-                </div>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.50"
+                  placeholder="e.g. 50.00"
+                  value={injectAmount}
+                  onChange={(e) => setInjectAmount(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: '#1E293B',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#F8FAFC',
+                    fontSize: '0.85rem',
+                    boxSizing: 'border-box',
+                  }}
+                />
               </div>
 
-              {/* Plan Tier Selector */}
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
-                  Assigned Subscription Plan Tier
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#CBD5E1', marginBottom: '4px' }}>
+                  Reason & Notes
                 </label>
-                <select
-                  value={manageForm.planTier}
-                  onChange={(e) => setManageForm({ ...manageForm, planTier: e.target.value })}
-                  className="input-glass"
-                  style={{ height: '36px', fontSize: '0.825rem' }}
-                >
-                  <option value="TOOL_MODE">AI Starter Core ($49/mo | ₹3,999/mo)</option>
-                  <option value="MODULAR_AI">AI SDR Accelerator ($99/mo | ₹7,999/mo)</option>
-                  <option value="AI_COMPANY">Autonomous AI Company ($499/mo | ₹39,999/mo)</option>
-                  <option value="ENTERPRISE">Autonomous Enterprise Suite ($1,499/mo | ₹1,19,999/mo)</option>
-                  <option value="CUSTOM">Custom Enterprise Contract</option>
-                </select>
+                <input
+                  type="text"
+                  placeholder="e.g. Pilot trial boost / Carrier downtime compensation"
+                  value={injectReason}
+                  onChange={(e) => setInjectReason(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    background: '#1E293B',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#F8FAFC',
+                    fontSize: '0.82rem',
+                    boxSizing: 'border-box',
+                  }}
+                />
               </div>
 
-              {/* AI C-Suite Employees Roster & Toggles */}
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
-                  Active AI C-Suite Employees
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  {manageForm.hiredAgents.map((agent, idx) => {
-                    return (
-                      <div
-                        key={agent.agentRole}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: agent.active ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.06)',
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontSize: '0.775rem', fontWeight: '700', color: agent.active ? '#34D399' : '#94A3B8' }}>
-                            {agent.agentRole}: {agent.name || agent.agentRole}
-                          </div>
-                          <div style={{ fontSize: '0.675rem', color: '#64748B' }}>${agent.monthlyCost}/mo</div>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={agent.active}
-                          onChange={(e) => {
-                            const updated = [...manageForm.hiredAgents];
-                            updated[idx] = { ...updated[idx], active: e.target.checked };
-                            setManageForm({ ...manageForm, hiredAgents: updated });
-                          }}
-                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Courtesy Credit Grant */}
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#CBD5E1', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
-                  Grant Courtesy Usage Credits ($ USD)
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Enter amount (e.g. 50)"
-                    value={manageForm.addCreditsUSD || ''}
-                    onChange={(e) => setManageForm({ ...manageForm, addCreditsUSD: parseFloat(e.target.value) || 0 })}
-                    className="input-glass"
-                    style={{ height: '36px', fontSize: '0.825rem' }}
-                  />
-                  <span style={{ fontSize: '0.75rem', color: '#94A3B8', whiteSpace: 'nowrap' }}>
-                    {isINR ? `≈ ₹${Math.round((manageForm.addCreditsUSD || 0) * exchangeRate).toLocaleString('en-IN')}` : ''}
-                  </span>
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '4px' }}>
-                  Directly adds carrier balance for Twilio calling, WhatsApp messaging, and lead enrichment.
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
                 <button
                   type="button"
-                  onClick={() => setManagingWorkspace(null)}
-                  className="btn-secondary"
-                  disabled={savingManage}
+                  onClick={() => setInjectModalOpen(false)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    background: '#1E293B',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#94A3B8',
+                    fontSize: '0.82rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary"
-                  style={{ padding: '8px 20px' }}
-                  disabled={savingManage}
+                  disabled={injectingCredit || !injectAmount}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                    border: 'none',
+                    color: '#0F172A',
+                    fontSize: '0.82rem',
+                    fontWeight: '800',
+                    cursor: injectingCredit ? 'not-allowed' : 'pointer',
+                  }}
                 >
-                  {savingManage ? 'Saving...' : 'Save Workspace Features'}
+                  {injectingCredit ? 'Injecting...' : 'Confirm Injection'}
                 </button>
               </div>
             </form>
@@ -4287,129 +2144,140 @@ export default function SuperAdminDashboard({
         </div>
       )}
 
-      {/* MODAL: ADD NEW PRICING TIER */}
-      {isNewPlanModalOpen && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(3, 7, 18, 0.88)',
-          backdropFilter: 'blur(10px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 300,
-          padding: '20px',
-        }}>
-          <div className="card" style={{ width: '100%', maxWidth: '540px', background: '#0B1120', padding: '24px' }}>
-            <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', margin: '0 0 6px', color: '#F8FAFC' }}>
-              Create New Platform Pricing Tier
-            </h3>
-            <p style={{ fontSize: '0.78rem', color: '#94A3B8', margin: '0 0 18px' }}>
-              Define a new subscription package and assign it to a specific target country or global audience.
-            </p>
-
-            <form onSubmit={handleCreatePlanSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Plan ID (Unique)</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. INDIA_STARTUP_PLUS"
-                    value={newPlanData.planId}
-                    onChange={(e) => setNewPlanData({ ...newPlanData, planId: e.target.value.toUpperCase() })}
-                    className="input-glass"
-                    style={{ height: '36px', fontSize: '0.825rem' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Target Region / Country</label>
-                  <select
-                    value={newPlanData.targetRegion}
-                    onChange={(e) => setNewPlanData({ ...newPlanData, targetRegion: e.target.value })}
-                    className="input-glass"
-                    style={{ height: '36px', fontSize: '0.825rem' }}
-                  >
-                    <option value="ALL">All Countries / Universal</option>
-                    <option value="INDIA_ONLY">🇮🇳 India Only (Visible in INR)</option>
-                    <option value="GLOBAL_ONLY">🌐 International Only (Visible in USD)</option>
-                  </select>
+      {/* ========================================================================= */}
+      {/* MODAL: TICKET RESOLUTION & COMPENSATION                                   */}
+      {/* ========================================================================= */}
+      {selectedTicket && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+          }}
+        >
+          <div
+            style={{
+              background: '#0F172A',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '480px',
+              maxWidth: '92vw',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
+                  Resolve Support Ticket #{selectedTicket.ticketNumber}
+                </h3>
+                <div style={{ fontSize: '0.72rem', color: '#38BDF8' }}>
+                  {selectedTicket.workspaceName} • {selectedTicket.userEmail}
                 </div>
               </div>
+              <button
+                onClick={() => setSelectedTicket(null)}
+                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
 
+            <div style={{ background: '#1E293B', padding: '12px', borderRadius: '8px', fontSize: '0.78rem', color: '#CBD5E1', marginBottom: '14px' }}>
+              <div style={{ fontWeight: '700', color: '#F8FAFC', marginBottom: '4px' }}>{selectedTicket.subject}</div>
+              <div>{selectedTicket.message}</div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Plan Display Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. India High-Growth AI Suite"
-                  value={newPlanData.name}
-                  onChange={(e) => setNewPlanData({ ...newPlanData, name: e.target.value })}
-                  className="input-glass"
-                  style={{ height: '36px', fontSize: '0.825rem' }}
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#CBD5E1', marginBottom: '4px' }}>
+                  Admin Resolution Notes
+                </label>
+                <textarea
+                  value={ticketResolutionNote}
+                  onChange={(e) => setTicketResolutionNote(e.target.value)}
+                  placeholder="Explain resolution (e.g. Network route cleared, dialer verified, compensation credited)"
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    background: '#1E293B',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#F8FAFC',
+                    fontSize: '0.8rem',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Tagline Description</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#CBD5E1', marginBottom: '4px' }}>
+                  Optional Wallet Compensation ($ USD)
+                </label>
                 <input
-                  type="text"
-                  placeholder="e.g. Optimized for Indian founders scaling regional outbound."
-                  value={newPlanData.tagline}
-                  onChange={(e) => setNewPlanData({ ...newPlanData, tagline: e.target.value })}
-                  className="input-glass"
-                  style={{ height: '36px', fontSize: '0.825rem' }}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={ticketCreditAmount}
+                  onChange={(e) => setTicketCreditAmount(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    background: '#1E293B',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#F8FAFC',
+                    fontSize: '0.8rem',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
 
-              {/* Pricing inputs */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Price USD ($/mo)</label>
-                  <input
-                    type="number"
-                    required
-                    value={newPlanData.priceUSD.monthly}
-                    onChange={(e) => setNewPlanData({
-                      ...newPlanData,
-                      priceUSD: {
-                        monthly: parseFloat(e.target.value) || 0,
-                        annualMonthly: Math.round((parseFloat(e.target.value) || 0) * 0.8),
-                      },
-                    })}
-                    className="input-glass"
-                    style={{ height: '36px', fontSize: '0.825rem' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.725rem', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Price INR (₹/mo)</label>
-                  <input
-                    type="number"
-                    required
-                    value={newPlanData.priceINR.monthly}
-                    onChange={(e) => setNewPlanData({
-                      ...newPlanData,
-                      priceINR: {
-                        monthly: parseFloat(e.target.value) || 0,
-                        annualMonthly: Math.round((parseFloat(e.target.value) || 0) * 0.8),
-                      },
-                    })}
-                    className="input-glass"
-                    style={{ height: '36px', fontSize: '0.825rem' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
-                <button type="button" onClick={() => setIsNewPlanModalOpen(false)} className="btn-secondary">
-                  Cancel
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleResolveTicketSubmit('IN_REVIEW')}
+                  disabled={resolvingTicket}
+                  style={{
+                    flex: 1,
+                    padding: '9px',
+                    borderRadius: '8px',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    color: '#F59E0B',
+                    fontSize: '0.78rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Mark In Review
                 </button>
-                <button type="submit" className="btn-primary" style={{ padding: '8px 18px' }}>
-                  Create Plan Tier
+                <button
+                  type="button"
+                  onClick={() => handleResolveTicketSubmit('RESOLVED')}
+                  disabled={resolvingTicket}
+                  style={{
+                    flex: 1,
+                    padding: '9px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    fontSize: '0.78rem',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {resolvingTicket ? 'Saving...' : 'Resolve Ticket'}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

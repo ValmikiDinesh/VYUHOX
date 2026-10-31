@@ -69,6 +69,23 @@ const platformConfigSchema = new mongoose.Schema(
         model: { type: String, default: 'deepseek-chat' },
         isActive: { type: Boolean, default: true },
       },
+      geminiMaster: {
+        apiKey: { type: String, default: 'AIzaSyVyuhoxGeminiMaster_2026' },
+        model: { type: String, default: 'gemini-1.5-pro' },
+        isActive: { type: Boolean, default: true },
+      },
+      apollo: {
+        apiKey: { type: String, default: 'sk_live_apollo_vyuhox_prod' },
+        isActive: { type: Boolean, default: true },
+      },
+      outscraper: {
+        apiKey: { type: String, default: 'outscraper_prod_key_771' },
+        isActive: { type: Boolean, default: true },
+      },
+      hunter: {
+        apiKey: { type: String, default: 'hunter_live_api_8829' },
+        isActive: { type: Boolean, default: true },
+      },
 
       // Visual Representation & Creative Tools (Canva, Google Flow, FLUX)
       canvaConnect: {
@@ -182,6 +199,37 @@ const platformConfigSchema = new mongoose.Schema(
         suggestedVoicePerMinuteINR: { type: Number, default: 29.0 },
         marginAchievedPercent: { type: Number, default: 85 },
       },
+    },
+
+    // Master Emergency Circuit Breaker (Global Kill-Switch & Throttling)
+    circuitBreakers: {
+      pauseAllVoice: { type: Boolean, default: false },
+      pauseAllScraping: { type: Boolean, default: false },
+      pauseAllEmail: { type: Boolean, default: false },
+      hourlyRateLimitPerWorkspace: { type: Number, default: 250 },
+      reason: { type: String, default: '' },
+      triggeredBy: { type: String, default: '' },
+      triggeredAt: { type: Date, default: null },
+    },
+
+    // Tier-2 Global Regulatory Blacklist (Federal / High-Risk / TCPA Litigators)
+    globalDncList: [
+      {
+        identifier: { type: String, required: true },
+        type: { type: String, enum: ['DOMAIN', 'PHONE'], default: 'DOMAIN' },
+        reason: { type: String, default: 'Federal / Regulatory Compliance' },
+        addedBy: { type: String, default: 'SUPER_ADMIN' },
+        addedAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    // Global Maintenance & Incident Broadcast Dispatcher
+    globalAnnouncement: {
+      active: { type: Boolean, default: false },
+      message: { type: String, default: '' },
+      severity: { type: String, enum: ['INFO', 'WARNING', 'MAINTENANCE'], default: 'INFO' },
+      updatedAt: { type: Date, default: Date.now },
+      updatedBy: { type: String, default: 'SUPER_ADMIN' },
     },
   },
   { timestamps: true }
