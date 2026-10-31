@@ -55,7 +55,7 @@ export default function TopBar({
     <header
       style={{
         height: '48px',
-        background: 'rgba(255, 255, 255, 0.92)',
+        background: 'rgba(8, 11, 18, 0.85)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderBottom: 'var(--border-hairline)',
@@ -73,8 +73,8 @@ export default function TopBar({
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
           <span style={{ color: '#64748B', fontWeight: '500' }}>VYUHOX</span>
-          <span style={{ color: '#CBD5E1' }}>/</span>
-          <span style={{ color: '#0F172A', fontWeight: '700' }}>
+          <span style={{ color: '#334155' }}>/</span>
+          <span style={{ color: '#F8FAFC', fontWeight: '700' }}>
             {activeWorkspace?.name || 'Workspace'}
           </span>
           <span
@@ -83,9 +83,9 @@ export default function TopBar({
               fontWeight: '700',
               padding: '1px 6px',
               borderRadius: '9999px',
-              background: '#E0F2FE',
-              color: '#0284C7',
-              border: '1px solid #BAE6FD',
+              background: 'rgba(56, 189, 248, 0.1)',
+              color: '#38BDF8',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
               marginLeft: '4px',
             }}
           >
@@ -102,10 +102,10 @@ export default function TopBar({
             gap: '5px',
             padding: '2px 8px',
             borderRadius: '9999px',
-            background: '#ECFDF5',
-            border: '1px solid #A7F3D0',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
             fontSize: '0.68rem',
-            color: '#059669',
+            color: '#10B981',
             fontWeight: '600',
           }}
         >
@@ -126,8 +126,8 @@ export default function TopBar({
           gap: '8px',
           width: '320px',
           height: '30px',
-          background: '#F8FAFC',
-          border: '1px solid #E2E8F0',
+          background: 'rgba(255, 255, 255, 0.04)',
+          border: 'var(--border-hairline)',
           borderRadius: '8px',
           padding: '0 10px',
           cursor: 'pointer',
@@ -136,12 +136,12 @@ export default function TopBar({
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#FFFFFF';
-          e.currentTarget.style.borderColor = '#CBD5E1';
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.07)';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.14)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#F8FAFC';
-          e.currentTarget.style.borderColor = '#E2E8F0';
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
         }}
       >
         <Search size={14} style={{ color: '#64748B' }} />
@@ -151,10 +151,9 @@ export default function TopBar({
             fontSize: '0.65rem',
             padding: '1px 5px',
             borderRadius: '4px',
-            background: '#F1F5F9',
-            color: '#475569',
+            background: 'rgba(255, 255, 255, 0.08)',
+            color: '#94A3B8',
             fontFamily: 'monospace',
-            border: '1px solid #E2E8F0',
           }}
         >
           ⌘K
@@ -168,9 +167,9 @@ export default function TopBar({
           <div
             style={{
               display: 'flex',
-              background: '#F1F5F9',
+              background: 'rgba(255, 255, 255, 0.04)',
               borderRadius: '6px',
-              border: '1px solid #E2E8F0',
+              border: 'var(--border-hairline)',
               padding: '1px',
             }}
           >
@@ -178,9 +177,8 @@ export default function TopBar({
               onClick={() => onToggleCurrency('USD')}
               style={{
                 border: 'none',
-                background: !isINR ? '#FFFFFF' : 'transparent',
-                color: !isINR ? '#0284C7' : '#64748B',
-                boxShadow: !isINR ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                background: !isINR ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                color: !isINR ? '#38BDF8' : '#64748B',
                 borderRadius: '5px',
                 padding: '2px 7px',
                 fontSize: '0.68rem',
@@ -194,9 +192,8 @@ export default function TopBar({
               onClick={() => onToggleCurrency('INR')}
               style={{
                 border: 'none',
-                background: isINR ? '#FFFFFF' : 'transparent',
-                color: isINR ? '#D97706' : '#64748B',
-                boxShadow: isINR ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                background: isINR ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+                color: isINR ? '#FBBF24' : '#64748B',
                 borderRadius: '5px',
                 padding: '2px 7px',
                 fontSize: '0.68rem',
@@ -219,20 +216,20 @@ export default function TopBar({
             gap: '6px',
             padding: '4px 10px',
             borderRadius: '6px',
-            background: '#ECFDF5',
-            border: '1px solid #A7F3D0',
-            color: '#059669',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            color: '#10B981',
             fontSize: '0.75rem',
             fontWeight: '700',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#D1FAE5')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '#ECFDF5')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)')}
         >
           <CreditCard size={12} />
           <span className="tabular-nums">{formattedBalance}</span>
-          <span style={{ fontSize: '0.65rem', color: '#047857', opacity: 0.9 }}>+ Add</span>
+          <span style={{ fontSize: '0.65rem', color: '#34D399', opacity: 0.8 }}>+ Add</span>
         </button>
 
         {/* 1-Click Fast Action */}
@@ -270,7 +267,7 @@ export default function TopBar({
                 width: '26px',
                 height: '26px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                background: 'linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -291,16 +288,16 @@ export default function TopBar({
                 right: 0,
                 top: 'calc(100% + 8px)',
                 width: '220px',
-                background: '#FFFFFF',
-                border: '1px solid #E2E8F0',
-                boxShadow: 'var(--shadow-lg)',
+                background: '#0B0F19',
+                border: 'var(--border-hairline)',
+                boxShadow: 'var(--specular-top-elevated), 0 20px 40px rgba(0,0,0,0.7)',
                 borderRadius: '10px',
                 padding: '6px',
                 zIndex: 100,
               }}
             >
-              <div style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#0F172A' }}>
+              <div style={{ padding: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#FFFFFF' }}>
                   {currentUser?.name || 'Founder'}
                 </div>
                 <div style={{ fontSize: '0.68rem', color: '#64748B' }}>
@@ -323,15 +320,15 @@ export default function TopBar({
                     background: 'transparent',
                     border: 'none',
                     borderRadius: '6px',
-                    color: '#475569',
+                    color: '#94A3B8',
                     fontSize: '0.75rem',
                     cursor: 'pointer',
                     textAlign: 'left',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <Bot size={13} color="#0284C7" />
+                  <Bot size={13} />
                   <span>Toggle Operating Mode</span>
                 </button>
 
@@ -349,15 +346,15 @@ export default function TopBar({
                     background: 'transparent',
                     border: 'none',
                     borderRadius: '6px',
-                    color: '#475569',
+                    color: '#94A3B8',
                     fontSize: '0.75rem',
                     cursor: 'pointer',
                     textAlign: 'left',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <ExternalLink size={13} color="#64748B" />
+                  <ExternalLink size={13} />
                   <span>View Public Marketing Site</span>
                 </button>
 
@@ -375,16 +372,16 @@ export default function TopBar({
                     background: 'transparent',
                     border: 'none',
                     borderRadius: '6px',
-                    color: '#DC2626',
+                    color: '#EF4444',
                     fontSize: '0.75rem',
                     fontWeight: '600',
                     cursor: 'pointer',
                     textAlign: 'left',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#FEF2F2')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.1)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <LogOut size={13} color="#DC2626" />
+                  <LogOut size={13} />
                   <span>Sign Out</span>
                 </button>
               </div>

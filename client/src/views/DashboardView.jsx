@@ -136,10 +136,9 @@ export default function DashboardView({
         position: 'relative',
         overflow: 'hidden',
         background: isAiMode
-          ? 'linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 60%, #E0F2FE 100%)'
-          : 'linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 60%, #ECFDF5 100%)',
-        border: isAiMode ? '1px solid #A7F3D0' : '1px solid #BAE6FD',
-        boxShadow: 'var(--shadow-md)',
+          ? 'linear-gradient(135deg, rgba(11, 17, 32, 0.95) 0%, rgba(15, 23, 42, 0.85) 60%, rgba(16, 185, 129, 0.12) 100%)'
+          : 'linear-gradient(135deg, rgba(11, 17, 32, 0.95) 0%, rgba(15, 23, 42, 0.85) 60%, rgba(6, 182, 212, 0.1) 100%)',
+        border: isAiMode ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(6, 182, 212, 0.25)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -190,7 +189,7 @@ export default function DashboardView({
             gap: '12px',
             marginTop: '20px',
             paddingTop: '16px',
-            borderTop: '1px solid #E2E8F0',
+            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
             flexWrap: 'wrap',
           }}>
             {[
@@ -205,7 +204,7 @@ export default function DashboardView({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  background: '#F8FAFC',
+                  background: 'rgba(255, 255, 255, 0.04)',
                   padding: '6px 12px',
                   borderRadius: '8px',
                   border: '1px solid rgba(16, 185, 129, 0.2)',
@@ -213,7 +212,7 @@ export default function DashboardView({
                 }}
               >
                 <span className="live-dot" style={{ background: '#10B981', width: '6px', height: '6px' }} />
-                <strong style={{ color: '#0F172A' }}>{agent.role}:</strong>
+                <strong style={{ color: '#F8FAFC' }}>{agent.role}:</strong>
                 <span style={{ color: '#94A3B8' }}>{agent.task}</span>
               </div>
             ))}
@@ -252,7 +251,7 @@ export default function DashboardView({
                 fontSize: '1.85rem',
                 fontWeight: '800',
                 letterSpacing: '-0.02em',
-                color: '#0F172A',
+                color: '#F8FAFC',
                 marginBottom: '6px',
               }}>
                 {kpi.value}
@@ -306,17 +305,17 @@ export default function DashboardView({
                   <div
                     key={stage.key}
                     style={{
-                      background: '#F8FAFC',
+                      background: 'rgba(255, 255, 255, 0.03)',
                       borderRadius: '10px',
                       padding: '12px 14px',
-                      border: '1px solid #E2E8F0',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                       <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: stage.color }} />
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{stage.label}</span>
                     </div>
-                    <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.35rem', fontWeight: '700', color: '#0F172A' }}>
+                    <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.35rem', fontWeight: '700', color: '#F8FAFC' }}>
                       {count}
                     </div>
                   </div>
@@ -351,8 +350,8 @@ export default function DashboardView({
                     justifyContent: 'space-between',
                     padding: '12px 14px',
                     borderRadius: '10px',
-                    background: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -371,7 +370,7 @@ export default function DashboardView({
                       {lead.name.substring(0, 1)}
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#0F172A' }}>
+                      <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#F8FAFC' }}>
                         {lead.name}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
@@ -424,8 +423,8 @@ export default function DashboardView({
                     gap: '12px',
                     padding: '12px',
                     borderRadius: '10px',
-                    background: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
                   }}
                 >
                   <div style={{
@@ -442,7 +441,7 @@ export default function DashboardView({
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#0F172A' }}>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#F8FAFC' }}>
                         {item.title}
                       </span>
                       <span style={{ fontSize: '0.675rem', color: 'var(--text-dim)' }}>{item.time}</span>
@@ -460,7 +459,7 @@ export default function DashboardView({
           <div style={{
             marginTop: '16px',
             paddingTop: '16px',
-            borderTop: '1px solid #E2E8F0',
+            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',

@@ -100,9 +100,9 @@ export default function LeadsView({
                 style={{
                   padding: '6px 14px',
                   borderRadius: '8px',
-                  border: isSelected ? '1px solid #0284C7' : '1px solid #E2E8F0',
-                  background: isSelected ? '#F0F9FF' : '#FFFFFF',
-                  color: isSelected ? '#0284C7' : '#64748B',
+                  border: isSelected ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid transparent',
+                  background: isSelected ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                  color: isSelected ? '#38BDF8' : '#94A3B8',
                   fontSize: '0.8125rem',
                   fontWeight: isSelected ? '600' : '500',
                   cursor: 'pointer',
@@ -153,8 +153,8 @@ export default function LeadsView({
                   fontSize: '0.75rem',
                   cursor: 'pointer',
                   border: 'none',
-                  background: activeSourceFilter === src ? '#F1F5F9' : 'transparent',
-                  color: activeSourceFilter === src ? '#0F172A' : '#64748B',
+                  background: activeSourceFilter === src ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                  color: activeSourceFilter === src ? '#F8FAFC' : '#94A3B8',
                   fontWeight: activeSourceFilter === src ? '600' : '400',
                 }}
               >
@@ -171,9 +171,9 @@ export default function LeadsView({
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
             <thead>
               <tr style={{
-                background: '#F8FAFC',
-                borderBottom: '1px solid #E2E8F0',
-                color: '#475569',
+                background: 'rgba(255, 255, 255, 0.02)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                color: 'var(--text-dim)',
                 textTransform: 'uppercase',
                 fontSize: '0.7rem',
                 letterSpacing: '0.05em',
@@ -199,10 +199,10 @@ export default function LeadsView({
                   <tr
                     key={lead._id}
                     style={{
-                      borderBottom: '1px solid #F1F5F9',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
                       transition: 'background 0.15s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     {/* Contact Info */}
@@ -222,14 +222,14 @@ export default function LeadsView({
                           {lead.name.substring(0, 1)}
                         </div>
                         <div>
-                          <div style={{ fontWeight: '600', color: '#0F172A' }}>{lead.name}</div>
+                          <div style={{ fontWeight: '600', color: '#F8FAFC' }}>{lead.name}</div>
                           <div style={{ fontSize: '0.725rem', color: 'var(--text-dim)' }}>{lead.title || 'Executive'}</div>
                         </div>
                       </div>
                     </td>
 
                     {/* Company */}
-                    <td style={{ padding: '14px 16px', color: '#334155', fontWeight: '500' }}>
+                    <td style={{ padding: '14px 16px', color: '#E2E8F0', fontWeight: '500' }}>
                       {lead.company || 'Direct'}
                     </td>
 

@@ -60,7 +60,7 @@ export default function BulkImportModal({ isOpen, onClose, onImport }) {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.45)',
+      backgroundColor: 'rgba(3, 7, 18, 0.85)',
       backdropFilter: 'blur(8px)',
       display: 'flex',
       alignItems: 'center',
@@ -72,10 +72,7 @@ export default function BulkImportModal({ isOpen, onClose, onImport }) {
         width: '100%',
         maxWidth: '560px',
         padding: '24px',
-        background: '#FFFFFF',
-        border: '1px solid #E2E8F0',
-        borderRadius: '16px',
-        boxShadow: '0 25px 60px rgba(15, 23, 42, 0.2)',
+        border: '1px solid rgba(6, 182, 212, 0.4)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

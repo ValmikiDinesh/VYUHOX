@@ -174,7 +174,7 @@ export default function AdminAuthPage({
           }}>
             V
           </div>
-          <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', color: '#0F172A', letterSpacing: '0.05em' }}>
+          <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '800', color: '#F8FAFC', letterSpacing: '0.05em' }}>
             VYUHOX
           </span>
           <span className="badge badge-purple" style={{ fontSize: '0.65rem', marginLeft: '6px' }}>
@@ -189,8 +189,8 @@ export default function AdminAuthPage({
             alignItems: 'center',
             gap: '6px',
             background: 'transparent',
-            border: '1px solid #E2E8F0',
-            color: '#475569',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: '#CBD5E1',
             borderRadius: '8px',
             padding: '7px 14px',
             fontSize: '0.8rem',
@@ -231,7 +231,7 @@ export default function AdminAuthPage({
             <ShieldCheck size={28} color="#FFFFFF" />
           </div>
 
-          <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.65rem', fontWeight: '800', color: '#0F172A', margin: '0 0 6px' }}>
+          <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.65rem', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px' }}>
             Super Admin Master Control
           </h1>
           <p style={{ margin: 0, fontSize: '0.825rem', color: '#94A3B8', lineHeight: 1.5 }}>

@@ -79,7 +79,7 @@ export default function ConnectChannelsModal({ isOpen, onClose, activeWorkspace 
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(15, 23, 42, 0.45)',
+      background: 'rgba(4, 8, 16, 0.85)',
       backdropFilter: 'blur(12px)',
       zIndex: 100,
       display: 'flex',
@@ -93,22 +93,22 @@ export default function ConnectChannelsModal({ isOpen, onClose, activeWorkspace 
         maxHeight: '90vh',
         overflow: 'hidden',
         padding: 0,
-        background: '#FFFFFF',
-        border: '1px solid #E2E8F0',
-        boxShadow: '0 24px 60px rgba(15, 23, 42, 0.2)',
+        background: '#0B1120',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 24px 60px rgba(0, 0, 0, 0.7)',
         display: 'flex',
         flexDirection: 'column',
       }}>
         {/* Modal Header */}
         <div style={{
           padding: '20px 24px',
-          borderBottom: '1px solid #E2E8F0',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#0F172A' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#F8FAFC' }}>
               Connect Channels & Social Media
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '4px 0 0' }}>
@@ -144,8 +144,8 @@ export default function ConnectChannelsModal({ isOpen, onClose, activeWorkspace 
         <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', flex: 1, minHeight: '460px', overflow: 'hidden' }}>
           {/* Left Channel Tabs */}
           <div style={{
-            background: '#F8FAFC',
-            borderRight: '1px solid #E2E8F0',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderRight: '1px solid rgba(255, 255, 255, 0.08)',
             padding: '12px',
             display: 'flex',
             flexDirection: 'column',

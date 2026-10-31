@@ -712,7 +712,7 @@ export default function LeadFinder({
   const locationSuggestions = isIndiaWorkspace ? INDIAN_CITIES : GLOBAL_CITIES;
 
   return (
-    <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '22px', background: 'var(--surface-0)', minHeight: '100vh', color: 'var(--text-primary)' }}>
+    <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '22px', background: '#070C18', minHeight: '100vh', color: '#F8FAFC' }}>
       {/* 1. Header with Branded SaaS Style */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
@@ -759,7 +759,7 @@ export default function LeadFinder({
               ✨ AI LLM Strategy-Calibrated
             </span>
           </div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: '800', letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: '800', letterSpacing: '-0.02em', margin: 0, color: '#F8FAFC' }}>
             Autonomous Lead Prospecting &amp; Enrichment Engine
           </h1>
           <p style={{ fontSize: '0.825rem', color: '#94A3B8', margin: '4px 0 0' }}>
@@ -875,9 +875,8 @@ export default function LeadFinder({
         marginBottom: '2px',
       }}>
         <div style={{
-          background: '#FFFFFF',
-          border: '1px solid #E2E8F0',
-          boxShadow: 'var(--shadow-sm)',
+          background: 'rgba(15, 23, 42, 0.7)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '10px',
           padding: '12px 16px',
           display: 'flex',
@@ -888,7 +887,7 @@ export default function LeadFinder({
             <div style={{ fontSize: '0.68rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               CRM Verified Leads
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: '800', color: '#F8FAFC', marginTop: '2px' }}>
               {allCurrentLeads.length.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.68rem', color: '#10B981', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '3px' }}>
@@ -899,9 +898,8 @@ export default function LeadFinder({
         </div>
 
         <div style={{
-          background: '#FFFFFF',
-          border: '1px solid #E2E8F0',
-          boxShadow: 'var(--shadow-sm)',
+          background: 'rgba(15, 23, 42, 0.7)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '10px',
           padding: '12px 16px',
           display: 'flex',
@@ -923,9 +921,8 @@ export default function LeadFinder({
         </div>
 
         <div style={{
-          background: '#FFFFFF',
-          border: '1px solid #E2E8F0',
-          boxShadow: 'var(--shadow-sm)',
+          background: 'rgba(15, 23, 42, 0.7)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '10px',
           padding: '12px 16px',
           display: 'flex',
@@ -947,9 +944,8 @@ export default function LeadFinder({
         </div>
 
         <div style={{
-          background: '#FFFFFF',
-          border: '1px solid #E2E8F0',
-          boxShadow: 'var(--shadow-sm)',
+          background: 'rgba(15, 23, 42, 0.7)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '10px',
           padding: '12px 16px',
           display: 'flex',
@@ -975,9 +971,9 @@ export default function LeadFinder({
       <div style={{
         padding: '16px 20px',
         borderRadius: '14px',
-        background: '#FFFFFF',
-        border: '1px solid #E2E8F0',
-        boxShadow: 'var(--shadow-md)',
+        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.07) 0%, rgba(15, 23, 42, 0.88) 100%)',
+        border: '1px solid rgba(6, 182, 212, 0.28)',
+        boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
       }}>
         {/* Card Header with ICP Summary */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
@@ -998,7 +994,7 @@ export default function LeadFinder({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.98rem', fontWeight: '800', color: '#0F172A' }}>
+                <span style={{ fontSize: '0.98rem', fontWeight: '800', color: '#F8FAFC' }}>
                   Launch Autonomous Territory Prospecting
                 </span>
                 <span style={{

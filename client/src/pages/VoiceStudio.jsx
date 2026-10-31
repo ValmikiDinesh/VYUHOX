@@ -616,7 +616,7 @@ export default function VoiceStudio({ activeWorkspace, socket }) {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: '800', margin: 0, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: '800', margin: 0, letterSpacing: '-0.01em', color: '#F8FAFC' }}>
                 Autonomous Voice Studio
               </h1>
               <span className="badge badge-emerald" style={{ fontSize: '0.675rem' }}>

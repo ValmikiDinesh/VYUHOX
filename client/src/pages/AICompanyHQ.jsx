@@ -206,7 +206,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.65rem', fontWeight: '800', color: '#0F172A' }}>
+                <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.65rem', fontWeight: '800', color: '#F8FAFC' }}>
                   The Autonomous AI Company & C-Suite HQ
                 </h1>
                 <span className="badge badge-cyan" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
@@ -303,7 +303,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', color: '#0F172A' }}>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC' }}>
                 Autonomous Boardroom Neural Mesh
               </h2>
               <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
@@ -318,7 +318,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
           {/* View Switcher Pill */}
           <div style={{
             display: 'flex',
-            background: '#F1F5F9',
+            background: 'rgba(255, 255, 255, 0.04)',
             borderRadius: '8px',
             border: 'var(--border-hairline)',
             padding: '3px',
@@ -383,7 +383,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: '#F8FAFC',
+              background: 'rgba(4, 6, 10, 0.7)',
               padding: '8px 16px',
               borderRadius: '8px',
               border: 'var(--border-hairline)',
@@ -392,7 +392,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="pulse-emerald" />
-                <span style={{ color: '#0F172A', fontWeight: '700' }}>Active Handoff Loop:</span>
+                <span style={{ color: '#F8FAFC', fontWeight: '700' }}>Active Handoff Loop:</span>
                 <span style={{ color: '#94A3B8' }}>
                   Ethan (CMO) enriched 48 accounts ➔ Sarah (SDR) queued 18 WhatsApps ➔ Maya (Voice) on sub-700ms standby ➔ Victoria (CFO) margins at 81.2%
                 </span>
@@ -422,7 +422,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                       width: '320px',
                       cursor: 'pointer',
                       border: '1px solid rgba(236, 72, 153, 0.3)',
-                      background: '#FFFFFF',
+                      background: 'rgba(14, 18, 28, 0.9)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -431,7 +431,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                           <Megaphone size={18} color="#FFF" />
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#0F172A' }}>{cmo.name}</div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#F8FAFC' }}>{cmo.name}</div>
                           <div style={{ fontSize: '0.7rem', color: '#F472B6', fontWeight: '600' }}>AI CMO • Inbound Engine</div>
                         </div>
                       </div>
@@ -464,7 +464,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                     top: '-10px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: '#FFFFFF',
+                    background: 'rgba(8, 11, 18, 0.9)',
                     border: 'var(--border-hairline)',
                     padding: '2px 8px',
                     borderRadius: '4px',
@@ -496,7 +496,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                       width: '320px',
                       cursor: 'pointer',
                       border: '1px solid rgba(2, 132, 199, 0.3)',
-                      background: '#FFFFFF',
+                      background: 'rgba(14, 18, 28, 0.9)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -505,7 +505,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                           <Users size={18} color="#FFF" />
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#0F172A' }}>{sdr.name}</div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#F8FAFC' }}>{sdr.name}</div>
                           <div style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: '600' }}>AI SDR • Outbound Hunter</div>
                         </div>
                       </div>
@@ -536,7 +536,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                     width: '460px',
                     cursor: 'pointer',
                     border: '1px solid rgba(56, 189, 248, 0.45)',
-                    background: 'linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%)',
+                    background: 'radial-gradient(circle at 50% 50%, rgba(2, 132, 199, 0.15) 0%, rgba(8, 11, 18, 0.95) 100%)',
                     boxShadow: '0 0 35px rgba(2, 132, 199, 0.25)',
                     textAlign: 'center',
                   }}
@@ -556,7 +556,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                     </div>
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: '800', color: '#0F172A' }}>{orgData.leader.name}</span>
+                        <span style={{ fontSize: '1rem', fontWeight: '800', color: '#F8FAFC' }}>{orgData.leader.name}</span>
                         <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>100% Autonomous</span>
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#38BDF8', fontWeight: '600' }}>
@@ -564,7 +564,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                       </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#334155', lineHeight: '1.45' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#CBD5E1', lineHeight: '1.45' }}>
                     {orgData.leader.currentTask}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginTop: '12px', borderTop: 'var(--border-hairline)', paddingTop: '10px' }}>
@@ -599,7 +599,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                       width: '320px',
                       cursor: 'pointer',
                       border: '1px solid rgba(16, 185, 129, 0.3)',
-                      background: '#FFFFFF',
+                      background: 'rgba(14, 18, 28, 0.9)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -608,7 +608,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                           <DollarSign size={18} color="#FFF" />
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#0F172A' }}>{cfo.name}</div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#F8FAFC' }}>{cfo.name}</div>
                           <div style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '600' }}>AI CFO • FinOps Margin Guard</div>
                         </div>
                       </div>
@@ -641,7 +641,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                     top: '-10px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: '#FFFFFF',
+                    background: 'rgba(8, 11, 18, 0.9)',
                     border: 'var(--border-hairline)',
                     padding: '2px 8px',
                     borderRadius: '4px',
@@ -673,7 +673,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                       width: '320px',
                       cursor: 'pointer',
                       border: '1px solid rgba(245, 158, 11, 0.3)',
-                      background: '#FFFFFF',
+                      background: 'rgba(14, 18, 28, 0.9)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -682,7 +682,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                           <PhoneCall size={18} color="#FFF" />
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#0F172A' }}>{maya.name}</div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '800', color: '#F8FAFC' }}>{maya.name}</div>
                           <div style={{ fontSize: '0.7rem', color: '#F59E0B', fontWeight: '600' }}>AI Closer • 680ms Voice AE</div>
                         </div>
                       </div>
@@ -709,7 +709,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                   padding: '20px 24px',
                   borderRadius: '14px',
                   border: '1px solid rgba(56, 189, 248, 0.35)',
-                  background: '#FFFFFF',
+                  background: 'radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -733,7 +733,7 @@ export default function AICompanyHQ({ activeWorkspace, socket }) {
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0F172A' }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#F8FAFC' }}>
                         {orgData.leader.name}
                       </span>
                       <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>

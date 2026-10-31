@@ -212,7 +212,7 @@ export default function UniversalCommandPalette({
         position: 'fixed',
         inset: 0,
         zIndex: 99999,
-        background: 'rgba(15, 23, 42, 0.40)',
+        background: 'rgba(2, 4, 8, 0.75)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         display: 'flex',
@@ -229,10 +229,10 @@ export default function UniversalCommandPalette({
         style={{
           width: '640px',
           maxWidth: '92vw',
-          background: '#FFFFFF',
-          border: '1px solid #E2E8F0',
+          background: '#0B0F19',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
           borderRadius: '16px',
-          boxShadow: '0 25px 60px rgba(15, 23, 42, 0.18)',
+          boxShadow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 25px 60px rgba(0, 0, 0, 0.85)',
           overflow: 'hidden',
           fontFamily: 'Inter, system-ui, sans-serif',
         }}
@@ -244,10 +244,10 @@ export default function UniversalCommandPalette({
             alignItems: 'center',
             gap: '12px',
             padding: '14px 18px',
-            borderBottom: '1px solid #E2E8F0',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           }}
         >
-          <Search size={18} style={{ color: '#0284C7', flexShrink: 0 }} />
+          <Search size={18} style={{ color: '#38BDF8', flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
@@ -259,7 +259,7 @@ export default function UniversalCommandPalette({
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: '#0F172A',
+              color: '#FFFFFF',
               fontSize: '0.95rem',
               fontWeight: '500',
             }}
@@ -268,9 +268,9 @@ export default function UniversalCommandPalette({
             style={{
               padding: '2px 7px',
               borderRadius: '6px',
-              background: '#F1F5F9',
-              border: '1px solid #E2E8F0',
-              color: '#64748B',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#94A3B8',
               fontSize: '0.7rem',
               fontFamily: 'monospace',
             }}
@@ -306,8 +306,8 @@ export default function UniversalCommandPalette({
                     justifyContent: 'space-between',
                     padding: '10px 14px',
                     borderRadius: '10px',
-                    background: isSelected ? '#F0F9FF' : 'transparent',
-                    border: isSelected ? '1px solid #BAE6FD' : '1px solid transparent',
+                    background: isSelected ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+                    border: isSelected ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid transparent',
                     cursor: 'pointer',
                     transition: 'all 0.1s ease',
                   }}
@@ -318,8 +318,8 @@ export default function UniversalCommandPalette({
                         width: '32px',
                         height: '32px',
                         borderRadius: '8px',
-                        background: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -329,7 +329,7 @@ export default function UniversalCommandPalette({
                       <Icon size={16} />
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: '600', color: isSelected ? '#0284C7' : '#0F172A' }}>
+                      <div style={{ fontSize: '0.84rem', fontWeight: '600', color: isSelected ? '#FFFFFF' : '#E2E8F0' }}>
                         {item.title}
                       </div>
                       <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
@@ -339,7 +339,7 @@ export default function UniversalCommandPalette({
                   </div>
 
                   {isSelected && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0284C7', fontSize: '0.72rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38BDF8', fontSize: '0.72rem' }}>
                       <span>Run</span>
                       <ArrowRight size={13} />
                     </div>
@@ -357,18 +357,18 @@ export default function UniversalCommandPalette({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '10px 18px',
-            borderTop: '1px solid #E2E8F0',
-            background: '#F8FAFC',
+            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+            background: 'rgba(5, 8, 14, 0.7)',
             fontSize: '0.72rem',
             color: '#64748B',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <span><strong style={{ color: '#0F172A' }}>↑↓</strong> to navigate</span>
-            <span><strong style={{ color: '#0F172A' }}>↵</strong> to select</span>
-            <span><strong style={{ color: '#0F172A' }}>esc</strong> to dismiss</span>
+            <span><strong style={{ color: '#94A3B8' }}>↑↓</strong> to navigate</span>
+            <span><strong style={{ color: '#94A3B8' }}>↵</strong> to select</span>
+            <span><strong style={{ color: '#94A3B8' }}>esc</strong> to dismiss</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#0284C7' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#38BDF8' }}>
             <Zap size={11} />
             <span>VYUHOX Omnibar</span>
           </div>

@@ -323,7 +323,7 @@ export default function SanjayaVoiceCommander({
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background: 'rgba(15, 23, 42, 0.45)',
+        background: 'rgba(2, 6, 23, 0.78)',
         backdropFilter: 'blur(10px)',
         display: 'flex',
         alignItems: 'center',
@@ -344,10 +344,10 @@ export default function SanjayaVoiceCommander({
           maxWidth: '760px',
           height: '85vh',
           maxHeight: '740px',
-          background: '#FFFFFF',
+          background: 'linear-gradient(180deg, #0b1329 0%, #060a17 100%)',
           borderRadius: '20px',
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 40px rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.35)',
+          boxShadow: '0 25px 60px -15px rgba(245, 158, 11, 0.25), 0 0 40px rgba(6, 182, 212, 0.15)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -358,11 +358,11 @@ export default function SanjayaVoiceCommander({
         <div
           style={{
             padding: '16px 24px',
-            borderBottom: '1px solid #E2E8F0',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: '#FFFFFF',
+            background: 'rgba(15, 23, 42, 0.65)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -387,7 +387,7 @@ export default function SanjayaVoiceCommander({
                     margin: 0,
                     fontSize: '1.15rem',
                     fontWeight: '800',
-                    color: '#0F172A',
+                    color: '#FFFFFF',
                     letterSpacing: '0.02em',
                   }}
                 >
@@ -402,7 +402,7 @@ export default function SanjayaVoiceCommander({
                     borderRadius: '20px',
                     background: 'rgba(245, 158, 11, 0.18)',
                     color: '#FBBF24',
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
                   }}
                 >
                   Divya-Drishti AI
@@ -424,7 +424,7 @@ export default function SanjayaVoiceCommander({
                 style={{
                   margin: '2px 0 0 0',
                   fontSize: '0.75rem',
-                  color: '#64748B',
+                  color: '#94A3B8',
                 }}
               >
                 Autonomous Celestial Voice Commander • Complete GTM & Strategy Execution
@@ -462,9 +462,9 @@ export default function SanjayaVoiceCommander({
                 onClose();
               }}
               style={{
-                background: '#F1F5F9',
-                border: '1px solid #E2E8F0',
-                color: '#64748B',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#94A3B8',
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
@@ -616,18 +616,18 @@ export default function SanjayaVoiceCommander({
                   background:
                     item.role === 'user'
                       ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)'
-                      : '#F8FAFC',
+                      : 'rgba(15, 23, 42, 0.85)',
                   border:
                     item.role === 'user'
                       ? '1px solid rgba(56, 189, 248, 0.4)'
-                      : '1px solid #E2E8F0',
-                  color: item.role === 'user' ? '#FFFFFF' : '#0F172A',
+                      : '1px solid rgba(245, 158, 11, 0.25)',
+                  color: '#F8FAFC',
                   fontSize: '0.88rem',
                   lineHeight: '1.55',
                   boxShadow:
                     item.role === 'user'
                       ? '0 4px 15px rgba(2, 132, 199, 0.2)'
-                      : '0 2px 8px rgba(0, 0, 0, 0.05)',
+                      : '0 4px 20px rgba(0, 0, 0, 0.4)',
                 }}
               >
                 {item.title && item.role === 'sanjaya' && (
@@ -638,7 +638,7 @@ export default function SanjayaVoiceCommander({
                       gap: '8px',
                       marginBottom: '8px',
                       paddingBottom: '8px',
-                      borderBottom: '1px solid #E2E8F0',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                     }}
                   >
                     <span
@@ -676,21 +676,21 @@ export default function SanjayaVoiceCommander({
                   <div
                     style={{
                       marginTop: '12px',
-                      background: '#FFFBEB',
-                      border: '1px solid #FDE68A',
+                      background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                      border: '1px solid rgba(245, 158, 11, 0.4)',
                       borderRadius: '12px',
                       padding: '14px 16px',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#92400E' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#FBBF24' }}>
                         💳 FINANCIAL AUTHORIZATION REQUIRED
                       </span>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#0284C7' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#38BDF8' }}>
                         Cost: ${item.authorizationCard.costUSD.toFixed(2)} USD
                       </span>
                     </div>
-                    <div style={{ fontSize: '0.82rem', color: '#0F172A', fontWeight: '700', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.82rem', color: '#F8FAFC', fontWeight: '700', marginBottom: '4px' }}>
                       {item.authorizationCard.title}
                     </div>
                     <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginBottom: '10px' }}>
@@ -701,11 +701,11 @@ export default function SanjayaVoiceCommander({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        background: '#FFFFFF',
+                        background: 'rgba(0, 0, 0, 0.35)',
                         padding: '8px 12px',
                         borderRadius: '8px',
                         fontSize: '0.72rem',
-                        color: '#334155',
+                        color: '#CBD5E1',
                         marginBottom: '12px',
                       }}
                     >
@@ -739,7 +739,7 @@ export default function SanjayaVoiceCommander({
                           borderRadius: '8px',
                           background: 'rgba(255, 255, 255, 0.08)',
                           border: '1px solid rgba(255, 255, 255, 0.1)',
-                          color: '#64748B',
+                          color: '#94A3B8',
                           fontWeight: '700',
                           fontSize: '0.78rem',
                           cursor: 'pointer',
@@ -817,8 +817,8 @@ export default function SanjayaVoiceCommander({
         <div
           style={{
             padding: '8px 20px',
-            background: '#F8FAFC',
-            borderTop: '1px solid #E2E8F0',
+            background: 'rgba(6, 10, 23, 0.95)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -835,9 +835,9 @@ export default function SanjayaVoiceCommander({
               style={{
                 padding: '4px 10px',
                 borderRadius: '20px',
-                background: '#FFFFFF',
-                border: '1px solid #E2E8F0',
-                color: '#475569',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#CBD5E1',
                 fontSize: '0.72rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
@@ -860,8 +860,8 @@ export default function SanjayaVoiceCommander({
         <div
           style={{
             padding: '16px 24px',
-            background: '#FFFFFF',
-            borderTop: '1px solid #E2E8F0',
+            background: 'rgba(11, 19, 41, 0.95)',
+            borderTop: '1px solid rgba(245, 158, 11, 0.2)',
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
@@ -899,7 +899,7 @@ export default function SanjayaVoiceCommander({
               <span
                 style={{
                   fontSize: '0.75rem',
-                  color: '#64748B',
+                  color: '#94A3B8',
                   fontStyle: 'italic',
                   marginLeft: '8px',
                   maxWidth: '300px',
@@ -948,9 +948,9 @@ export default function SanjayaVoiceCommander({
                 flex: 1,
                 display: 'flex',
                 alignItems: 'center',
-                background: '#F8FAFC',
+                background: 'rgba(2, 6, 23, 0.6)',
                 borderRadius: '12px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
                 padding: '4px 14px',
               }}
             >
@@ -974,7 +974,7 @@ export default function SanjayaVoiceCommander({
                   flex: 1,
                   background: 'transparent',
                   border: 'none',
-                  color: '#0F172A',
+                  color: '#FFFFFF',
                   fontSize: '0.88rem',
                   outline: 'none',
                   padding: '8px 0',
