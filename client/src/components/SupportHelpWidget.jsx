@@ -173,6 +173,7 @@ export default function SupportHelpWidget({
 
   return (
     <div
+      className="specular-glass"
       style={{
         position: 'fixed',
         bottom: '80px',
@@ -180,23 +181,24 @@ export default function SupportHelpWidget({
         width: '440px',
         maxWidth: 'calc(100vw - 48px)',
         maxHeight: '680px',
-        background: '#0F172A',
-        border: '1px solid rgba(56, 189, 248, 0.25)',
-        borderRadius: '16px',
-        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(56, 189, 248, 0.1)',
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        fontFamily: 'Inter, system-ui, sans-serif',
+        boxShadow: 'var(--specular-top-elevated), 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(2, 132, 199, 0.15)',
+        border: 'var(--border-hairline)',
+        borderRadius: '16px',
+        background: 'rgba(8, 11, 18, 0.88)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
       }}
     >
       {/* Header */}
       <div
         style={{
           padding: '16px 20px',
-          background: 'linear-gradient(90deg, #1E293B 0%, #0F172A 100%)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--surface-1)',
+          borderBottom: 'var(--border-hairline)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -208,7 +210,8 @@ export default function SupportHelpWidget({
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              background: 'rgba(56, 189, 248, 0.15)',
+              background: 'rgba(2, 132, 199, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -218,12 +221,12 @@ export default function SupportHelpWidget({
             <LifeBuoy size={18} />
           </div>
           <div>
-            <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '800', color: '#F8FAFC' }}>
-              VYUHOX Help Desk
+            <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+              VYUHOX Engineering Help Desk
             </h4>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#10B981' }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
-              Super Admin & Engineering Active
+              <span className="pulse-emerald" style={{ width: '6px', height: '6px' }} />
+              Super Admin Desk Active • 2-Way Audit Trail
             </div>
           </div>
         </div>
@@ -232,10 +235,14 @@ export default function SupportHelpWidget({
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#94A3B8',
+            color: 'var(--text-secondary)',
             cursor: 'pointer',
             padding: '4px',
+            borderRadius: '6px',
+            transition: 'color var(--duration-fast)',
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
         >
           <X size={18} />
         </button>
@@ -245,8 +252,8 @@ export default function SupportHelpWidget({
       <div
         style={{
           display: 'flex',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          background: '#0B1120',
+          borderBottom: 'var(--border-hairline)',
+          background: 'var(--surface-0)',
         }}
       >
         <button
@@ -254,13 +261,14 @@ export default function SupportHelpWidget({
           style={{
             flex: 1,
             padding: '10px',
-            background: activeView === 'new' ? 'rgba(56, 189, 248, 0.08)' : 'transparent',
+            background: activeView === 'new' ? 'rgba(2, 132, 199, 0.1)' : 'transparent',
             border: 'none',
             borderBottom: activeView === 'new' ? '2px solid #38BDF8' : '2px solid transparent',
-            color: activeView === 'new' ? '#38BDF8' : '#64748B',
+            color: activeView === 'new' ? '#38BDF8' : 'var(--text-secondary)',
             fontSize: '0.78rem',
             fontWeight: '700',
             cursor: 'pointer',
+            transition: 'all var(--duration-fast)',
           }}
         >
           Open New Ticket
@@ -273,13 +281,14 @@ export default function SupportHelpWidget({
           style={{
             flex: 1,
             padding: '10px',
-            background: activeView === 'history' ? 'rgba(56, 189, 248, 0.08)' : 'transparent',
+            background: activeView === 'history' ? 'rgba(2, 132, 199, 0.1)' : 'transparent',
             border: 'none',
             borderBottom: activeView === 'history' ? '2px solid #38BDF8' : '2px solid transparent',
-            color: activeView === 'history' ? '#38BDF8' : '#64748B',
+            color: activeView === 'history' ? '#38BDF8' : 'var(--text-secondary)',
             fontSize: '0.78rem',
             fontWeight: '700',
             cursor: 'pointer',
+            transition: 'all var(--duration-fast)',
           }}
         >
           Ticket History ({recentTickets.length})
@@ -292,40 +301,37 @@ export default function SupportHelpWidget({
           submittedTicket ? (
             <div style={{ textAlign: 'center', padding: '24px 10px' }}>
               <CheckCircle2 size={48} color="#10B981" style={{ margin: '0 auto 12px' }} />
-              <h4 style={{ margin: '0 0 6px', color: '#F8FAFC', fontSize: '1.05rem' }}>
-                Ticket Submitted!
+              <h4 style={{ margin: '0 0 6px', color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: '800' }}>
+                Ticket Submitted to Super Admin!
               </h4>
               <div
+                className="tabular-nums"
                 style={{
                   display: 'inline-block',
-                  background: 'rgba(56, 189, 248, 0.1)',
+                  background: 'rgba(2, 132, 199, 0.15)',
                   color: '#38BDF8',
                   padding: '4px 12px',
                   borderRadius: '8px',
                   fontWeight: '800',
                   fontSize: '0.85rem',
                   marginBottom: '12px',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
                 }}
               >
                 #{submittedTicket.ticketNumber}
               </div>
-              <p style={{ color: '#94A3B8', fontSize: '0.8rem', lineHeight: '1.5', margin: '0 0 20px' }}>
-                Your technical diagnostics, error screenshot, and workspace state have been transmitted to the Super Admin desk. Any applicable credit adjustments will be directly credited to your wallet.
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: '1.5', margin: '0 0 20px' }}>
+                Your technical diagnostics, error screenshot, and workspace state have been transmitted to the Sovereign Super Admin desk. Any applicable credit adjustments will be directly injected into your wallet.
               </p>
               <button
                 onClick={() => {
                   setSubmittedTicket(null);
                   setActiveView('history');
                 }}
+                className="btn-primary"
                 style={{
-                  padding: '8px 18px',
-                  borderRadius: '8px',
-                  background: '#38BDF8',
-                  color: '#0F172A',
-                  border: 'none',
-                  fontWeight: '700',
+                  padding: '9px 20px',
                   fontSize: '0.82rem',
-                  cursor: 'pointer',
                 }}
               >
                 View Ticket Status
@@ -335,30 +341,29 @@ export default function SupportHelpWidget({
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {/* Diagnostics Auto-Attach Banner */}
               <div
+                className="specular-card"
                 style={{
-                  background: 'rgba(15, 23, 42, 0.8)',
-                  border: '1px solid rgba(56, 189, 248, 0.2)',
-                  borderRadius: '8px',
                   padding: '10px 12px',
                   fontSize: '0.72rem',
-                  color: '#94A3B8',
+                  color: 'var(--text-secondary)',
+                  background: 'var(--surface-1)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38BDF8', fontWeight: '700', marginBottom: '4px' }}>
                   <Terminal size={12} />
                   <span>Auto-Attached Technical Diagnostics</span>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', color: '#CBD5E1' }}>
+                <div className="tabular-nums" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', color: 'var(--text-primary)' }}>
                   <span>Workspace: <strong>{activeWorkspace?.name || 'Current'}</strong></span>
                   <span>•</span>
-                  <span>Wallet: <strong>${(wallet?.balanceUSD || 0).toFixed(2)}</strong></span>
+                  <span>Wallet: <strong style={{ color: '#10B981' }}>${(wallet?.balanceUSD || 0).toFixed(2)}</strong></span>
                   <span>•</span>
                   <span>Mode: <strong>{operatingMode}</strong></span>
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '700', color: '#94A3B8', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Priority Level
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -371,12 +376,13 @@ export default function SupportHelpWidget({
                         flex: 1,
                         padding: '6px 0',
                         borderRadius: '6px',
-                        border: priority === lvl ? '1px solid #38BDF8' : '1px solid rgba(255, 255, 255, 0.1)',
-                        background: priority === lvl ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                        color: priority === lvl ? '#38BDF8' : '#94A3B8',
+                        border: priority === lvl ? '1px solid #38BDF8' : 'var(--border-hairline)',
+                        background: priority === lvl ? 'rgba(2, 132, 199, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                        color: priority === lvl ? '#38BDF8' : 'var(--text-secondary)',
                         fontSize: '0.7rem',
                         fontWeight: '700',
                         cursor: 'pointer',
+                        transition: 'all var(--duration-fast)',
                       }}
                     >
                       {lvl}
@@ -386,47 +392,33 @@ export default function SupportHelpWidget({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '700', color: '#94A3B8', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Subject
                 </label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  placeholder="e.g. Scraper stopped at lead #45 / Dialer timeout"
+                  placeholder="e.g. Scraper stopped at lead #45 / Voice latency issue"
                   required
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    background: '#1E293B',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '8px',
-                    color: '#F8FAFC',
-                    fontSize: '0.82rem',
-                    boxSizing: 'border-box',
-                  }}
+                  className="specular-input"
+                  style={{ boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '700', color: '#94A3B8', marginBottom: '6px' }}>
-                  Issue Details & Expected Behavior
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Issue Details &amp; Expected Behavior
                 </label>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={4}
-                  placeholder="Please explain what happened. You can also paste screenshots directly (Ctrl+V)!"
+                  placeholder="Please describe what happened. You can also paste screenshots directly (Ctrl+V)!"
                   required
+                  className="specular-input"
                   style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    background: '#1E293B',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '8px',
-                    color: '#F8FAFC',
-                    fontSize: '0.82rem',
-                    lineHeight: '1.4',
+                    lineHeight: '1.45',
                     boxSizing: 'border-box',
                     resize: 'vertical',
                   }}
@@ -436,7 +428,7 @@ export default function SupportHelpWidget({
               {/* Screenshot & File Upload Dropzone */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <label style={{ fontSize: '0.76rem', fontWeight: '700', color: '#94A3B8' }}>
+                  <label style={{ fontSize: '0.76rem', fontWeight: '700', color: 'var(--text-secondary)' }}>
                     Attach Screenshots / Logs (Paste with Ctrl+V)
                   </label>
                   <button
@@ -472,16 +464,14 @@ export default function SupportHelpWidget({
                     {attachments.map((att, idx) => (
                       <div
                         key={idx}
+                        className="specular-card"
                         style={{
-                          background: '#1E293B',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '6px',
                           padding: '6px 10px',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
                           fontSize: '0.72rem',
-                          color: '#CBD5E1',
+                          color: 'var(--text-primary)',
                         }}
                       >
                         <ImageIcon size={13} color="#38BDF8" />
@@ -507,10 +497,13 @@ export default function SupportHelpWidget({
                       padding: '12px',
                       textAlign: 'center',
                       fontSize: '0.72rem',
-                      color: '#64748B',
+                      color: 'var(--text-tertiary)',
                       cursor: 'pointer',
-                      background: 'rgba(56, 189, 248, 0.02)',
+                      background: 'rgba(2, 132, 199, 0.04)',
+                      transition: 'border-color var(--duration-fast)',
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#38BDF8')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.3)')}
                   >
                     {isUploading ? 'Uploading screenshot...' : '📸 Click to browse or paste screenshot directly (Ctrl+V)'}
                   </div>
@@ -527,19 +520,11 @@ export default function SupportHelpWidget({
               <button
                 type="submit"
                 disabled={isSubmitting || !subject.trim() || !message.trim()}
+                className="btn-primary"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
                   padding: '11px',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  fontWeight: '800',
+                  width: '100%',
                   fontSize: '0.84rem',
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
                   opacity: isSubmitting || !subject.trim() || !message.trim() ? 0.6 : 1,
                   marginTop: '4px',
                 }}
@@ -552,51 +537,40 @@ export default function SupportHelpWidget({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {recentTickets.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '30px 10px', color: '#64748B', fontSize: '0.8rem' }}>
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>
                 No support tickets submitted for this workspace yet.
               </div>
             ) : (
               recentTickets.map((t) => (
                 <div
                   key={t._id}
+                  className="specular-card"
                   style={{
-                    background: 'rgba(30, 41, 59, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '10px',
                     padding: '12px',
+                    borderRadius: '10px',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#38BDF8' }}>
+                    <span className="tabular-nums" style={{ fontSize: '0.78rem', fontWeight: '800', color: '#38BDF8' }}>
                       #{t.ticketNumber}
                     </span>
                     <span
-                      style={{
-                        fontSize: '0.68rem',
-                        fontWeight: '800',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        background:
-                          t.status === 'RESOLVED'
-                            ? 'rgba(16, 185, 129, 0.15)'
-                            : t.status === 'IN_REVIEW'
-                            ? 'rgba(245, 158, 11, 0.15)'
-                            : 'rgba(56, 189, 248, 0.15)',
-                        color:
-                          t.status === 'RESOLVED'
-                            ? '#10B981'
-                            : t.status === 'IN_REVIEW'
-                            ? '#F59E0B'
-                            : '#38BDF8',
-                      }}
+                      className={`badge ${
+                        t.status === 'RESOLVED'
+                          ? 'badge-emerald'
+                          : t.status === 'IN_REVIEW'
+                          ? 'badge-amber'
+                          : 'badge-cyan'
+                      }`}
+                      style={{ fontSize: '0.68rem' }}
                     >
                       {t.status}
                     </span>
                   </div>
-                  <h5 style={{ margin: '0 0 4px', fontSize: '0.82rem', color: '#F1F5F9' }}>
+                  <h5 style={{ margin: '0 0 4px', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: '700' }}>
                     {t.subject}
                   </h5>
-                  <p style={{ margin: '0 0 8px', fontSize: '0.74rem', color: '#94A3B8', lineHeight: '1.4' }}>
+                  <p style={{ margin: '0 0 8px', fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
                     {t.message}
                   </p>
 
@@ -613,8 +587,8 @@ export default function SupportHelpWidget({
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
-                            background: '#0F172A',
-                            border: '1px solid rgba(56, 189, 248, 0.3)',
+                            background: 'var(--surface-0)',
+                            border: 'var(--border-hairline)',
                             padding: '3px 8px',
                             borderRadius: '4px',
                             color: '#38BDF8',
@@ -632,6 +606,7 @@ export default function SupportHelpWidget({
 
                   {t.creditedAmountUSD > 0 && (
                     <div
+                      className="tabular-nums"
                       style={{
                         background: 'rgba(16, 185, 129, 0.1)',
                         border: '1px solid rgba(16, 185, 129, 0.3)',
@@ -647,11 +622,11 @@ export default function SupportHelpWidget({
                     </div>
                   )}
                   {t.adminNotes && (
-                    <div style={{ fontSize: '0.72rem', color: '#CBD5E1', background: 'rgba(0, 0, 0, 0.25)', padding: '6px 8px', borderRadius: '6px' }}>
-                      <strong>Admin Note:</strong> {t.adminNotes}
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', background: 'rgba(0, 0, 0, 0.25)', padding: '6px 8px', borderRadius: '6px' }}>
+                      <strong style={{ color: '#F8FAFC' }}>Admin Note:</strong> {t.adminNotes}
                     </div>
                   )}
-                  <div style={{ fontSize: '0.65rem', color: '#64748B', marginTop: '6px' }}>
+                  <div className="tabular-nums" style={{ fontSize: '0.65rem', color: 'var(--text-dim)', marginTop: '6px' }}>
                     {new Date(t.createdAt).toLocaleString()}
                   </div>
                 </div>
@@ -662,4 +637,5 @@ export default function SupportHelpWidget({
       </div>
     </div>
   );
+
 }
