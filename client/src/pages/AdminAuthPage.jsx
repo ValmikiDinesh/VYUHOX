@@ -116,17 +116,20 @@ export default function AdminAuthPage({
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'radial-gradient(ellipse at top, #1E1035 0%, #030712 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: '32px 20px',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <div
+      className="liquid-mesh-canvas"
+      style={{
+        minHeight: '100vh',
+        background: 'var(--surface-0)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '32px 20px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       {/* Decorative ambient background glows */}
       <div style={{
         position: 'absolute',
@@ -204,13 +207,9 @@ export default function AdminAuthPage({
       </div>
 
       {/* Main Admin Vault Card */}
-      <div className="card" style={{
+      <div className="specular-glass-hero" style={{
         width: '100%',
         maxWidth: '460px',
-        background: 'rgba(10, 12, 24, 0.96)',
-        border: '1px solid rgba(139, 92, 246, 0.35)',
-        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(139, 92, 246, 0.15)',
-        borderRadius: '20px',
         padding: '36px 32px',
         position: 'relative',
         zIndex: 10,

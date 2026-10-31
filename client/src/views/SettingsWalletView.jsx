@@ -218,56 +218,65 @@ export default function SettingsWalletView({
           </form>
         </div>
 
-        {/* GTM Billing & Wallet Card */}
-        <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        {/* GTM Billing & Wallet Card (Mercury / Stripe S-Tier Architecture) */}
+        <div className="specular-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <CreditCard size={18} color="#10B981" />
-              <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: '700' }}>
-                Autonomous Wallet
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
+                Prepaid Autonomous Wallet
               </h3>
             </div>
-            <span className="badge badge-emerald">Stripe Verified</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="badge badge-emerald" style={{ fontSize: '0.675rem' }}>
+                $0.00 Floor Protected
+              </span>
+              <span className="badge badge-cyan" style={{ fontSize: '0.675rem' }}>
+                Stripe Escrow
+              </span>
+            </div>
           </div>
 
           {/* Current Balance Display */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.12) 100%)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(2, 132, 199, 0.12) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
+            boxShadow: 'var(--shadow-specular)',
             borderRadius: '12px',
             padding: '20px',
           }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '600' }}>
-              Available Autonomous Balance
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>
+              Available Autonomous Reserve
             </div>
-            <div style={{
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '2.2rem',
-              fontWeight: '800',
+            <div className="tabular-nums" style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '2.4rem',
+              fontWeight: '900',
               color: '#F8FAFC',
               margin: '4px 0',
+              letterSpacing: '-0.02em',
             }}>
               {isINR
                 ? `₹${Math.round((wallet?.balanceUSD || 0) * exchangeRate).toLocaleString('en-IN')}`
                 : `$${(wallet?.balanceUSD || 0).toFixed(2)}`}{' '}
-              <span style={{ fontSize: '1rem', color: '#10B981', fontWeight: '600' }}>
+              <span style={{ fontSize: '1rem', color: '#10B981', fontWeight: '700' }}>
                 {isINR ? 'INR (₹)' : 'USD ($)'}
               </span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
               {isINR && (
-                <span style={{ color: '#38BDF8', fontWeight: '500', marginRight: '6px' }}>
+                <span style={{ color: '#38BDF8', fontWeight: '600', marginRight: '6px' }}>
                   (~${(wallet?.balanceUSD || 0).toFixed(2)} USD reserve) •
                 </span>
               )}
-              Funds Voice AI calls, Scraper enrichment tokens, and automated SMS/WhatsApp
+              Funds sub-700ms voice calls, contact enrichments, and automated messaging with zero overdraft risk.
             </div>
           </div>
 
           {/* Deposit Selector */}
           <div>
-            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
-              Instant Top-Up
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', fontWeight: '600' }}>
+              Instant Top-Up Chips
             </label>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
               {(isINR ? ['2000', '5000', '10000', '25000'] : ['50', '100', '250', '500']).map((amt) => (
@@ -275,16 +284,18 @@ export default function SettingsWalletView({
                   key={amt}
                   type="button"
                   onClick={() => setDepositAmount(isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt)}
+                  className="specular-card"
                   style={{
                     flex: 1,
                     padding: '8px 0',
                     borderRadius: '8px',
-                    border: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '1px solid #10B981' : '1px solid rgba(255,255,255,0.08)',
-                    background: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.03)',
-                    color: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '#34D399' : '#CBD5E1',
+                    border: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '1px solid #10B981' : 'var(--border-hairline)',
+                    background: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                    color: depositAmount === (isINR ? (parseInt(amt) / exchangeRate).toFixed(0) : amt) ? '#34D399' : 'var(--text-primary)',
                     fontSize: '0.8125rem',
-                    fontWeight: '600',
+                    fontWeight: '700',
                     cursor: 'pointer',
+                    transition: 'all var(--duration-fast)',
                   }}
                 >
                   {isINR ? `₹${parseInt(amt).toLocaleString('en-IN')}` : `$${amt}`}
@@ -300,42 +311,70 @@ export default function SettingsWalletView({
                 className="input-glass"
                 style={{ flex: 1 }}
               />
-              <button onClick={handleDeposit} className="btn-emerald" style={{ whiteSpace: 'nowrap' }}>
-                + Add Funds
+              <button onClick={handleDeposit} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                + Add Funds via Stripe
               </button>
             </div>
           </div>
 
-          {/* Auto Recharge Settings */}
+          {/* Transparent Wholesale Carrier Rate Card */}
           <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '8px',
+            background: 'var(--surface-1)',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: 'var(--border-hairline)',
+            fontSize: '0.7rem',
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ color: 'var(--text-dim)', fontWeight: '600' }}>AI VOICE</div>
+              <div className="tabular-nums" style={{ color: '#10B981', fontWeight: '800' }}>$0.012/min</div>
+            </div>
+            <div style={{ textAlign: 'center', borderLeft: 'var(--border-hairline)' }}>
+              <div style={{ color: 'var(--text-dim)', fontWeight: '600' }}>WHATSAPP</div>
+              <div className="tabular-nums" style={{ color: '#38BDF8', fontWeight: '800' }}>$0.005/msg</div>
+            </div>
+            <div style={{ textAlign: 'center', borderLeft: 'var(--border-hairline)' }}>
+              <div style={{ color: 'var(--text-dim)', fontWeight: '600' }}>SCRAPER</div>
+              <div className="tabular-nums" style={{ color: '#F59E0B', fontWeight: '800' }}>$0.020/lead</div>
+            </div>
+            <div style={{ textAlign: 'center', borderLeft: 'var(--border-hairline)' }}>
+              <div style={{ color: 'var(--text-dim)', fontWeight: '600' }}>EMAIL MX</div>
+              <div className="tabular-nums" style={{ color: '#A855F7', fontWeight: '800' }}>$0.0008/msg</div>
+            </div>
+          </div>
+
+          {/* Auto Recharge Settings */}
+          <div className="specular-card" style={{
             padding: '14px',
             borderRadius: '10px',
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            background: 'var(--surface-1)',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#F8FAFC' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#F8FAFC' }}>
                   Auto-Recharge Guardrail
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-                  Prevent voice calls and scraper pipelines from stopping
+                  Prevent voice calls and scraper pipelines from pausing mid-execution
                 </div>
               </div>
               <input
                 type="checkbox"
                 checked={autoRecharge}
                 onChange={(e) => setAutoRecharge(e.target.checked)}
-                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                style={{ width: '16px', height: '16px', accentColor: '#10B981', cursor: 'pointer' }}
               />
             </div>
 
             {autoRecharge && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>When below:</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>When below:</span>
                 <input
                   type="number"
                   value={rechargeThreshold}
@@ -343,7 +382,7 @@ export default function SettingsWalletView({
                   className="input-glass"
                   style={{ width: '70px', padding: '4px 8px', fontSize: '0.75rem' }}
                 />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Deposit:</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Deposit:</span>
                 <input
                   type="number"
                   value={rechargeAmount}
@@ -354,8 +393,8 @@ export default function SettingsWalletView({
                 <button
                   type="button"
                   onClick={handleSaveAutoRecharge}
-                  className="btn-secondary"
-                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                  className="btn-primary"
+                  style={{ padding: '5px 12px', fontSize: '0.75rem' }}
                 >
                   Save
                 </button>

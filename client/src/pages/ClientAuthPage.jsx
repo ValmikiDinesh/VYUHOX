@@ -114,17 +114,20 @@ export default function ClientAuthPage({
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'radial-gradient(ellipse at top, #0A1628 0%, #030712 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: '32px 20px',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <div
+      className="liquid-mesh-canvas"
+      style={{
+        minHeight: '100vh',
+        background: 'var(--surface-0)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '32px 20px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       {/* Decorative background glows */}
       <div style={{
         position: 'absolute',
@@ -202,13 +205,9 @@ export default function ClientAuthPage({
       </div>
 
       {/* Main Authentication Card */}
-      <div className="card" style={{
+      <div className="specular-glass-hero" style={{
         width: '100%',
         maxWidth: '480px',
-        background: 'rgba(11, 17, 32, 0.95)',
-        border: '1px solid rgba(6, 182, 212, 0.25)',
-        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(6, 182, 212, 0.1)',
-        borderRadius: '20px',
         padding: '36px 32px',
         position: 'relative',
         zIndex: 10,
@@ -220,17 +219,17 @@ export default function ClientAuthPage({
             width: '52px',
             height: '52px',
             borderRadius: '14px',
-            background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+            background: 'linear-gradient(135deg, #0284C7 0%, #10B981 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 14px',
-            boxShadow: '0 0 25px rgba(6, 182, 212, 0.4)',
+            boxShadow: '0 0 25px rgba(2, 132, 199, 0.45)',
           }}>
             {mode === 'signup' ? (
-              <Sparkles size={26} color="#030712" />
+              <Sparkles size={26} color="#FFFFFF" />
             ) : (
-              <LogIn size={26} color="#030712" />
+              <LogIn size={26} color="#FFFFFF" />
             )}
           </div>
 

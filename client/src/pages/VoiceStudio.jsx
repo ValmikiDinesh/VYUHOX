@@ -560,45 +560,40 @@ export default function VoiceStudio({ activeWorkspace, socket }) {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: 'calc(100vh - 65px)',
-      background: '#070C18',
-      color: '#F8FAFC',
-      fontFamily: 'Inter, sans-serif',
+      height: 'calc(100vh - 48px)',
+      background: 'var(--surface-0)',
+      color: 'var(--text-primary)',
+      fontFamily: 'var(--font-sans)',
       overflow: 'hidden',
       position: 'relative',
     }}>
       {/* Toast Alert */}
       {toastMessage && (
-        <div style={{
+        <div className="specular-glass" style={{
           position: 'absolute',
           top: '20px',
           right: '30px',
           zIndex: 1000,
-          background: 'rgba(15, 23, 42, 0.95)',
-          border: '1px solid rgba(6, 182, 212, 0.5)',
-          boxShadow: '0 8px 32px rgba(6, 182, 212, 0.25)',
-          borderRadius: '10px',
           padding: '12px 20px',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
           color: '#38BDF8',
-          fontSize: '0.875rem',
-          fontWeight: '600',
-          backdropFilter: 'blur(16px)',
-          animation: 'fadeIn 0.2s ease',
+          fontSize: '0.85rem',
+          fontWeight: '700',
+          boxShadow: 'var(--shadow-md), 0 0 25px rgba(2, 132, 199, 0.25)',
+          animation: 'fadeInSlideUp 0.2s var(--ease-spring)',
         }}>
-          <Zap size={16} color="#06B6D4" />
+          <Zap size={16} color="#38BDF8" />
           {toastMessage}
         </div>
       )}
 
       {/* Top Banner / Metrics Deck */}
       <div style={{
-        padding: '16px 24px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        background: 'rgba(11, 17, 32, 0.85)',
-        backdropFilter: 'blur(16px)',
+        padding: '14px 24px',
+        borderBottom: 'var(--border-hairline)',
+        background: 'var(--surface-1)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -608,104 +603,101 @@ export default function VoiceStudio({ activeWorkspace, socket }) {
         {/* Title & Engine Specs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #0284C7 0%, #10B981 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)',
+            boxShadow: '0 0 16px rgba(2, 132, 199, 0.35)',
           }}>
-            <PhoneCall size={22} color="#04101A" strokeWidth={2.5} />
+            <PhoneCall size={20} color="#FFFFFF" strokeWidth={2.2} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, letterSpacing: '0.02em' }}>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: '800', margin: 0, letterSpacing: '-0.01em', color: '#F8FAFC' }}>
                 Autonomous Voice Studio
               </h1>
-              <span style={{
-                fontSize: '0.68rem',
-                fontWeight: '700',
-                padding: '2px 8px',
-                borderRadius: '6px',
-                background: 'rgba(16, 185, 129, 0.15)',
-                color: '#10B981',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}>
-                <Radio size={10} className="pulse-icon" /> &lt;800ms Bland.ai Engine
+              <span className="badge badge-emerald" style={{ fontSize: '0.675rem' }}>
+                <Radio size={10} /> Sub-700ms Bland.ai Carrier
               </span>
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>
-              Sub-second conversational voice agent with live call supervision, whisper coaching &amp; 1-click human rep takeover.
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+              Conversational voice AE with real-time supervision, whisper coaching &amp; 1-click human rep takeover.
             </div>
           </div>
         </div>
 
         {/* Metric Badges */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{
-            padding: '8px 14px',
-            borderRadius: '8px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div className="specular-card" style={{
+            padding: '7px 12px',
             display: 'flex',
             flexDirection: 'column',
           }}>
-            <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '600' }}>SPEED-TO-LEAD</span>
-            <span style={{ fontSize: '1rem', fontWeight: '800', color: '#10B981' }}>&lt; 45s</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: '700', textTransform: 'uppercase' }}>SPEED-TO-LEAD</span>
+            <span className="tabular-nums" style={{ fontSize: '0.95rem', fontWeight: '800', color: '#10B981' }}>&lt; 14s</span>
           </div>
 
-          <div style={{
-            padding: '8px 14px',
-            borderRadius: '8px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+          <div className="specular-card" style={{
+            padding: '7px 12px',
             display: 'flex',
             flexDirection: 'column',
           }}>
-            <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '600' }}>AVG CALL DURATION</span>
-            <span style={{ fontSize: '1rem', fontWeight: '800', color: '#38BDF8' }}>2m 14s</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: '700', textTransform: 'uppercase' }}>AVG DURATION</span>
+            <span className="tabular-nums" style={{ fontSize: '0.95rem', fontWeight: '800', color: '#38BDF8' }}>2m 14s</span>
           </div>
 
-          <div style={{
-            padding: '8px 14px',
-            borderRadius: '8px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+          <div className="specular-card" style={{
+            padding: '7px 12px',
             display: 'flex',
             flexDirection: 'column',
           }}>
-            <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '600' }}>DEMO BOOKING RATE</span>
-            <span style={{ fontSize: '1rem', fontWeight: '800', color: '#F59E0B' }}>41.8%</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: '700', textTransform: 'uppercase' }}>DEMO BOOKING</span>
+            <span className="tabular-nums" style={{ fontSize: '0.95rem', fontWeight: '800', color: '#F59E0B' }}>44.2%</span>
           </div>
 
           {/* Speed-to-lead trigger button */}
           <button
             id="speed-to-lead-trigger-btn"
             onClick={handleTriggerSpeedToLead}
+            className="btn-primary"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '9px 16px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
-              border: 'none',
-              color: '#04101A',
-              fontWeight: '800',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              boxShadow: '0 0 16px rgba(6, 182, 212, 0.35)',
-              transition: 'all 0.15s ease',
+              padding: '8px 14px',
+              fontSize: '0.78rem',
             }}
           >
-            <Zap size={15} />
-            Test Speed-to-Lead
+            <Zap size={14} />
+            <span>Test 14s Speed-to-Lead</span>
           </button>
+        </div>
+      </div>
+
+      {/* Carrier Telemetry Strip */}
+      <div style={{
+        padding: '6px 24px',
+        background: 'rgba(4, 6, 10, 0.9)',
+        borderBottom: 'var(--border-hairline)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        fontSize: '0.72rem',
+        color: 'var(--text-secondary)',
+        flexWrap: 'wrap',
+        gap: '8px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span className="pulse-emerald" />
+          <span>Carrier Route: <strong style={{ color: '#F8FAFC' }}>Bland.ai Dedicated WebRTC (US-East)</strong></span>
+          <span>•</span>
+          <span className="tabular-nums">P95 Audio Latency: <strong style={{ color: '#10B981' }}>612ms</strong></span>
+          <span>•</span>
+          <span>Interruption Recovery: <strong style={{ color: '#38BDF8' }}>120ms</strong></span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>A2P 10DLC TCR Pre-Approved</span>
+          <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>Zero Voice Jitter Buffer</span>
         </div>
       </div>
 
@@ -714,8 +706,8 @@ export default function VoiceStudio({ activeWorkspace, socket }) {
         display: 'flex',
         gap: '6px',
         padding: '8px 24px',
-        background: 'rgba(15, 23, 42, 0.7)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+        background: 'var(--surface-1)',
+        borderBottom: 'var(--border-hairline)',
       }}>
         {[
           { id: 'supervision', label: 'Live Call Supervision & Takeover', icon: Activity, count: activeCalls.length ? `${activeCalls.length} Active` : null },
@@ -733,26 +725,26 @@ export default function VoiceStudio({ activeWorkspace, socket }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                fontSize: '0.8rem',
+                padding: '7px 14px',
+                borderRadius: '6px',
+                fontSize: '0.78rem',
                 fontWeight: active ? '700' : '500',
-                background: active ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
-                border: `1px solid ${active ? 'rgba(6, 182, 212, 0.4)' : 'transparent'}`,
-                color: active ? '#38BDF8' : '#94A3B8',
+                background: active ? 'rgba(2, 132, 199, 0.15)' : 'transparent',
+                border: active ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid transparent',
+                color: active ? '#38BDF8' : 'var(--text-secondary)',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
+                transition: 'all var(--duration-fast)',
               }}
             >
-              <Icon size={14} color={active ? '#06B6D4' : '#94A3B8'} />
+              <Icon size={14} color={active ? '#38BDF8' : 'var(--text-secondary)'} />
               <span>{tab.label}</span>
               {tab.count && (
-                <span style={{
+                <span className="tabular-nums" style={{
                   fontSize: '0.65rem',
                   padding: '1px 6px',
                   borderRadius: '10px',
-                  background: active ? '#06B6D4' : 'rgba(255, 255, 255, 0.1)',
-                  color: active ? '#04101A' : '#CBD5E1',
+                  background: active ? '#0284C7' : 'rgba(255, 255, 255, 0.08)',
+                  color: '#FFFFFF',
                   fontWeight: '700',
                 }}>
                   {tab.count}
@@ -1680,22 +1672,22 @@ export default function VoiceStudio({ activeWorkspace, socket }) {
 
             {/* Table Rows */}
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+              <table className="table-dense-container" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)', color: '#64748B', textAlign: 'left' }}>
-                    <th style={{ padding: '12px 18px' }}>CONTACT / LEAD</th>
-                    <th style={{ padding: '12px 14px' }}>PHONE</th>
-                    <th style={{ padding: '12px 14px' }}>DURATION</th>
-                    <th style={{ padding: '12px 14px' }}>STATUS</th>
-                    <th style={{ padding: '12px 14px' }}>AI SENTIMENT</th>
-                    <th style={{ padding: '12px 14px' }}>SUMMARY</th>
-                    <th style={{ padding: '12px 18px', textAlign: 'right' }}>ACTIONS</th>
+                  <tr style={{ borderBottom: 'var(--border-hairline)', color: 'var(--text-tertiary)', textAlign: 'left', background: 'var(--surface-1)' }}>
+                    <th style={{ padding: '9px 16px' }}>CONTACT / LEAD</th>
+                    <th style={{ padding: '9px 12px' }}>PHONE</th>
+                    <th style={{ padding: '9px 12px' }}>DURATION</th>
+                    <th style={{ padding: '9px 12px' }}>STATUS</th>
+                    <th style={{ padding: '9px 12px' }}>AI SENTIMENT</th>
+                    <th style={{ padding: '9px 12px' }}>SUMMARY</th>
+                    <th style={{ padding: '9px 16px', textAlign: 'right' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {calls.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>
+                      <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
                         No calls logged yet. Launch a Speed-to-Lead call to generate initial data.
                       </td>
                     </tr>
@@ -1705,60 +1697,43 @@ export default function VoiceStudio({ activeWorkspace, socket }) {
                       return (
                         <tr
                           key={c._id || c.callId}
+                          className="grid-row-interactive"
                           style={{
                             borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                            transition: 'background 0.15s ease',
+                            transition: 'background var(--duration-fast)',
                           }}
                         >
-                          <td style={{ padding: '14px 18px' }}>
-                            <div style={{ fontWeight: '700', color: '#F1F5F9' }}>
+                          <td style={{ padding: '9px 16px' }}>
+                            <div style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '0.8125rem' }}>
                               {c.leadId?.name || 'Inbound Prospect'}
                             </div>
-                            <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                               {c.leadId?.company || 'Enterprise Account'}
                             </div>
                           </td>
 
-                          <td style={{ padding: '14px 14px', color: '#CBD5E1' }}>
+                          <td className="tabular-nums" style={{ padding: '9px 12px', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
                             {c.toNumber}
                           </td>
 
-                          <td style={{ padding: '14px 14px', color: '#38BDF8', fontWeight: '600' }}>
+                          <td className="tabular-nums" style={{ padding: '9px 12px', color: '#38BDF8', fontWeight: '700', fontSize: '0.8rem' }}>
                             {formatSeconds(c.durationSeconds)}
                           </td>
 
-                          <td style={{ padding: '14px 14px' }}>
-                            <span style={{
-                              fontSize: '0.7rem',
-                              fontWeight: '700',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              background:
-                                c.status === 'completed'
-                                  ? 'rgba(16, 185, 129, 0.12)'
-                                  : c.status === 'transferred'
-                                  ? 'rgba(14, 165, 233, 0.15)'
-                                  : 'rgba(245, 158, 11, 0.15)',
-                              color:
-                                c.status === 'completed'
-                                  ? '#10B981'
-                                  : c.status === 'transferred'
-                                  ? '#38BDF8'
-                                  : '#F59E0B',
-                            }}>
-                              {c.takenOver ? `⚡ Transferred to Rep` : c.status?.toUpperCase()}
+                          <td style={{ padding: '9px 12px' }}>
+                            <span className={`badge ${
+                              c.status === 'completed'
+                                ? 'badge-emerald'
+                                : c.status === 'transferred'
+                                ? 'badge-cyan'
+                                : 'badge-amber'
+                            }`} style={{ fontSize: '0.675rem' }}>
+                              {c.takenOver ? `⚡ Rep Takeover` : c.status?.toUpperCase()}
                             </span>
                           </td>
 
-                          <td style={{ padding: '14px 14px' }}>
-                            <span style={{
-                              fontSize: '0.7rem',
-                              fontWeight: '700',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              background: 'rgba(16, 185, 129, 0.15)',
-                              color: '#10B981',
-                            }}>
+                          <td style={{ padding: '9px 12px' }}>
+                            <span className="badge badge-emerald tabular-nums" style={{ fontSize: '0.675rem' }}>
                               🔥 {c.sentimentScore || 85}% Intent
                             </span>
                           </td>

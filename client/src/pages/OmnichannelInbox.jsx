@@ -523,35 +523,31 @@ export default function OmnichannelInbox({
   return (
     <div style={{
       display: 'flex',
-      height: 'calc(100vh - 65px)',
-      background: '#070C18',
-      color: '#F8FAFC',
-      fontFamily: 'Inter, sans-serif',
+      height: 'calc(100vh - 48px)',
+      background: 'var(--surface-0)',
+      color: 'var(--text-primary)',
+      fontFamily: 'var(--font-sans)',
       overflow: 'hidden',
       position: 'relative',
     }}>
       {/* Toast Notification */}
       {toastMessage && (
-        <div style={{
+        <div className="specular-glass" style={{
           position: 'absolute',
           top: '20px',
           right: '380px',
           zIndex: 100,
-          background: 'rgba(15, 23, 42, 0.95)',
-          border: '1px solid rgba(6, 182, 212, 0.4)',
-          boxShadow: '0 8px 32px rgba(6, 182, 212, 0.25)',
-          borderRadius: '10px',
           padding: '12px 20px',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
           color: '#38BDF8',
-          fontSize: '0.875rem',
-          fontWeight: '600',
-          backdropFilter: 'blur(16px)',
-          animation: 'fadeIn 0.2s ease',
+          fontSize: '0.85rem',
+          fontWeight: '700',
+          boxShadow: 'var(--shadow-md), 0 0 25px rgba(2, 132, 199, 0.25)',
+          animation: 'fadeInSlideUp 0.2s var(--ease-spring)',
         }}>
-          <Zap size={16} color="#06B6D4" />
+          <Zap size={16} color="#38BDF8" />
           {toastMessage}
         </div>
       )}
@@ -560,43 +556,43 @@ export default function OmnichannelInbox({
       {/* COLUMN 1: THREADS LIST (LEFT) */}
       {/* ========================================================================= */}
       <div style={{
-        width: '340px',
-        minWidth: '320px',
-        maxWidth: '380px',
-        borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-        background: 'rgba(11, 17, 32, 0.7)',
-        backdropFilter: 'blur(16px)',
+        width: '360px',
+        minWidth: '340px',
+        maxWidth: '400px',
+        borderRight: 'var(--border-hairline)',
+        background: 'var(--surface-1)',
         display: 'flex',
         flexDirection: 'column',
       }}>
         {/* Threads Header */}
         <div style={{
-          padding: '16px 18px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          padding: '14px 18px',
+          borderBottom: 'var(--border-hairline)',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
+          background: 'var(--surface-1)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, #06B6D4, #3B82F6)',
+                background: 'linear-gradient(135deg, #0284C7 0%, #10B981 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 0 12px rgba(6, 182, 212, 0.35)',
+                boxShadow: '0 0 14px rgba(2, 132, 199, 0.35)',
               }}>
-                <MessageSquare size={17} color="#04101A" strokeWidth={2.5} />
+                <MessageSquare size={17} color="#FFFFFF" strokeWidth={2.2} />
               </div>
               <div>
-                <h2 style={{ fontSize: '1rem', fontWeight: '700', margin: 0, letterSpacing: '0.01em' }}>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '0.98rem', fontWeight: '800', margin: 0, letterSpacing: '-0.01em', color: '#F8FAFC' }}>
                   Omnichannel Inbox
                 </h2>
-                <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>
-                  {conversations.length} Active Threads
+                <span className="tabular-nums" style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                  {conversations.length} Active Conversations
                 </span>
               </div>
             </div>
@@ -607,24 +603,14 @@ export default function OmnichannelInbox({
                 id="sync-scraped-leads-btn"
                 onClick={handleSyncScrapedLeads}
                 disabled={syncingLeads}
+                className="btn-primary"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
                   padding: '6px 10px',
-                  borderRadius: '7px',
-                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(16, 185, 129, 0.2))',
-                  border: '1px solid rgba(6, 182, 212, 0.4)',
-                  color: '#38BDF8',
                   fontSize: '0.72rem',
-                  fontWeight: '700',
-                  cursor: syncingLeads ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.15s ease',
                 }}
-                title="Fetch scraped CRM leads and use AI to draft personalized Email, WhatsApp, Telegram, and SMS outreach"
               >
-                <Sparkles size={12} className={syncingLeads ? 'spin-icon' : ''} color="#10B981" />
-                {syncingLeads ? 'AI Drafting...' : 'AI Draft Leads'}
+                <Sparkles size={12} className={syncingLeads ? 'spin' : ''} />
+                <span>{syncingLeads ? 'Syncing...' : 'Sync Leads'}</span>
               </button>
 
               <button
@@ -633,24 +619,14 @@ export default function OmnichannelInbox({
                   setSimSenderName(activeLead?.name || '');
                   setIsSimModalOpen(true);
                 }}
+                className="btn-secondary"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
                   padding: '6px 10px',
-                  borderRadius: '7px',
-                  background: 'rgba(6, 182, 212, 0.15)',
-                  border: '1px solid rgba(6, 182, 212, 0.4)',
-                  color: '#38BDF8',
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  fontSize: '0.72rem',
                 }}
-                title="Simulate inbound message from lead"
               >
-                <Zap size={13} />
-                Simulate
+                <Zap size={12} color="#38BDF8" />
+                <span>Simulate Inbound</span>
               </button>
             </div>
           </div>
@@ -910,15 +886,17 @@ export default function OmnichannelInbox({
                 <div
                   key={conv._id}
                   onClick={() => selectThread(conv)}
+                  className="specular-card"
                   style={{
-                    padding: '12px 14px',
+                    padding: '11px 13px',
                     borderRadius: '10px',
                     background: isSelected
-                      ? 'rgba(6, 182, 212, 0.12)'
-                      : 'rgba(255, 255, 255, 0.03)',
-                    border: `1px solid ${isSelected ? 'rgba(6, 182, 212, 0.45)' : 'rgba(255, 255, 255, 0.05)'}`,
+                      ? 'rgba(2, 132, 199, 0.14)'
+                      : 'var(--surface-2)',
+                    border: isSelected ? '1px solid rgba(56, 189, 248, 0.5)' : 'var(--border-hairline)',
+                    boxShadow: isSelected ? 'inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 0 18px rgba(2, 132, 199, 0.2)' : 'var(--shadow-specular)',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'all var(--duration-fast) var(--ease-spring)',
                     position: 'relative',
                   }}
                 >
@@ -933,19 +911,19 @@ export default function OmnichannelInbox({
                           e.stopPropagation();
                           handleToggleSelectLead(lead._id);
                         }}
-                        style={{ accentColor: '#06B6D4', cursor: 'pointer', width: '14px', height: '14px', marginRight: '2px' }}
+                        style={{ accentColor: '#0284C7', cursor: 'pointer', width: '13px', height: '13px', marginRight: '2px' }}
                         title="Select lead for bulk outreach"
                       />
                       <div style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '30px',
+                        height: '30px',
                         borderRadius: '8px',
-                        background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.03))',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                        border: 'var(--border-hairline)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.82rem',
+                        fontSize: '0.8rem',
                         fontWeight: '700',
                         color: channelMeta.color,
                         position: 'relative',
@@ -953,31 +931,31 @@ export default function OmnichannelInbox({
                         {(lead.name || 'L').charAt(0)}
                         <span style={{
                           position: 'absolute',
-                          bottom: '-3px',
-                          right: '-3px',
-                          width: '14px',
-                          height: '14px',
+                          bottom: '-2px',
+                          right: '-2px',
+                          width: '13px',
+                          height: '13px',
                           borderRadius: '50%',
                           background: channelMeta.color,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}>
-                          <ChannelIcon size={8} color="#04101A" />
+                          <ChannelIcon size={7} color="#04101A" />
                         </span>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.875rem', fontWeight: '700', color: '#F1F5F9' }}>
+                        <div style={{ fontSize: '0.84rem', fontWeight: '700', color: '#F8FAFC' }}>
                           {lead.name || 'Unnamed Contact'}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                           {lead.company || 'Enterprise Lead'}
                         </div>
                       </div>
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
+                      <span className="tabular-nums" style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                         {conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                       {conv.unreadCount > 0 && (
