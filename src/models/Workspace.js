@@ -121,6 +121,10 @@ const workspaceSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    lastRecrawledAt: {
+      type: Date,
+      default: null,
+    },
     createdAt: {
       type: Date,
       default: Date.now,

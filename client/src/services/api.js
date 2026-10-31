@@ -252,6 +252,13 @@ export const api = {
     });
     return res.json();
   },
+  recrawlWebsite: async (workspaceId) => {
+    return safeFetchJson(`${API_BASE}/strategy/recrawl`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId }),
+    });
+  },
   toggleChannel: async (strategyId, channelName, enabled) => {
     const res = await authedFetch(`${API_BASE}/strategy/${strategyId}/channels`, {
       method: 'PUT',

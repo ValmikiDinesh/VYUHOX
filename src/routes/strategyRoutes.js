@@ -600,6 +600,146 @@ router.post('/market-radar/sweep', authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/strategy/recrawl - Daily Single-Recrawl Site & Synchronize Offerings
+router.post('/recrawl', authMiddleware, async (req, res) => {
+  try {
+    const { workspaceId: bodyWsId } = req.body;
+    const workspaceId = bodyWsId || req.workspaceId;
+
+    if (!workspaceId) {
+      return res.status(400).json({ success: false, message: 'Active workspace ID required' });
+    }
+
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({ success: false, message: 'Workspace not found' });
+    }
+
+    const targetUrl = workspace.businessUrl || (workspace.domain ? `https://${workspace.domain}` : '');
+    if (!targetUrl) {
+      return res.status(400).json({ success: false, message: 'No registered website URL found for this business' });
+    }
+
+    // Daily Limit Enforcement: Check if recrawled within the last 24 hours
+    const now = new Date();
+    if (workspace.lastRecrawledAt) {
+      const msDiff = now.getTime() - new Date(workspace.lastRecrawledAt).getTime();
+      const hoursRemaining = 24 - (msDiff / (1000 * 60 * 60));
+      if (hoursRemaining > 0) {
+        const hours = Math.floor(hoursRemaining);
+        const minutes = Math.ceil((hoursRemaining - hours) * 60);
+        return res.status(429).json({
+          success: false,
+          dailyLimitReached: true,
+          message: `Daily re-crawl limit reached. Your website was already refreshed recently. You can re-crawl again in ${hours}h ${minutes}m (Limit: 1 re-crawl per 24 hours).`,
+          hoursRemaining,
+          lastRecrawledAt: workspace.lastRecrawledAt,
+        });
+      }
+    }
+
+    emitProgress(req, workspaceId, 'RECRAWL_INIT', `Initiating 24h single re-crawl for ${targetUrl}...`, 15);
+
+    // 1. Re-scan Website
+    const extractedData = await ScannerService.scanWebsite(targetUrl, (percent, msg) => {
+      emitProgress(req, workspaceId, 'RECRAWLING', msg, percent);
+    });
+
+    emitProgress(req, workspaceId, 'AI_EVOLUTION', 'Analyzing new offerings & synchronizing BusinessBrain...', 75);
+
+    // 2. Synthesize updated strategy
+    const finalBusinessName = workspace.name;
+    const finalCategory = workspace.businessCategory || workspace.industry || 'Specialized Enterprise';
+
+    const strategyData = await ScannerService.synthesizeStrategy(extractedData, {
+      workspaceName: finalBusinessName,
+      industry: finalCategory,
+      businessCategory: finalCategory,
+      businessModelDescription: workspace.businessModelDescription,
+      tagLine: workspace.tagLine,
+      offeringType: workspace.offeringType,
+    });
+
+    const synthesizedCategory = strategyData.category || finalCategory;
+
+    // 3. Update Visual Cover & Presentation Deck
+    const visualCoverUrl = VisualAiService.generateBusinessCoverImage(finalBusinessName, synthesizedCategory, strategyData.positioning?.coreValueProp);
+    strategyData.visualCoverUrl = visualCoverUrl;
+
+    const presentationDeck = VisualAiService.generatePitchDeck({
+      businessName: finalBusinessName,
+      category: synthesizedCategory,
+      targetUrl: extractedData.url,
+      analysisResult: strategyData,
+      businessPlanDocument: strategyData.businessPlanDocument,
+      stepByStepRoadmap: strategyData.stepByStepRoadmap,
+    });
+
+    // 4. Update or Create GTM Strategy
+    let gtmStrategy = await GtmStrategy.findOne({ workspaceId, status: 'ACTIVE' }).sort({ createdAt: -1 });
+    if (gtmStrategy) {
+      gtmStrategy.targetUrl = extractedData.url;
+      gtmStrategy.businessName = finalBusinessName;
+      gtmStrategy.category = synthesizedCategory;
+      gtmStrategy.rawExtractedData = extractedData;
+      gtmStrategy.analysisResult = strategyData;
+      gtmStrategy.businessPlanDocument = strategyData.businessPlanDocument;
+      gtmStrategy.presentationDeck = presentationDeck;
+      gtmStrategy.visualCoverUrl = visualCoverUrl;
+      gtmStrategy.stepByStepRoadmap = strategyData.stepByStepRoadmap;
+      await gtmStrategy.save();
+    } else {
+      gtmStrategy = await GtmStrategy.create({
+        workspaceId,
+        targetUrl: extractedData.url,
+        businessName: finalBusinessName,
+        category: synthesizedCategory,
+        growthEngine: strategyData.growthEngine || 'OUTBOUND_B2B',
+        rawExtractedData: extractedData,
+        analysisResult: strategyData,
+        businessPlanDocument: strategyData.businessPlanDocument,
+        presentationDeck,
+        visualCoverUrl,
+        stepByStepRoadmap: strategyData.stepByStepRoadmap,
+        status: 'ACTIVE',
+      });
+      workspace.currentStrategyId = gtmStrategy._id;
+    }
+
+    // 5. Update Workspace Timestamp
+    workspace.lastRecrawledAt = now;
+    await workspace.save();
+
+    // 6. Evolve BusinessBrain
+    try {
+      await vyuhoxMasterBrain.provisionClientBrain(workspaceId, {
+        businessName: finalBusinessName,
+        category: synthesizedCategory,
+        categoryKey: strategyData.categoryKey,
+        businessModel: strategyData.businessModel,
+        operatingModelType: strategyData.businessModelType,
+        extractedData,
+        strategyData,
+      });
+    } catch (e) {
+      console.warn('[StrategyRoutes] Recrawl brain provisioning notice:', e.message);
+    }
+
+    emitProgress(req, workspaceId, 'COMPLETE', 'Website re-crawled and BusinessBrain successfully synchronized!', 100);
+
+    return res.json({
+      success: true,
+      message: 'Website re-crawled and strategy synchronized! Your AI agent team is now aligned with latest website offerings.',
+      strategy: gtmStrategy,
+      lastRecrawledAt: workspace.lastRecrawledAt,
+      newOfferingsCount: strategyData.coreOfferings?.length || 0,
+    });
+  } catch (error) {
+    console.error('[StrategyRoutes] Recrawl error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // POST /api/strategy/update-services - Add, Edit, or Remove Business Services/Products
 router.post('/update-services', authMiddleware, async (req, res) => {
   try {

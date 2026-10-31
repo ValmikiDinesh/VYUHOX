@@ -14,6 +14,7 @@ import {
   Cpu,
   Bot,
   Zap,
+  RefreshCw,
   Shield,
   Layers,
   ArrowRight,
@@ -68,6 +69,10 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
   const [exportNotice, setExportNotice] = useState(false);
   const [saveNotice, setSaveNotice] = useState(false);
   const [showCrawledAssets, setShowCrawledAssets] = useState(true);
+  const [showRecrawlModal, setShowRecrawlModal] = useState(false);
+  const [isRecrawling, setIsRecrawling] = useState(false);
+  const [recrawlNotice, setRecrawlNotice] = useState(null);
+  const [recrawlError, setRecrawlError] = useState(null);
 
   // Active view tab: 'blueprint' | 'document' | 'swot_analysis' | 'workflows_team' | 'business_targets' | 'paid_ads' | 'seo_aeo' | 'offline_online' | 'roadmap' | 'visuals'
   const [viewTab, setViewTab] = useState('blueprint');
@@ -101,6 +106,33 @@ export default function StrategyPlanner({ activeWorkspace, socket, onNavigateTab
     budgetTier: '',
     clientNotes: '',
   });
+
+  const handleTriggerRecrawl = async () => {
+    setShowRecrawlModal(false);
+    setIsRecrawling(true);
+    setRecrawlError(null);
+    setRecrawlNotice(null);
+    try {
+      const wsId = activeWorkspace?._id || authStorage.getActiveWsId();
+      const res = await api.recrawlWebsite(wsId);
+      if (res.success) {
+        setRecrawlNotice(res.message || "Website re-crawled and BusinessBrain successfully synchronized!");
+        if (res.strategy) {
+          setStrategy(res.strategy);
+          initEditForm(res.strategy);
+        }
+        setTimeout(() => setRecrawlNotice(null), 8000);
+      } else {
+        setRecrawlError(res.message || "Failed to re-crawl website. Please try again.");
+        setTimeout(() => setRecrawlError(null), 8000);
+      }
+    } catch (err) {
+      setRecrawlError(err.message || "Error occurred while contacting crawler.");
+      setTimeout(() => setRecrawlError(null), 8000);
+    } finally {
+      setIsRecrawling(false);
+    }
+  };
 
   // 1. Fetch current strategy for active workspace
   useEffect(() => {

@@ -36,3 +36,4 @@ Every business onboarded into VYUHOX must receive commercial growth roles mapped
 1. **Prompt Sanitization:** All LLM prompts passed to Google Gemini or fallback models must carry explicit negative constraints forbidding internal operational or code-auditing roles.
 2. **Code Validation:** The fallback helper `buildAITeamArchitecture` must strictly map to commercial GTM roles across all business categories.
 3. **Database Grounding:** Existing client strategies and business brains must be updated to align with this rulebook.
+
