@@ -752,7 +752,12 @@ CRITICAL RULES:
 1. NEVER output generic enterprise software / SaaS templates unless the site is genuinely B2B software.
 2. Align the growth engine, funnels, target buyer personas, ACV/AOV, and decision-maker roles strictly to whether the crawled data represents B2B enterprise, D2C consumer e-commerce, local walk-in retail/clinic, or specialized commercial services.
 3. Every single section must be 100% tailored to THIS specific business.
-4. Output strictly valid JSON matching this schema:
+4. VYUHOX GTM RULEBOOK LAW: VYUHOX is strictly a Lead Generation, Marketing, and Sales Acquisition platform. In "recommendedAITeam", NEVER invent operational delivery roles, code fixers, pull-request writers, dental nurses, or internal product developers. The client takes care of their own core delivery! The AI Team roles MUST STRICTLY be Commercial Growth Specialists:
+   - Inbound Authority & AEO/SEO Director (attracting buyers through high-intent content)
+   - Autonomous Outbound Pipeline SDR (researching decision-makers and drafting cold outreach)
+   - Speed-to-Lead Inbound Voice Closer (Maya Voice AI qualifying incoming leads in under 45s)
+   - Revenue Operations & Paid Media Specialist (optimizing ad spend, CAC, and pipeline conversion)
+5. Output strictly valid JSON matching this schema:
 
 {
   "businessName": "${clientBizName}",
@@ -851,14 +856,14 @@ CRITICAL RULES:
     "targetCompanyTypes": ["3 types of businesses, agencies, or individuals who purchase this"]
   },
   "recommendedAITeam": {
-    "coreBottleneckSolved": "The single primary operational or growth bottleneck this AI workforce eliminates for this business",
-    "estimatedMonthlyROI": "Projected ROI multiple or revenue impact metric",
+    "coreBottleneckSolved": "The single primary customer acquisition or revenue bottleneck this AI workforce eliminates for this business",
+    "estimatedMonthlyROI": "Projected ROI multiple or revenue pipeline metric",
     "recommendedPlan": "Enterprise Autonomous Growth & Operations Mode",
     "teamMembers": [
       {
-        "role": "Specific AI Agent Title tailored to this business",
-        "purpose": "Exact operational workflow this agent executes for this company",
-        "monthlyEquivalentValue": "$3,500/mo Human Equivalent Value"
+        "role": "Specific Commercial Growth Agent Title (e.g. Autonomous Outbound Pipeline SDR for [Category])",
+        "purpose": "Exact sales, lead generation, SEO, or inbound conversion workflow this agent executes for this company",
+        "monthlyEquivalentValue": "$4,500/mo Human Equivalent Value"
       }
     ]
   }
@@ -1155,39 +1160,40 @@ CRITICAL RULES:
   }
 
   /**
-   * Recommend authentic AI Workforce Team structure dynamically allocated to the company
+   * Recommend authentic Commercial AI Workforce Team structure dynamically allocated to the company
+   * STRICT GTM RULEBOOK: Strictly Marketing, Sales, Outbound, and Inbound Conversion specialists.
    */
   static buildAITeamArchitecture(category, name, crawledData = {}) {
     const roles = [
       {
-        role: `Autonomous GTM Growth Strategist for ${category}`,
-        purpose: `Continuously aligns market positioning, pricing power, and audience targeting for ${name}.`,
-        monthlyEquivalentValue: '$5,000/mo Fractional CMO',
+        role: `Inbound Demand Generation & AEO Director for ${category}`,
+        purpose: `Generates high-ranking technical articles, search briefs, and AI citation benchmarks to attract inbound ${category} buyers to ${name}.`,
+        monthlyEquivalentValue: '$5,500/mo Fractional CMO',
       },
       {
-        role: `Multi-Channel Inbound Conversion & Voice Specialist`,
-        purpose: `Engages inbound inquiries for ${name} in under 45 seconds to qualify budget and confirm consultations.`,
+        role: `Autonomous Outbound Pipeline SDR for ${category}`,
+        purpose: `Discovers verified decision-makers, crafts hyper-personalized email/LinkedIn pitches, and generates qualified sales meetings for ${name}.`,
         monthlyEquivalentValue: '$4,500/mo Account Executive',
       },
       {
-        role: `High-Converting Direct-Response Copy & Ad Director`,
-        purpose: `Drafts psychological ad angles, email sequences, and narrative messaging tailored to ${category}.`,
-        monthlyEquivalentValue: '$3,500/mo Copywriter',
+        role: `Speed-to-Lead Inbound Closer & Voice Specialist (Maya Voice)`,
+        purpose: `Engages incoming leads and website inquiries for ${name} in under 45 seconds to answer objections and secure confirmed calendar appointments.`,
+        monthlyEquivalentValue: '$4,000/mo Inbound SDR',
       },
       {
-        role: `Margin & Revenue Operations Guardian`,
-        purpose: `Protects customer acquisition costs (CAC) against gross margins and lifetime value for ${name}.`,
-        monthlyEquivalentValue: '$5,000/mo Financial Advisor',
+        role: `Revenue Operations & Multi-Channel Ad Specialist`,
+        purpose: `Optimizes paid search and social ad angles, protects customer acquisition cost (CAC), and maximizes closed pipeline for ${name}.`,
+        monthlyEquivalentValue: '$4,000/mo Performance Marketer',
       },
     ];
 
     return {
       roles: roles.map((r) => `${r.role}: ${r.purpose}`),
       teamMembers: roles,
-      estimatedMonthlyROI: '5.8x – 10.4x Pipeline ROI within 60 days',
-      recommendedPlan: 'VYUHOX Autonomous AI Workforce (Zero Overhead • 24/7 Execution)',
-      coreBottleneckSolved: `Scaling customer acquisition velocity and eliminating manual follow-up in ${category}`,
-      monthlyHumanEquivalentCost: '$18,000/mo in human staff',
+      estimatedMonthlyROI: '5.8x – 10.4x Qualified Pipeline ROI within 60 days',
+      recommendedPlan: 'VYUHOX Autonomous Commercial Growth Engine (24/7 Pipeline Acquisition)',
+      coreBottleneckSolved: `Scaling customer acquisition velocity, outbound pipeline, and eliminating lead response delays in ${category}`,
+      monthlyHumanEquivalentCost: '$18,000/mo in dedicated sales & marketing staff',
     };
   }
 
