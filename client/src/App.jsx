@@ -72,13 +72,28 @@ export default function App() {
     const hash = (window.location.hash || '').toLowerCase();
     const path = (window.location.pathname || '').toLowerCase();
 
+    // Check existing stored authentication
+    let storedToken = null;
+    let storedUser = null;
+    try {
+      storedToken = authStorage.getToken();
+      storedUser = authStorage.getUser();
+    } catch (e) {}
+
+    const isSuperAdmin = storedUser?.role === 'superadmin';
+
+    // Super Admin routes: if already logged in as superadmin, stay in 'app'
     if (
       hash === '#admin' ||
       hash === '#admin-login' ||
       hash.startsWith('#admin') ||
       path === '/admin' ||
-      path === '/admin/login'
+      path === '/admin/login' ||
+      path.startsWith('/admin')
     ) {
+      if (storedToken && isSuperAdmin) {
+        return 'app';
+      }
       return 'admin_login';
     }
     if (
@@ -87,6 +102,9 @@ export default function App() {
       path === '/login' ||
       path === '/signin'
     ) {
+      if (storedToken && storedUser) {
+        return 'app';
+      }
       return 'client_login';
     }
     if (
@@ -95,6 +113,9 @@ export default function App() {
       path === '/signup' ||
       path === '/register'
     ) {
+      if (storedToken && storedUser) {
+        return 'app';
+      }
       return 'client_signup';
     }
     if (hash === '#tools/spam-checker' || path === '/tools/spam-checker') {
@@ -106,7 +127,11 @@ export default function App() {
     if (hash === '#tools/dns-tester' || hash === '#tools/dns-lookup' || path === '/tools/dns-lookup') {
       return 'tool_dns_tester';
     }
-    if (hash === '#app' || path === '/app') {
+    if (hash === '#app' || path === '/app' || path === '/admin/app') {
+      return 'app';
+    }
+    // If super admin is active, keep in console
+    if (storedToken && isSuperAdmin) {
       return 'app';
     }
     return 'landing';

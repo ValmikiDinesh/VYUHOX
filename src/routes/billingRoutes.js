@@ -286,15 +286,34 @@ router.put('/platform-config', async (req, res) => {
       config = new PlatformConfig({ configKey: 'GLOBAL_CONFIG' });
     }
 
-    if (usageRates) config.usageRates = { ...config.usageRates, ...usageRates };
-    if (integrations) config.integrations = { ...config.integrations, ...integrations };
+    if (usageRates) config.usageRates = { ...(config.usageRates?.toObject?.() || config.usageRates || {}), ...usageRates };
+    if (integrations) {
+      if (!config.integrations) config.integrations = {};
+      for (const [providerKey, providerVal] of Object.entries(integrations)) {
+        if (providerVal && typeof providerVal === 'object') {
+          config.integrations[providerKey] = {
+            ...(config.integrations[providerKey]?.toObject?.() || config.integrations[providerKey] || {}),
+            ...providerVal,
+            isActive: !!(providerVal.apiKey || providerVal.authToken || providerVal.apiToken || providerVal.isActive),
+          };
+        }
+      }
+      config.markModified('integrations');
+    }
     if (canvaConnect) config.canvaConnect = { ...config.canvaConnect, ...canvaConnect };
     if (googleFlowWorkspace) config.googleFlowWorkspace = { ...config.googleFlowWorkspace, ...googleFlowWorkspace };
     if (pollinationsVisualAi) config.pollinationsVisualAi = { ...config.pollinationsVisualAi, ...pollinationsVisualAi };
     if (dalleVisualAi) config.dalleVisualAi = { ...config.dalleVisualAi, ...dalleVisualAi };
     if (shortVideoEngine) config.shortVideoEngine = { ...config.shortVideoEngine, ...shortVideoEngine };
     if (visualToolsGovernance) config.visualToolsGovernance = { ...config.visualToolsGovernance, ...visualToolsGovernance };
-    if (llmCascadeConfig) config.llmCascadeConfig = { ...config.llmCascadeConfig, ...llmCascadeConfig };
+    if (llmCascadeConfig) {
+      const cleanCascade = { ...llmCascadeConfig };
+      if (cleanCascade.lastFailoverEvent === undefined) {
+        delete cleanCascade.lastFailoverEvent;
+      }
+      config.llmCascadeConfig = { ...(config.llmCascadeConfig?.toObject?.() || config.llmCascadeConfig || {}), ...cleanCascade };
+      config.markModified('llmCascadeConfig');
+    }
     if (finOpsConfig) config.finOpsConfig = { ...config.finOpsConfig, ...finOpsConfig };
     if (circuitBreakers) config.circuitBreakers = { ...config.circuitBreakers, ...circuitBreakers };
     if (globalAnnouncement) config.globalAnnouncement = { ...config.globalAnnouncement, ...globalAnnouncement };

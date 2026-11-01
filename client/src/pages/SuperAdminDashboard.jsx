@@ -296,17 +296,49 @@ export default function SuperAdminDashboard({
     }
   };
 
+  const [savingKeys, setSavingKeys] = useState({});
+
+  // Individual Integration Key Saver
+  const handleSaveSingleKey = async (provider, keyField, keyVal) => {
+    setSavingKeys((prev) => ({ ...prev, [provider]: true }));
+    try {
+      const payload = {
+        integrations: {
+          [provider]: {
+            ...platformConfig?.integrations?.[provider],
+            [keyField]: keyVal || '',
+            isActive: !!keyVal,
+          },
+        },
+      };
+      const res = await api.updatePlatformConfig(payload);
+      if (res?.success) {
+        setPlatformConfig(res.config);
+        showToast(`✅ ${provider.toUpperCase()} master key saved.`);
+        loadAuditLogs();
+        loadWholesaleTelemetry();
+      } else {
+        showToast(res?.message || `Failed to save ${provider} key`);
+      }
+    } catch (err) {
+      showToast(`Error saving ${provider} key`);
+    } finally {
+      setSavingKeys((prev) => ({ ...prev, [provider]: false }));
+    }
+  };
+
   // Save Platform Config (Integrations or Rates)
   const handleSaveConfig = async (partialConfig) => {
     setSavingConfig(true);
     try {
-      const res = await api.updatePlatformConfig({ ...platformConfig, ...partialConfig });
+      const res = await api.updatePlatformConfig(partialConfig);
       if (res?.success) {
         setPlatformConfig(res.config);
         showToast('Platform configuration saved and audit-logged.');
         loadAuditLogs();
+        loadWholesaleTelemetry();
       } else {
-        showToast('Failed to save configuration');
+        showToast(res?.message || 'Failed to save configuration');
       }
     } catch (err) {
       showToast('Error saving configuration');
@@ -1723,31 +1755,57 @@ export default function SuperAdminDashboard({
             </div>
 
             {/* Integrations Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
               {/* Apollo.io */}
               <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Apollo.io B2B Enrichment</div>
-                  <button
-                    onClick={() => handleTestPing('apollo')}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      color: '#38BDF8',
-                      fontSize: '0.7rem',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Test Ping
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Apollo.io B2B Enrichment</span>
+                    {platformConfig?.integrations?.apollo?.apiKey ? (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>CONFIGURED</span>
+                    ) : (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => handleSaveSingleKey('apollo', 'apiKey', platformConfig?.integrations?.apollo?.apiKey || '')}
+                      disabled={savingKeys.apollo}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(2, 132, 199, 0.2)',
+                        border: '1px solid rgba(2, 132, 199, 0.4)',
+                        color: '#38BDF8',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: savingKeys.apollo ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {savingKeys.apollo ? 'Saving...' : 'Save Key'}
+                    </button>
+                    <button
+                      onClick={() => handleTestPing('apollo')}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.25)',
+                        color: '#94A3B8',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Test Ping
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
                   <input
                     type={revealedKeys.apollo ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.apollo?.apiKey || 'sk_live_apollo_vyuhox_prod'}
+                    value={platformConfig?.integrations?.apollo?.apiKey || ''}
+                    placeholder="Enter Apollo API key (sk_...)"
                     onChange={(e) =>
                       setPlatformConfig({
                         ...platformConfig,
@@ -1784,27 +1842,53 @@ export default function SuperAdminDashboard({
               {/* Outscraper */}
               <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Outscraper Maps Extractor</div>
-                  <button
-                    onClick={() => handleTestPing('outscraper')}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      color: '#38BDF8',
-                      fontSize: '0.7rem',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Test Ping
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Outscraper Maps Extractor</span>
+                    {platformConfig?.integrations?.outscraper?.apiKey ? (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>CONFIGURED</span>
+                    ) : (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => handleSaveSingleKey('outscraper', 'apiKey', platformConfig?.integrations?.outscraper?.apiKey || '')}
+                      disabled={savingKeys.outscraper}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(2, 132, 199, 0.2)',
+                        border: '1px solid rgba(2, 132, 199, 0.4)',
+                        color: '#38BDF8',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: savingKeys.outscraper ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {savingKeys.outscraper ? 'Saving...' : 'Save Key'}
+                    </button>
+                    <button
+                      onClick={() => handleTestPing('outscraper')}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.25)',
+                        color: '#94A3B8',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Test Ping
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
                   <input
                     type={revealedKeys.outscraper ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.outscraper?.apiKey || 'outscraper_prod_key_771'}
+                    value={platformConfig?.integrations?.outscraper?.apiKey || ''}
+                    placeholder="Enter Outscraper API key..."
                     onChange={(e) =>
                       setPlatformConfig({
                         ...platformConfig,
@@ -1841,27 +1925,53 @@ export default function SuperAdminDashboard({
               {/* Twilio Telephony */}
               <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Twilio Voice Gateway</div>
-                  <button
-                    onClick={() => handleTestPing('twilio')}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      color: '#38BDF8',
-                      fontSize: '0.7rem',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Test Ping
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Twilio Voice & Lookup</span>
+                    {platformConfig?.integrations?.twilio?.authToken ? (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>CONFIGURED</span>
+                    ) : (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => handleSaveSingleKey('twilio', 'authToken', platformConfig?.integrations?.twilio?.authToken || '')}
+                      disabled={savingKeys.twilio}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(2, 132, 199, 0.2)',
+                        border: '1px solid rgba(2, 132, 199, 0.4)',
+                        color: '#38BDF8',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: savingKeys.twilio ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {savingKeys.twilio ? 'Saving...' : 'Save Key'}
+                    </button>
+                    <button
+                      onClick={() => handleTestPing('twilio')}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.25)',
+                        color: '#94A3B8',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Test Ping
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
                   <input
                     type={revealedKeys.twilio ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.twilio?.authToken || 'auth_secret_master_token'}
+                    value={platformConfig?.integrations?.twilio?.authToken || ''}
+                    placeholder="Enter Twilio Auth Token..."
                     onChange={(e) =>
                       setPlatformConfig({
                         ...platformConfig,
@@ -1898,27 +2008,53 @@ export default function SuperAdminDashboard({
               {/* Gemini 1.5 Master LLM */}
               <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Google Gemini 1.5 AI Master</div>
-                  <button
-                    onClick={() => handleTestPing('geminiMaster')}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      color: '#38BDF8',
-                      fontSize: '0.7rem',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Test Ping
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Google Gemini 1.5 AI Master</span>
+                    {platformConfig?.integrations?.geminiMaster?.apiKey ? (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>CONFIGURED</span>
+                    ) : (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => handleSaveSingleKey('geminiMaster', 'apiKey', platformConfig?.integrations?.geminiMaster?.apiKey || '')}
+                      disabled={savingKeys.geminiMaster}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(2, 132, 199, 0.2)',
+                        border: '1px solid rgba(2, 132, 199, 0.4)',
+                        color: '#38BDF8',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: savingKeys.geminiMaster ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {savingKeys.geminiMaster ? 'Saving...' : 'Save Key'}
+                    </button>
+                    <button
+                      onClick={() => handleTestPing('geminiMaster')}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.25)',
+                        color: '#94A3B8',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Test Ping
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
                   <input
                     type={revealedKeys.gemini ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.geminiMaster?.apiKey || 'AIzaSyVyuhoxGeminiMaster_2026'}
+                    value={platformConfig?.integrations?.geminiMaster?.apiKey || ''}
+                    placeholder="Enter Gemini API key (AIzaSy...)"
                     onChange={(e) =>
                       setPlatformConfig({
                         ...platformConfig,
@@ -1955,28 +2091,53 @@ export default function SuperAdminDashboard({
               {/* BounceBan Catch-All Verifier */}
               <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#10B981' }}>BounceBan Catch-All Shield</div>
-                  <button
-                    onClick={() => handleTestPing('bounceban')}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      color: '#10B981',
-                      fontSize: '0.7rem',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Test Ping
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#10B981' }}>BounceBan Catch-All Shield</span>
+                    {platformConfig?.integrations?.bounceban?.apiKey ? (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>CONFIGURED</span>
+                    ) : (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => handleSaveSingleKey('bounceban', 'apiKey', platformConfig?.integrations?.bounceban?.apiKey || '')}
+                      disabled={savingKeys.bounceban}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid rgba(16, 185, 129, 0.4)',
+                        color: '#10B981',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: savingKeys.bounceban ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {savingKeys.bounceban ? 'Saving...' : 'Save Key'}
+                    </button>
+                    <button
+                      onClick={() => handleTestPing('bounceban')}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        color: '#94A3B8',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Test Ping
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
                   <input
                     type={revealedKeys.bounceban ? 'text' : 'password'}
                     value={platformConfig?.integrations?.bounceban?.apiKey || ''}
-                    placeholder="Enter BounceBan API Key"
+                    placeholder="Enter BounceBan API Key..."
                     onChange={(e) =>
                       setPlatformConfig({
                         ...platformConfig,
@@ -2013,22 +2174,47 @@ export default function SuperAdminDashboard({
               {/* Apify Social Actors */}
               <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#EC4899' }}>Apify Social Actor Cloud</div>
-                  <button
-                    onClick={() => handleTestPing('apify')}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      background: 'rgba(236, 72, 153, 0.15)',
-                      border: '1px solid rgba(236, 72, 153, 0.3)',
-                      color: '#EC4899',
-                      fontSize: '0.7rem',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Test Ping
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#EC4899' }}>Apify Social Actor Cloud</span>
+                    {platformConfig?.integrations?.apify?.apiToken ? (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(236, 72, 153, 0.15)', color: '#EC4899', fontWeight: '800' }}>CONFIGURED</span>
+                    ) : (
+                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => handleSaveSingleKey('apify', 'apiToken', platformConfig?.integrations?.apify?.apiToken || '')}
+                      disabled={savingKeys.apify}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(236, 72, 153, 0.15)',
+                        border: '1px solid rgba(236, 72, 153, 0.4)',
+                        color: '#EC4899',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: savingKeys.apify ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {savingKeys.apify ? 'Saving...' : 'Save Key'}
+                    </button>
+                    <button
+                      onClick={() => handleTestPing('apify')}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(236, 72, 153, 0.1)',
+                        border: '1px solid rgba(236, 72, 153, 0.25)',
+                        color: '#94A3B8',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Test Ping
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
                   <input
