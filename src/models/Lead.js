@@ -46,8 +46,20 @@ const leadSchema = new mongoose.Schema(
     },
     verificationStatus: {
       type: String,
-      enum: ['VERIFIED', 'UNVERIFIED', 'RISKY', 'DISPOSABLE'],
+      enum: ['VERIFIED', 'UNVERIFIED', 'RISKY', 'DISPOSABLE', 'PHONE_VERIFIED'],
       default: 'UNVERIFIED',
+    },
+    phoneLineType: {
+      type: String,
+      default: 'CELLULAR',
+    },
+    catchAllPassed: {
+      type: Boolean,
+      default: true,
+    },
+    readyForMayaVoice: {
+      type: Boolean,
+      default: true,
     },
     mxHost: {
       type: String,
@@ -67,7 +79,6 @@ const leadSchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      enum: ['Scraper', 'Form', 'Ad', 'Inbound', 'INSTANT_AI_MICROSITE'],
       default: 'Scraper',
     },
     entityRole: {

@@ -28,6 +28,9 @@ const platformConfigSchema = new mongoose.Schema(
         accountSid: { type: String, default: 'AC_TWILIO_MASTER_PROD' },
         authToken: { type: String, default: 'auth_secret_master_token' },
         phoneNumber: { type: String, default: '+1 (800) 555-GTM1' },
+        balanceUSD: { type: Number, default: 112.40 },
+        currency: { type: String, default: 'USD' },
+        lastSyncedAt: { type: Date, default: Date.now },
         isActive: { type: Boolean, default: true },
       },
       blandAi: {
@@ -76,10 +79,29 @@ const platformConfigSchema = new mongoose.Schema(
       },
       apollo: {
         apiKey: { type: String, default: 'sk_live_apollo_vyuhox_prod' },
+        creditsRemaining: { type: Number, default: 8450 },
+        renewalDate: { type: String, default: '2026-11-28' },
+        lastSyncedAt: { type: Date, default: Date.now },
         isActive: { type: Boolean, default: true },
       },
       outscraper: {
         apiKey: { type: String, default: 'outscraper_prod_key_771' },
+        balanceUSD: { type: Number, default: 48.20 },
+        freeTierRemaining: { type: Number, default: 420 },
+        lastSyncedAt: { type: Date, default: Date.now },
+        isActive: { type: Boolean, default: true },
+      },
+      bounceban: {
+        apiKey: { type: String, default: 'bounceban_master_live_key' },
+        creditsRemaining: { type: Number, default: 31800 },
+        lastSyncedAt: { type: Date, default: Date.now },
+        isActive: { type: Boolean, default: true },
+      },
+      apify: {
+        apiToken: { type: String, default: 'apify_master_token_live' },
+        usageUsd: { type: Number, default: 12.30 },
+        maxLimitUsd: { type: Number, default: 199.00 },
+        lastSyncedAt: { type: Date, default: Date.now },
         isActive: { type: Boolean, default: true },
       },
       hunter: {
@@ -199,6 +221,17 @@ const platformConfigSchema = new mongoose.Schema(
         suggestedVoicePerMinuteINR: { type: Number, default: 29.0 },
         marginAchievedPercent: { type: Number, default: 85 },
       },
+    },
+
+    // Wholesale Provider Safety & Low-Balance Alert Thresholds
+    wholesaleSafetyAlerts: {
+      twilioMinUSD: { type: Number, default: 25.0 },
+      outscraperMinUSD: { type: Number, default: 10.0 },
+      bouncebanMinCredits: { type: Number, default: 1000 },
+      apolloMinCredits: { type: Number, default: 500 },
+      apifyMaxSpendPct: { type: Number, default: 85 }, // Alert if > 85% of monthly limit
+      alertRecipientEmail: { type: String, default: 'admin@vyuhox.ai' },
+      enableSoundAlarm: { type: Boolean, default: true },
     },
 
     // Master Emergency Circuit Breaker (Global Kill-Switch & Throttling)

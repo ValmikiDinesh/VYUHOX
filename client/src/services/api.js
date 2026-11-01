@@ -1046,6 +1046,16 @@ export const api = {
     });
     return res.json();
   },
+  getWholesaleTelemetry: async () => {
+    const res = await authedFetch(`${API_BASE}/billing/wholesale-telemetry`);
+    return res.json();
+  },
+  refreshWholesaleTelemetry: async () => {
+    const res = await authedFetch(`${API_BASE}/billing/wholesale-telemetry/refresh`, {
+      method: 'POST',
+    });
+    return res.json();
+  },
 
   // Strategy & Website Scanner
   getStrategy: async (workspaceId) => {

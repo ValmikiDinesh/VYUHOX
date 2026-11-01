@@ -127,6 +127,8 @@ export default function LeadFinder({
   const [isScraping, setIsScraping] = useState(false);
   const [activeJobId, setActiveJobId] = useState(null);
   const [expandedNotesId, setExpandedNotesId] = useState(null);
+  const [aiReasoningSteps, setAiReasoningSteps] = useState([]);
+  const [isReasoningActive, setIsReasoningActive] = useState(false);
 
   const handleAddLocation = (locToAdd) => {
     const term = (locToAdd || locationInput).trim();
@@ -297,8 +299,17 @@ export default function LeadFinder({
       if (onRefreshLeads) onRefreshLeads();
     };
 
+    const handleReasoning = (data) => {
+      setIsReasoningActive(true);
+      setAiReasoningSteps((prev) => [
+        ...prev,
+        { ...data, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) },
+      ]);
+    };
+
     const handleComplete = (data) => {
       setIsScraping(false);
+      setIsReasoningActive(false);
       const isFree = !data.deductedUSD || data.deductedUSD === 0;
       const billingMsg = isFree
         ? `100% Free under your ${planInfo.badge} plan quota (${data.freeLeadsScraped || data.count} leads drawn from plan).`
@@ -334,6 +345,7 @@ export default function LeadFinder({
     };
 
     socket.on('scraper:progress', handleProgress);
+    socket.on('scraper:reasoning', handleReasoning);
     socket.on('scraper:lead_found', handleLeadFound);
     socket.on('scraper:complete', handleComplete);
     socket.on('leadsBulkUpdated', handleBulkUpdated);
@@ -343,6 +355,7 @@ export default function LeadFinder({
 
     return () => {
       socket.off('scraper:progress', handleProgress);
+      socket.off('scraper:reasoning', handleReasoning);
       socket.off('scraper:lead_found', handleLeadFound);
       socket.off('scraper:complete', handleComplete);
       socket.off('leadsBulkUpdated', handleBulkUpdated);
@@ -1345,6 +1358,51 @@ export default function LeadFinder({
                 background: 'linear-gradient(90deg, #06B6D4 0%, #10B981 100%)',
                 transition: 'width 0.3s ease',
               }} />
+            </div>
+          </div>
+        )}
+
+        {/* Live AI Reasoning & Autonomous Routing Terminal */}
+        {(isScraping || isReasoningActive || aiReasoningSteps.length > 0) && (
+          <div style={{
+            marginTop: '12px',
+            borderRadius: '10px',
+            background: 'rgba(3, 7, 18, 0.95)',
+            border: '1px solid rgba(6, 182, 212, 0.35)',
+            padding: '12px 16px',
+            fontFamily: 'monospace',
+            boxShadow: 'inset 0 2px 10px rgba(0, 0, 0, 0.6)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="pulse-emerald" />
+                <span style={{ fontSize: '0.74rem', fontWeight: '800', color: '#38BDF8', letterSpacing: '0.04em' }}>
+                  VYUHOX AUTONOMOUS LEAD ROUTING TERMINAL
+                </span>
+              </div>
+              <span style={{ fontSize: '0.68rem', color: '#10B981', fontWeight: '700' }}>
+                WHOLESALE ENGINES: APOLLO • OUTSCRAPER • BOUNCEBAN • TWILIO
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
+              {aiReasoningSteps.map((step, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.72rem', lineHeight: '1.4' }}>
+                  <span style={{ color: '#64748B', flexShrink: 0 }}>[{step.time || 'NOW'}]</span>
+                  <span style={{
+                    color: step.step === 'BRAIN' ? '#A78BFA' : step.step === 'ROUTING' ? '#38BDF8' : '#34D399',
+                    fontWeight: '600',
+                  }}>
+                    {step.message}
+                  </span>
+                </div>
+              ))}
+              {isScraping && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem', color: '#94A3B8' }}>
+                  <RefreshCw size={11} className="animate-spin text-cyan-400" />
+                  <span>Harvesting &amp; executing waterfall clean...</span>
+                </div>
+              )}
             </div>
           </div>
         )}
