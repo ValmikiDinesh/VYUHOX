@@ -5,16 +5,17 @@ export class WholesaleTelemetryService {
    * Ping Apollo.io to retrieve lead credits, export credits, and renewal date
    */
   static async checkApollo(apiKey) {
-    if (!apiKey || apiKey.startsWith('sk_live_apollo_vyuhox_prod')) {
+    if (!apiKey || !apiKey.trim() || apiKey.startsWith('sk_live_apollo_vyuhox_prod')) {
       return {
         provider: 'apollo',
-        status: 'CONNECTED',
-        isSimulated: true,
-        creditsRemaining: 8450,
-        monthlyLimit: 10000,
-        renewalDate: '2026-11-28',
+        status: 'NOT_CONNECTED',
+        isConfigured: false,
+        creditsRemaining: 0,
+        monthlyLimit: 0,
+        renewalDate: null,
         currency: 'CREDITS',
-        latencyMs: 142,
+        latencyMs: null,
+        message: 'No API key configured in Super Admin',
       };
     }
     const start = Date.now();
@@ -28,15 +29,16 @@ export class WholesaleTelemetryService {
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
       if (!res.ok) {
-        return { provider: 'apollo', status: 'AUTH_FAILED', error: `HTTP ${res.status}`, latencyMs };
+        return { provider: 'apollo', status: 'AUTH_FAILED', isConfigured: true, error: `HTTP ${res.status}`, latencyMs };
       }
       const data = await res.json();
       return {
         provider: 'apollo',
         status: 'ACTIVE',
+        isConfigured: true,
         isSimulated: false,
-        creditsRemaining: data?.user?.credits?.lead_credits || data?.user?.credits?.export_credits || 5000,
-        monthlyLimit: data?.user?.credits?.monthly_lead_credits || 10000,
+        creditsRemaining: data?.user?.credits?.lead_credits || data?.user?.credits?.export_credits || 0,
+        monthlyLimit: data?.user?.credits?.monthly_lead_credits || 0,
         renewalDate: data?.user?.credits?.renewal_date || 'Active',
         currency: 'CREDITS',
         latencyMs,
@@ -45,8 +47,9 @@ export class WholesaleTelemetryService {
       return {
         provider: 'apollo',
         status: 'TIMEOUT',
+        isConfigured: true,
         error: err.message,
-        creditsRemaining: 8450,
+        creditsRemaining: 0,
         currency: 'CREDITS',
         latencyMs: Date.now() - start,
       };
@@ -57,15 +60,16 @@ export class WholesaleTelemetryService {
    * Ping Outscraper to retrieve prepaid USD balance and free-tier allocation
    */
   static async checkOutscraper(apiKey) {
-    if (!apiKey || apiKey.startsWith('outscraper_prod_key_771')) {
+    if (!apiKey || !apiKey.trim() || apiKey.startsWith('outscraper_prod_key_771')) {
       return {
         provider: 'outscraper',
-        status: 'CONNECTED',
-        isSimulated: true,
-        balanceUSD: 48.20,
-        freeTierRemaining: 420,
+        status: 'NOT_CONNECTED',
+        isConfigured: false,
+        balanceUSD: 0,
+        freeTierRemaining: 0,
         currency: 'USD',
-        latencyMs: 168,
+        latencyMs: null,
+        message: 'No API key configured in Super Admin',
       };
     }
     const start = Date.now();
@@ -79,12 +83,13 @@ export class WholesaleTelemetryService {
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
       if (!res.ok) {
-        return { provider: 'outscraper', status: 'AUTH_FAILED', error: `HTTP ${res.status}`, latencyMs };
+        return { provider: 'outscraper', status: 'AUTH_FAILED', isConfigured: true, error: `HTTP ${res.status}`, latencyMs };
       }
       const data = await res.json();
       return {
         provider: 'outscraper',
         status: 'ACTIVE',
+        isConfigured: true,
         isSimulated: false,
         balanceUSD: parseFloat(data?.balance || data?.usd || 0),
         freeTierRemaining: parseInt(data?.free_credits || 0, 10),
@@ -95,8 +100,9 @@ export class WholesaleTelemetryService {
       return {
         provider: 'outscraper',
         status: 'TIMEOUT',
+        isConfigured: true,
         error: err.message,
-        balanceUSD: 48.20,
+        balanceUSD: 0,
         currency: 'USD',
         latencyMs: Date.now() - start,
       };
@@ -107,14 +113,15 @@ export class WholesaleTelemetryService {
    * Ping BounceBan to retrieve permanent catch-all email verification credits
    */
   static async checkBounceBan(apiKey) {
-    if (!apiKey || apiKey.startsWith('bounceban_master_live_key')) {
+    if (!apiKey || !apiKey.trim() || apiKey.startsWith('bounceban_master_live_key')) {
       return {
         provider: 'bounceban',
-        status: 'CONNECTED',
-        isSimulated: true,
-        creditsRemaining: 31800,
+        status: 'NOT_CONNECTED',
+        isConfigured: false,
+        creditsRemaining: 0,
         currency: 'CREDITS',
-        latencyMs: 185,
+        latencyMs: null,
+        message: 'No API key configured in Super Admin',
       };
     }
     const start = Date.now();
@@ -128,14 +135,15 @@ export class WholesaleTelemetryService {
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
       if (!res.ok) {
-        return { provider: 'bounceban', status: 'AUTH_FAILED', error: `HTTP ${res.status}`, latencyMs };
+        return { provider: 'bounceban', status: 'AUTH_FAILED', isConfigured: true, error: `HTTP ${res.status}`, latencyMs };
       }
       const data = await res.json();
       return {
         provider: 'bounceban',
         status: 'ACTIVE',
+        isConfigured: true,
         isSimulated: false,
-        creditsRemaining: parseInt(data?.credits || data?.remaining_credits || 0, 10),
+        creditsRemaining: parseInt(data?.available_credits ?? data?.credits ?? data?.remaining_credits ?? 0, 10),
         currency: 'CREDITS',
         latencyMs,
       };
@@ -143,8 +151,9 @@ export class WholesaleTelemetryService {
       return {
         provider: 'bounceban',
         status: 'TIMEOUT',
+        isConfigured: true,
         error: err.message,
-        creditsRemaining: 31800,
+        creditsRemaining: 0,
         currency: 'CREDITS',
         latencyMs: Date.now() - start,
       };
@@ -155,14 +164,15 @@ export class WholesaleTelemetryService {
    * Ping Twilio Balance API using HTTP Basic Auth (AccountSid:AuthToken)
    */
   static async checkTwilio(accountSid, authToken) {
-    if (!accountSid || !authToken || accountSid.includes('AC_TWILIO_MASTER_PROD')) {
+    if (!accountSid || !authToken || !accountSid.trim() || !authToken.trim() || accountSid.includes('AC_TWILIO_MASTER_PROD')) {
       return {
         provider: 'twilio',
-        status: 'CONNECTED',
-        isSimulated: true,
-        balanceUSD: 112.40,
+        status: 'NOT_CONNECTED',
+        isConfigured: false,
+        balanceUSD: 0,
         currency: 'USD',
-        latencyMs: 110,
+        latencyMs: null,
+        message: 'Account SID or Auth Token missing in Super Admin',
       };
     }
     const start = Date.now();
@@ -177,12 +187,13 @@ export class WholesaleTelemetryService {
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
       if (!res.ok) {
-        return { provider: 'twilio', status: 'AUTH_FAILED', error: `HTTP ${res.status}`, latencyMs };
+        return { provider: 'twilio', status: 'AUTH_FAILED', isConfigured: true, error: `HTTP ${res.status}`, latencyMs };
       }
       const data = await res.json();
       return {
         provider: 'twilio',
         status: 'ACTIVE',
+        isConfigured: true,
         isSimulated: false,
         balanceUSD: parseFloat(data?.balance || 0),
         currency: data?.currency || 'USD',
@@ -192,8 +203,9 @@ export class WholesaleTelemetryService {
       return {
         provider: 'twilio',
         status: 'TIMEOUT',
+        isConfigured: true,
         error: err.message,
-        balanceUSD: 112.40,
+        balanceUSD: 0,
         currency: 'USD',
         latencyMs: Date.now() - start,
       };
@@ -204,15 +216,16 @@ export class WholesaleTelemetryService {
    * Ping Apify Limits API to get current monthly usage spend & hard limits
    */
   static async checkApify(apiToken) {
-    if (!apiToken || apiToken.startsWith('apify_master_token_live')) {
+    if (!apiToken || !apiToken.trim() || apiToken.startsWith('apify_master_token_live')) {
       return {
         provider: 'apify',
-        status: 'CONNECTED',
-        isSimulated: true,
-        usageUsd: 12.30,
-        maxLimitUsd: 199.00,
+        status: 'NOT_CONNECTED',
+        isConfigured: false,
+        usageUsd: 0,
+        maxLimitUsd: 0,
         currency: 'USD',
-        latencyMs: 195,
+        latencyMs: null,
+        message: 'No API token configured in Super Admin',
       };
     }
     const start = Date.now();
@@ -226,15 +239,16 @@ export class WholesaleTelemetryService {
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
       if (!res.ok) {
-        return { provider: 'apify', status: 'AUTH_FAILED', error: `HTTP ${res.status}`, latencyMs };
+        return { provider: 'apify', status: 'AUTH_FAILED', isConfigured: true, error: `HTTP ${res.status}`, latencyMs };
       }
       const data = await res.json();
       return {
         provider: 'apify',
         status: 'ACTIVE',
+        isConfigured: true,
         isSimulated: false,
         usageUsd: parseFloat(data?.data?.currentMonthlyUsageUsd || 0),
-        maxLimitUsd: parseFloat(data?.data?.maxMonthlyUsageUsd || 199.00),
+        maxLimitUsd: parseFloat(data?.data?.maxMonthlyUsageUsd || 100.00),
         currency: 'USD',
         latencyMs,
       };
@@ -242,9 +256,10 @@ export class WholesaleTelemetryService {
       return {
         provider: 'apify',
         status: 'TIMEOUT',
+        isConfigured: true,
         error: err.message,
-        usageUsd: 12.30,
-        maxLimitUsd: 199.00,
+        usageUsd: 0,
+        maxLimitUsd: 0,
         currency: 'USD',
         latencyMs: Date.now() - start,
       };
@@ -271,30 +286,30 @@ export class WholesaleTelemetryService {
       this.checkApify(integrations?.apify?.apiToken),
     ]);
 
-    // Evaluate safety threshold alerts
+    // Evaluate safety threshold alerts (only for actively configured providers)
     const alerts = [];
-    if (twilioRes.balanceUSD < (wholesaleSafetyAlerts.twilioMinUSD || 25)) {
+    if (twilioRes.isConfigured && twilioRes.balanceUSD < (wholesaleSafetyAlerts.twilioMinUSD || 25)) {
       alerts.push({
         severity: 'CRITICAL',
         provider: 'Twilio',
         message: `Twilio balance ($${twilioRes.balanceUSD.toFixed(2)}) is below safety threshold ($${wholesaleSafetyAlerts.twilioMinUSD || 25}). Top up to avoid call disruptions.`,
       });
     }
-    if (outscraperRes.balanceUSD < (wholesaleSafetyAlerts.outscraperMinUSD || 10)) {
+    if (outscraperRes.isConfigured && outscraperRes.balanceUSD < (wholesaleSafetyAlerts.outscraperMinUSD || 10)) {
       alerts.push({
         severity: 'WARNING',
         provider: 'Outscraper',
         message: `Outscraper prepaid balance ($${outscraperRes.balanceUSD.toFixed(2)}) is low.`,
       });
     }
-    if (bouncebanRes.creditsRemaining < (wholesaleSafetyAlerts.bouncebanMinCredits || 1000)) {
+    if (bouncebanRes.isConfigured && bouncebanRes.creditsRemaining < (wholesaleSafetyAlerts.bouncebanMinCredits !== undefined ? wholesaleSafetyAlerts.bouncebanMinCredits : 20)) {
       alerts.push({
         severity: 'WARNING',
         provider: 'BounceBan',
         message: `BounceBan verification credits (${bouncebanRes.creditsRemaining}) are running low.`,
       });
     }
-    if (apolloRes.creditsRemaining < (wholesaleSafetyAlerts.apolloMinCredits || 500)) {
+    if (apolloRes.isConfigured && apolloRes.creditsRemaining < (wholesaleSafetyAlerts.apolloMinCredits !== undefined ? wholesaleSafetyAlerts.apolloMinCredits : 10)) {
       alerts.push({
         severity: 'WARNING',
         provider: 'Apollo.io',

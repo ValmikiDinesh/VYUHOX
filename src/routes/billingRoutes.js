@@ -278,6 +278,7 @@ router.put('/platform-config', async (req, res) => {
       finOpsConfig,
       circuitBreakers,
       globalAnnouncement,
+      wholesaleSafetyAlerts,
       adminEmail = 'founder@vyuhox.ai',
       adminName = 'Super Admin',
     } = req.body;
@@ -317,6 +318,10 @@ router.put('/platform-config', async (req, res) => {
     if (finOpsConfig) config.finOpsConfig = { ...config.finOpsConfig, ...finOpsConfig };
     if (circuitBreakers) config.circuitBreakers = { ...config.circuitBreakers, ...circuitBreakers };
     if (globalAnnouncement) config.globalAnnouncement = { ...config.globalAnnouncement, ...globalAnnouncement };
+    if (wholesaleSafetyAlerts) {
+      config.wholesaleSafetyAlerts = { ...(config.wholesaleSafetyAlerts?.toObject?.() || config.wholesaleSafetyAlerts || {}), ...wholesaleSafetyAlerts };
+      config.markModified('wholesaleSafetyAlerts');
+    }
 
     await config.save();
 

@@ -92,7 +92,16 @@ export default function SuperAdminDashboard({
   const [injectingCredit, setInjectingCredit] = useState(false);
 
   // Pillar 3: Master Integrations & Circuit Breaker
-  const [platformConfig, setPlatformConfig] = useState(null);
+  const [platformConfig, setPlatformConfig] = useState({
+    integrations: {
+      apollo: { apiKey: '' },
+      outscraper: { apiKey: '' },
+      twilio: { accountSid: '', authToken: '', phoneNumber: '' },
+      geminiMaster: { apiKey: '' },
+      bounceban: { apiKey: '' },
+      apify: { apiToken: '' },
+    },
+  });
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [revealedKeys, setRevealedKeys] = useState({});
@@ -105,6 +114,25 @@ export default function SuperAdminDashboard({
     reason: '',
   });
   const [savingBreaker, setSavingBreaker] = useState(false);
+
+  // Safe helper to update any nested provider field in platformConfig
+  const handleUpdateIntegrationField = (provider, field, value) => {
+    setPlatformConfig((prev) => {
+      const base = prev || {};
+      const prevIntegrations = base.integrations || {};
+      const prevProvider = prevIntegrations[provider] || {};
+      return {
+        ...base,
+        integrations: {
+          ...prevIntegrations,
+          [provider]: {
+            ...prevProvider,
+            [field]: value,
+          },
+        },
+      };
+    });
+  };
 
   // Wholesale Provider Telemetry & Balance Monitoring
   const [wholesaleTelemetry, setWholesaleTelemetry] = useState(null);
@@ -210,7 +238,14 @@ export default function SuperAdminDashboard({
         api.getPricingPlans({ includeInactive: true }),
       ]);
       if (cfgRes?.success && cfgRes.config) {
-        setPlatformConfig(cfgRes.config);
+        setPlatformConfig((prev) => ({
+          ...(prev || {}),
+          ...cfgRes.config,
+          integrations: {
+            ...(prev?.integrations || {}),
+            ...(cfgRes.config?.integrations || {}),
+          },
+        }));
         if (cfgRes.config.circuitBreakers) {
           setCircuitBreakerForm({
             pauseAllVoice: !!cfgRes.config.circuitBreakers.pauseAllVoice,
@@ -298,6 +333,21 @@ export default function SuperAdminDashboard({
 
   const [savingKeys, setSavingKeys] = useState({});
 
+  // Smooth scroll to specific integration card and highlight it
+  const scrollToIntegration = (elementId) => {
+    const el = document.getElementById(elementId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.transition = 'all 0.4s ease';
+      el.style.border = '1px solid #38BDF8';
+      el.style.boxShadow = '0 0 25px rgba(56, 189, 248, 0.45)';
+      setTimeout(() => {
+        el.style.border = '1px solid rgba(255, 255, 255, 0.06)';
+        el.style.boxShadow = 'none';
+      }, 3000);
+    }
+  };
+
   // Individual Integration Key Saver
   const handleSaveSingleKey = async (provider, keyField, keyVal) => {
     setSavingKeys((prev) => ({ ...prev, [provider]: true }));
@@ -313,7 +363,14 @@ export default function SuperAdminDashboard({
       };
       const res = await api.updatePlatformConfig(payload);
       if (res?.success) {
-        setPlatformConfig(res.config);
+        setPlatformConfig((prev) => ({
+          ...(prev || {}),
+          ...res.config,
+          integrations: {
+            ...(prev?.integrations || {}),
+            ...(res.config?.integrations || {}),
+          },
+        }));
         showToast(`✅ ${provider.toUpperCase()} master key saved.`);
         loadAuditLogs();
         loadWholesaleTelemetry();
@@ -1351,94 +1408,304 @@ export default function SuperAdminDashboard({
             {/* 5 Wholesale Provider Live Telemetry Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '14px' }}>
               {/* Card 1: Apollo.io */}
-              <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.85)', border: '1px solid rgba(56, 189, 248, 0.25)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#38BDF8' }}>Apollo.io B2B</span>
-                  <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', fontWeight: '700' }}>
-                    {wholesaleTelemetry?.providers?.apollo?.status || 'CONNECTED'}
-                  </span>
-                </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
-                  {(wholesaleTelemetry?.providers?.apollo?.creditsRemaining || 8450).toLocaleString()}
-                  <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginLeft: '4px' }}>credits</span>
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Monthly Allowance: 10,000</span>
-                  <span>{wholesaleTelemetry?.providers?.apollo?.latencyMs || 142}ms</span>
-                </div>
-              </div>
+              {(() => {
+                const isConnected = Boolean(platformConfig?.integrations?.apollo?.apiKey);
+                return (
+                  <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.85)', border: `1px solid ${isConnected ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#38BDF8' }}>Apollo.io B2B</span>
+                      <span style={{
+                        fontSize: '0.62rem',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: isConnected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                        color: isConnected ? '#10B981' : '#F87171',
+                        fontWeight: '800',
+                      }}>
+                        {isConnected ? (wholesaleTelemetry?.providers?.apollo?.status || 'CONNECTED') : 'NOT CONNECTED'}
+                      </span>
+                    </div>
+
+                    {isConnected ? (
+                      <>
+                        <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
+                          {(wholesaleTelemetry?.providers?.apollo?.creditsRemaining || 0).toLocaleString()}
+                          <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginLeft: '4px' }}>credits</span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Allowance: {(wholesaleTelemetry?.providers?.apollo?.monthlyLimit || 0).toLocaleString()}</span>
+                          <span>{wholesaleTelemetry?.providers?.apollo?.latencyMs ? `${wholesaleTelemetry.providers.apollo.latencyMs}ms` : 'Active'}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginBottom: '8px' }}>No master API key configured</div>
+                        <button
+                          onClick={() => scrollToIntegration('integration-apollo')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            width: '100%',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            background: 'rgba(56, 189, 248, 0.12)',
+                            border: '1px solid rgba(56, 189, 248, 0.35)',
+                            color: '#38BDF8',
+                            fontSize: '0.74rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span>Connect Apollo Key</span>
+                          <ArrowRight size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Card 2: Outscraper */}
-              <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.85)', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#34D399' }}>Outscraper Maps</span>
-                  <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', fontWeight: '700' }}>
-                    {wholesaleTelemetry?.providers?.outscraper?.status || 'CONNECTED'}
-                  </span>
-                </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
-                  ${(wholesaleTelemetry?.providers?.outscraper?.balanceUSD || 48.20).toFixed(2)}
-                  <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginLeft: '4px' }}>USD</span>
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Free Tier: {wholesaleTelemetry?.providers?.outscraper?.freeTierRemaining || 420}/500 left</span>
-                  <span>{wholesaleTelemetry?.providers?.outscraper?.latencyMs || 168}ms</span>
-                </div>
-              </div>
+              {(() => {
+                const isConnected = Boolean(platformConfig?.integrations?.outscraper?.apiKey);
+                return (
+                  <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.85)', border: `1px solid ${isConnected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#34D399' }}>Outscraper Maps</span>
+                      <span style={{
+                        fontSize: '0.62rem',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: isConnected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                        color: isConnected ? '#10B981' : '#F87171',
+                        fontWeight: '800',
+                      }}>
+                        {isConnected ? (wholesaleTelemetry?.providers?.outscraper?.status || 'CONNECTED') : 'NOT CONNECTED'}
+                      </span>
+                    </div>
+
+                    {isConnected ? (
+                      <>
+                        <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
+                          ${(wholesaleTelemetry?.providers?.outscraper?.balanceUSD || 0).toFixed(2)}
+                          <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginLeft: '4px' }}>USD</span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Free Tier: {wholesaleTelemetry?.providers?.outscraper?.freeTierRemaining || 0}/500</span>
+                          <span>{wholesaleTelemetry?.providers?.outscraper?.latencyMs ? `${wholesaleTelemetry.providers.outscraper.latencyMs}ms` : 'Active'}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginBottom: '8px' }}>No master API key configured</div>
+                        <button
+                          onClick={() => scrollToIntegration('integration-outscraper')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            width: '100%',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            background: 'rgba(16, 185, 129, 0.12)',
+                            border: '1px solid rgba(16, 185, 129, 0.35)',
+                            color: '#34D399',
+                            fontSize: '0.74rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span>Connect Outscraper Key</span>
+                          <ArrowRight size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Card 3: BounceBan */}
-              <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.85)', border: '1px solid rgba(168, 85, 247, 0.25)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#C4B5FD' }}>BounceBan Catch-All</span>
-                  <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(168, 85, 247, 0.15)', color: '#C4B5FD', fontWeight: '700' }}>
-                    {wholesaleTelemetry?.providers?.bounceban?.status || 'CONNECTED'}
-                  </span>
-                </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
-                  {(wholesaleTelemetry?.providers?.bounceban?.creditsRemaining || 31800).toLocaleString()}
-                  <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginLeft: '4px' }}>checks</span>
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Rollover Credits (Never Expire)</span>
-                  <span>{wholesaleTelemetry?.providers?.bounceban?.latencyMs || 185}ms</span>
-                </div>
-              </div>
+              {(() => {
+                const isConnected = Boolean(platformConfig?.integrations?.bounceban?.apiKey);
+                return (
+                  <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.85)', border: `1px solid ${isConnected ? 'rgba(168, 85, 247, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#C4B5FD' }}>BounceBan Catch-All</span>
+                      <span style={{
+                        fontSize: '0.62rem',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: isConnected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                        color: isConnected ? '#10B981' : '#F87171',
+                        fontWeight: '800',
+                      }}>
+                        {isConnected ? (wholesaleTelemetry?.providers?.bounceban?.status || 'CONNECTED') : 'NOT CONNECTED'}
+                      </span>
+                    </div>
+
+                    {isConnected ? (
+                      <>
+                        <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
+                          {(wholesaleTelemetry?.providers?.bounceban?.creditsRemaining || 0).toLocaleString()}
+                          <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginLeft: '4px' }}>checks</span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Rollover Credits</span>
+                          <span>{wholesaleTelemetry?.providers?.bounceban?.latencyMs ? `${wholesaleTelemetry.providers.bounceban.latencyMs}ms` : 'Active'}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginBottom: '8px' }}>No master API key configured</div>
+                        <button
+                          onClick={() => scrollToIntegration('integration-bounceban')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            width: '100%',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            background: 'rgba(168, 85, 247, 0.12)',
+                            border: '1px solid rgba(168, 85, 247, 0.35)',
+                            color: '#C4B5FD',
+                            fontSize: '0.74rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span>Connect BounceBan Key</span>
+                          <ArrowRight size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Card 4: Twilio Voice & Lookup */}
-              <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.85)', border: '1px solid rgba(239, 68, 68, 0.25)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#F87171' }}>Twilio Voice &amp; Lookup</span>
-                  <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#F87171', fontWeight: '700' }}>
-                    {wholesaleTelemetry?.providers?.twilio?.status || 'CONNECTED'}
-                  </span>
-                </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
-                  ${(wholesaleTelemetry?.providers?.twilio?.balanceUSD || 112.40).toFixed(2)}
-                  <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginLeft: '4px' }}>USD</span>
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Lookup v2 + Maya Voice</span>
-                  <span>{wholesaleTelemetry?.providers?.twilio?.latencyMs || 110}ms</span>
-                </div>
-              </div>
+              {(() => {
+                const isConnected = Boolean(platformConfig?.integrations?.twilio?.authToken);
+                return (
+                  <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.85)', border: `1px solid ${isConnected ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#F87171' }}>Twilio Voice &amp; Lookup</span>
+                      <span style={{
+                        fontSize: '0.62rem',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: isConnected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                        color: isConnected ? '#10B981' : '#F87171',
+                        fontWeight: '800',
+                      }}>
+                        {isConnected ? (wholesaleTelemetry?.providers?.twilio?.status || 'CONNECTED') : 'NOT CONNECTED'}
+                      </span>
+                    </div>
+
+                    {isConnected ? (
+                      <>
+                        <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
+                          ${(wholesaleTelemetry?.providers?.twilio?.balanceUSD || 0).toFixed(2)}
+                          <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginLeft: '4px' }}>USD</span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Lookup v2 + Maya Voice</span>
+                          <span>{wholesaleTelemetry?.providers?.twilio?.latencyMs ? `${wholesaleTelemetry.providers.twilio.latencyMs}ms` : 'Active'}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginBottom: '8px' }}>Auth token not configured</div>
+                        <button
+                          onClick={() => scrollToIntegration('integration-twilio')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            width: '100%',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            border: '1px solid rgba(239, 68, 68, 0.35)',
+                            color: '#F87171',
+                            fontSize: '0.74rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span>Connect Twilio Key</span>
+                          <ArrowRight size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Card 5: Apify Social */}
-              <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.85)', border: '1px solid rgba(245, 158, 11, 0.25)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#FBBF24' }}>Apify Social Actors</span>
-                  <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#FBBF24', fontWeight: '700' }}>
-                    {wholesaleTelemetry?.providers?.apify?.status || 'CONNECTED'}
-                  </span>
-                </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
-                  ${(wholesaleTelemetry?.providers?.apify?.usageUsd || 12.30).toFixed(2)}
-                  <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginLeft: '4px' }}>/ $199</span>
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Hard Limit Protected</span>
-                  <span>{wholesaleTelemetry?.providers?.apify?.latencyMs || 195}ms</span>
-                </div>
-              </div>
+              {(() => {
+                const isConnected = Boolean(platformConfig?.integrations?.apify?.apiToken);
+                return (
+                  <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(15, 23, 42, 0.85)', border: `1px solid ${isConnected ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#FBBF24' }}>Apify Social Actors</span>
+                      <span style={{
+                        fontSize: '0.62rem',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: isConnected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                        color: isConnected ? '#10B981' : '#F87171',
+                        fontWeight: '800',
+                      }}>
+                        {isConnected ? (wholesaleTelemetry?.providers?.apify?.status || 'CONNECTED') : 'NOT CONNECTED'}
+                      </span>
+                    </div>
+
+                    {isConnected ? (
+                      <>
+                        <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#F8FAFC', fontFamily: 'Outfit, sans-serif' }}>
+                          ${(wholesaleTelemetry?.providers?.apify?.usageUsd || 0).toFixed(2)}
+                          <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginLeft: '4px' }}>/ ${wholesaleTelemetry?.providers?.apify?.maxLimitUsd || 100}</span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Hard Limit Protected</span>
+                          <span>{wholesaleTelemetry?.providers?.apify?.latencyMs ? `${wholesaleTelemetry.providers.apify.latencyMs}ms` : 'Active'}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginBottom: '8px' }}>No API token configured</div>
+                        <button
+                          onClick={() => scrollToIntegration('integration-apify')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            width: '100%',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            background: 'rgba(245, 158, 11, 0.12)',
+                            border: '1px solid rgba(245, 158, 11, 0.35)',
+                            color: '#FBBF24',
+                            fontSize: '0.74rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span>Connect Apify Key</span>
+                          <ArrowRight size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -1757,7 +2024,7 @@ export default function SuperAdminDashboard({
             {/* Integrations Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
               {/* Apollo.io */}
-              <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div id="integration-apollo" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Apollo.io B2B Enrichment</span>
@@ -1806,15 +2073,7 @@ export default function SuperAdminDashboard({
                     type={revealedKeys.apollo ? 'text' : 'password'}
                     value={platformConfig?.integrations?.apollo?.apiKey || ''}
                     placeholder="Enter Apollo API key (sk_...)"
-                    onChange={(e) =>
-                      setPlatformConfig({
-                        ...platformConfig,
-                        integrations: {
-                          ...platformConfig.integrations,
-                          apollo: { ...platformConfig?.integrations?.apollo, apiKey: e.target.value },
-                        },
-                      })
-                    }
+                    onChange={(e) => handleUpdateIntegrationField('apollo', 'apiKey', e.target.value)}
                     style={{
                       flex: 1,
                       padding: '8px 10px',
@@ -1840,7 +2099,7 @@ export default function SuperAdminDashboard({
               </div>
 
               {/* Outscraper */}
-              <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div id="integration-outscraper" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Outscraper Maps Extractor</span>
@@ -1889,15 +2148,7 @@ export default function SuperAdminDashboard({
                     type={revealedKeys.outscraper ? 'text' : 'password'}
                     value={platformConfig?.integrations?.outscraper?.apiKey || ''}
                     placeholder="Enter Outscraper API key..."
-                    onChange={(e) =>
-                      setPlatformConfig({
-                        ...platformConfig,
-                        integrations: {
-                          ...platformConfig.integrations,
-                          outscraper: { ...platformConfig?.integrations?.outscraper, apiKey: e.target.value },
-                        },
-                      })
-                    }
+                    onChange={(e) => handleUpdateIntegrationField('outscraper', 'apiKey', e.target.value)}
                     style={{
                       flex: 1,
                       padding: '8px 10px',
@@ -1923,7 +2174,7 @@ export default function SuperAdminDashboard({
               </div>
 
               {/* Twilio Telephony */}
-              <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div id="integration-twilio" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Twilio Voice & Lookup</span>
@@ -1967,36 +2218,47 @@ export default function SuperAdminDashboard({
                     </button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
-                  <input
-                    type={revealedKeys.twilio ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.twilio?.authToken || ''}
-                    placeholder="Enter Twilio Auth Token..."
-                    onChange={(e) =>
-                      setPlatformConfig({
-                        ...platformConfig,
-                        integrations: {
-                          ...platformConfig.integrations,
-                          twilio: { ...platformConfig?.integrations?.twilio, authToken: e.target.value },
-                        },
-                      })
-                    }
-                    style={{
-                      flex: 1,
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                    }}
-                  />
-                  <button
-                    onClick={() => toggleKeyVisibility('twilio')}
-                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
-                  >
-                    {revealedKeys.twilio ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type={revealedKeys.twilio ? 'text' : 'password'}
+                      value={platformConfig?.integrations?.twilio?.accountSid || ''}
+                      placeholder="Twilio Account SID (AC...)"
+                      onChange={(e) => handleUpdateIntegrationField('twilio', 'accountSid', e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        background: '#1E293B',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: '#F8FAFC',
+                        fontSize: '0.8rem',
+                      }}
+                    />
+                    <button
+                      onClick={() => toggleKeyVisibility('twilio')}
+                      style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                    >
+                      {revealedKeys.twilio ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type={revealedKeys.twilio ? 'text' : 'password'}
+                      value={platformConfig?.integrations?.twilio?.authToken || ''}
+                      placeholder="Twilio Auth Token..."
+                      onChange={(e) => handleUpdateIntegrationField('twilio', 'authToken', e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        background: '#1E293B',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: '#F8FAFC',
+                        fontSize: '0.8rem',
+                      }}
+                    />
+                  </div>
                 </div>
                 {pingStatus.twilio && (
                   <div style={{ fontSize: '0.72rem', color: pingStatus.twilio.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
@@ -2006,7 +2268,7 @@ export default function SuperAdminDashboard({
               </div>
 
               {/* Gemini 1.5 Master LLM */}
-              <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div id="integration-gemini" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Google Gemini 1.5 AI Master</span>
@@ -2055,15 +2317,7 @@ export default function SuperAdminDashboard({
                     type={revealedKeys.gemini ? 'text' : 'password'}
                     value={platformConfig?.integrations?.geminiMaster?.apiKey || ''}
                     placeholder="Enter Gemini API key (AIzaSy...)"
-                    onChange={(e) =>
-                      setPlatformConfig({
-                        ...platformConfig,
-                        integrations: {
-                          ...platformConfig.integrations,
-                          geminiMaster: { ...platformConfig?.integrations?.geminiMaster, apiKey: e.target.value },
-                        },
-                      })
-                    }
+                    onChange={(e) => handleUpdateIntegrationField('geminiMaster', 'apiKey', e.target.value)}
                     style={{
                       flex: 1,
                       padding: '8px 10px',
@@ -2089,7 +2343,7 @@ export default function SuperAdminDashboard({
               </div>
 
               {/* BounceBan Catch-All Verifier */}
-              <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div id="integration-bounceban" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#10B981' }}>BounceBan Catch-All Shield</span>
@@ -2138,15 +2392,7 @@ export default function SuperAdminDashboard({
                     type={revealedKeys.bounceban ? 'text' : 'password'}
                     value={platformConfig?.integrations?.bounceban?.apiKey || ''}
                     placeholder="Enter BounceBan API Key..."
-                    onChange={(e) =>
-                      setPlatformConfig({
-                        ...platformConfig,
-                        integrations: {
-                          ...platformConfig.integrations,
-                          bounceban: { ...platformConfig?.integrations?.bounceban, apiKey: e.target.value },
-                        },
-                      })
-                    }
+                    onChange={(e) => handleUpdateIntegrationField('bounceban', 'apiKey', e.target.value)}
                     style={{
                       flex: 1,
                       padding: '8px 10px',
@@ -2172,7 +2418,7 @@ export default function SuperAdminDashboard({
               </div>
 
               {/* Apify Social Actors */}
-              <div style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div id="integration-apify" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#EC4899' }}>Apify Social Actor Cloud</span>
@@ -2221,15 +2467,7 @@ export default function SuperAdminDashboard({
                     type={revealedKeys.apify ? 'text' : 'password'}
                     value={platformConfig?.integrations?.apify?.apiToken || ''}
                     placeholder="Enter Apify API Token (apify_api_...)"
-                    onChange={(e) =>
-                      setPlatformConfig({
-                        ...platformConfig,
-                        integrations: {
-                          ...platformConfig.integrations,
-                          apify: { ...platformConfig?.integrations?.apify, apiToken: e.target.value },
-                        },
-                      })
-                    }
+                    onChange={(e) => handleUpdateIntegrationField('apify', 'apiToken', e.target.value)}
                     style={{
                       flex: 1,
                       padding: '8px 10px',
