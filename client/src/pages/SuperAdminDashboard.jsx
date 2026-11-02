@@ -1084,6 +1084,30 @@ export default function SuperAdminDashboard({
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                           <button
+                            onClick={async () => {
+                              try {
+                                const nextState = !w.byocEnabled;
+                                await api.updateWorkspace(w._id, { byocEnabled: nextState });
+                                fetchTenants();
+                              } catch (err) {
+                                alert('Failed to toggle BYOC: ' + err.message);
+                              }
+                            }}
+                            title="Toggle Custom VIP Enterprise BYOC (Bring Your Own Carrier)"
+                            style={{
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              background: w.byocEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${w.byocEnabled ? '#10B981' : 'rgba(255, 255, 255, 0.15)'}`,
+                              color: w.byocEnabled ? '#34D399' : '#94A3B8',
+                              fontSize: '0.72rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {w.byocEnabled ? '👑 BYOC Active' : '🔒 Enable BYOC'}
+                          </button>
+                          <button
                             onClick={() => {
                               setInjectTargetWs(w);
                               setInjectModalOpen(true);
@@ -1738,6 +1762,33 @@ export default function SuperAdminDashboard({
             {/* Carrier Node Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
               {[
+                {
+                  name: 'Exotel India Domestic Rail',
+                  role: '100% TRAI & DoT Compliant Domestic Click-to-Call',
+                  latency: '95ms',
+                  status: '99.99% Uptime',
+                  route: 'India-South (Mumbai/Bengaluru)',
+                  color: '#10B981',
+                  active: !circuitBreakerForm.pauseAllVoice,
+                },
+                {
+                  name: 'Telnyx Global Private Fiber',
+                  role: 'Wholesale Voice & 10DLC SMS Across 140+ Countries',
+                  latency: '78ms',
+                  status: '100.0% Uptime',
+                  route: 'Global Private Backbone',
+                  color: '#38BDF8',
+                  active: !circuitBreakerForm.pauseAllVoice,
+                },
+                {
+                  name: 'AiSensy Official Meta WhatsApp',
+                  role: 'Indian & Emerging Market WhatsApp Business API',
+                  latency: '110ms',
+                  status: '99.98% Uptime',
+                  route: 'Meta Cloud API (Gurugram)',
+                  color: '#22C55E',
+                  active: !circuitBreakerForm.pauseAllComms,
+                },
                 {
                   name: 'Bland.ai Dedicated Route',
                   role: 'Sub-700ms Inbound & Outbound Voice AE',

@@ -24,6 +24,7 @@ import { LeadScraperService } from '../LeadScraperService.js';
 import { BlandAIGateway } from '../voice/BlandAIGateway.js';
 import { AiOutreachDrafter } from '../messaging/AiOutreachDrafter.js';
 import { aiCEO } from '../agents/AICEO.js';
+import { callingWindowGuard } from '../compliance/CallingWindowGuard.js';
 
 export class SanjayaVoiceCommander {
   /**
@@ -327,6 +328,18 @@ Analyze the user's spoken voice command and return a clean JSON object with:
         const leadName = params.leadName || lead?.name || defaultTargetName;
         const leadPhone = lead?.phone || '+91 98201 44520';
         const leadCompany = lead?.company || (companyName ? `${companyName} Prospect` : 'Enterprise Partner');
+
+        // Compliance Calling Window Check (TRAI / TCPA)
+        const windowCheck = callingWindowGuard.evaluate(leadPhone);
+        if (!windowCheck.allowed) {
+          const speechResponse = `Commander, Maya cannot dial ${leadName} right now. ${windowCheck.reason} I have safely scheduled the call for ${windowCheck.queuedFor}.`;
+          return {
+            actionTaken: `Call postponed: ${windowCheck.reason}`,
+            speechResponse,
+            targetTab: 'voice',
+            details: { leadName, leadPhone, queuedFor: windowCheck.queuedFor, blockedByGuard: true },
+          };
+        }
 
         // Log call dispatch
         try {

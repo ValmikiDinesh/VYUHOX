@@ -177,6 +177,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (operatingMode) updateData.operatingMode = operatingMode;
     if (logo !== undefined) updateData.logo = logo;
     if (branding) updateData.branding = branding;
+    if (req.body.byocEnabled !== undefined) updateData.byocEnabled = req.body.byocEnabled;
+    if (req.body.baseCountry !== undefined) updateData.baseCountry = req.body.baseCountry;
+    if (req.body.targetCountries !== undefined) updateData.targetCountries = req.body.targetCountries;
+    if (req.body.ownerPhone !== undefined) updateData.ownerPhone = req.body.ownerPhone;
 
     const workspace = await Workspace.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!workspace) {

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { authStorage } from '../services/authStorage';
+import PhoneInputWithCountry from '../components/common/PhoneInputWithCountry';
 
 export default function ClientAuthPage({
   initialMode = 'signin', // 'signin' | 'signup'
@@ -74,6 +75,7 @@ export default function ClientAuthPage({
           email: formData.email.trim(),
           companyName: formData.companyName.trim(),
           mobileNumber: formData.mobileNumber.trim(),
+          baseCountry: formData.baseCountry || 'IN',
           password: formData.password,
         });
 
@@ -381,20 +383,23 @@ export default function ClientAuthPage({
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-                  Mobile Number <span style={{ color: '#F87171' }}>*</span>
+                  Verified Business Mobile Number <span style={{ color: '#F87171' }}>*</span>
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={15} color="#64748B" style={{ position: 'absolute', left: '12px', top: '12px' }} />
-                  <input
-                    type="tel"
-                    required
-                    placeholder="+91 98765 43210 or +1 (555) 000-0000"
-                    value={formData.mobileNumber}
-                    onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
-                    className="input-glass"
-                    style={{ width: '100%', paddingLeft: '36px', height: '40px', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
-                </div>
+                <PhoneInputWithCountry
+                  value={formData.mobileNumber}
+                  onChange={(fullPhone, country) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      mobileNumber: fullPhone,
+                      baseCountry: country.iso,
+                    }));
+                  }}
+                  required
+                  placeholder="98765 43210"
+                />
+                <span style={{ fontSize: '0.68rem', color: '#64748B', display: 'block', marginTop: '4px' }}>
+                  Used for verified outbound caller ID & WhatsApp communications
+                </span>
               </div>
             </>
           )}

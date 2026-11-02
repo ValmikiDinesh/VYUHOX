@@ -155,6 +155,10 @@ router.post('/scan', authMiddleware, async (req, res) => {
     if (inputTagLine) workspace.tagLine = inputTagLine;
     if (inputDescription) workspace.businessModelDescription = inputDescription;
     if (inputOfferingType) workspace.offeringType = inputOfferingType;
+    if (req.body.baseCountry) workspace.baseCountry = req.body.baseCountry;
+    if (Array.isArray(req.body.targetCountries) && req.body.targetCountries.length > 0) {
+      workspace.targetCountries = req.body.targetCountries;
+    }
     workspace.onboardingCompleted = true; // Lock workspace setup
     if (workspace.branding) {
       workspace.branding.companyName = finalBusinessName;

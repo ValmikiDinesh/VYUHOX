@@ -33,6 +33,8 @@ import {
   Square,
   RotateCcw,
   Volume1,
+  Lock,
+  ShieldCheck,
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -1594,6 +1596,86 @@ export default function VoiceStudio({ activeWorkspace, socket }) {
                 onChange={(e) => setAgentConfig({ ...agentConfig, speedToLeadEnabled: e.target.checked })}
                 style={{ width: '18px', height: '18px', cursor: 'pointer' }}
               />
+            </div>
+
+            {/* Carrier Telephony Infrastructure & BYOC Access */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '10px',
+              padding: '16px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={18} color="#10B981" />
+                  <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    Carrier Telephony Routing &amp; Caller ID
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: '700',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  background: activeWorkspace?.byocEnabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(6, 182, 212, 0.15)',
+                  color: activeWorkspace?.byocEnabled ? '#34D399' : '#38BDF8',
+                  border: `1px solid ${activeWorkspace?.byocEnabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(6, 182, 212, 0.3)'}`,
+                }}>
+                  {activeWorkspace?.byocEnabled ? 'CUSTOM VIP (BYOC Active)' : 'Managed High-Throughput Rail'}
+                </span>
+              </div>
+
+              {activeWorkspace?.byocEnabled ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#CBD5E1' }}>
+                  <p style={{ margin: 0 }}>
+                    👑 <strong>Custom VIP Active:</strong> This enterprise workspace routes outbound calls through your dedicated corporate carrier accounts (Exotel for India domestic or Telnyx/Twilio for Global).
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.7rem', color: '#94A3B8', marginBottom: '4px' }}>EXOTEL CALLER ID (INDIA +91)</label>
+                      <input
+                        type="text"
+                        placeholder="+91 80 4719 2837"
+                        defaultValue={activeWorkspace?.ownerPhone || ''}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', background: '#0B132B', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#FFFFFF', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.7rem', color: '#94A3B8', marginBottom: '4px' }}>TELNYX CALLER ID (GLOBAL)</label>
+                      <input
+                        type="text"
+                        placeholder="+1 (512) 000-0000"
+                        defaultValue="+15129876543"
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', background: '#0B132B', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#FFFFFF', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '8px',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px dashed rgba(255, 255, 255, 0.15)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                }}>
+                  <Lock size={18} color="#F59E0B" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: '700', color: '#FBBF24', marginBottom: '3px' }}>
+                      Enterprise Carrier Integration (BYOC) — Custom VIP Exclusive
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#94A3B8', lineHeight: 1.45 }}>
+                      Connecting custom corporate carrier trunks (Exotel, Telnyx, Twilio) is available exclusively on bespoke Custom VIP Enterprise agreements. Standard workspaces are routed automatically through VYUHOX verified high-throughput rails backed by your compute wallet.
+                    </div>
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.7rem', color: '#38BDF8' }}>
+                      <span>🇮🇳 India (+91): <strong>Exotel Domestic Rail (TRAI Compliant)</strong></span>
+                      <span>🌍 Global: <strong>Telnyx Fiber Wholesale Rail</strong></span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Save Button */}

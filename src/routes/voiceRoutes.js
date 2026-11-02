@@ -6,6 +6,8 @@ import { BlandAIGateway } from '../services/voice/BlandAIGateway.js';
 import { TwilioVoiceService } from '../services/voice/TwilioVoiceService.js';
 import { SpeedToLeadEngine } from '../services/voice/SpeedToLeadEngine.js';
 import { dncComplianceService } from '../services/compliance/DNCComplianceService.js';
+import { callingWindowGuard } from '../services/compliance/CallingWindowGuard.js';
+import { telecomRouter } from '../services/voice/TelecomRouter.js';
 
 const router = express.Router();
 
@@ -81,6 +83,23 @@ router.get('/calls/detail/:callId', async (req, res) => {
 });
 
 /**
+ * POST /api/voice/check-window
+ * Pre-flight compliance and calling window checker
+ */
+router.post('/check-window', async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+    const result = callingWindowGuard.evaluate(phoneNumber);
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
  * POST /api/voice/dispatch
  * Initiates an outbound Voice AI phone call
  */
@@ -109,6 +128,34 @@ router.post('/dispatch', async (req, res) => {
         success: false,
         message: `Call blocked: ${targetPhone} is registered on the Universal Do-Not-Call (DNC) list (${dncCheck.reason})`,
         dncBlocked: true,
+      });
+    }
+
+    // Calling Window & Timezone Compliance Gate (TRAI / TCPA)
+    const windowCheck = callingWindowGuard.evaluate(targetPhone);
+    if (!windowCheck.allowed) {
+      // Create a queued call record so it's scheduled for the next allowed window
+      await CallLog.create({
+        workspaceId,
+        leadId: lead?._id,
+        direction: 'OUTBOUND',
+        fromNumber: 'SYSTEM_GUARD',
+        toNumber: targetPhone,
+        status: 'queued',
+        durationSeconds: 0,
+        summary: `[WINDOW GUARD] ${windowCheck.reason} Scheduled for: ${windowCheck.queuedFor}`,
+        aiSummary: windowCheck.reason,
+      });
+
+      return res.status(422).json({
+        success: false,
+        blockedByCallingWindow: true,
+        reason: windowCheck.reason,
+        queuedFor: windowCheck.queuedFor,
+        regulatoryBody: windowCheck.regulatoryBody,
+        country: windowCheck.country,
+        localTime: windowCheck.localTime,
+        message: windowCheck.reason,
       });
     }
 

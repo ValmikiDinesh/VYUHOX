@@ -2,6 +2,7 @@ import express from 'express';
 import { secondaryDomainWarmupService } from '../services/compliance/SecondaryDomainWarmupService.js';
 import { a2p10DLCComplianceService } from '../services/compliance/A2P10DLCComplianceService.js';
 import { dncComplianceService } from '../services/compliance/DNCComplianceService.js';
+import { GLOBAL_COUNTRIES, getCountryByIso } from '../config/GlobalCountryCompliance.js';
 
 const router = express.Router();
 
@@ -237,6 +238,26 @@ router.delete('/dnc/:id', async (req, res) => {
     console.error('[ComplianceRoutes] Error removing from DNC:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
+});
+
+/**
+ * GET /api/compliance/countries
+ * Returns complete 195-country directory with calling codes, flags, and regulatory compliance rules
+ */
+router.get('/countries', (req, res) => {
+  return res.json({
+    success: true,
+    count: GLOBAL_COUNTRIES.length,
+    countries: GLOBAL_COUNTRIES,
+  });
+});
+
+/**
+ * GET /api/compliance/country/:iso
+ */
+router.get('/country/:iso', (req, res) => {
+  const country = getCountryByIso(req.params.iso);
+  return res.json({ success: true, country });
 });
 
 export default router;

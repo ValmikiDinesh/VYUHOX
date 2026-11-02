@@ -73,6 +73,9 @@ router.post('/register', async (req, res) => {
       },
       ownerEmail: email.toLowerCase(),
       ownerName: name,
+      ownerPhone: finalMobileNumber,
+      baseCountry: req.body.baseCountry || (finalMobileNumber.startsWith('+1') ? 'US' : finalMobileNumber.startsWith('+44') ? 'GB' : 'IN'),
+      targetCountries: [req.body.baseCountry || (finalMobileNumber.startsWith('+1') ? 'US' : finalMobileNumber.startsWith('+44') ? 'GB' : 'IN')],
       branding: {
         primaryColor: '#06B6D4',
         secondaryColor: '#10B981',

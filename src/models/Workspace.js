@@ -63,6 +63,25 @@ const workspaceSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    ownerPhone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    baseCountry: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: 'IN',
+    },
+    targetCountries: {
+      type: [String],
+      default: ['IN'],
+    },
+    byocEnabled: {
+      type: Boolean,
+      default: false,
+    },
     operatingMode: {
       type: String,
       enum: ['TOOL', 'AI_COMPANY'],
@@ -102,7 +121,7 @@ const workspaceSchema = new mongoose.Schema(
     subscription: {
       planTier: {
         type: String,
-        enum: ['NONE', 'TOOL_MODE', 'AI_COMPANY_STARTER', 'AI_COMPANY_SCALE', 'CUSTOM'],
+        enum: ['NONE', 'TOOL_MODE', 'AI_COMPANY_STARTER', 'AI_COMPANY_SCALE', 'CUSTOM', 'CUSTOM_VIP'],
         default: 'NONE',
       },
       baseMonthlyFee: { type: Number, default: 0 },
