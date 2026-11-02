@@ -99,3 +99,4 @@ class AiSensyGateway {
 
 export const aiSensyGateway = new AiSensyGateway();
 export default aiSensyGateway;
+

@@ -396,3 +396,4 @@ export const getCountryByPhone = (phone) => {
 };
 
 export default GLOBAL_COUNTRIES;
+

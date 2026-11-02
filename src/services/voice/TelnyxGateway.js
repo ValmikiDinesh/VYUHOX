@@ -145,3 +145,4 @@ class TelnyxGateway {
 
 export const telnyxGateway = new TelnyxGateway();
 export default telnyxGateway;
+

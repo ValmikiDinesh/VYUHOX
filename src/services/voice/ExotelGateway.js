@@ -120,3 +120,4 @@ class ExotelGateway {
 
 export const exotelGateway = new ExotelGateway();
 export default exotelGateway;
+

@@ -24,6 +24,20 @@ const platformConfigSchema = new mongoose.Schema(
     },
     // Master Provider Integrations
     integrations: {
+      exotel: {
+        accountSid: { type: String, default: '' },
+        apiKey: { type: String, default: '' },
+        apiToken: { type: String, default: '' },
+        callerId: { type: String, default: '+918047192837' },
+        isActive: { type: Boolean, default: false },
+      },
+      telnyx: {
+        apiKey: { type: String, default: '' },
+        connectionId: { type: String, default: '' },
+        callerId: { type: String, default: '+15129876543' },
+        balanceUSD: { type: Number, default: 0 },
+        isActive: { type: Boolean, default: false },
+      },
       twilio: {
         accountSid: { type: String, default: '' },
         authToken: { type: String, default: '' },
@@ -35,10 +49,13 @@ const platformConfigSchema = new mongoose.Schema(
       },
       blandAi: {
         apiKey: { type: String, default: '' },
+        defaultVoiceId: { type: String, default: 'maya' },
+        balanceUSD: { type: Number, default: 0 },
         isActive: { type: Boolean, default: false },
       },
       aisensy: {
         apiKey: { type: String, default: '' },
+        campaignName: { type: String, default: 'vyuhox_leads' },
         businessNumber: { type: String, default: '' },
         isActive: { type: Boolean, default: false },
       },
