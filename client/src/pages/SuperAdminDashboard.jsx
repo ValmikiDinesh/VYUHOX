@@ -106,6 +106,8 @@ export default function SuperAdminDashboard({
   const [savingConfig, setSavingConfig] = useState(false);
   const [revealedKeys, setRevealedKeys] = useState({});
   const [pingStatus, setPingStatus] = useState({});
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ open: false, provider: null, title: '' });
+  const [deletingProvider, setDeletingProvider] = useState(false);
   const [circuitBreakerForm, setCircuitBreakerForm] = useState({
     pauseAllVoice: false,
     pauseAllScraping: false,
@@ -315,23 +317,48 @@ export default function SuperAdminDashboard({
     }
   };
 
-  // Integration Ping Test
+  // Integration Ping Test - Sends current form values or stored credentials for live API validation
   const handleTestPing = async (provider) => {
     try {
-      setPingStatus((prev) => ({ ...prev, [provider]: { status: 'TESTING' } }));
-      const res = await api.testIntegrationPing(provider);
+      const currentCreds = platformConfig?.integrations?.[provider] || {};
+      setPingStatus((prev) => ({ ...prev, [provider]: { status: 'TESTING', message: 'Validating upstream connection...' } }));
+      const res = await api.testIntegrationPing(provider, currentCreds);
       if (res?.success && res.result) {
         setPingStatus((prev) => ({ ...prev, [provider]: res.result }));
-        showToast(`✅ ${provider} ping: ${res.result.status} (${res.result.latencyMs}ms)`);
+        showToast(`✅ ${formatProviderName(provider)} ping: ${res.result.status} (${res.result.latencyMs}ms)`);
       } else {
-        setPingStatus((prev) => ({ ...prev, [provider]: { status: 'FAILED', message: res?.message || 'Check credentials' } }));
+        const failureResult = res?.result || { status: 'FAILED', message: res?.message || 'Verification failed. Check credentials.' };
+        setPingStatus((prev) => ({ ...prev, [provider]: failureResult }));
+        showToast(`❌ ${formatProviderName(provider)}: ${failureResult.message}`);
       }
     } catch (err) {
-      setPingStatus((prev) => ({ ...prev, [provider]: { status: 'ERROR', message: err.message } }));
+      setPingStatus((prev) => ({ ...prev, [provider]: { status: 'FAILED', message: err.message } }));
+      showToast(`❌ ${formatProviderName(provider)} ping error: ${err.message}`);
     }
   };
 
   const [savingKeys, setSavingKeys] = useState({});
+
+  // Human-readable names for integrations
+  const formatProviderName = (provider) => {
+    const map = {
+      apollo: 'Apollo.io B2B Enrichment',
+      outscraper: 'Outscraper Maps Extractor',
+      twilio: 'Twilio Voice & SMS',
+      exotel: 'Exotel Domestic India Rail',
+      telnyx: 'Telnyx Global Carrier Fiber',
+      blandAi: 'Bland.ai Voice SDR (Maya)',
+      aisensy: 'AiSensy WhatsApp API',
+      geminiMaster: 'Google Gemini 1.5 Master',
+      bounceban: 'BounceBan Catch-All Shield',
+      apify: 'Apify Social Actor Cloud',
+      razorpayIndia: 'Razorpay India Payments',
+      stripeGlobal: 'Stripe Global Payments',
+      sendgridSmtp: 'SendGrid SMTP Gateway',
+      instantlyEmail: 'Instantly Email Warmup',
+    };
+    return map[provider] || provider;
+  };
 
   // Smooth scroll to specific integration card and highlight it
   const scrollToIntegration = (elementId) => {
@@ -348,15 +375,22 @@ export default function SuperAdminDashboard({
     }
   };
 
-  // Individual Integration Key Saver
-  const handleSaveSingleKey = async (provider, keyField, keyVal) => {
+  // Robust Provider Configuration Saver
+  const handleSaveProvider = async (provider) => {
     setSavingKeys((prev) => ({ ...prev, [provider]: true }));
     try {
       const providerState = { ...(platformConfig?.integrations?.[provider] || {}) };
-      if (keyField && keyVal !== undefined) {
-        providerState[keyField] = keyVal;
-      }
-      providerState.isActive = true;
+      
+      const hasKey = Boolean(
+        (providerState.apiKey && providerState.apiKey.trim()) ||
+        (providerState.authToken && providerState.authToken.trim()) ||
+        (providerState.apiToken && providerState.apiToken.trim()) ||
+        (providerState.secretKey && providerState.secretKey.trim()) ||
+        (providerState.keySecret && providerState.keySecret.trim()) ||
+        (providerState.accessToken && providerState.accessToken.trim()) ||
+        (providerState.accountSid && providerState.accountSid.trim() && providerState.apiKey && providerState.apiKey.trim())
+      );
+      providerState.isActive = hasKey;
 
       const payload = {
         integrations: {
@@ -371,19 +405,82 @@ export default function SuperAdminDashboard({
           integrations: {
             ...(prev?.integrations || {}),
             ...(res.config?.integrations || {}),
+            [provider]: {
+              ...(res.config?.integrations?.[provider] || providerState),
+            },
           },
         }));
-        showToast(`✅ ${provider.toUpperCase()} master key saved.`);
+        showToast(`✅ ${formatProviderName(provider)} credentials saved.`);
         loadAuditLogs();
         loadWholesaleTelemetry();
       } else {
-        showToast(res?.message || `Failed to save ${provider} key`);
+        showToast(res?.message || `Failed to save ${provider} credentials`);
       }
     } catch (err) {
-      showToast(`Error saving ${provider} key`);
+      showToast(`Error saving ${provider} credentials`);
     } finally {
       setSavingKeys((prev) => ({ ...prev, [provider]: false }));
     }
+  };
+
+  // Disconnect & Delete Credentials with confirmation
+  const handleRequestDelete = (provider, title) => {
+    setDeleteConfirmModal({ open: true, provider, title: title || formatProviderName(provider) });
+  };
+
+  const handleConfirmDelete = async () => {
+    const provider = deleteConfirmModal.provider;
+    if (!provider) return;
+    setDeletingProvider(true);
+    try {
+      const current = platformConfig?.integrations?.[provider] || {};
+      const wiped = {};
+      for (const k of Object.keys(current)) {
+        if (typeof current[k] === 'string') wiped[k] = '';
+        else if (typeof current[k] === 'number') wiped[k] = 0;
+        else if (typeof current[k] === 'boolean') wiped[k] = false;
+        else wiped[k] = '';
+      }
+      wiped.isActive = false;
+
+      const payload = {
+        integrations: {
+          [provider]: wiped,
+        },
+      };
+      const res = await api.updatePlatformConfig(payload);
+      if (res?.success) {
+        setPlatformConfig((prev) => ({
+          ...(prev || {}),
+          ...res.config,
+          integrations: {
+            ...(prev?.integrations || {}),
+            ...(res.config?.integrations || {}),
+            [provider]: wiped,
+          },
+        }));
+        setPingStatus((prev) => {
+          const next = { ...prev };
+          delete next[provider];
+          return next;
+        });
+        showToast(`🗑️ ${deleteConfirmModal.title} credentials deleted.`);
+        setDeleteConfirmModal({ open: false, provider: null, title: '' });
+        loadAuditLogs();
+        loadWholesaleTelemetry();
+      } else {
+        showToast(res?.message || `Failed to delete ${provider} credentials`);
+      }
+    } catch (err) {
+      showToast(`Error deleting ${provider} credentials`);
+    } finally {
+      setDeletingProvider(false);
+    }
+  };
+
+  // Backwards compatible single key saver
+  const handleSaveSingleKey = async (provider) => {
+    return handleSaveProvider(provider);
   };
 
   // Save Platform Config (Integrations or Rates)
@@ -2315,911 +2412,462 @@ export default function SuperAdminDashboard({
             </div>
 
             {/* Integrations Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
-              {/* Apollo.io */}
-              <div id="integration-apollo" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Apollo.io B2B Enrichment</span>
-                    {platformConfig?.integrations?.apollo?.apiKey ? (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>CONFIGURED</span>
-                    ) : (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleSaveSingleKey('apollo', 'apiKey', platformConfig?.integrations?.apollo?.apiKey || '')}
-                      disabled={savingKeys.apollo}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(2, 132, 199, 0.2)',
-                        border: '1px solid rgba(2, 132, 199, 0.4)',
-                        color: '#38BDF8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: savingKeys.apollo ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {savingKeys.apollo ? 'Saving...' : 'Save Key'}
-                    </button>
-                    <button
-                      onClick={() => handleTestPing('apollo')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(56, 189, 248, 0.1)',
-                        border: '1px solid rgba(56, 189, 248, 0.25)',
-                        color: '#94A3B8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Test Ping
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
-                  <input
-                    type={revealedKeys.apollo ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.apollo?.apiKey || ''}
-                    placeholder="Enter Apollo API key (sk_...)"
-                    onChange={(e) => handleUpdateIntegrationField('apollo', 'apiKey', e.target.value)}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px' }}>
+              {[
+                {
+                  id: 'exotel',
+                  title: 'Exotel Domestic India Rail',
+                  subtitle: 'TRAI-Compliant PSTN Virtual PRI & Indian Voice',
+                  category: 'TELECOM (INDIA)',
+                  accentColor: '#10B981',
+                  accentBg: 'rgba(16, 185, 129, 0.15)',
+                  accentBorder: 'rgba(16, 185, 129, 0.3)',
+                  icon: <PhoneCall size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.exotel?.accountSid && platformConfig?.integrations?.exotel?.apiKey),
+                  fields: [
+                    { name: 'accountSid', label: 'Exotel Account SID / Subdomain', placeholder: 'e.g. valmikisoftwares1', required: true },
+                    { name: 'apiKey', label: 'API Key', placeholder: 'Enter Exotel API Key', secret: true, required: true },
+                    { name: 'apiToken', label: 'API Token (Password)', placeholder: 'Enter Exotel API Token', secret: true, required: true },
+                    { name: 'callerId', label: 'Virtual Caller ID (+91...)', placeholder: 'e.g. +91 80 4719 2837', required: false },
+                  ],
+                },
+                {
+                  id: 'telnyx',
+                  title: 'Telnyx Global Carrier Fiber',
+                  subtitle: 'Direct Wholesale Private Fiber (140+ Countries)',
+                  category: 'TELECOM (GLOBAL)',
+                  accentColor: '#06B6D4',
+                  accentBg: 'rgba(6, 182, 212, 0.15)',
+                  accentBorder: 'rgba(6, 182, 212, 0.3)',
+                  icon: <Globe size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.telnyx?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Telnyx V2 API Key', placeholder: 'KEY...', secret: true, required: true },
+                    { name: 'connectionId', label: 'TeXML Connection ID / SIP Profile', placeholder: 'SIP Connection ID', required: false },
+                    { name: 'callerId', label: 'Global Caller ID (+1...)', placeholder: 'e.g. +1 512 987 6543', required: false },
+                  ],
+                },
+                {
+                  id: 'blandAi',
+                  title: 'Bland.ai Voice SDR (Maya)',
+                  subtitle: 'Sub-800ms Conversational AI Telephony',
+                  category: 'AI VOICE AGENT',
+                  accentColor: '#F59E0B',
+                  accentBg: 'rgba(245, 158, 11, 0.15)',
+                  accentBorder: 'rgba(245, 158, 11, 0.3)',
+                  icon: <Sparkles size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.blandAi?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Bland.ai Developer API Key', placeholder: 'org_...', secret: true, required: true },
+                    { name: 'defaultVoiceId', label: 'Default Maya Voice ID', placeholder: 'maya', required: false },
+                  ],
+                },
+                {
+                  id: 'aisensy',
+                  title: 'AiSensy WhatsApp API',
+                  subtitle: 'Official Meta Cloud Business API (India/Global)',
+                  category: 'WHATSAPP MESSAGING',
+                  accentColor: '#22C55E',
+                  accentBg: 'rgba(34, 197, 94, 0.15)',
+                  accentBorder: 'rgba(34, 197, 94, 0.3)',
+                  icon: <MessageSquare size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.aisensy?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'AiSensy Live API Key', placeholder: 'Enter AiSensy API Key', secret: true, required: true },
+                    { name: 'campaignName', label: 'Default Campaign Name', placeholder: 'vyuhox_leads', required: false },
+                    { name: 'businessNumber', label: 'Registered Meta Phone (+91...)', placeholder: '+91 98765 43210', required: false },
+                  ],
+                },
+                {
+                  id: 'twilio',
+                  title: 'Twilio Voice & SMS Gateway',
+                  subtitle: 'Global CPaaS Carrier & Phone Verification',
+                  category: 'TELECOM (BACKUP)',
+                  accentColor: '#EF4444',
+                  accentBg: 'rgba(239, 68, 68, 0.15)',
+                  accentBorder: 'rgba(239, 68, 68, 0.3)',
+                  icon: <PhoneCall size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.twilio?.accountSid && platformConfig?.integrations?.twilio?.authToken),
+                  fields: [
+                    { name: 'accountSid', label: 'Twilio Account SID (AC...)', placeholder: 'AC...', required: true },
+                    { name: 'authToken', label: 'Twilio Auth Token', placeholder: 'Auth Token...', secret: true, required: true },
+                    { name: 'phoneNumber', label: 'Twilio Phone Number', placeholder: '+1 (800) 555-0199', required: false },
+                  ],
+                },
+                {
+                  id: 'apollo',
+                  title: 'Apollo.io B2B Enrichment',
+                  subtitle: 'Corporate Lead Verification & Data Enrichment',
+                  category: 'DATA ENRICHMENT',
+                  accentColor: '#38BDF8',
+                  accentBg: 'rgba(56, 189, 248, 0.15)',
+                  accentBorder: 'rgba(56, 189, 248, 0.3)',
+                  icon: <Database size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.apollo?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Apollo API Key', placeholder: 'Enter Apollo API Key (sk_...)', secret: true, required: true },
+                  ],
+                },
+                {
+                  id: 'outscraper',
+                  title: 'Outscraper Maps Extractor',
+                  subtitle: 'Local Business & Google Maps Extraction',
+                  category: 'LEAD SCRAPING',
+                  accentColor: '#FB923C',
+                  accentBg: 'rgba(251, 146, 60, 0.15)',
+                  accentBorder: 'rgba(251, 146, 60, 0.3)',
+                  icon: <Search size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.outscraper?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Outscraper API Key', placeholder: 'Enter Outscraper API Key', secret: true, required: true },
+                  ],
+                },
+                {
+                  id: 'bounceban',
+                  title: 'BounceBan Catch-All Shield',
+                  subtitle: 'Deep Email Verification & Deliverability',
+                  category: 'EMAIL HYGIENE',
+                  accentColor: '#A855F7',
+                  accentBg: 'rgba(168, 85, 247, 0.15)',
+                  accentBorder: 'rgba(168, 85, 247, 0.3)',
+                  icon: <ShieldCheck size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.bounceban?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'BounceBan API Key', placeholder: 'Enter BounceBan API Key', secret: true, required: true },
+                  ],
+                },
+                {
+                  id: 'apify',
+                  title: 'Apify Social Actor Cloud',
+                  subtitle: 'Social Media & Profile Scraping Cloud',
+                  category: 'ACTOR CLOUD',
+                  accentColor: '#EC4899',
+                  accentBg: 'rgba(236, 72, 153, 0.15)',
+                  accentBorder: 'rgba(236, 72, 153, 0.3)',
+                  icon: <Users size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.apify?.apiToken),
+                  fields: [
+                    { name: 'apiToken', label: 'Apify API Token', placeholder: 'apify_api_...', secret: true, required: true },
+                  ],
+                },
+                {
+                  id: 'geminiMaster',
+                  title: 'Google Gemini 1.5 Master',
+                  subtitle: 'Multimodal LLM & GTM Strategic Reasoning',
+                  category: 'CORE INTELLIGENCE',
+                  accentColor: '#818CF8',
+                  accentBg: 'rgba(129, 140, 248, 0.15)',
+                  accentBorder: 'rgba(129, 140, 248, 0.3)',
+                  icon: <Cpu size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.geminiMaster?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Gemini API Key', placeholder: 'AIzaSy...', secret: true, required: true },
+                    { name: 'model', label: 'Model Identifier', placeholder: 'gemini-1.5-pro', required: false },
+                  ],
+                },
+                {
+                  id: 'razorpayIndia',
+                  title: 'Razorpay India Payment Rail',
+                  subtitle: 'UPI, Netbanking & Cards Gateway (INR)',
+                  category: 'PAYMENTS (INDIA)',
+                  accentColor: '#0284C7',
+                  accentBg: 'rgba(2, 132, 199, 0.15)',
+                  accentBorder: 'rgba(2, 132, 199, 0.3)',
+                  icon: <DollarSign size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.razorpayIndia?.keyId && platformConfig?.integrations?.razorpayIndia?.keySecret),
+                  fields: [
+                    { name: 'keyId', label: 'Razorpay Key ID', placeholder: 'rzp_live_...', required: true },
+                    { name: 'keySecret', label: 'Razorpay Key Secret', placeholder: 'Key Secret...', secret: true, required: true },
+                  ],
+                },
+                {
+                  id: 'stripeGlobal',
+                  title: 'Stripe Global Payments',
+                  subtitle: 'International Cards & Invoicing (USD/EUR)',
+                  category: 'PAYMENTS (GLOBAL)',
+                  accentColor: '#6366F1',
+                  accentBg: 'rgba(99, 102, 241, 0.15)',
+                  accentBorder: 'rgba(99, 102, 241, 0.3)',
+                  icon: <DollarSign size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.stripeGlobal?.secretKey),
+                  fields: [
+                    { name: 'publishableKey', label: 'Stripe Publishable Key', placeholder: 'pk_live_...', required: false },
+                    { name: 'secretKey', label: 'Stripe Secret Key', placeholder: 'sk_live_...', secret: true, required: true },
+                  ],
+                },
+              ].map((card) => {
+                const currentVals = platformConfig?.integrations?.[card.id] || {};
+                return (
+                  <div
+                    key={card.id}
+                    id={`integration-${card.id}`}
                     style={{
-                      flex: 1,
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
+                      background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%)',
+                      borderRadius: '14px',
+                      border: `1px solid ${card.isConfigured ? 'rgba(16, 185, 129, 0.35)' : 'rgba(255, 255, 255, 0.08)'}`,
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      boxShadow: card.isConfigured ? '0 4px 20px rgba(16, 185, 129, 0.05)' : 'none',
+                      transition: 'all 0.2s ease',
                     }}
-                  />
-                  <button
-                    onClick={() => toggleKeyVisibility('apollo')}
-                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
                   >
-                    {revealedKeys.apollo ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {pingStatus.apollo && (
-                  <div style={{ fontSize: '0.72rem', color: pingStatus.apollo.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
-                    Status: {pingStatus.apollo.status} ({pingStatus.apollo.latencyMs}ms)
-                  </div>
-                )}
-              </div>
+                    <div>
+                      {/* Top Header */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div
+                            style={{
+                              width: '38px',
+                              height: '38px',
+                              borderRadius: '10px',
+                              background: card.accentBg,
+                              border: `1px solid ${card.accentBorder}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: card.accentColor,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {card.icon}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: '800', fontSize: '0.92rem', color: '#F8FAFC' }}>
+                              {card.title}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: '1px' }}>
+                              {card.subtitle}
+                            </div>
+                          </div>
+                        </div>
 
-              {/* Outscraper */}
-              <div id="integration-outscraper" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Outscraper Maps Extractor</span>
-                    {platformConfig?.integrations?.outscraper?.apiKey ? (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>CONFIGURED</span>
-                    ) : (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleSaveSingleKey('outscraper', 'apiKey', platformConfig?.integrations?.outscraper?.apiKey || '')}
-                      disabled={savingKeys.outscraper}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(2, 132, 199, 0.2)',
-                        border: '1px solid rgba(2, 132, 199, 0.4)',
-                        color: '#38BDF8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: savingKeys.outscraper ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {savingKeys.outscraper ? 'Saving...' : 'Save Key'}
-                    </button>
-                    <button
-                      onClick={() => handleTestPing('outscraper')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(56, 189, 248, 0.1)',
-                        border: '1px solid rgba(56, 189, 248, 0.25)',
-                        color: '#94A3B8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Test Ping
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
-                  <input
-                    type={revealedKeys.outscraper ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.outscraper?.apiKey || ''}
-                    placeholder="Enter Outscraper API key..."
-                    onChange={(e) => handleUpdateIntegrationField('outscraper', 'apiKey', e.target.value)}
-                    style={{
-                      flex: 1,
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                    }}
-                  />
-                  <button
-                    onClick={() => toggleKeyVisibility('outscraper')}
-                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
-                  >
-                    {revealedKeys.outscraper ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {pingStatus.outscraper && (
-                  <div style={{ fontSize: '0.72rem', color: pingStatus.outscraper.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
-                    Status: {pingStatus.outscraper.status} ({pingStatus.outscraper.latencyMs}ms)
-                  </div>
-                )}
-              </div>
+                        <span
+                          style={{
+                            fontSize: '0.62rem',
+                            padding: '3px 8px',
+                            borderRadius: '20px',
+                            background: card.isConfigured ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.12)',
+                            color: card.isConfigured ? '#10B981' : '#94A3B8',
+                            border: `1px solid ${card.isConfigured ? 'rgba(16, 185, 129, 0.3)' : 'rgba(148, 163, 184, 0.2)'}`,
+                            fontWeight: '800',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              background: card.isConfigured ? '#10B981' : '#94A3B8',
+                            }}
+                          />
+                          {card.isConfigured ? 'CONNECTED' : 'NOT CONFIGURED'}
+                        </span>
+                      </div>
 
-              {/* Twilio Telephony */}
-              <div id="integration-twilio" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Twilio Voice & Lookup</span>
-                    {platformConfig?.integrations?.twilio?.authToken ? (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>CONFIGURED</span>
-                    ) : (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleSaveSingleKey('twilio', 'authToken', platformConfig?.integrations?.twilio?.authToken || '')}
-                      disabled={savingKeys.twilio}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(2, 132, 199, 0.2)',
-                        border: '1px solid rgba(2, 132, 199, 0.4)',
-                        color: '#38BDF8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: savingKeys.twilio ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {savingKeys.twilio ? 'Saving...' : 'Save Key'}
-                    </button>
-                    <button
-                      onClick={() => handleTestPing('twilio')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(56, 189, 248, 0.1)',
-                        border: '1px solid rgba(56, 189, 248, 0.25)',
-                        color: '#94A3B8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Test Ping
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '6px' }}>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                      type={revealedKeys.twilio ? 'text' : 'password'}
-                      value={platformConfig?.integrations?.twilio?.accountSid || ''}
-                      placeholder="Twilio Account SID (AC...)"
-                      onChange={(e) => handleUpdateIntegrationField('twilio', 'accountSid', e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: '8px 10px',
-                        borderRadius: '6px',
-                        background: '#1E293B',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#F8FAFC',
-                        fontSize: '0.8rem',
-                      }}
-                    />
-                    <button
-                      onClick={() => toggleKeyVisibility('twilio')}
-                      style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
-                    >
-                      {revealedKeys.twilio ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                      type={revealedKeys.twilio ? 'text' : 'password'}
-                      value={platformConfig?.integrations?.twilio?.authToken || ''}
-                      placeholder="Twilio Auth Token..."
-                      onChange={(e) => handleUpdateIntegrationField('twilio', 'authToken', e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: '8px 10px',
-                        borderRadius: '6px',
-                        background: '#1E293B',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#F8FAFC',
-                        fontSize: '0.8rem',
-                      }}
-                    />
-                  </div>
-                </div>
-                {pingStatus.twilio && (
-                  <div style={{ fontSize: '0.72rem', color: pingStatus.twilio.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
-                    Status: {pingStatus.twilio.status} ({pingStatus.twilio.latencyMs}ms)
-                  </div>
-                )}
-              </div>
+                      {/* Fields with Explicit Labels */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {card.fields.map((field) => (
+                          <div key={field.name}>
+                            <label
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: '600',
+                                color: '#CBD5E1',
+                                marginBottom: '4px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <span>{field.label}</span>
+                              {field.required && <span style={{ color: '#F43F5E', fontSize: '0.65rem' }}>*Required</span>}
+                            </label>
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <input
+                                type={field.secret && !revealedKeys[`${card.id}_${field.name}`] ? 'password' : 'text'}
+                                value={currentVals[field.name] || ''}
+                                placeholder={field.placeholder}
+                                onChange={(e) => handleUpdateIntegrationField(card.id, field.name, e.target.value)}
+                                style={{
+                                  flex: 1,
+                                  padding: '8px 12px',
+                                  borderRadius: '8px',
+                                  background: '#0B1120',
+                                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                                  color: '#F8FAFC',
+                                  fontSize: '0.8rem',
+                                  fontFamily: field.secret ? 'monospace' : 'inherit',
+                                  outline: 'none',
+                                }}
+                              />
+                              {field.secret && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleKeyVisibility(`${card.id}_${field.name}`)}
+                                  title={revealedKeys[`${card.id}_${field.name}`] ? 'Hide' : 'Reveal'}
+                                  style={{
+                                    padding: '8px 10px',
+                                    borderRadius: '8px',
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    color: '#94A3B8',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  {revealedKeys[`${card.id}_${field.name}`] ? <EyeOff size={15} /> : <Eye size={15} />}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-              {/* Gemini 1.5 Master LLM */}
-              <div id="integration-gemini" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Google Gemini 1.5 AI Master</span>
-                    {platformConfig?.integrations?.geminiMaster?.apiKey ? (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>CONFIGURED</span>
-                    ) : (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleSaveSingleKey('geminiMaster', 'apiKey', platformConfig?.integrations?.geminiMaster?.apiKey || '')}
-                      disabled={savingKeys.geminiMaster}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(2, 132, 199, 0.2)',
-                        border: '1px solid rgba(2, 132, 199, 0.4)',
-                        color: '#38BDF8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: savingKeys.geminiMaster ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {savingKeys.geminiMaster ? 'Saving...' : 'Save Key'}
-                    </button>
-                    <button
-                      onClick={() => handleTestPing('geminiMaster')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(56, 189, 248, 0.1)',
-                        border: '1px solid rgba(56, 189, 248, 0.25)',
-                        color: '#94A3B8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Test Ping
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
-                  <input
-                    type={revealedKeys.gemini ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.geminiMaster?.apiKey || ''}
-                    placeholder="Enter Gemini API key (AIzaSy...)"
-                    onChange={(e) => handleUpdateIntegrationField('geminiMaster', 'apiKey', e.target.value)}
-                    style={{
-                      flex: 1,
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                    }}
-                  />
-                  <button
-                    onClick={() => toggleKeyVisibility('gemini')}
-                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
-                  >
-                    {revealedKeys.gemini ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {pingStatus.geminiMaster && (
-                  <div style={{ fontSize: '0.72rem', color: pingStatus.geminiMaster.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
-                    Status: {pingStatus.geminiMaster.status} ({pingStatus.geminiMaster.latencyMs}ms)
-                  </div>
-                )}
-              </div>
+                    {/* Footer Area: Ping Result Banner + Actions */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {pingStatus[card.id] && (
+                        <div
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.74rem',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '8px',
+                            background:
+                              pingStatus[card.id].status === 'LIVE'
+                                ? 'rgba(16, 185, 129, 0.12)'
+                                : pingStatus[card.id].status === 'TESTING'
+                                ? 'rgba(56, 189, 248, 0.12)'
+                                : 'rgba(239, 68, 68, 0.12)',
+                            border: `1px solid ${
+                              pingStatus[card.id].status === 'LIVE'
+                                ? 'rgba(16, 185, 129, 0.3)'
+                                : pingStatus[card.id].status === 'TESTING'
+                                ? 'rgba(56, 189, 248, 0.3)'
+                                : 'rgba(239, 68, 68, 0.3)'
+                            }`,
+                            color:
+                              pingStatus[card.id].status === 'LIVE'
+                                ? '#34D399'
+                                : pingStatus[card.id].status === 'TESTING'
+                                ? '#38BDF8'
+                                : '#F87171',
+                          }}
+                        >
+                          {pingStatus[card.id].status === 'TESTING' ? (
+                            <RefreshCw size={14} className="animate-spin" style={{ marginTop: '1px', flexShrink: 0 }} />
+                          ) : pingStatus[card.id].status === 'LIVE' ? (
+                            <Check size={14} style={{ marginTop: '1px', flexShrink: 0 }} />
+                          ) : (
+                            <AlertCircle size={14} style={{ marginTop: '1px', flexShrink: 0 }} />
+                          )}
+                          <div style={{ flex: 1, lineHeight: '1.4' }}>
+                            <strong>{pingStatus[card.id].status}:</strong> {pingStatus[card.id].message || 'Complete'}
+                            {pingStatus[card.id].latencyMs ? ` (${pingStatus[card.id].latencyMs}ms)` : ''}
+                          </div>
+                        </div>
+                      )}
 
-              {/* BounceBan Catch-All Verifier */}
-              <div id="integration-bounceban" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#10B981' }}>BounceBan Catch-All Shield</span>
-                    {platformConfig?.integrations?.bounceban?.apiKey ? (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>CONFIGURED</span>
-                    ) : (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleSaveSingleKey('bounceban', 'apiKey', platformConfig?.integrations?.bounceban?.apiKey || '')}
-                      disabled={savingKeys.bounceban}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(16, 185, 129, 0.15)',
-                        border: '1px solid rgba(16, 185, 129, 0.4)',
-                        color: '#10B981',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: savingKeys.bounceban ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {savingKeys.bounceban ? 'Saving...' : 'Save Key'}
-                    </button>
-                    <button
-                      onClick={() => handleTestPing('bounceban')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(16, 185, 129, 0.1)',
-                        border: '1px solid rgba(16, 185, 129, 0.25)',
-                        color: '#94A3B8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Test Ping
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
-                  <input
-                    type={revealedKeys.bounceban ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.bounceban?.apiKey || ''}
-                    placeholder="Enter BounceBan API Key..."
-                    onChange={(e) => handleUpdateIntegrationField('bounceban', 'apiKey', e.target.value)}
-                    style={{
-                      flex: 1,
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                    }}
-                  />
-                  <button
-                    onClick={() => toggleKeyVisibility('bounceban')}
-                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
-                  >
-                    {revealedKeys.bounceban ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {pingStatus.bounceban && (
-                  <div style={{ fontSize: '0.72rem', color: pingStatus.bounceban.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
-                    Status: {pingStatus.bounceban.status} ({pingStatus.bounceban.latencyMs}ms)
-                  </div>
-                )}
-              </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          paddingTop: '8px',
+                          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleTestPing(card.id)}
+                          disabled={pingStatus[card.id]?.status === 'TESTING'}
+                          style={{
+                            padding: '7px 12px',
+                            borderRadius: '8px',
+                            background: 'rgba(56, 189, 248, 0.08)',
+                            border: '1px solid rgba(56, 189, 248, 0.25)',
+                            color: '#38BDF8',
+                            fontSize: '0.74rem',
+                            fontWeight: '700',
+                            cursor: pingStatus[card.id]?.status === 'TESTING' ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <Zap size={13} />
+                          <span>Test Ping</span>
+                        </button>
 
-              {/* Apify Social Actors */}
-              <div id="integration-apify" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#EC4899' }}>Apify Social Actor Cloud</span>
-                    {platformConfig?.integrations?.apify?.apiToken ? (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(236, 72, 153, 0.15)', color: '#EC4899', fontWeight: '800' }}>CONFIGURED</span>
-                    ) : (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleSaveSingleKey('apify', 'apiToken', platformConfig?.integrations?.apify?.apiToken || '')}
-                      disabled={savingKeys.apify}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(236, 72, 153, 0.15)',
-                        border: '1px solid rgba(236, 72, 153, 0.4)',
-                        color: '#EC4899',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: savingKeys.apify ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {savingKeys.apify ? 'Saving...' : 'Save Key'}
-                    </button>
-                    <button
-                      onClick={() => handleTestPing('apify')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(236, 72, 153, 0.1)',
-                        border: '1px solid rgba(236, 72, 153, 0.25)',
-                        color: '#94A3B8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Test Ping
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
-                  <input
-                    type={revealedKeys.apify ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.apify?.apiToken || ''}
-                    placeholder="Enter Apify API Token (apify_api_...)"
-                    onChange={(e) => handleUpdateIntegrationField('apify', 'apiToken', e.target.value)}
-                    style={{
-                      flex: 1,
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                    }}
-                  />
-                  <button
-                    onClick={() => toggleKeyVisibility('apify')}
-                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
-                  >
-                    {revealedKeys.apify ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {pingStatus.apify && (
-                  <div style={{ fontSize: '0.72rem', color: pingStatus.apify.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
-                    Status: {pingStatus.apify.status} ({pingStatus.apify.latencyMs}ms)
-                  </div>
-                )}
-              </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {card.isConfigured && (
+                            <button
+                              type="button"
+                              onClick={() => handleRequestDelete(card.id, card.title)}
+                              title={`Delete ${card.title} credentials`}
+                              style={{
+                                padding: '7px 10px',
+                                borderRadius: '8px',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                color: '#F87171',
+                                fontSize: '0.74rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <Trash2 size={13} />
+                              <span>Delete</span>
+                            </button>
+                          )}
 
-              {/* Exotel India Domestic Cloud Telephony */}
-              <div id="integration-exotel" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#10B981' }}>Exotel Domestic India Rail</span>
-                    {platformConfig?.integrations?.exotel?.apiKey ? (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>TRAI READY</span>
-                    ) : (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
-                    )}
+                          <button
+                            type="button"
+                            onClick={() => handleSaveProvider(card.id)}
+                            disabled={savingKeys[card.id]}
+                            style={{
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              background: '#0284C7',
+                              border: 'none',
+                              color: '#FFFFFF',
+                              fontSize: '0.74rem',
+                              fontWeight: '700',
+                              cursor: savingKeys[card.id] ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)',
+                            }}
+                          >
+                            {savingKeys[card.id] ? (
+                              <RefreshCw size={13} className="animate-spin" />
+                            ) : (
+                              <Check size={13} />
+                            )}
+                            <span>{savingKeys[card.id] ? 'Saving...' : 'Save Keys'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleSaveSingleKey('exotel', 'apiKey', platformConfig?.integrations?.exotel?.apiKey || '')}
-                      disabled={savingKeys.exotel}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(16, 185, 129, 0.2)',
-                        border: '1px solid rgba(16, 185, 129, 0.4)',
-                        color: '#34D399',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: savingKeys.exotel ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {savingKeys.exotel ? 'Saving...' : 'Save Keys'}
-                    </button>
-                    <button
-                      onClick={() => handleTestPing('exotel')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(16, 185, 129, 0.1)',
-                        border: '1px solid rgba(16, 185, 129, 0.25)',
-                        color: '#94A3B8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Test Ping
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '6px' }}>
-                  <input
-                    type="text"
-                    value={platformConfig?.integrations?.exotel?.accountSid || ''}
-                    placeholder="Exotel Account SID / Subdomain (e.g. vyuhox)"
-                    onChange={(e) => handleUpdateIntegrationField('exotel', 'accountSid', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                      type={revealedKeys.exotel ? 'text' : 'password'}
-                      value={platformConfig?.integrations?.exotel?.apiKey || ''}
-                      placeholder="Exotel API Key"
-                      onChange={(e) => handleUpdateIntegrationField('exotel', 'apiKey', e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: '8px 10px',
-                        borderRadius: '6px',
-                        background: '#1E293B',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#F8FAFC',
-                        fontSize: '0.8rem',
-                      }}
-                    />
-                    <button
-                      onClick={() => toggleKeyVisibility('exotel')}
-                      style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
-                    >
-                      {revealedKeys.exotel ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  <input
-                    type={revealedKeys.exotel ? 'text' : 'password'}
-                    value={platformConfig?.integrations?.exotel?.apiToken || ''}
-                    placeholder="Exotel API Token (Password)"
-                    onChange={(e) => handleUpdateIntegrationField('exotel', 'apiToken', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <input
-                    type="text"
-                    value={platformConfig?.integrations?.exotel?.callerId || ''}
-                    placeholder="Exotel Caller ID / Virtual Number (+91 80...)"
-                    onChange={(e) => handleUpdateIntegrationField('exotel', 'callerId', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                {pingStatus.exotel && (
-                  <div style={{ fontSize: '0.72rem', color: pingStatus.exotel.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
-                    Status: {pingStatus.exotel.status} ({pingStatus.exotel.latencyMs}ms) — {pingStatus.exotel.message}
-                  </div>
-                )}
-              </div>
-
-              {/* Telnyx Global Private Fiber Carrier */}
-              <div id="integration-telnyx" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#38BDF8' }}>Telnyx Global Carrier Fiber</span>
-                    {platformConfig?.integrations?.telnyx?.apiKey ? (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>140+ COUNTRIES</span>
-                    ) : (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleSaveSingleKey('telnyx', 'apiKey', platformConfig?.integrations?.telnyx?.apiKey || '')}
-                      disabled={savingKeys.telnyx}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(2, 132, 199, 0.2)',
-                        border: '1px solid rgba(2, 132, 199, 0.4)',
-                        color: '#38BDF8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: savingKeys.telnyx ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {savingKeys.telnyx ? 'Saving...' : 'Save Keys'}
-                    </button>
-                    <button
-                      onClick={() => handleTestPing('telnyx')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(56, 189, 248, 0.1)',
-                        border: '1px solid rgba(56, 189, 248, 0.25)',
-                        color: '#94A3B8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Test Ping
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '6px' }}>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                      type={revealedKeys.telnyx ? 'text' : 'password'}
-                      value={platformConfig?.integrations?.telnyx?.apiKey || ''}
-                      placeholder="Telnyx V2 API Key (KEY...)"
-                      onChange={(e) => handleUpdateIntegrationField('telnyx', 'apiKey', e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: '8px 10px',
-                        borderRadius: '6px',
-                        background: '#1E293B',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#F8FAFC',
-                        fontSize: '0.8rem',
-                      }}
-                    />
-                    <button
-                      onClick={() => toggleKeyVisibility('telnyx')}
-                      style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
-                    >
-                      {revealedKeys.telnyx ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={platformConfig?.integrations?.telnyx?.connectionId || ''}
-                    placeholder="Telnyx TeXML Connection ID / SIP Profile"
-                    onChange={(e) => handleUpdateIntegrationField('telnyx', 'connectionId', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <input
-                    type="text"
-                    value={platformConfig?.integrations?.telnyx?.callerId || ''}
-                    placeholder="Telnyx Global Caller ID Phone (+1 512...)"
-                    onChange={(e) => handleUpdateIntegrationField('telnyx', 'callerId', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                {pingStatus.telnyx && (
-                  <div style={{ fontSize: '0.72rem', color: pingStatus.telnyx.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
-                    Status: {pingStatus.telnyx.status} ({pingStatus.telnyx.latencyMs}ms) — {pingStatus.telnyx.message}
-                  </div>
-                )}
-              </div>
-
-              {/* Bland.ai Voice SDR (Maya) */}
-              <div id="integration-bland" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#F59E0B' }}>Bland.ai Voice SDR (Maya)</span>
-                    {platformConfig?.integrations?.blandAi?.apiKey ? (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>SUB-700MS LIVE</span>
-                    ) : (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleSaveSingleKey('blandAi', 'apiKey', platformConfig?.integrations?.blandAi?.apiKey || '')}
-                      disabled={savingKeys.blandAi}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(245, 158, 11, 0.2)',
-                        border: '1px solid rgba(245, 158, 11, 0.4)',
-                        color: '#FBBF24',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: savingKeys.blandAi ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {savingKeys.blandAi ? 'Saving...' : 'Save Keys'}
-                    </button>
-                    <button
-                      onClick={() => handleTestPing('blandAi')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(245, 158, 11, 0.1)',
-                        border: '1px solid rgba(245, 158, 11, 0.25)',
-                        color: '#94A3B8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Test Ping
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '6px' }}>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                      type={revealedKeys.blandAi ? 'text' : 'password'}
-                      value={platformConfig?.integrations?.blandAi?.apiKey || ''}
-                      placeholder="Bland.ai Developer API Key (org_...)"
-                      onChange={(e) => handleUpdateIntegrationField('blandAi', 'apiKey', e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: '8px 10px',
-                        borderRadius: '6px',
-                        background: '#1E293B',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#F8FAFC',
-                        fontSize: '0.8rem',
-                      }}
-                    />
-                    <button
-                      onClick={() => toggleKeyVisibility('blandAi')}
-                      style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
-                    >
-                      {revealedKeys.blandAi ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={platformConfig?.integrations?.blandAi?.defaultVoiceId || ''}
-                    placeholder="Default Maya Voice Persona ID (e.g. maya, neerja)"
-                    onChange={(e) => handleUpdateIntegrationField('blandAi', 'defaultVoiceId', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                {pingStatus.blandAi && (
-                  <div style={{ fontSize: '0.72rem', color: pingStatus.blandAi.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
-                    Status: {pingStatus.blandAi.status} ({pingStatus.blandAi.latencyMs}ms) — {pingStatus.blandAi.message}
-                  </div>
-                )}
-              </div>
-
-              {/* AiSensy Official Meta WhatsApp */}
-              <div id="integration-aisensy" style={{ background: '#0F172A', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#22C55E' }}>AiSensy WhatsApp API</span>
-                    {platformConfig?.integrations?.aisensy?.apiKey ? (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: '800' }}>META LIVE</span>
-                    ) : (
-                      <span style={{ fontSize: '0.62rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: '#94A3B8', fontWeight: '700' }}>PENDING KEY</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => handleSaveSingleKey('aisensy', 'apiKey', platformConfig?.integrations?.aisensy?.apiKey || '')}
-                      disabled={savingKeys.aisensy}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(34, 197, 94, 0.2)',
-                        border: '1px solid rgba(34, 197, 94, 0.4)',
-                        color: '#4ADE80',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: savingKeys.aisensy ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {savingKeys.aisensy ? 'Saving...' : 'Save Keys'}
-                    </button>
-                    <button
-                      onClick={() => handleTestPing('aisensy')}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(34, 197, 94, 0.1)',
-                        border: '1px solid rgba(34, 197, 94, 0.25)',
-                        color: '#94A3B8',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Test Ping
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '6px' }}>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                      type={revealedKeys.aisensy ? 'text' : 'password'}
-                      value={platformConfig?.integrations?.aisensy?.apiKey || ''}
-                      placeholder="AiSensy Live API Key"
-                      onChange={(e) => handleUpdateIntegrationField('aisensy', 'apiKey', e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: '8px 10px',
-                        borderRadius: '6px',
-                        background: '#1E293B',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#F8FAFC',
-                        fontSize: '0.8rem',
-                      }}
-                    />
-                    <button
-                      onClick={() => toggleKeyVisibility('aisensy')}
-                      style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
-                    >
-                      {revealedKeys.aisensy ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={platformConfig?.integrations?.aisensy?.campaignName || ''}
-                    placeholder="Default Campaign Name (e.g. vyuhox_leads)"
-                    onChange={(e) => handleUpdateIntegrationField('aisensy', 'campaignName', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <input
-                    type="text"
-                    value={platformConfig?.integrations?.aisensy?.businessNumber || ''}
-                    placeholder="Registered Meta Business Phone (+91 9...)"
-                    onChange={(e) => handleUpdateIntegrationField('aisensy', 'businessNumber', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#1E293B',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#F8FAFC',
-                      fontSize: '0.8rem',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                {pingStatus.aisensy && (
-                  <div style={{ fontSize: '0.72rem', color: pingStatus.aisensy.status === 'LIVE' ? '#10B981' : '#F59E0B' }}>
-                    Status: {pingStatus.aisensy.status} ({pingStatus.aisensy.latencyMs}ms) — {pingStatus.aisensy.message}
-                  </div>
-                )}
-              </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -4045,6 +3693,115 @@ export default function SuperAdminDashboard({
           </div>
         </div>
       )}
+      {/* ========================================================================= */}
+      {/* MODAL: DELETE / DISCONNECT CREDENTIALS CONFIRMATION                       */}
+      {/* ========================================================================= */}
+      {deleteConfirmModal.open && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.82)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001,
+            padding: '16px',
+          }}
+        >
+          <div
+            style={{
+              background: '#0F172A',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              borderRadius: '16px',
+              padding: '26px',
+              width: '450px',
+              maxWidth: '92vw',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.95), 0 0 35px rgba(239, 68, 68, 0.2)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#EF4444',
+                  flexShrink: 0,
+                }}
+              >
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.08rem', fontWeight: '800', color: '#F8FAFC' }}>
+                  Disconnect {deleteConfirmModal.title}?
+                </h3>
+                <div style={{ fontSize: '0.74rem', color: '#EF4444', fontWeight: '700', marginTop: '2px' }}>
+                  Permanent Credential Deletion & Disconnect
+                </div>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.84rem', color: '#CBD5E1', lineHeight: '1.55', margin: '0 0 22px 0' }}>
+              Are you sure you want to delete all stored API keys, tokens, and routing configurations for{' '}
+              <strong style={{ color: '#FFFFFF' }}>{deleteConfirmModal.title}</strong>?
+              <br /><br />
+              <span style={{ color: '#94A3B8', fontSize: '0.78rem' }}>
+                ⚠️ Any automated voice closer calls, WhatsApp campaigns, or lead enrichment operations routed through this provider will be immediately halted until new keys are entered.
+              </span>
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmModal({ open: false, provider: null, title: '' })}
+                disabled={deletingProvider}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#CBD5E1',
+                  fontSize: '0.82rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deletingProvider}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: '8px',
+                  background: '#DC2626',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  cursor: deletingProvider ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)',
+                }}
+              >
+                {deletingProvider ? <RefreshCw size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                <span>{deletingProvider ? 'Deleting Keys...' : 'Yes, Delete Credentials'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

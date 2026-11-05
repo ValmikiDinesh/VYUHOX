@@ -1028,11 +1028,11 @@ export const api = {
     });
     return res.json();
   },
-  testIntegrationPing: async (provider) => {
+  testIntegrationPing: async (provider, credentials = null) => {
     const res = await authedFetch(`${API_BASE}/billing/test-integration-ping`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider }),
+      body: JSON.stringify({ provider, credentials }),
     });
     return res.json();
   },
