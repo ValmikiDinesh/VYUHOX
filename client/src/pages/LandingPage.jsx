@@ -102,9 +102,17 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
     const token = authStorage.getToken();
     if (token) {
-      window.location.hash = '#app';
+      if (onEnterApp) onEnterApp();
+      else {
+        window.history.pushState(null, '', '/app');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }
     } else {
-      window.location.hash = '#signup';
+      if (onNavigateAuth) onNavigateAuth('signup');
+      else {
+        window.history.pushState(null, '', '/signup');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }
     }
   };
 
@@ -304,8 +312,8 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
             onClick={() => {
               if (onEnterApp) onEnterApp();
               else {
-                window.location.hash = '#app';
-                window.location.reload();
+                window.history.pushState(null, '', '/app');
+                window.dispatchEvent(new PopStateEvent('popstate'));
               }
             }}
             style={{
@@ -335,7 +343,8 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
               if (onNavigateAuth) {
                 onNavigateAuth('signin');
               } else {
-                window.location.hash = '#login';
+                window.history.pushState(null, '', '/login');
+                window.dispatchEvent(new PopStateEvent('popstate'));
               }
             }}
             style={{
@@ -359,7 +368,8 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
               if (onNavigateAuth) {
                 onNavigateAuth('signup');
               } else {
-                window.location.hash = '#signup';
+                window.history.pushState(null, '', '/signup');
+                window.dispatchEvent(new PopStateEvent('popstate'));
               }
             }}
             className="btn btn-primary"
@@ -1426,7 +1436,11 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
             <button
               onClick={() => {
-                window.location.hash = '#signup';
+                if (onNavigateAuth) onNavigateAuth('signup');
+                else {
+                  window.history.pushState(null, '', '/signup');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }
               }}
               className="btn btn-secondary"
               style={{ width: '100%', padding: '12px', fontWeight: '700', fontSize: '0.85rem' }}
@@ -1518,7 +1532,11 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
             <button
               onClick={() => {
-                window.location.hash = '#signup';
+                if (onNavigateAuth) onNavigateAuth('signup');
+                else {
+                  window.history.pushState(null, '', '/signup');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }
               }}
               className="btn btn-secondary"
               style={{ width: '100%', padding: '12px', fontWeight: '700', fontSize: '0.85rem' }}
@@ -1632,7 +1650,11 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
             <button
               onClick={() => {
-                window.location.hash = '#signup';
+                if (onNavigateAuth) onNavigateAuth('signup');
+                else {
+                  window.history.pushState(null, '', '/signup');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }
               }}
               className="btn btn-primary"
               style={{ width: '100%', padding: '12px', fontWeight: '800', fontSize: '0.875rem' }}
@@ -1724,7 +1746,11 @@ export default function LandingPage({ onEnterApp, onSelectPlan, onNavigateAuth, 
 
             <button
               onClick={() => {
-                window.location.hash = '#signup';
+                if (onNavigateAuth) onNavigateAuth('signup');
+                else {
+                  window.history.pushState(null, '', '/signup');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }
               }}
               className="btn btn-secondary"
               style={{ width: '100%', padding: '12px', fontWeight: '700', fontSize: '0.85rem', borderColor: 'rgba(168, 85, 247, 0.45)' }}

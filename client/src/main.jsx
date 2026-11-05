@@ -49,8 +49,7 @@ class GlobalErrorBoundary extends Component {
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button
                 onClick={() => {
-                  window.location.hash = '';
-                  window.location.reload();
+                  window.location.href = '/';
                 }}
                 style={{
                   padding: '10px 20px',

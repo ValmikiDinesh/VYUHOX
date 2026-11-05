@@ -62,15 +62,34 @@ export default function App() {
   const [targetChatConversationId, setTargetChatConversationId] = useState(null);
   const [globalAnnouncement, setGlobalAnnouncement] = useState(null);
 
-  // Dedicated URL Route Detection:
-  // - '#admin', '#admin-login', '/admin' -> 'admin_login' (Super Admin Master Portal)
-  // - '#login', '#signin', '/login'      -> 'client_login' (Business Client Login)
-  // - '#signup', '#register', '/signup'  -> 'client_signup' (Business Client Registration)
-  // - '#app', '/app'                     -> 'app' (App Workspace)
-  // - default / '#landing'               -> 'landing' (Public Website)
+  // Clean HTML5 Path Navigation (Zero Hash '#' in URL)
+  // - '/admin', '/admin/login'          -> 'admin_login' (Super Admin Master Portal)
+  // - '/login', '/signin'               -> 'client_login' (Business Client Login)
+  // - '/signup', '/register'            -> 'client_signup' (Business Client Registration)
+  // - '/app'                            -> 'app' (App Workspace)
+  // - '/tools/spam-checker'             -> 'tool_spam_checker'
+  // - '/tools/icp-calculator'           -> 'tool_icp_calculator'
+  // - '/tools/dns-lookup'               -> 'tool_dns_tester'
+  // - default '/'                       -> 'landing' (Public Website)
   const getViewFromLocation = () => {
+    let path = (window.location.pathname || '/').toLowerCase();
     const hash = (window.location.hash || '').toLowerCase();
-    const path = (window.location.pathname || '').toLowerCase();
+
+    // Seamlessly migrate any legacy hash in bookmarks/links to clean HTML5 paths
+    if (hash) {
+      if (hash.startsWith('#admin')) path = '/admin';
+      else if (hash.startsWith('#login') || hash.startsWith('#signin')) path = '/login';
+      else if (hash.startsWith('#signup') || hash.startsWith('#register')) path = '/signup';
+      else if (hash.startsWith('#app')) path = '/app';
+      else if (hash.includes('spam-checker')) path = '/tools/spam-checker';
+      else if (hash.includes('icp-calculator')) path = '/tools/icp-calculator';
+      else if (hash.includes('dns')) path = '/tools/dns-lookup';
+      else if (hash === '#landing' || hash === '#') path = '/';
+
+      if (typeof window !== 'undefined' && window.history?.replaceState) {
+        window.history.replaceState(null, '', path + window.location.search);
+      }
+    }
 
     // Check existing stored authentication
     let storedToken = null;
@@ -83,51 +102,34 @@ export default function App() {
     const isSuperAdmin = storedUser?.role === 'superadmin';
 
     // Super Admin routes: if already logged in as superadmin, stay in 'app'
-    if (
-      hash === '#admin' ||
-      hash === '#admin-login' ||
-      hash.startsWith('#admin') ||
-      path === '/admin' ||
-      path === '/admin/login' ||
-      path.startsWith('/admin')
-    ) {
+    if (path === '/admin' || path === '/admin/login' || path.startsWith('/admin')) {
       if (storedToken && isSuperAdmin) {
         return 'app';
       }
       return 'admin_login';
     }
-    if (
-      hash === '#login' ||
-      hash === '#signin' ||
-      path === '/login' ||
-      path === '/signin'
-    ) {
+    if (path === '/login' || path === '/signin') {
       if (storedToken && storedUser) {
         return 'app';
       }
       return 'client_login';
     }
-    if (
-      hash === '#signup' ||
-      hash === '#register' ||
-      path === '/signup' ||
-      path === '/register'
-    ) {
+    if (path === '/signup' || path === '/register') {
       if (storedToken && storedUser) {
         return 'app';
       }
       return 'client_signup';
     }
-    if (hash === '#tools/spam-checker' || path === '/tools/spam-checker') {
+    if (path === '/tools/spam-checker') {
       return 'tool_spam_checker';
     }
-    if (hash === '#tools/icp-calculator' || path === '/tools/icp-calculator') {
+    if (path === '/tools/icp-calculator') {
       return 'tool_icp_calculator';
     }
-    if (hash === '#tools/dns-tester' || hash === '#tools/dns-lookup' || path === '/tools/dns-lookup') {
+    if (path === '/tools/dns-tester' || path === '/tools/dns-lookup') {
       return 'tool_dns_tester';
     }
-    if (hash === '#app' || path === '/app' || path === '/admin/app') {
+    if (path === '/app' || path === '/admin/app') {
       return 'app';
     }
     // If super admin is active, keep in console
@@ -139,10 +141,24 @@ export default function App() {
 
   const [currentView, setCurrentView] = useState(getViewFromLocation);
 
+  // Centralized Clean URL Navigator
+  const navigateTo = (newPath) => {
+    if (typeof window !== 'undefined' && window.history?.pushState) {
+      if (window.location.pathname !== newPath || window.location.hash) {
+        window.history.pushState(null, '', newPath);
+      }
+    }
+    setCurrentView(getViewFromLocation());
+  };
+
   useEffect(() => {
-    const handleHash = () => setCurrentView(getViewFromLocation());
-    window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
+    const handleLocationChange = () => setCurrentView(getViewFromLocation());
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
   }, []);
 
   // Global Currency State (USD $ vs INR ₹) with automatic Indian timezone detection
@@ -595,8 +611,7 @@ export default function App() {
   };
 
   const handleViewLanding = () => {
-    window.location.hash = '';
-    setCurrentView('landing');
+    navigateTo('/');
   };
 
   const handleAdminAuthSuccess = (user, workspace, chosenCurr, token = null) => {
@@ -616,8 +631,7 @@ export default function App() {
       setActiveWorkspace(workspace);
       authStorage.setActiveWorkspace(workspace);
     }
-    window.location.hash = '#app';
-    setCurrentView('app');
+    navigateTo('/app');
   };
 
   const handleClientAuthSuccess = (user, workspace, chosenCurr, role = 'client_tool', token = null) => {
@@ -636,8 +650,7 @@ export default function App() {
     }
     setOperatingMode(workspace?.operatingMode || 'TOOL');
     setActiveTab('dashboard');
-    window.location.hash = '#app';
-    setCurrentView('app');
+    navigateTo('/app');
   };
 
   const handleSignOut = () => {
@@ -646,16 +659,14 @@ export default function App() {
     setActiveWorkspace(null);
     setWorkspaces([]);
     setRolePersona('client_ai');
-    window.location.hash = '#login';
-    setCurrentView('client_login');
+    navigateTo('/login');
   };
 
   const handleEnterApp = (user, workspace, chosenCurr, role) => {
     if (chosenCurr) setCurrency(chosenCurr);
     if (role) handleChangeRolePersona(role);
     if (workspace) setActiveWorkspace(workspace);
-    window.location.hash = '#app';
-    setCurrentView('app');
+    navigateTo('/app');
   };
 
   // 1. Dedicated Super Admin Master Login View
@@ -700,17 +711,14 @@ export default function App() {
         onEnterApp={handleEnterApp}
         onNavigateAuth={(mode) => {
           if (mode === 'signup') {
-            window.location.hash = '#signup';
-            setCurrentView('client_signup');
+            navigateTo('/signup');
           } else {
-            window.location.hash = '#login';
-            setCurrentView('client_login');
+            navigateTo('/login');
           }
         }}
         onSelectPlan={(plan) => {
           if (plan === 'AI_COMPANY') setOperatingMode('AI_COMPANY');
-          window.location.hash = '#signup';
-          setCurrentView('client_signup');
+          navigateTo('/signup');
         }}
       />
     );
@@ -721,8 +729,7 @@ export default function App() {
     return (
       <SpamChecker
         onNavigateHome={() => {
-          window.location.hash = '';
-          setCurrentView('landing');
+          navigateTo('/');
         }}
       />
     );
@@ -733,8 +740,7 @@ export default function App() {
     return (
       <IcpCalculator
         onNavigateHome={() => {
-          window.location.hash = '';
-          setCurrentView('landing');
+          navigateTo('/');
         }}
       />
     );
@@ -745,8 +751,7 @@ export default function App() {
     return (
       <DnsTester
         onNavigateHome={() => {
-          window.location.hash = '';
-          setCurrentView('landing');
+          navigateTo('/');
         }}
       />
     );

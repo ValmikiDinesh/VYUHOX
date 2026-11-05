@@ -812,7 +812,7 @@ export default function SeoAeoHub({ activeWorkspace, socket, onNavigateTab }) {
                 </p>
               </div>
               <a
-                href="#tools/spam-checker"
+                href="/tools/spam-checker"
                 className="btn-primary"
                 style={{ padding: '8px 16px', fontSize: '0.8rem', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
@@ -833,7 +833,7 @@ export default function SeoAeoHub({ activeWorkspace, socket, onNavigateTab }) {
                 </p>
               </div>
               <a
-                href="#tools/icp-calculator"
+                href="/tools/icp-calculator"
                 className="btn-primary"
                 style={{ padding: '8px 16px', fontSize: '0.8rem', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
@@ -854,7 +854,7 @@ export default function SeoAeoHub({ activeWorkspace, socket, onNavigateTab }) {
                 </p>
               </div>
               <a
-                href="#tools/dns-tester"
+                href="/tools/dns-lookup"
                 className="btn-primary"
                 style={{ padding: '8px 16px', fontSize: '0.8rem', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
