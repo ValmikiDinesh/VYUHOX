@@ -449,6 +449,14 @@ export const api = {
     });
     return res.json();
   },
+  triggerExotelCall: async (data) => {
+    const res = await authedFetch(`${API_BASE}/voice/exotel/call`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
   takeOverCall: async (callId, repName) => {
     const res = await authedFetch(`${API_BASE}/voice/calls/${callId}/takeover`, {
       method: 'POST',

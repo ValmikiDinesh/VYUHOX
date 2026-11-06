@@ -8,8 +8,42 @@ import { SpeedToLeadEngine } from '../services/voice/SpeedToLeadEngine.js';
 import { dncComplianceService } from '../services/compliance/DNCComplianceService.js';
 import { callingWindowGuard } from '../services/compliance/CallingWindowGuard.js';
 import { telecomRouter } from '../services/voice/TelecomRouter.js';
+import { exotelGateway } from '../services/voice/ExotelGateway.js';
+import { telnyxGateway } from '../services/voice/TelnyxGateway.js';
 
 const router = express.Router();
+
+/**
+ * POST /api/voice/exotel/call
+ * Direct test and execution of Exotel Click-to-Call Bridge (Rep Phone <-> Lead Phone)
+ */
+router.post('/exotel/call', async (req, res) => {
+  try {
+    const { fromPhone, toPhone, workspaceId, callerId } = req.body;
+    if (!fromPhone || !toPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Both fromPhone (your phone) and toPhone (lead phone) are required.',
+      });
+    }
+
+    const result = await exotelGateway.initiateClickToCall({
+      fromPhone,
+      toPhone,
+      workspaceId,
+      customCallerId: callerId,
+    });
+
+    return res.json({
+      success: true,
+      result,
+      instructions: 'Exotel will first ring your phone (From). As soon as you answer, it will dial the lead (To) and bridge both calls with call recording enabled.',
+    });
+  } catch (err) {
+    console.error('[VoiceRoutes] Exotel call error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 /**
  * GET /api/voice/calls/:workspaceId
