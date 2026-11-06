@@ -636,13 +636,22 @@ router.post('/test-integration-ping', async (req, res) => {
         return res.json({ success: false, result: { status: 'FAILED', latencyMs: 0, message: 'Missing BounceBan API key.' } });
       }
       try {
-        const resp = await fetch('https://api.bounceban.com/v1/credits', {
+        const resp = await fetch('https://api.bounceban.com/v1/account', {
           headers: { Authorization: apiKey },
           signal: AbortSignal.timeout(5000),
         });
         const latencyMs = Date.now() - start;
         if (resp.ok) {
-          return res.json({ success: true, result: { status: 'LIVE', latencyMs, message: 'BounceBan Catch-All Email Verification Engine Connected' } });
+          const data = await resp.json();
+          const credits = data?.available_credits ?? data?.credits ?? 0;
+          return res.json({
+            success: true,
+            result: {
+              status: 'LIVE',
+              latencyMs,
+              message: `BounceBan Catch-All Shield Connected (${credits} Available Credits, Owner: ${data?.owner_email || 'Verified'})`,
+            },
+          });
         }
         return res.json({ success: false, result: { status: 'FAILED', latencyMs, message: `BounceBan Auth Failed (HTTP ${resp.status}): Invalid Key` } });
       } catch (err) {
