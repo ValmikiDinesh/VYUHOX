@@ -68,6 +68,11 @@ const workspaceSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    dedicatedCallerId: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     baseCountry: {
       type: String,
       trim: true,

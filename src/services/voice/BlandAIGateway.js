@@ -1,3 +1,5 @@
+import { Workspace } from '../../models/Workspace.js';
+
 /**
  * Bland.ai & Vapi Ultra-Low Latency Conversational Voice AI Gateway (<800ms)
  * Includes live call dispatch, live call takeover, whisper coaching, and resilient simulation drivers.
@@ -9,24 +11,47 @@ export class BlandAIGateway {
    */
   static async initiateCall({
     phoneNumber,
+    lead,
     leadName = 'Executive Lead',
     companyName = 'Prospect Firm',
     taskPrompt,
+    customScript,
     voiceId = 'bland_nat_maya_01',
+    voicePersona,
     webhookUrl,
+    workspaceId,
     config = {},
   }) {
     const apiKey = config.blandApiKey || process.env.BLAND_AI_API_KEY;
-    const cleanPhone = (phoneNumber || '').replace(/[^\d+]/g, '');
+    const rawPhone = phoneNumber || lead?.phone || '';
+    const cleanPhone = rawPhone.replace(/[^\d+]/g, '');
+    const finalLeadName = lead?.name || leadName;
+    const finalCompany = lead?.company || companyName;
+    const finalTask =
+      customScript ||
+      taskPrompt ||
+      `You are calling ${finalLeadName} at ${finalCompany}. Qualify their interest in autonomous GTM acceleration, handle objections respectfully, and secure a 15-minute slot on our partnership calendar.`;
+
+    // Determine dedicated caller ID for workspace
+    let callerId = config.from || config.callerId || null;
+    if (!callerId && workspaceId) {
+      try {
+        const ws = await Workspace.findById(workspaceId).select('dedicatedCallerId baseCountry').lean();
+        if (ws?.dedicatedCallerId) {
+          callerId = ws.dedicatedCallerId;
+        }
+      } catch (e) {}
+    }
+    if (!callerId) {
+      callerId = process.env.BLAND_AI_CALLER_ID || undefined;
+    }
 
     // 1. Live Bland.ai API Dispatch if configured
     if (apiKey && cleanPhone) {
       try {
         const payload = {
           phone_number: cleanPhone,
-          task:
-            taskPrompt ||
-            `You are calling ${leadName} at ${companyName}. Qualify their interest in autonomous GTM acceleration, handle objections respectfully, and secure a 15-minute slot on our partnership calendar.`,
+          task: finalTask,
           voice: voiceId,
           reduce_latency: true,
           interruption_threshold: 100,
@@ -34,6 +59,10 @@ export class BlandAIGateway {
           webhook: webhookUrl || `${process.env.APP_URL || 'http://localhost:5000'}/api/voice/webhook/completed`,
           record: true,
         };
+
+        if (callerId) {
+          payload.from = callerId;
+        }
 
         const response = await fetch('https://api.bland.ai/v1/calls', {
           method: 'POST',
@@ -52,6 +81,7 @@ export class BlandAIGateway {
             callId: data.call_id || `bland_${Date.now()}`,
             status: 'queued',
             phoneNumber: cleanPhone,
+            callerId: callerId || 'Bland AI Pooled Trunk',
             latencyMs: 720,
             timestamp: new Date(),
           };
@@ -70,6 +100,7 @@ export class BlandAIGateway {
       callId: simulatedCallId,
       status: 'in-progress',
       phoneNumber: cleanPhone || '+1 (415) 890-2234',
+      callerId: callerId || '+1 (512) 987-6543',
       latencyMs: 680,
       timestamp: new Date(),
       note: 'Simulated sub-second telephony bridge (<800ms Bland.ai carrier pipeline)',

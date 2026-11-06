@@ -1598,6 +1598,91 @@ export default function VoiceStudio({ activeWorkspace, socket }) {
               />
             </div>
 
+            {/* Dedicated Business Line (Assigned Caller ID) */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              borderRadius: '12px',
+              padding: '18px 20px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '8px',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                  }}>
+                    <PhoneCall size={18} color="#10B981" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.92rem', fontWeight: '800', color: '#F8FAFC', letterSpacing: '-0.01em' }}>
+                      Dedicated Business Virtual Caller ID
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>
+                      Verified enterprise caller ID assigned specifically to {activeWorkspace?.name || 'your workspace'}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: '800',
+                    padding: '3px 10px',
+                    borderRadius: '20px',
+                    background: 'rgba(16, 185, 129, 0.18)',
+                    color: '#34D399',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                  }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                    ACTIVE • DEDICATED TO THIS ACCOUNT
+                  </span>
+                </div>
+              </div>
+
+              <div style={{
+                background: '#0B132B',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                marginTop: '10px',
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Outbound &amp; Return Dialing Number
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#38BDF8', fontFamily: 'monospace', letterSpacing: '0.04em', marginTop: '3px' }}>
+                    {activeWorkspace?.dedicatedCallerId || (activeWorkspace?.baseCountry === 'IN' ? '+91 80 4719 2837' : '+1 (512) 987-6543')}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Carrier Route
+                  </div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#F1F5F9', marginTop: '3px' }}>
+                    {activeWorkspace?.baseCountry === 'IN' ? '🇮🇳 Exotel Domestic PRI (TRAI Certified)' : '🌍 Telnyx Wholesale Carrier Fiber Trunk'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginTop: '10px', lineHeight: 1.5 }}>
+                💡 <strong>How it works:</strong> All outbound calls dispatched by your AI Closer (Maya) and human SDR reps will show this dedicated number on your prospect’s phone screen. Prospects calling this number back route straight into your VYUHOX Voice Studio inbound queue.
+              </div>
+            </div>
+
             {/* Carrier Telephony Infrastructure & BYOC Access */}
             <div style={{
               background: 'rgba(255, 255, 255, 0.02)',

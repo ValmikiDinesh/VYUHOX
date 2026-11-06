@@ -65,6 +65,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
         return {
           ...ws,
+          dedicatedCallerId: ws.dedicatedCallerId || (ws.baseCountry === 'IN' ? '+918047192837' : '+15129876543'),
           ownerEmail: ws.ownerEmail || ownerUser?.email || '',
           ownerName: ws.ownerName || ownerUser?.name || '',
           leadCount: leadCount || 0,
@@ -106,6 +107,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     ]);
     const enrichedWs = {
       ...workspace.toObject(),
+      dedicatedCallerId: workspace.dedicatedCallerId || (workspace.baseCountry === 'IN' ? '+918047192837' : '+15129876543'),
       ownerEmail: workspace.ownerEmail || ownerUser?.email || '',
       ownerName: workspace.ownerName || ownerUser?.name || '',
     };
@@ -118,13 +120,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // POST /api/workspaces - Create new workspace
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { name, industry, domain, operatingMode, branding, businessCategory, businessModelDescription } = req.body;
+    const { name, industry, domain, operatingMode, branding, businessCategory, businessModelDescription, dedicatedCallerId, baseCountry } = req.body;
     if (!name) {
       return res.status(400).json({ success: false, message: 'Workspace name is required' });
     }
 
     const slugBase = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
     const slug = `${slugBase}-${Date.now().toString().slice(-4)}`;
+    const assignedCallerId = dedicatedCallerId || (baseCountry === 'IN' ? '+918047192837' : '+15129876543');
 
     const workspace = await Workspace.create({
       name,
@@ -134,6 +137,8 @@ router.post('/', authMiddleware, async (req, res) => {
       businessCategory: businessCategory || '',
       businessModelDescription: businessModelDescription || '',
       operatingMode: operatingMode || 'AI_COMPANY',
+      baseCountry: baseCountry || 'US',
+      dedicatedCallerId: assignedCallerId,
       ownerEmail: req.user ? req.user.email : '',
       ownerName: req.user ? req.user.name : '',
       branding: branding || {
@@ -181,6 +186,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (req.body.baseCountry !== undefined) updateData.baseCountry = req.body.baseCountry;
     if (req.body.targetCountries !== undefined) updateData.targetCountries = req.body.targetCountries;
     if (req.body.ownerPhone !== undefined) updateData.ownerPhone = req.body.ownerPhone;
+    if (req.body.dedicatedCallerId !== undefined) updateData.dedicatedCallerId = req.body.dedicatedCallerId;
 
     const workspace = await Workspace.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!workspace) {

@@ -1130,6 +1130,7 @@ export default function SuperAdminDashboard({
                     <th style={{ padding: '12px 16px' }}>Workspace</th>
                     <th style={{ padding: '12px 16px' }}>Owner</th>
                     <th style={{ padding: '12px 16px' }}>Plan / Tier</th>
+                    <th style={{ padding: '12px 16px' }}>Dedicated Caller ID</th>
                     <th style={{ padding: '12px 16px' }}>Mode</th>
                     <th style={{ padding: '12px 16px' }}>Wallet Balance</th>
                     <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
@@ -1159,6 +1160,52 @@ export default function SuperAdminDashboard({
                         >
                           {w.subscription?.planTier || 'FREE_AUDIT'}
                         </span>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span
+                            style={{
+                              fontFamily: 'monospace',
+                              fontWeight: '700',
+                              color: w.dedicatedCallerId ? '#10B981' : '#F59E0B',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              padding: '2px 7px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                            }}
+                          >
+                            {w.dedicatedCallerId || (w.baseCountry === 'IN' ? '+918047192837' : '+15129876543')}
+                          </span>
+                          <button
+                            onClick={async () => {
+                              const nextId = prompt(`Assign Dedicated Virtual Caller ID for "${w.name}":`, w.dedicatedCallerId || (w.baseCountry === 'IN' ? '+918047192837' : '+15129876543'));
+                              if (nextId !== null && nextId.trim() !== '') {
+                                try {
+                                  await api.updateWorkspace(w._id, { dedicatedCallerId: nextId.trim() });
+                                  fetchTenants();
+                                } catch (err) {
+                                  alert('Failed to update dedicated caller ID: ' + err.message);
+                                }
+                              }
+                            }}
+                            title="Assign or edit dedicated virtual caller ID"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#94A3B8',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: '2px' }}>
+                          {w.baseCountry === 'IN' ? '🇮🇳 Exotel Domestic' : '🌍 Telnyx Fiber'}
+                        </div>
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <span

@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { PlatformConfig } from '../../models/PlatformConfig.js';
 import { IntegrationConfig } from '../../models/IntegrationConfig.js';
+import { Workspace } from '../../models/Workspace.js';
 
 dotenv.config();
 
@@ -14,8 +15,16 @@ class ExotelGateway {
    * Resolve Exotel credentials from Workspace BYOC or Global Platform Config
    */
   async getCredentials(workspaceId) {
-    // 1. Check if Workspace has active BYOC integration
+    let workspaceDedicatedCallerId = null;
     if (workspaceId) {
+      try {
+        const ws = await Workspace.findById(workspaceId).select('dedicatedCallerId').lean();
+        if (ws?.dedicatedCallerId) {
+          workspaceDedicatedCallerId = ws.dedicatedCallerId;
+        }
+      } catch (e) {}
+
+      // 1. Check if Workspace has active BYOC integration
       const customConfig = await IntegrationConfig.findOne({
         workspaceId,
         serviceName: 'exotel',
@@ -26,7 +35,7 @@ class ExotelGateway {
           accountSid: customConfig.credentials.accountSid || process.env.EXOTEL_ACCOUNT_SID,
           apiKey: customConfig.credentials.apiKey,
           apiToken: customConfig.credentials.apiToken,
-          callerId: customConfig.credentials.callerId || process.env.EXOTEL_CALLER_ID,
+          callerId: workspaceDedicatedCallerId || customConfig.credentials.callerId || process.env.EXOTEL_CALLER_ID,
           isByoc: true,
         };
       }
@@ -38,7 +47,7 @@ class ExotelGateway {
       accountSid: platform?.integrations?.exotel?.accountSid || process.env.EXOTEL_ACCOUNT_SID || 'vyuhox_india',
       apiKey: platform?.integrations?.exotel?.apiKey || process.env.EXOTEL_API_KEY || '',
       apiToken: platform?.integrations?.exotel?.apiToken || process.env.EXOTEL_API_TOKEN || '',
-      callerId: platform?.integrations?.exotel?.callerId || process.env.EXOTEL_CALLER_ID || '+918047192837',
+      callerId: workspaceDedicatedCallerId || platform?.integrations?.exotel?.callerId || process.env.EXOTEL_CALLER_ID || '+918047192837',
       isByoc: false,
     };
   }

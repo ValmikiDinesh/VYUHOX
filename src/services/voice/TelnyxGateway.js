@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { PlatformConfig } from '../../models/PlatformConfig.js';
 import { IntegrationConfig } from '../../models/IntegrationConfig.js';
+import { Workspace } from '../../models/Workspace.js';
 
 dotenv.config();
 
@@ -14,7 +15,15 @@ class TelnyxGateway {
    * Resolve Telnyx credentials from Workspace BYOC or Global Platform Config
    */
   async getCredentials(workspaceId) {
+    let workspaceDedicatedCallerId = null;
     if (workspaceId) {
+      try {
+        const ws = await Workspace.findById(workspaceId).select('dedicatedCallerId').lean();
+        if (ws?.dedicatedCallerId) {
+          workspaceDedicatedCallerId = ws.dedicatedCallerId;
+        }
+      } catch (e) {}
+
       const customConfig = await IntegrationConfig.findOne({
         workspaceId,
         serviceName: 'telnyx',
@@ -23,7 +32,7 @@ class TelnyxGateway {
       if (customConfig && customConfig.credentials?.apiKey) {
         return {
           apiKey: customConfig.credentials.apiKey,
-          callerId: customConfig.credentials.callerId || process.env.TELNYX_CALLER_ID,
+          callerId: workspaceDedicatedCallerId || customConfig.credentials.callerId || process.env.TELNYX_CALLER_ID,
           connectionId: customConfig.credentials.connectionId || process.env.TELNYX_CONNECTION_ID,
           isByoc: true,
         };
@@ -33,7 +42,7 @@ class TelnyxGateway {
     const platform = await PlatformConfig.findOne().lean();
     return {
       apiKey: platform?.integrations?.telnyx?.apiKey || process.env.TELNYX_API_KEY || '',
-      callerId: platform?.integrations?.telnyx?.callerId || process.env.TELNYX_CALLER_ID || '+15129876543',
+      callerId: workspaceDedicatedCallerId || platform?.integrations?.telnyx?.callerId || process.env.TELNYX_CALLER_ID || '+15129876543',
       connectionId: platform?.integrations?.telnyx?.connectionId || process.env.TELNYX_CONNECTION_ID || '',
       isByoc: false,
     };

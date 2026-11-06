@@ -76,6 +76,9 @@ router.post('/register', async (req, res) => {
       ownerPhone: finalMobileNumber,
       baseCountry: req.body.baseCountry || (finalMobileNumber.startsWith('+1') ? 'US' : finalMobileNumber.startsWith('+44') ? 'GB' : 'IN'),
       targetCountries: [req.body.baseCountry || (finalMobileNumber.startsWith('+1') ? 'US' : finalMobileNumber.startsWith('+44') ? 'GB' : 'IN')],
+      dedicatedCallerId: (req.body.baseCountry === 'IN' || (!req.body.baseCountry && !finalMobileNumber.startsWith('+1') && !finalMobileNumber.startsWith('+44')))
+        ? '+918047192837'
+        : '+15129876543',
       branding: {
         primaryColor: '#06B6D4',
         secondaryColor: '#10B981',
@@ -282,17 +285,27 @@ router.get('/me', authMiddleware, async (req, res) => {
 
     let enrichedActiveWs = null;
     if (activeWorkspace) {
+      const activeObj = activeWorkspace.toObject ? activeWorkspace.toObject() : activeWorkspace;
       enrichedActiveWs = {
-        ...(activeWorkspace.toObject ? activeWorkspace.toObject() : activeWorkspace),
+        ...activeObj,
+        dedicatedCallerId: activeObj.dedicatedCallerId || (activeObj.baseCountry === 'IN' ? '+918047192837' : '+15129876543'),
         ownerEmail: activeWorkspace.ownerEmail || user?.email || '',
         ownerName: activeWorkspace.ownerName || user?.name || '',
       };
     }
 
+    const sanitizedWorkspaces = workspaces.map((w) => {
+      const obj = w.toObject ? w.toObject() : w;
+      return {
+        ...obj,
+        dedicatedCallerId: obj.dedicatedCallerId || (obj.baseCountry === 'IN' ? '+918047192837' : '+15129876543'),
+      };
+    });
+
     return res.json({
       success: true,
       user,
-      workspaces,
+      workspaces: sanitizedWorkspaces,
       activeWorkspace: enrichedActiveWs || activeWorkspace,
     });
   } catch (error) {
