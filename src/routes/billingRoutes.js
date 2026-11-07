@@ -593,17 +593,54 @@ router.post('/test-integration-ping', async (req, res) => {
       if (!apiKey) {
         return res.json({ success: false, result: { status: 'FAILED', latencyMs: 0, message: 'Missing AiSensy API Key.' } });
       }
+
+      let accountName = '';
+      let planName = '';
+      try {
+        const parts = apiKey.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+          accountName = payload.name || payload.appName || '';
+          planName = payload.activePlan || '';
+        }
+      } catch (e) {}
+
       try {
         const resp = await fetch('https://backend.aisensy.com/campaign/t1/api/v2', {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${apiKey}` },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            apiKey,
+            campaignName: creds.campaignName?.trim() || 'vyuhox_leads',
+          }),
           signal: AbortSignal.timeout(5000),
         });
         const latencyMs = Date.now() - start;
+        const data = await resp.json().catch(() => ({}));
+
         if (resp.status !== 401 && resp.status !== 403) {
-          return res.json({ success: true, result: { status: 'LIVE', latencyMs, message: 'AiSensy WhatsApp API Verified & Session Live' } });
+          let extraInfo = accountName ? `Account: ${accountName}` : 'Meta Session Live';
+          if (planName) extraInfo += `, Plan: ${planName}`;
+          if (data?.message && data.message.includes('No Plan active')) {
+            extraInfo += ' — Activate plan/credits in AiSensy for live outbound dispatch';
+          }
+          return res.json({
+            success: true,
+            result: {
+              status: 'LIVE',
+              latencyMs,
+              message: `AiSensy WhatsApp API Connected (${extraInfo})`,
+            },
+          });
         }
-        return res.json({ success: false, result: { status: 'FAILED', latencyMs, message: 'AiSensy Auth Failed: Invalid API Key' } });
+        return res.json({
+          success: false,
+          result: {
+            status: 'FAILED',
+            latencyMs,
+            message: `AiSensy Auth Failed (HTTP ${resp.status}): Invalid API Key or Unauthorized`,
+          },
+        });
       } catch (err) {
         return res.json({ success: false, result: { status: 'FAILED', latencyMs: Date.now() - start, message: `AiSensy Ping Error: ${err.message}` } });
       }
