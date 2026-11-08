@@ -1,4 +1,5 @@
 import { Workspace } from '../../models/Workspace.js';
+import { PlatformConfig } from '../../models/PlatformConfig.js';
 
 /**
  * Bland.ai & Vapi Ultra-Low Latency Conversational Voice AI Gateway (<800ms)
@@ -22,7 +23,14 @@ export class BlandAIGateway {
     workspaceId,
     config = {},
   }) {
-    const apiKey = config.blandApiKey || process.env.BLAND_AI_API_KEY;
+    let apiKey = config.blandApiKey || process.env.BLAND_AI_API_KEY;
+    if (!apiKey) {
+      try {
+        const platform = await PlatformConfig.findOne().lean();
+        apiKey = platform?.integrations?.blandAi?.apiKey;
+      } catch (e) {}
+    }
+
     const rawPhone = phoneNumber || lead?.phone || '';
     const cleanPhone = rawPhone.replace(/[^\d+]/g, '');
     const finalLeadName = lead?.name || leadName;
@@ -73,7 +81,7 @@ export class BlandAIGateway {
           body: JSON.stringify(payload),
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         if (response.ok && (data.call_id || data.status === 'success')) {
           return {
             success: true,
@@ -86,24 +94,34 @@ export class BlandAIGateway {
             timestamp: new Date(),
           };
         }
-        console.warn('[BlandAIGateway] Live API returned non-200, falling back to simulation:', data);
+
+        const errMsg = data?.message || data?.errors?.[0]?.message || `Bland.ai returned HTTP ${response.status}`;
+        console.warn('[BlandAIGateway] Live API rejection:', errMsg);
+        return {
+          success: false,
+          provider: 'OFFICIAL_BLAND_AI_API',
+          status: 'FAILED',
+          error: errMsg,
+          message: errMsg,
+        };
       } catch (err) {
-        console.warn('[BlandAIGateway] Network dispatch error, utilizing resilient voice engine:', err.message);
+        console.warn('[BlandAIGateway] Network dispatch error:', err.message);
+        return {
+          success: false,
+          provider: 'OFFICIAL_BLAND_AI_API',
+          status: 'FAILED',
+          error: err.message,
+          message: `Network error connecting to Bland.ai: ${err.message}`,
+        };
       }
     }
 
-    // 2. Resilient Ultra-Low Latency Voice Simulation Driver (<800ms)
-    const simulatedCallId = `bland_sim_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     return {
-      success: true,
-      provider: 'SIMULATED_BLAND_AI_ENGINE',
-      callId: simulatedCallId,
-      status: 'in-progress',
-      phoneNumber: cleanPhone || '+1 (415) 890-2234',
-      callerId: callerId || '+1 (512) 987-6543',
-      latencyMs: 680,
-      timestamp: new Date(),
-      note: 'Simulated sub-second telephony bridge (<800ms Bland.ai carrier pipeline)',
+      success: false,
+      provider: 'OFFICIAL_BLAND_AI_API',
+      status: 'FAILED',
+      error: 'NO_API_KEY',
+      message: 'No Bland.ai API Key configured in Super Admin or .env.',
     };
   }
 

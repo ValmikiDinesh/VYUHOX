@@ -2,6 +2,7 @@ import express from 'express';
 import { processInboundMessage } from './messagingRoutes.js';
 import { Lead } from '../models/Lead.js';
 import { Workspace } from '../models/Workspace.js';
+import { WhatsAppTemplate } from '../models/WhatsAppTemplate.js';
 
 const router = express.Router();
 
@@ -21,8 +22,15 @@ router.post('/incoming', async (req, res) => {
     let workspaceId = body.workspaceId || req.headers['x-workspace-id'];
 
     // 1. Detect Provider Format
+    // Format A0: AiSensy WhatsApp Inbound & Quick-Reply Button Tap
+    if (body.type === 'quick_reply' || body.button_reply || body.event === 'incoming_message' || (body.mobile && (body.text || body.button))) {
+      channel = 'WHATSAPP';
+      from = body.mobile || body.from || body.sender || '';
+      content = body.button_reply?.title || body.button?.text || body.text?.body || body.content || body.message || 'Continue Discussion';
+      senderName = body.userName || body.name || from;
+    }
     // Format A: Twilio Webhook (SMS or WhatsApp)
-    if (body.MessageSid || body.From) {
+    else if (body.MessageSid || body.From) {
       from = body.From || '';
       content = body.Body || '';
       if (from.startsWith('whatsapp:')) {
@@ -107,6 +115,46 @@ router.post('/incoming', async (req, res) => {
     });
   } catch (error) {
     console.error('[Webhook] Inbound webhook processing error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/webhooks/whatsapp/templates
+ * Receives Meta Graph API / AiSensy template review callbacks (APPROVED / REJECTED)
+ */
+router.post('/whatsapp/templates', async (req, res) => {
+  try {
+    const { template_name, templateName, status, reason, rejection_reason } = req.body || {};
+    const targetName = template_name || templateName;
+    const targetStatus = (status || '').toUpperCase();
+
+    if (!targetName) {
+      return res.status(400).json({ success: false, message: 'template_name is required' });
+    }
+
+    const template = await WhatsAppTemplate.findOne({ templateName: targetName });
+    if (template) {
+      template.status = targetStatus === 'APPROVED' ? 'APPROVED' : (targetStatus === 'REJECTED' ? 'REJECTED' : 'PENDING_REVIEW');
+      if (reason || rejection_reason) {
+        template.rejectionReason = reason || rejection_reason;
+      }
+      await template.save();
+
+      const io = req.app.get('io');
+      if (io && template.workspaceId) {
+        io.to(template.workspaceId.toString()).emit('template:status_updated', {
+          templateId: template._id,
+          templateName: template.templateName,
+          status: template.status,
+          rejectionReason: template.rejectionReason,
+        });
+      }
+    }
+
+    return res.json({ success: true, templateName: targetName, status: targetStatus });
+  } catch (error) {
+    console.error('[Webhook] Template review webhook error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });

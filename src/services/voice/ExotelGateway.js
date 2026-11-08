@@ -107,22 +107,23 @@ class ExotelGateway {
           regulatoryBody: 'TRAI (100% Domestic Compliant)',
         };
       } catch (err) {
-        console.warn('[ExotelGateway] Live API call failed, falling back to simulated session:', err.message);
+        console.warn('[ExotelGateway] Live API call error:', err.message);
+        return {
+          success: false,
+          provider: 'EXOTEL_INDIA',
+          status: 'FAILED',
+          error: err.message,
+          message: `Exotel Call Failed: ${err.message}`,
+        };
       }
     }
 
-    // High-fidelity sandbox / developer fallback
     return {
-      success: true,
+      success: false,
       provider: 'EXOTEL_INDIA',
-      callSid: `exo_sim_${Date.now()}`,
-      status: 'queued',
-      message: `Exotel Domestic Bridge Queued: Rep (${cleanFrom}) connecting to Indian Lead (${cleanTo}). 100% TRAI Compliant.`,
-      recordingEnabled: true,
-      callerId,
-      isSimulated: true,
-      isByoc: creds.isByoc,
-      regulatoryBody: 'TRAI (100% Domestic Compliant)',
+      status: 'FAILED',
+      error: 'NO_CREDENTIALS',
+      message: 'Missing Exotel Account SID or API credentials in Super Admin.',
     };
   }
 }

@@ -27,6 +27,16 @@ import {
   Shield,
   Play,
   Share2,
+  Lock,
+  Unlock,
+  FileText,
+  CheckCircle2,
+  Bookmark,
+  PieChart,
+  Users,
+  PhoneCall,
+  Radio,
+  Award,
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -195,6 +205,135 @@ export default function OmnichannelInbox({
   const [bulkCustomPrompt, setBulkCustomPrompt] = useState('');
   const [bulkSending, setBulkSending] = useState(false);
 
+  // Meta WhatsApp Templates & Omnichannel Intelligence
+  const [templates, setTemplates] = useState([]);
+  const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
+  const [customTmplPrompt, setCustomTmplPrompt] = useState('');
+  const [customTmplCategory, setCustomTmplCategory] = useState('MARKETING');
+  const [isGeneratingTmpl, setIsGeneratingTmpl] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState('DOSSIER'); // 'DOSSIER' | 'DEAL_MEMORY' | 'TEAM_NOTES'
+  const [newNoteContent, setNewNoteContent] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+  const [preflightInfo, setPreflightInfo] = useState(null);
+  const [isDispatchingCeoDigest, setIsDispatchingCeoDigest] = useState(false);
+
+  // Load Templates
+  const loadTemplates = async () => {
+    if (!activeWorkspace?._id) return;
+    try {
+      const res = await api.getWhatsAppTemplates(activeWorkspace._id);
+      if (res.success) {
+        setTemplates(res.templates || []);
+      }
+    } catch (err) {
+      console.warn('Failed to load WhatsApp templates:', err);
+    }
+  };
+
+  // Preflight Line Check (Landline vs WhatsApp)
+  const runPreflightCheck = async (phone) => {
+    if (!phone) {
+      setPreflightInfo(null);
+      return;
+    }
+    try {
+      const res = await api.preflightPhoneCheck(phone);
+      if (res.success) {
+        setPreflightInfo(res);
+      }
+    } catch (err) {
+      console.warn('Preflight check error:', err);
+    }
+  };
+
+  // Human Takeover Lock Toggle
+  const handleToggleTakeover = async () => {
+    if (!selectedConversation) return;
+    const newTakeover = !selectedConversation.takenOverByHuman;
+    try {
+      const res = await api.takeoverConversation(selectedConversation._id, {
+        takenOverByHuman: newTakeover,
+        repName: 'You (Human AE)',
+      });
+      if (res.success) {
+        setSelectedConversation((prev) => ({
+          ...prev,
+          takenOverByHuman: newTakeover,
+          assignedRepName: 'You (Human AE)',
+        }));
+        showToast(res.message);
+      }
+    } catch (err) {
+      showToast('Takeover failed: ' + err.message);
+    }
+  };
+
+  // Add Private Internal Team Note
+  const handleAddPrivateNote = async () => {
+    if (!selectedConversation || !newNoteContent.trim()) return;
+    setSavingNote(true);
+    try {
+      const res = await api.addConversationNote(selectedConversation._id, {
+        authorName: 'Account Executive',
+        content: newNoteContent.trim(),
+      });
+      if (res.success) {
+        setSelectedConversation((prev) => ({
+          ...prev,
+          privateNotes: res.privateNotes,
+        }));
+        setNewNoteContent('');
+        showToast('Private team note attached to deal');
+      }
+    } catch (err) {
+      showToast('Note save error: ' + err.message);
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  // Dispatch Monday Morning CEO WhatsApp Digest
+  const handleDispatchCeoDigest = async () => {
+    if (!activeWorkspace?._id) return;
+    setIsDispatchingCeoDigest(true);
+    try {
+      const res = await api.dispatchCeoDigest(activeWorkspace._id);
+      if (res.success) {
+        showToast('🚀 Executive Briefing dispatched directly to WhatsApp!');
+      } else {
+        showToast(res.message || 'Failed to dispatch digest');
+      }
+    } catch (err) {
+      showToast('Dispatch error: ' + err.message);
+    } finally {
+      setIsDispatchingCeoDigest(false);
+    }
+  };
+
+  // Generate Custom Template via LLM
+  const handleGenerateCustomTemplate = async () => {
+    if (!activeWorkspace?._id || !customTmplPrompt.trim()) return;
+    setIsGeneratingTmpl(true);
+    try {
+      const res = await api.generateCustomTemplate({
+        workspaceId: activeWorkspace._id,
+        prompt: customTmplPrompt.trim(),
+        category: customTmplCategory,
+      });
+      if (res.success) {
+        showToast('✨ Custom Meta Template synthesized & marked APPROVED!');
+        setCustomTmplPrompt('');
+        await loadTemplates();
+      } else {
+        showToast(res.message || 'Generation failed');
+      }
+    } catch (err) {
+      showToast('Generation error: ' + err.message);
+    } finally {
+      setIsGeneratingTmpl(false);
+    }
+  };
+
   const handleToggleSelectLead = (leadId) => {
     if (!leadId) return;
     const strId = leadId.toString();
@@ -244,6 +383,7 @@ export default function OmnichannelInbox({
   useEffect(() => {
     if (!activeWorkspace?._id) return;
     loadConversations();
+    loadTemplates();
   }, [activeWorkspace?._id, channelFilter]);
 
   const loadConversations = async (silent = false) => {
@@ -287,6 +427,11 @@ export default function OmnichannelInbox({
     setActiveLead(conv.leadId);
     setActiveComposeChannel(conv.activeChannel || 'WHATSAPP');
     setLoadingMessages(true);
+    if (conv.leadId?.phone) {
+      runPreflightCheck(conv.leadId.phone);
+    } else {
+      setPreflightInfo(null);
+    }
     try {
       const res = await api.getConversationMessages(conv._id);
       if (res.success) {
@@ -402,8 +547,9 @@ export default function OmnichannelInbox({
   }, [socket, selectedConversation, activeLead]);
 
   // 6. Send Outbound Message
-  const handleSendMessage = async (textToSend = composeText) => {
-    if (!textToSend.trim() || !selectedConversation) return;
+  const handleSendMessage = async (textToSend = composeText, templateOptions = null) => {
+    if ((!textToSend || !textToSend.trim()) && !templateOptions) return;
+    if (!selectedConversation) return;
 
     setIsSending(true);
     try {
@@ -412,7 +558,11 @@ export default function OmnichannelInbox({
         leadId: activeLead?._id,
         workspaceId: activeWorkspace?._id,
         channel: activeComposeChannel,
-        content: textToSend.trim(),
+        content: (textToSend || '').trim() || (templateOptions?.templateName ? `[Template: ${templateOptions.templateName}]` : 'Update from team'),
+        senderType: 'HUMAN',
+        takeover: true,
+        templateName: templateOptions?.templateName,
+        templateParams: templateOptions?.templateParams,
       };
 
       const res = await api.sendMessage(payload);
@@ -421,10 +571,12 @@ export default function OmnichannelInbox({
         appendMessageIfNew(res.message);
         loadConversations(true);
         showToast(`Dispatched via ${activeComposeChannel} Gateway!`);
+      } else {
+        showToast(res.message || 'Dispatch error');
       }
     } catch (err) {
       console.error('Failed to send outbound message:', err);
-      showToast('Error sending message. Check gateway connection.');
+      showToast('Error sending message: ' + (err.message || 'Check gateway connection'));
     } finally {
       setIsSending(false);
     }
@@ -1088,22 +1240,117 @@ export default function OmnichannelInbox({
                 </div>
               </div>
 
-              {/* Active Channel Indicator */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.78rem', color: '#94A3B8' }}>Current Channel:</span>
+              {/* Conversation Controls & 24h Window Watchdog */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {/* 24-Hour Meta WhatsApp Care Window Indicator */}
+                {selectedConversation.activeChannel === 'WHATSAPP' && (() => {
+                  const lastCustomerMsgTime = selectedConversation.lastCustomerMessageAt
+                    ? new Date(selectedConversation.lastCustomerMessageAt).getTime()
+                    : null;
+                  const msElapsed = lastCustomerMsgTime ? Date.now() - lastCustomerMsgTime : Infinity;
+                  const msRemaining = Math.max(0, 24 * 3600 * 1000 - msElapsed);
+                  const is24hActive = msRemaining > 0;
+                  const hoursRemaining = Math.floor(msRemaining / (3600 * 1000));
+                  const minsRemaining = Math.floor((msRemaining % (3600 * 1000)) / (60 * 1000));
+
+                  return (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: is24hActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                        border: `1px solid ${is24hActive ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                        color: is24hActive ? '#10B981' : '#F87171',
+                        fontSize: '0.72rem',
+                        fontWeight: '700',
+                      }}
+                      title={is24hActive ? 'Meta 24h freeform customer care window is open.' : 'Window expired. Outbound messages are auto-bridged using pre-approved Meta templates.'}
+                    >
+                      <Clock size={12} />
+                      <span>
+                        {is24hActive
+                          ? `🟢 24h Active (${hoursRemaining}h ${minsRemaining}m)`
+                          : '🔴 24h Expired (Template Mode)'}
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                {/* Human Takeover Toggle */}
+                <button
+                  type="button"
+                  onClick={handleToggleTakeover}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    background: selectedConversation.takenOverByHuman
+                      ? 'rgba(245, 158, 11, 0.2)'
+                      : 'rgba(59, 130, 246, 0.15)',
+                    border: `1px solid ${selectedConversation.takenOverByHuman ? 'rgba(245, 158, 11, 0.5)' : 'rgba(59, 130, 246, 0.4)'}`,
+                    color: selectedConversation.takenOverByHuman ? '#FBBF24' : '#60A5FA',
+                    fontSize: '0.72rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                  }}
+                  title={selectedConversation.takenOverByHuman ? 'AI SDR is paused. Click to restore AI Auto-Pilot.' : 'AI SDR Auto-Pilot is managing replies. Click to take over thread.'}
+                >
+                  {selectedConversation.takenOverByHuman ? (
+                    <>
+                      <Lock size={12} />
+                      <span>👤 Human in Control</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bot size={12} />
+                      <span>🤖 AI Auto-Pilot</span>
+                    </>
+                  )}
+                </button>
+
+                {/* CEO WhatsApp Digest Trigger */}
+                <button
+                  type="button"
+                  onClick={handleDispatchCeoDigest}
+                  disabled={isDispatchingCeoDigest}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 9px',
+                    borderRadius: '6px',
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    color: '#10B981',
+                    fontSize: '0.72rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                  }}
+                  title="Dispatch executive KPI summary directly to CEO's WhatsApp"
+                >
+                  <Send size={11} />
+                  <span>{isDispatchingCeoDigest ? 'Sending...' : 'CEO Digest'}</span>
+                </button>
+
+                {/* Active Channel Indicator */}
                 <span style={{
                   padding: '4px 10px',
                   borderRadius: '6px',
                   background: CHANNEL_CONFIG[selectedConversation.activeChannel]?.bg || 'rgba(6, 182, 212, 0.15)',
                   color: CHANNEL_CONFIG[selectedConversation.activeChannel]?.color || '#06B6D4',
                   border: `1px solid ${CHANNEL_CONFIG[selectedConversation.activeChannel]?.border || 'rgba(6, 182, 212, 0.3)'}`,
-                  fontSize: '0.78rem',
+                  fontSize: '0.74rem',
                   fontWeight: '700',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
                 }}>
-                  {React.createElement(CHANNEL_CONFIG[selectedConversation.activeChannel]?.icon || MessageSquare, { size: 13 })}
+                  {React.createElement(CHANNEL_CONFIG[selectedConversation.activeChannel]?.icon || MessageSquare, { size: 12 })}
                   {CHANNEL_CONFIG[selectedConversation.activeChannel]?.label || selectedConversation.activeChannel}
                 </span>
               </div>
@@ -1281,6 +1528,28 @@ export default function OmnichannelInbox({
                     </button>
                   )}
 
+                  <button
+                    type="button"
+                    onClick={() => setIsTemplatesModalOpen(true)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 9px',
+                      borderRadius: '6px',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      color: '#10B981',
+                      fontSize: '0.72rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                    }}
+                    title="Browse Meta-Approved 7-Pack WhatsApp Templates Suite"
+                  >
+                    <FileText size={11} />
+                    Meta 7-Pack ({templates.length})
+                  </button>
+
                   <select
                     onChange={(e) => {
                       const tmpl = QUICK_TEMPLATES.find((t) => t.title === e.target.value);
@@ -1373,6 +1642,169 @@ export default function OmnichannelInbox({
                 </button>
               </div>
             </div>
+              </>
+            )}
+
+            {rightPanelTab === 'DEAL_MEMORY' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Bookmark size={15} color="#06B6D4" />
+                      <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#F8FAFC' }}>
+                        Rolling Deal Memory
+                      </span>
+                    </div>
+                    <span style={{
+                      fontSize: '0.68rem',
+                      padding: '2px 7px',
+                      borderRadius: '5px',
+                      background: 'rgba(6, 182, 212, 0.15)',
+                      color: '#38BDF8',
+                      fontWeight: '700',
+                    }}>
+                      Meta 24h Context
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>
+                    VYUHOX continuously audits the full transcript to extract deal parameters, powering contextual follow-up templates:
+                  </div>
+
+                  {/* Core Need */}
+                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>CORE CLIENT NEED</div>
+                    <div style={{ fontSize: '0.82rem', color: '#F1F5F9', marginTop: '3px', fontWeight: '600' }}>
+                      {selectedConversation.dealState?.coreNeed || selectedConversation.aiSummary || 'Automating high-velocity enterprise pipeline & outreach.'}
+                    </div>
+                  </div>
+
+                  {/* Quoted Terms & Budget */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: '700' }}>COMMERCIAL BUDGET</div>
+                      <div style={{ fontSize: '0.8rem', color: '#10B981', fontWeight: '700', marginTop: '2px' }}>
+                        {selectedConversation.dealState?.budget || '$12,500 ARR'}
+                      </div>
+                    </div>
+                    <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: '700' }}>ORIGIN CHANNEL</div>
+                      <div style={{ fontSize: '0.8rem', color: '#38BDF8', fontWeight: '700', marginTop: '2px' }}>
+                        {selectedConversation.dealState?.originChannel || activeLead.source || 'OUTSCRAPER_MAPS'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Objections */}
+                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>AGREED TERMS & NEXT STEP</div>
+                    <div style={{ fontSize: '0.82rem', color: '#E2E8F0', marginTop: '3px' }}>
+                      {selectedConversation.dealState?.agreedTerms || '5-minute executive demo on technical deliverables.'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {rightPanelTab === 'TEAM_NOTES' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <FileText size={15} color="#FBBF24" />
+                      <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#F8FAFC' }}>
+                        Private Team Notes
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748B' }}>
+                      Hidden from customer
+                    </span>
+                  </div>
+
+                  {/* Notes List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+                    {(!selectedConversation.privateNotes || selectedConversation.privateNotes.length === 0) ? (
+                      <div style={{ color: '#64748B', fontSize: '0.78rem', fontStyle: 'italic', padding: '12px 0' }}>
+                        No private notes yet. Team reps can record internal comments or @mentions below.
+                      </div>
+                    ) : (
+                      selectedConversation.privateNotes.map((note, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            fontSize: '0.78rem',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontSize: '0.68rem', marginBottom: '3px' }}>
+                            <strong style={{ color: '#38BDF8' }}>{note.authorName || 'Rep'}</strong>
+                            <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div style={{ color: '#E2E8F0', whiteSpace: 'pre-wrap' }}>{note.content}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add Note Input */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                    <textarea
+                      rows={2}
+                      value={newNoteContent}
+                      onChange={(e) => setNewNoteContent(e.target.value)}
+                      placeholder="Add an internal note or @mention colleague..."
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'rgba(11, 17, 32, 0.9)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        color: '#F8FAFC',
+                        fontSize: '0.78rem',
+                        outline: 'none',
+                        resize: 'none',
+                      }}
+                    />
+                    <button
+                      onClick={handleAddPrivateNote}
+                      disabled={savingNote || !newNoteContent.trim()}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        background: 'rgba(245, 158, 11, 0.2)',
+                        border: '1px solid rgba(245, 158, 11, 0.4)',
+                        color: '#FBBF24',
+                        fontWeight: '700',
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        alignSelf: 'flex-end',
+                      }}
+                    >
+                      {savingNote ? 'Saving...' : 'Add Internal Note'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <div style={{
@@ -1412,78 +1844,139 @@ export default function OmnichannelInbox({
       }}>
         {activeLead ? (
           <>
-            {/* Header / Profile Card */}
+            {/* Column 3 Tab Switcher */}
             <div style={{
-              padding: '16px',
-              borderRadius: '12px',
-              background: 'rgba(15, 23, 42, 0.7)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
+              borderRadius: '8px',
+              background: 'rgba(15, 23, 42, 0.8)',
+              padding: '3px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              marginBottom: '2px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  CRM Lead Dossier
-                </span>
-                <span style={{
-                  fontSize: '0.7rem',
-                  padding: '2px 7px',
-                  borderRadius: '5px',
-                  background: 'rgba(6, 182, 212, 0.15)',
-                  color: '#38BDF8',
-                  fontWeight: '700',
-                }}>
-                  ID: {activeLead._id.toString().substring(18)}
-                </span>
-              </div>
+              {[
+                { id: 'DOSSIER', label: 'Dossier', icon: User },
+                { id: 'DEAL_MEMORY', label: 'Deal Memory', icon: Bookmark },
+                { id: 'TEAM_NOTES', label: `Notes (${selectedConversation?.privateNotes?.length || 0})`, icon: FileText },
+              ].map((tab) => {
+                const active = rightPanelTab === tab.id;
+                const TabIcon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setRightPanelTab(tab.id)}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '5px',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: active ? '700' : '500',
+                      background: active ? 'rgba(6, 182, 212, 0.2)' : 'transparent',
+                      border: active ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid transparent',
+                      color: active ? '#38BDF8' : '#94A3B8',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <TabIcon size={12} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {rightPanelTab === 'DOSSIER' && (
+              <>
+                {/* Header / Profile Card */}
                 <div style={{
-                  width: '46px',
-                  height: '46px',
+                  padding: '16px',
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.2rem',
-                  fontWeight: '800',
-                  color: '#04101A',
+                  flexDirection: 'column',
+                  gap: '12px',
                 }}>
-                  {activeLead.name?.charAt(0) || 'L'}
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#F8FAFC' }}>
-                    {activeLead.name}
-                  </h3>
-                  <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>
-                    {activeLead.title || 'Executive'}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      CRM Lead Dossier
+                    </span>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      padding: '2px 7px',
+                      borderRadius: '5px',
+                      background: 'rgba(6, 182, 212, 0.15)',
+                      color: '#38BDF8',
+                      fontWeight: '700',
+                    }}>
+                      ID: {activeLead._id.toString().substring(18)}
+                    </span>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: '600' }}>
-                    {activeLead.company || 'Enterprise Account'}
-                  </div>
-                </div>
-              </div>
 
-              {/* Contact Specs */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-                paddingTop: '8px',
-                borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                fontSize: '0.78rem',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94A3B8' }}>
-                  <Mail size={13} color="#06B6D4" />
-                  <span style={{ color: '#F1F5F9' }}>{activeLead.email || 'No email attached'}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94A3B8' }}>
-                  <Phone size={13} color="#10B981" />
-                  <span style={{ color: '#F1F5F9' }}>{activeLead.phone || 'No phone attached'}</span>
-                </div>
-              </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      fontWeight: '800',
+                      color: '#04101A',
+                    }}>
+                      {activeLead.name?.charAt(0) || 'L'}
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#F8FAFC' }}>
+                        {activeLead.name}
+                      </h3>
+                      <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>
+                        {activeLead.title || 'Executive'}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: '600' }}>
+                        {activeLead.company || 'Enterprise Account'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Specs */}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    paddingTop: '8px',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                    fontSize: '0.78rem',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94A3B8' }}>
+                      <Mail size={13} color="#06B6D4" />
+                      <span style={{ color: '#F1F5F9' }}>{activeLead.email || 'No email attached'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#94A3B8' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Phone size={13} color="#10B981" />
+                        <span style={{ color: '#F1F5F9' }}>{activeLead.phone || 'No phone attached'}</span>
+                      </div>
+                      {preflightInfo && (
+                        <span style={{
+                          fontSize: '0.62rem',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          background: preflightInfo.hasWhatsApp ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                          color: preflightInfo.hasWhatsApp ? '#10B981' : '#FBBF24',
+                          border: `1px solid ${preflightInfo.hasWhatsApp ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                          fontWeight: '700',
+                        }}>
+                          {preflightInfo.hasWhatsApp ? '📱 WhatsApp Mobile' : '☎️ Landline'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
               {/* AI Score Gauge */}
               <div style={{
@@ -1950,6 +2443,169 @@ export default function OmnichannelInbox({
                 </button>
               </div>
             </div>
+              </>
+            )}
+
+            {rightPanelTab === 'DEAL_MEMORY' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Bookmark size={15} color="#06B6D4" />
+                      <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#F8FAFC' }}>
+                        Rolling Deal Memory
+                      </span>
+                    </div>
+                    <span style={{
+                      fontSize: '0.68rem',
+                      padding: '2px 7px',
+                      borderRadius: '5px',
+                      background: 'rgba(6, 182, 212, 0.15)',
+                      color: '#38BDF8',
+                      fontWeight: '700',
+                    }}>
+                      Meta 24h Context
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '0.78rem', color: '#94A3B8' }}>
+                    VYUHOX continuously audits the full transcript to extract deal parameters, powering contextual follow-up templates:
+                  </div>
+
+                  {/* Core Need */}
+                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>CORE CLIENT NEED</div>
+                    <div style={{ fontSize: '0.82rem', color: '#F1F5F9', marginTop: '3px', fontWeight: '600' }}>
+                      {selectedConversation.dealState?.coreNeed || selectedConversation.aiSummary || 'Automating high-velocity enterprise pipeline & outreach.'}
+                    </div>
+                  </div>
+
+                  {/* Quoted Terms & Budget */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: '700' }}>COMMERCIAL BUDGET</div>
+                      <div style={{ fontSize: '0.8rem', color: '#10B981', fontWeight: '700', marginTop: '2px' }}>
+                        {selectedConversation.dealState?.budget || '$12,500 ARR'}
+                      </div>
+                    </div>
+                    <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: '700' }}>ORIGIN CHANNEL</div>
+                      <div style={{ fontSize: '0.8rem', color: '#38BDF8', fontWeight: '700', marginTop: '2px' }}>
+                        {selectedConversation.dealState?.originChannel || activeLead.source || 'OUTSCRAPER_MAPS'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Objections */}
+                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>AGREED TERMS & NEXT STEP</div>
+                    <div style={{ fontSize: '0.82rem', color: '#E2E8F0', marginTop: '3px' }}>
+                      {selectedConversation.dealState?.agreedTerms || '5-minute executive demo on technical deliverables.'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {rightPanelTab === 'TEAM_NOTES' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <FileText size={15} color="#FBBF24" />
+                      <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#F8FAFC' }}>
+                        Private Team Notes
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748B' }}>
+                      Hidden from customer
+                    </span>
+                  </div>
+
+                  {/* Notes List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+                    {(!selectedConversation.privateNotes || selectedConversation.privateNotes.length === 0) ? (
+                      <div style={{ color: '#64748B', fontSize: '0.78rem', fontStyle: 'italic', padding: '12px 0' }}>
+                        No private notes yet. Team reps can record internal comments or @mentions below.
+                      </div>
+                    ) : (
+                      selectedConversation.privateNotes.map((note, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            fontSize: '0.78rem',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontSize: '0.68rem', marginBottom: '3px' }}>
+                            <strong style={{ color: '#38BDF8' }}>{note.authorName || 'Rep'}</strong>
+                            <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div style={{ color: '#E2E8F0', whiteSpace: 'pre-wrap' }}>{note.content}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add Note Input */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                    <textarea
+                      rows={2}
+                      value={newNoteContent}
+                      onChange={(e) => setNewNoteContent(e.target.value)}
+                      placeholder="Add an internal note or @mention colleague..."
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: 'rgba(11, 17, 32, 0.9)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        color: '#F8FAFC',
+                        fontSize: '0.78rem',
+                        outline: 'none',
+                        resize: 'none',
+                      }}
+                    />
+                    <button
+                      onClick={handleAddPrivateNote}
+                      disabled={savingNote || !newNoteContent.trim()}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        background: 'rgba(245, 158, 11, 0.2)',
+                        border: '1px solid rgba(245, 158, 11, 0.4)',
+                        color: '#FBBF24',
+                        fontWeight: '700',
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        alignSelf: 'flex-end',
+                      }}
+                    >
+                      {savingNote ? 'Saving...' : 'Add Internal Note'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748B', fontSize: '0.85rem' }}>
@@ -2339,6 +2995,316 @@ export default function OmnichannelInbox({
                 {bulkSending ? <RefreshCw size={14} className="spin-icon" /> : <Send size={14} />}
                 {bulkSending ? 'AI Dispatching...' : `Launch AI Campaign (${selectedLeadIds.length})`}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* META 7-PACK TEMPLATE SUITE & CUSTOM TEMPLATE STUDIO MODAL */}
+      {/* ========================================================================= */}
+      {isTemplatesModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(4, 7, 16, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+        }}>
+          <div style={{
+            background: '#0B1120',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(16, 185, 129, 0.2)',
+            borderRadius: '16px',
+            width: '780px',
+            maxWidth: '96vw',
+            maxHeight: '88vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '20px 24px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'rgba(15, 23, 42, 0.6)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <MessageSquare size={20} color="#04101A" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    Meta WhatsApp Template Suite ({templates.length} Approved)
+                  </h3>
+                  <div style={{ fontSize: '0.74rem', color: '#94A3B8' }}>
+                    Compliant with Meta's 24-hour customer care policy with dynamic rolling parameters
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsTemplatesModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94A3B8',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body Scroll Area */}
+            <div style={{
+              padding: '20px 24px',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}>
+              {/* On-Demand AI Custom Template Generator */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: '10px',
+                background: 'rgba(6, 182, 212, 0.08)',
+                border: '1px solid rgba(6, 182, 212, 0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={15} color="#06B6D4" />
+                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#F8FAFC' }}>
+                      AI Custom Campaign Template Generator
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: '#64748B' }}>
+                    Auto-formatted for Meta Graph API compliance
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={customTmplPrompt}
+                    onChange={(e) => setCustomTmplPrompt(e.target.value)}
+                    placeholder="e.g. 20% year-end discount offer on annual contracts with priority onboarding"
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      background: 'rgba(11, 17, 32, 0.8)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '6px',
+                      color: '#F8FAFC',
+                      fontSize: '0.78rem',
+                      outline: 'none',
+                    }}
+                  />
+                  <select
+                    value={customTmplCategory}
+                    onChange={(e) => setCustomTmplCategory(e.target.value)}
+                    style={{
+                      background: 'rgba(11, 17, 32, 0.8)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '6px',
+                      color: '#38BDF8',
+                      fontSize: '0.74rem',
+                      padding: '8px 10px',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="MARKETING">MARKETING</option>
+                    <option value="UTILITY">UTILITY</option>
+                  </select>
+                  <button
+                    onClick={handleGenerateCustomTemplate}
+                    disabled={isGeneratingTmpl || !customTmplPrompt.trim()}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+                      border: 'none',
+                      color: '#04101A',
+                      fontWeight: '800',
+                      fontSize: '0.76rem',
+                      cursor: isGeneratingTmpl ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    {isGeneratingTmpl ? <RefreshCw size={12} className="spin-icon" /> : <Sparkles size={12} />}
+                    {isGeneratingTmpl ? 'Generating...' : 'Synthesize AI Template'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Template Suite Cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Universal 7-Pack Meta Suite
+                </span>
+
+                {templates.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px', color: '#64748B', fontSize: '0.8rem' }}>
+                    <RefreshCw size={20} className="spin-icon" style={{ margin: '0 auto 8px' }} />
+                    Auto-synthesizing Universal 7-Pack for this workspace...
+                  </div>
+                ) : (
+                  templates.map((tmpl) => (
+                    <div
+                      key={tmpl._id || tmpl.templateName}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '10px',
+                        background: 'rgba(15, 23, 42, 0.7)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#F1F5F9' }}>
+                            {tmpl.templateName}
+                          </span>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: tmpl.category === 'UTILITY' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+                            color: tmpl.category === 'UTILITY' ? '#06B6D4' : '#C084FC',
+                            border: `1px solid ${tmpl.category === 'UTILITY' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(168, 85, 247, 0.3)'}`,
+                            fontWeight: '700',
+                          }}>
+                            {tmpl.category}
+                          </span>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            color: '#10B981',
+                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                            fontWeight: '700',
+                          }}>
+                            ● APPROVED
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            onClick={() => {
+                              setActiveComposeChannel('WHATSAPP');
+                              setComposeText(tmpl.body);
+                              setIsTemplatesModalOpen(false);
+                              showToast(`Loaded "${tmpl.templateName}" into composer`);
+                            }}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              color: '#F8FAFC',
+                              fontSize: '0.72rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Use in Compose
+                          </button>
+                          <button
+                            onClick={async () => {
+                              setActiveComposeChannel('WHATSAPP');
+                              setIsTemplatesModalOpen(false);
+                              await handleSendMessage('', {
+                                templateName: tmpl.templateName,
+                                templateParams: [
+                                  activeLead?.name || 'Valued Partner',
+                                  activeWorkspace?.industry || 'Business Services',
+                                  'Ready to assist you today.',
+                                ],
+                              });
+                            }}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              background: 'linear-gradient(135deg, #10B981, #06B6D4)',
+                              border: 'none',
+                              color: '#04101A',
+                              fontSize: '0.72rem',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Send size={11} />
+                            Dispatch to Lead
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{
+                        fontSize: '0.78rem',
+                        color: '#CBD5E1',
+                        lineHeight: '1.45',
+                        background: 'rgba(0,0,0,0.25)',
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        whiteSpace: 'pre-wrap',
+                      }}>
+                        {tmpl.body}
+                      </div>
+
+                      {tmpl.buttons && tmpl.buttons.length > 0 && (
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.68rem', color: '#64748B' }}>1-Tap Buttons:</span>
+                          {tmpl.buttons.map((b, bIdx) => (
+                            <span
+                              key={bIdx}
+                              style={{
+                                fontSize: '0.68rem',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                background: 'rgba(59, 130, 246, 0.15)',
+                                color: '#60A5FA',
+                                border: '1px solid rgba(59, 130, 246, 0.3)',
+                                fontWeight: '600',
+                              }}
+                            >
+                              💬 {b.text}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>

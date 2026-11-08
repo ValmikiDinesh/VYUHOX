@@ -1,4 +1,7 @@
+import dotenv from 'dotenv';
 import { getCountryByPhone, getCountryByIso } from '../../config/GlobalCountryCompliance.js';
+
+dotenv.config();
 
 /**
  * NPA Area Code to North American Timezones Map
@@ -82,7 +85,7 @@ class CallingWindowGuard {
    * @param {string} [forcedIso] - Optional workspace or target ISO code
    * @returns {Object} { allowed: boolean, reason: string, queuedFor: string, meta: Object }
    */
-  evaluate(phoneNumber, forcedIso = null) {
+  evaluate(phoneNumber, forcedIso = null, bypassCallingHours = false) {
     if (!phoneNumber) {
       return { allowed: false, reason: 'Destination phone number missing', queuedFor: null };
     }
@@ -90,6 +93,18 @@ class CallingWindowGuard {
     const countryMeta = forcedIso ? getCountryByIso(forcedIso) : getCountryByPhone(phoneNumber);
     const timeZone = this.resolveTimezone(phoneNumber, countryMeta);
     const { dayOfWeek, decimalHour, formattedTime } = this.getTimeDetailsInTimezone(timeZone);
+
+    // Allow developer testing bypass during development or when explicit bypass flag is passed
+    if (bypassCallingHours || process.env.BYPASS_CALLING_HOURS === 'true' || process.env.NODE_ENV === 'development') {
+      return {
+        allowed: true,
+        status: 'DEV_BYPASS_ACTIVE',
+        regulatoryBody: countryMeta.regulatoryBody,
+        country: countryMeta.name,
+        localTime: formattedTime,
+        reason: 'Developer testing override active (Bypassing weekend & calling hours restrictions).',
+      };
+    }
 
     const rules = countryMeta.allowedHours || { startHour: 9.0, endHour: 18.0, daysAllowed: [1, 2, 3, 4, 5] };
     const { startHour, endHour, daysAllowed, satEndHour } = rules;

@@ -38,7 +38,8 @@ const callLogSchema = new mongoose.Schema(
     leadId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Lead',
-      required: true,
+      required: false,
+      default: null,
       index: true,
     },
     callId: {
@@ -58,11 +59,12 @@ const callLogSchema = new mongoose.Schema(
     },
     toNumber: {
       type: String,
-      required: true,
+      required: false,
+      default: '+919059701784',
     },
     status: {
       type: String,
-      enum: ['queued', 'in-progress', 'completed', 'busy', 'no-answer', 'failed', 'transferred'],
+      enum: ['queued', 'in-progress', 'completed', 'busy', 'no-answer', 'failed', 'transferred', 'voicemail'],
       default: 'queued',
       index: true,
     },

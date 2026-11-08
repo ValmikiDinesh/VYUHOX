@@ -47,6 +47,52 @@ const conversationSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    lastCustomerMessageAt: {
+      type: Date,
+      default: Date.now,
+      index: true,
+    },
+    takenOverByHuman: {
+      type: Boolean,
+      default: false,
+    },
+    takenOverAt: {
+      type: Date,
+      default: null,
+    },
+    assignedRepId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    assignedRepName: {
+      type: String,
+      default: '',
+    },
+    privateNotes: [
+      {
+        authorName: { type: String, default: 'Agent' },
+        authorEmail: { type: String, default: '' },
+        content: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    dealState: {
+      coreNeed: { type: String, default: '' },
+      agreedTerms: { type: String, default: '' },
+      budget: { type: String, default: '' },
+      keyObjections: [{ type: String }],
+      dealStage: {
+        type: String,
+        enum: ['NEW_LEAD', 'QUALIFYING', 'PROPOSAL_SENT', 'NEGOTIATING', 'CLOSED_WON', 'LOST'],
+        default: 'NEW_LEAD',
+      },
+      originChannel: {
+        type: String,
+        enum: ['META_ADS', 'GOOGLE_ADS', 'APOLLO_COLD', 'OUTSCRAPER_MAPS', 'INBOUND_WEBSITE', 'ORGANIC_AEO', 'MANUAL'],
+        default: 'MANUAL',
+      },
+    },
     aiDrafts: {
       EMAIL: {
         subject: { type: String, default: '' },

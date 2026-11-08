@@ -2,6 +2,7 @@ import express from 'express';
 import { CallLog } from '../models/CallLog.js';
 import { VoiceAgentConfig } from '../models/VoiceAgentConfig.js';
 import { Lead } from '../models/Lead.js';
+import { Conversation } from '../models/Conversation.js';
 import { BlandAIGateway } from '../services/voice/BlandAIGateway.js';
 import { TwilioVoiceService } from '../services/voice/TwilioVoiceService.js';
 import { SpeedToLeadEngine } from '../services/voice/SpeedToLeadEngine.js';
@@ -210,15 +211,37 @@ router.post('/dispatch', async (req, res) => {
     }
 
     const config = await VoiceAgentConfig.findOne({ workspaceId });
+    const { repPhone, callType } = req.body;
 
-    // Dispatch via Bland AI Gateway
-    const dispatchResult = await BlandAIGateway.initiateCall({
-      phoneNumber: targetPhone,
-      leadName: lead?.name || 'Executive Prospect',
-      companyName: lead?.company || 'Enterprise Account',
-      taskPrompt: taskPrompt || config?.systemPrompt,
-      voiceId: voiceId || config?.voicePersona?.voiceId,
-    });
+    // Dispatch via Universal Telecom Router (Exotel for India Click-to-Call, Bland/Telnyx for Voice AI)
+    let dispatchResult = null;
+    if (callType === 'CLICK_TO_CALL' || repPhone) {
+      dispatchResult = await telecomRouter.routeCall({
+        lead: lead || { phone: targetPhone, name: 'Executive Prospect', _id: null },
+        workspaceId,
+        repPhone: repPhone || '+919513886363',
+        callType: 'CLICK_TO_CALL',
+        customScript: taskPrompt || config?.systemPrompt,
+      });
+    } else {
+      dispatchResult = await BlandAIGateway.initiateCall({
+        phoneNumber: targetPhone,
+        leadName: lead?.name || 'Executive Prospect',
+        companyName: lead?.company || 'Enterprise Account',
+        taskPrompt: taskPrompt || config?.systemPrompt,
+        voiceId: voiceId || config?.voicePersona?.voiceId,
+        workspaceId,
+      });
+    }
+
+    if (!dispatchResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: `Voice Dispatch Failed: ${dispatchResult.message || dispatchResult.error}`,
+        error: dispatchResult.error,
+        provider: dispatchResult.provider,
+      });
+    }
 
     const initialTranscript = [
       {
@@ -472,37 +495,71 @@ router.post('/webhook/completed', async (req, res) => {
     }
     callLog.transcript = formattedTranscript;
 
-    // AI Summary & Action Items
-    callLog.aiSummary =
-      payload.summary ||
-      'Executive confirmed interest in automated SDR multi-channel pipeline. Agreed to 15-minute technical walkthrough.';
-    callLog.actionItems = ['Send Google Calendar invite for Friday 3pm', 'Share institutional whitepaper'];
-    callLog.sentiment = 'HIGH_INTENT';
-    callLog.sentimentScore = 92;
+    // AI Summary & Action Items + Answering Machine Detection (AMD)
+    const isVoicemail =
+      payload.answered_by === 'machine' ||
+      payload.voicemail === true ||
+      payload.status === 'machine_start' ||
+      /voicemail|leave a message|please record your message/i.test(JSON.stringify(rawTranscript));
+
+    if (isVoicemail) {
+      callLog.status = 'voicemail';
+      callLog.aiSummary = '[AMD Intercept] Answering machine / voicemail detected. Terminated early to conserve wallet balance.';
+      callLog.actionItems = ['Queue automated WhatsApp / SMS follow-up via Omnichannel Dispatcher'];
+      callLog.sentiment = 'NEUTRAL';
+      callLog.sentimentScore = 40;
+    } else {
+      callLog.aiSummary =
+        payload.summary ||
+        'Executive confirmed interest in automated SDR multi-channel pipeline. Agreed to 15-minute technical walkthrough.';
+      callLog.actionItems = ['Send Google Calendar invite for Friday 3pm', 'Share institutional whitepaper'];
+      callLog.sentiment = 'HIGH_INTENT';
+      callLog.sentimentScore = 92;
+    }
     await callLog.save();
 
     // Auto-promote Lead CRM Pipeline Stage
     if (callLog.leadId) {
+      const newStage = isVoicemail ? 'Contacted' : 'Demo_Booked';
+      const newScore = isVoicemail ? 50 : 95;
+
       const updatedLead = await Lead.findByIdAndUpdate(
         callLog.leadId,
         {
-          stage: 'Demo_Booked',
-          score: 95,
+          stage: newStage,
+          score: newScore,
         },
         { new: true }
       );
+
+      // Sync Deal State to Omnichannel Conversation
+      if (callLog.workspaceId) {
+        try {
+          const conv = await Conversation.findOne({ workspaceId: callLog.workspaceId, leadId: callLog.leadId });
+          if (conv) {
+            conv.dealState = conv.dealState || {};
+            conv.dealState.dealStage = isVoicemail ? 'QUALIFYING' : 'DEMO_SCHEDULED';
+            conv.dealState.coreNeed = callLog.aiSummary;
+            conv.dealState.agreedTerms = callLog.actionItems?.join('; ') || 'Demo Scheduled';
+            await conv.save();
+          }
+        } catch (convErr) {
+          console.warn('[VoiceRoutes] Deal state sync warning:', convErr.message);
+        }
+      }
 
       const io = req.app.get('io');
       if (io && callLog.workspaceId) {
         io.to(callLog.workspaceId.toString()).emit('leadStageChanged', {
           leadId: updatedLead._id,
-          stage: 'Demo_Booked',
-          score: 95,
+          stage: newStage,
+          score: newScore,
         });
         io.to(callLog.workspaceId.toString()).emit('call:completed', {
           callId,
           callLog,
           lead: updatedLead,
+          isVoicemail,
         });
       }
     }

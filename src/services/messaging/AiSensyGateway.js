@@ -46,11 +46,23 @@ class AiSensyGateway {
    * @param {string} params.messageText - Message body or template parameters
    * @param {string} params.workspaceId - Workspace ID
    */
-  async sendWhatsAppMessage({ toPhone, leadName, messageText, workspaceId, mediaUrl = null }) {
+  async sendWhatsAppMessage({ toPhone, leadName, messageText, workspaceId, mediaUrl = null, campaignName = null, templateParams = null }) {
     const creds = await this.getCredentials(workspaceId);
-    const cleanTo = toPhone.replace(/[^\d+]/g, '');
+    let cleanTo = (toPhone || '').replace(/[^\d]/g, ''); // AiSensy expects pure digits without '+'
+    if (cleanTo.length === 10) {
+      // Default to India +91 if 10 digits provided
+      cleanTo = `91${cleanTo}`;
+    }
 
-    console.log(`[AiSensyGateway] Dispatching WhatsApp Message to ${cleanTo} (${leadName})`);
+    // Pre-flight normalizer: sanitize line breaks and enforce safe character limits
+    const sanitizedText = (messageText || '')
+      .replace(/\n{3,}/g, '\n\n')
+      .slice(0, 850);
+
+    const effectiveCampaign = campaignName || creds.campaignName || 'vyuhox_leads';
+    const effectiveParams = templateParams || [leadName || 'Partner', sanitizedText];
+
+    console.log(`[AiSensyGateway] Dispatching WhatsApp Message to ${cleanTo} (${leadName}) via campaign: ${effectiveCampaign}`);
 
     if (creds.apiKey) {
       try {
@@ -61,38 +73,53 @@ class AiSensyGateway {
           },
           body: JSON.stringify({
             apiKey: creds.apiKey,
-            campaignName: creds.campaignName,
+            campaignName: effectiveCampaign,
             destination: cleanTo,
             userName: leadName || 'Valued Lead',
-            templateParams: [leadName || 'Partner', messageText],
+            templateParams: effectiveParams,
             media: mediaUrl ? { url: mediaUrl, filename: 'presentation.pdf' } : undefined,
           }),
         });
 
-        const data = await response.json();
-        if (response.ok && data.success) {
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && (data.success || data.status === 'success')) {
           return {
             success: true,
             provider: 'AISENSY_WHATSAPP',
-            messageId: data?.data?.messageId || `waba_${Date.now()}`,
-            status: 'delivered',
+            messageId: data?.data?.messageId || data?.messageId || `waba_${Date.now()}`,
+            status: 'SENT',
             isByoc: creds.isByoc,
           };
         }
+
+        const errMsg = data?.message || data?.errorMessage || `AiSensy returned HTTP ${response.status}`;
+        console.warn('[AiSensyGateway] Live API rejection:', errMsg);
+        return {
+          success: false,
+          provider: 'AISENSY_WHATSAPP',
+          status: 'FAILED',
+          error: errMsg,
+          message: errMsg,
+          isByoc: creds.isByoc,
+        };
       } catch (err) {
-        console.warn('[AiSensyGateway] Live API error:', err.message);
+        console.warn('[AiSensyGateway] Network dispatch error:', err.message);
+        return {
+          success: false,
+          provider: 'AISENSY_WHATSAPP',
+          status: 'FAILED',
+          error: err.message,
+          message: `Network error connecting to AiSensy: ${err.message}`,
+        };
       }
     }
 
-    // High-fidelity sandbox / developer fallback
     return {
-      success: true,
+      success: false,
       provider: 'AISENSY_WHATSAPP',
-      messageId: `waba_sim_${Date.now()}`,
-      status: 'delivered',
-      message: `WhatsApp message successfully dispatched to ${cleanTo} via Meta Business Cloud (AiSensy).`,
-      isSimulated: true,
-      isByoc: creds.isByoc,
+      status: 'FAILED',
+      error: 'NO_API_KEY',
+      message: 'No AiSensy API Key configured in Super Admin.',
     };
   }
 }

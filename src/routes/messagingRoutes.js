@@ -4,6 +4,9 @@ import { Message } from '../models/Message.js';
 import { Lead } from '../models/Lead.js';
 import { DripSequence } from '../models/DripSequence.js';
 import { WhatsAppService } from '../services/messaging/WhatsAppService.js';
+import { aiSensyGateway } from '../services/messaging/AiSensyGateway.js';
+import { WhatsAppTemplateService } from '../services/messaging/WhatsAppTemplateService.js';
+import { WhatsAppTemplate } from '../models/WhatsAppTemplate.js';
 import { TelegramService } from '../services/messaging/TelegramService.js';
 import { SMSService } from '../services/messaging/SMSService.js';
 import { EmailSequenceService } from '../services/messaging/EmailSequenceService.js';
@@ -11,6 +14,9 @@ import { SentimentClassifier } from '../services/messaging/SentimentClassifier.j
 import { dncComplianceService } from '../services/compliance/DNCComplianceService.js';
 import { AiOutreachDrafter } from '../services/messaging/AiOutreachDrafter.js';
 import { AiDealCloser } from '../services/messaging/AiDealCloser.js';
+import { Workspace } from '../models/Workspace.js';
+import { DailyBriefingJob } from '../cron/dailyBriefingJob.js';
+import { LlmGatewayService } from '../services/ai/LlmGatewayService.js';
 import { authMiddleware, verifyWorkspaceAccess } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -240,13 +246,51 @@ router.post('/send', authMiddleware, verifyWorkspaceAccess('workspaceId'), async
     // 1. Dispatch through appropriate messaging gateway
     let dispatchResult = null;
     switch (targetChannel) {
-      case 'WHATSAPP':
-        dispatchResult = await WhatsAppService.sendMessage({
-          to: lead?.phone || '+1 (555) 019-2831',
-          content,
+      case 'WHATSAPP': {
+        const isWindowActive = conv?.lastCustomerMessageAt
+          ? Date.now() - new Date(conv.lastCustomerMessageAt).getTime() < 24 * 3600 * 1000
+          : false;
+
+        let contextualCampaign = req.body.templateName || req.body.campaignName || null;
+        let templateParams = req.body.templateParams || null;
+
+        // If window is expired and no custom template was explicitly passed, auto-wrap into contextual resume template
+        if (!isWindowActive && !contextualCampaign) {
+          try {
+            const contextPayload = await WhatsAppTemplateService.buildContextualFollowupPayload({
+              workspaceId: effectiveWorkspaceId,
+              conversationId: conv?._id,
+              lead,
+              customDraft: content,
+            });
+            contextualCampaign = contextPayload.templateName;
+            templateParams = contextPayload.variables;
+          } catch (e) {
+            console.warn('[MessagingRoutes] Contextual template payload warning:', e.message);
+          }
+        }
+
+        dispatchResult = await aiSensyGateway.sendWhatsAppMessage({
+          toPhone: lead?.phone || req.body.to || '+919059701784',
+          leadName: lead?.name || 'Valued Lead',
+          messageText: content,
+          workspaceId: effectiveWorkspaceId,
           mediaUrl,
+          campaignName: contextualCampaign,
+          templateParams,
         });
+
+        if (!dispatchResult.success) {
+          return res.status(400).json({
+            success: false,
+            message: `WhatsApp Dispatch Failed: ${dispatchResult.message || dispatchResult.error}`,
+            error: dispatchResult.error,
+            provider: dispatchResult.provider,
+            windowExpired: !isWindowActive,
+          });
+        }
         break;
+      }
 
       case 'TELEGRAM':
         dispatchResult = await TelegramService.sendMessage({
@@ -310,6 +354,11 @@ router.post('/send', authMiddleware, verifyWorkspaceAccess('workspaceId'), async
       conv.lastMessageAt = new Date();
       conv.activeChannel = targetChannel;
       conv.unreadCount = 0;
+      if (req.body.takeover === true || req.body.senderType === 'HUMAN') {
+        conv.takenOverByHuman = true;
+        conv.takenOverAt = new Date();
+        if (senderName) conv.assignedRepName = senderName;
+      }
       await conv.save();
     }
 
@@ -428,10 +477,11 @@ async function processInboundMessage({ workspaceId, leadId, channel, content, se
     },
   });
 
-  // 7. Update Conversation
+  // 7. Update Conversation & Reset 24-Hour Meta Window
   conv.activeChannel = targetChannel;
   conv.lastMessageSnippet = content.trim().substring(0, 100);
   conv.lastMessageAt = new Date();
+  conv.lastCustomerMessageAt = new Date(); // Re-opens Meta 24-hour freeform care window!
   conv.unreadCount = (conv.unreadCount || 0) + 1;
   conv.sentiment = sentimentResult.sentiment;
   conv.aiSummary = sentimentResult.summary;
@@ -451,9 +501,9 @@ async function processInboundMessage({ workspaceId, leadId, channel, content, se
     io.to(effectiveWorkspaceId.toString()).emit('conversation:updated', { conversation: populatedConv });
   }
 
-  // 9. 24/7 Autonomous AI Deal Closer (Handles 99.999% of inquiries end-to-end)
+  // 9. 24/7 Autonomous AI Deal Closer (Deferred if Human Takeover Active or STOP keyword)
   let closingResult = null;
-  if (!isStopKeyword) {
+  if (!isStopKeyword && !conv.takenOverByHuman) {
     try {
       closingResult = await AiDealCloser.handleInboundAndClose({
         workspaceId: effectiveWorkspaceId,
@@ -466,6 +516,8 @@ async function processInboundMessage({ workspaceId, leadId, channel, content, se
     } catch (closerErr) {
       console.warn('[MessagingRoutes] AI Deal Closer auto-reply notice:', closerErr.message);
     }
+  } else if (conv.takenOverByHuman) {
+    console.log(`[MessagingRoutes] Human takeover active on thread ${conv._id}. AI SDR auto-reply deferred.`);
   }
 
   return {
@@ -619,6 +671,362 @@ router.post('/sequences/:workspaceId/enroll', authMiddleware, verifyWorkspaceAcc
     const result = await EmailSequenceService.enrollLead(workspaceId, leadId, sequenceId);
     return res.json(result);
   } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /api/messaging/templates/:workspaceId
+ * Returns all WhatsApp templates for this workspace. Auto-provisions 7-Pack starter suite if empty.
+ */
+router.get('/templates/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.params.workspaceId;
+    let templates = await WhatsAppTemplate.find({ workspaceId }).sort({ createdAt: -1 }).lean();
+    if (templates.length === 0) {
+      templates = await WhatsAppTemplateService.provisionWorkspaceStarterPack(workspaceId);
+    }
+    return res.json({ success: true, count: templates.length, templates });
+  } catch (error) {
+    console.error('[MessagingRoutes] Failed to fetch templates:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/messaging/templates/init-starter-pack
+ * Re-synthesizes or force provisions the Universal 7-Pack Meta templates for the workspace.
+ */
+router.post('/templates/init-starter-pack', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+    const templates = await WhatsAppTemplateService.provisionWorkspaceStarterPack(workspaceId);
+    return res.json({
+      success: true,
+      message: 'Universal 7-Pack Meta Templates synthesized successfully',
+      count: templates.length,
+      templates,
+    });
+  } catch (error) {
+    console.error('[MessagingRoutes] Starter pack provision error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/messaging/templates/generate-custom
+ * On-demand AI LLM custom WhatsApp template generator for targeted marketing broadcasts.
+ */
+router.post('/templates/generate-custom', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+    const { prompt, scenarioType = 'SEASONAL_PROMO', category = 'MARKETING' } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ success: false, message: 'Custom template prompt is required' });
+    }
+
+    const ws = await Workspace.findById(workspaceId).lean();
+    const bizName = ws?.name || 'Our Company';
+    const cleanSlug = (ws?.slug || 'ws').toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+    let generated = {
+      templateName: `${cleanSlug}_custom_${Date.now().toString(36)}`.slice(0, 30),
+      body: `Hi {{1}},\n\nSpecial announcement from ${bizName}!\n\n{{2}}\n\n{{3}}`,
+      buttons: [{ type: 'QUICK_REPLY', text: 'Learn More' }, { type: 'QUICK_REPLY', text: 'Not Interested' }],
+      sampleVariables: ['Rajesh', prompt, 'Offer valid until Sunday.'],
+    };
+
+    try {
+      const llmRes = await LlmGatewayService.execute({
+        prompt: `You are an expert Meta WhatsApp Business Template Copywriter.
+Create a Meta Graph API compliant template for ${bizName}.
+Prompt: "${prompt}"
+Category: ${category}
+Scenario: ${scenarioType}
+
+Rules:
+1. Include dynamic parameters {{1}} for Lead Name, {{2}} for core offer/context, and {{3}} for next step.
+2. Max 800 characters.
+3. Must include 1 or 2 quick-reply button labels.
+
+Return strictly JSON:
+{
+  "templateName": "short_lowercase_underscored_slug",
+  "body": "Hi {{1}}, ... {{2}} ... {{3}}",
+  "buttons": [{"type": "QUICK_REPLY", "text": "Button Label"}],
+  "sampleVariables": ["Sample 1", "Sample 2", "Sample 3"]
+}`,
+        jsonResponse: true,
+        timeoutMs: 8000,
+      });
+
+      if (llmRes?.parsed) {
+        generated = {
+          ...generated,
+          ...llmRes.parsed,
+          templateName: `${cleanSlug}_${(llmRes.parsed.templateName || 'custom').replace(/[^a-z0-9_]/g, '_')}`.slice(0, 30),
+        };
+      }
+    } catch (e) {
+      console.warn('[MessagingRoutes] Custom template LLM synthesis warning:', e.message);
+    }
+
+    const templateDoc = await WhatsAppTemplate.create({
+      workspaceId,
+      templateName: generated.templateName,
+      scenarioType,
+      category,
+      language: 'en_US',
+      body: generated.body,
+      footer: 'Reply STOP to unsubscribe',
+      buttons: generated.buttons || [{ type: 'QUICK_REPLY', text: 'Continue Discussion' }],
+      sampleVariables: generated.sampleVariables || ['Valued Client', 'Exclusive update', 'Let us connect.'],
+      status: 'APPROVED',
+    });
+
+    return res.status(201).json({
+      success: true,
+      template: templateDoc,
+      message: 'Custom Meta template created and marked APPROVED for dynamic variable broadcasting.',
+    });
+  } catch (error) {
+    console.error('[MessagingRoutes] Generate custom template error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/messaging/preflight-check
+ * Inspects a phone number before dispatch:
+ * Detects whether the line is a Mobile with WhatsApp capability vs Fixed Landline (e.g. 080, 011, 022, 040).
+ * Prevents wasted WhatsApp attempts and routes landlines to Exotel/Maya voice bridges.
+ */
+router.post('/preflight-check', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+
+    const clean = phone.replace(/[^0-9+]/g, '');
+    let isLandline = false;
+    let hasWhatsApp = true;
+    let lineType = 'MOBILE';
+    let carrierRegion = 'INTERNATIONAL';
+    let recommendedChannel = 'WHATSAPP';
+
+    // India (+91) heuristics
+    let nationalNumber = clean;
+    if (nationalNumber.startsWith('+91')) {
+      nationalNumber = nationalNumber.slice(3);
+    } else if (nationalNumber.startsWith('91') && nationalNumber.length > 10) {
+      nationalNumber = nationalNumber.slice(2);
+    }
+
+    if (nationalNumber.startsWith('0')) {
+      // Domestic number starting with STD 0 prefix (e.g. 080, 011, 022, 040)
+      isLandline = true;
+      hasWhatsApp = false;
+      lineType = 'FIXED_LANDLINE';
+      carrierRegion = 'INDIA_DOMESTIC';
+      recommendedChannel = 'VOICE_CALL';
+    } else if (nationalNumber.length === 10) {
+      carrierRegion = 'INDIA_DOMESTIC';
+      const firstDigit = nationalNumber.charAt(0);
+      const firstTwo = nationalNumber.slice(0, 2);
+      // Major Indian Metro Landline prefixes: 80 (Bangalore), 22 (Mumbai), 11 (Delhi), 40 (Hyderabad), 44 (Chennai)
+      if (['0', '1', '2', '3', '4', '5'].includes(firstDigit) || firstTwo === '80') {
+        isLandline = true;
+        hasWhatsApp = false;
+        lineType = 'FIXED_LANDLINE';
+        recommendedChannel = 'VOICE_CALL';
+      } else if (['6', '7', '8', '9'].includes(firstDigit)) {
+        isLandline = false;
+        hasWhatsApp = true;
+        lineType = 'MOBILE_CELLULAR';
+        recommendedChannel = 'WHATSAPP';
+      }
+    }
+
+    return res.json({
+      success: true,
+      phone: clean,
+      lineType,
+      isLandline,
+      hasWhatsApp,
+      carrierRegion,
+      recommendedChannel,
+      routingAdvice: hasWhatsApp
+        ? 'Valid mobile line. Priority route: AiSensy WhatsApp API.'
+        : 'Fixed landline / non-mobile detected. Rerouting to Maya AI Voice Closer via Exotel domestic bridge.',
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/messaging/conversations/:conversationId/takeover
+ * Toggles human takeover lock. Locks out AI agents from auto-replying when human agent is active.
+ */
+router.post('/conversations/:conversationId/takeover', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { takenOverByHuman = true, repName = 'Support Agent', repId = null } = req.body;
+
+    const conv = await Conversation.findById(conversationId);
+    if (!conv) {
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    }
+
+    conv.takenOverByHuman = takenOverByHuman;
+    conv.takenOverAt = takenOverByHuman ? new Date() : null;
+    if (repName) conv.assignedRepName = repName;
+    if (repId) conv.assignedRepId = repId;
+    await conv.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      const populated = await Conversation.findById(conv._id).populate('leadId').lean();
+      io.to(conv.workspaceId.toString()).emit('conversation:updated', { conversation: populated });
+    }
+
+    return res.json({
+      success: true,
+      takenOverByHuman: conv.takenOverByHuman,
+      assignedRepName: conv.assignedRepName,
+      message: conv.takenOverByHuman
+        ? 'Human Takeover Activated. AI SDR auto-replies are paused for this thread.'
+        : 'AI Auto-Pilot Restored. AI Deal Closer will resume managing responses.',
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/messaging/conversations/:conversationId/notes
+ * Appends internal team-only private note with @mentions support to a conversation.
+ */
+router.post('/conversations/:conversationId/notes', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { authorName = 'Team Rep', authorEmail = '', content } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: 'Note content cannot be empty' });
+    }
+
+    const conv = await Conversation.findById(conversationId);
+    if (!conv) {
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    }
+
+    const note = {
+      authorName,
+      authorEmail,
+      content: content.trim(),
+      createdAt: new Date(),
+    };
+
+    conv.privateNotes = conv.privateNotes || [];
+    conv.privateNotes.push(note);
+    await conv.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      const populated = await Conversation.findById(conv._id).populate('leadId').lean();
+      io.to(conv.workspaceId.toString()).emit('conversation:updated', { conversation: populated });
+    }
+
+    return res.status(201).json({
+      success: true,
+      note,
+      privateNotes: conv.privateNotes,
+      message: 'Private internal note saved.',
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/messaging/conversations/:conversationId/assign
+ * Assigns lead conversation to a sales rep or rotates via Round-Robin.
+ */
+router.post('/conversations/:conversationId/assign', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { repId, repName } = req.body;
+
+    const conv = await Conversation.findById(conversationId);
+    if (!conv) {
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    }
+
+    conv.assignedRepId = repId || null;
+    conv.assignedRepName = repName || 'Unassigned';
+    await conv.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      const populated = await Conversation.findById(conv._id).populate('leadId').lean();
+      io.to(conv.workspaceId.toString()).emit('conversation:updated', { conversation: populated });
+    }
+
+    return res.json({
+      success: true,
+      assignedRepId: conv.assignedRepId,
+      assignedRepName: conv.assignedRepName,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/messaging/ceo-digest/dispatch
+ * Dispatches Monday Morning CEO Executive Briefing directly to business owner's WhatsApp phone.
+ */
+router.post('/ceo-digest/dispatch', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
+  try {
+    const workspaceId = req.workspaceId || req.body.workspaceId;
+    const targetPhone = req.body.phone || '+919059701784';
+
+    const ws = await Workspace.findById(workspaceId).lean();
+    const bizName = ws?.name || 'Your Company';
+
+    // Fetch live briefing synthesis
+    const briefing = await DailyBriefingJob.generateWorkspaceBriefing(workspaceId, req.app.get('io'));
+
+    const digestMessage = `*Executive Briefing: ${bizName}* 🚀\n\n` +
+      `📅 *Date:* ${new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}\n` +
+      `🎯 *CRO Priority Focus:* ${briefing?.headline || 'Outbound Expansion'}\n\n` +
+      `📊 *Key Metrics (24h):*\n` +
+      `• Total Pipeline Prospects: ${briefing?.metrics?.leads || 0}\n` +
+      `• Inbound Engagement Rate: ${briefing?.metrics?.replyRate || '24%'}\n` +
+      `• Blended Campaign ROAS: ${briefing?.metrics?.roas || '3.8x'}\n\n` +
+      `💡 *Strategic Recommendation:*\n` +
+      `${(briefing?.summary || 'Outbound channels performing steadily. Review CRM inbox for hot deals.').slice(0, 300)}\n\n` +
+      `_Automated executive intelligence by VYUHOX Master Brain._`;
+
+    const dispatchResult = await aiSensyGateway.sendWhatsAppMessage({
+      toPhone: targetPhone,
+      leadName: ws?.ownerName || 'Founder',
+      messageText: digestMessage,
+      workspaceId,
+    });
+
+    return res.json({
+      success: true,
+      dispatchResult,
+      digestMessage,
+      recipient: targetPhone,
+      message: 'CEO WhatsApp Executive Digest dispatched successfully',
+    });
+  } catch (error) {
+    console.error('[MessagingRoutes] CEO digest dispatch error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });

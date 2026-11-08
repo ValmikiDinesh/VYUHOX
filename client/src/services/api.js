@@ -423,6 +423,61 @@ export const api = {
     return res.json();
   },
 
+  // WhatsApp Templates & Omnichannel Collaboration
+  getWhatsAppTemplates: async (workspaceId) => {
+    const res = await authedFetch(`${API_BASE}/messaging/templates/${workspaceId}`, {
+      headers: { 'x-workspace-id': workspaceId },
+    });
+    return res.json();
+  },
+  initWhatsAppStarterPack: async (workspaceId) => {
+    const res = await authedFetch(`${API_BASE}/messaging/templates/init-starter-pack`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+    });
+    return res.json();
+  },
+  generateCustomTemplate: async (data) => {
+    const res = await authedFetch(`${API_BASE}/messaging/templates/generate-custom`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-workspace-id': data.workspaceId },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  preflightPhoneCheck: async (phone) => {
+    const res = await authedFetch(`${API_BASE}/messaging/preflight-check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+    return res.json();
+  },
+  takeoverConversation: async (conversationId, data = {}) => {
+    const res = await authedFetch(`${API_BASE}/messaging/conversations/${conversationId}/takeover`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  addConversationNote: async (conversationId, noteData) => {
+    const res = await authedFetch(`${API_BASE}/messaging/conversations/${conversationId}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(noteData),
+    });
+    return res.json();
+  },
+  dispatchCeoDigest: async (workspaceId, phone) => {
+    const res = await authedFetch(`${API_BASE}/messaging/ceo-digest/dispatch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-workspace-id': workspaceId },
+      body: JSON.stringify({ workspaceId, phone }),
+    });
+    return res.json();
+  },
+
   // Voice Studio (Phase 5)
   getCalls: async (workspaceId, params = {}) => {
     const query = new URLSearchParams(params).toString();

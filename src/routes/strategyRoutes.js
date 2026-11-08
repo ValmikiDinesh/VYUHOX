@@ -10,6 +10,7 @@ import { BusinessBrain } from '../models/BusinessBrain.js';
 import { MarketIntelligence } from '../models/MarketIntelligenceModel.js';
 import { PlatformConfig } from '../models/PlatformConfig.js';
 import { vyuhoxMasterBrain } from '../services/ai/VyuhoxMasterBrainService.js';
+import { WhatsAppTemplateService } from '../services/messaging/WhatsAppTemplateService.js';
 
 const router = express.Router();
 
@@ -178,6 +179,15 @@ router.post('/scan', authMiddleware, async (req, res) => {
       });
     } catch (brainErr) {
       console.warn('[StrategyRoutes] Brain master provisioning notice:', brainErr.message);
+    }
+
+    // 3.6 Autonomous Meta Template Engine: Provision Universal 7-Pack WhatsApp Suite
+    try {
+      WhatsAppTemplateService.provisionWorkspaceStarterPack(workspaceId).catch((tmplErr) => {
+        console.warn('[StrategyRoutes] WhatsApp Template Starter Pack provisioning notice:', tmplErr.message);
+      });
+    } catch (tmplCallErr) {
+      console.warn('[StrategyRoutes] WhatsApp starter pack dispatch notice:', tmplCallErr.message);
     }
 
     // 4. Broadcast Completion
