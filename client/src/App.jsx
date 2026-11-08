@@ -28,6 +28,7 @@ import SeoAeoHub from './pages/SeoAeoHub';
 import SpamChecker from './pages/FreeTools/SpamChecker';
 import IcpCalculator from './pages/FreeTools/IcpCalculator';
 import DnsTester from './pages/FreeTools/DnsTester';
+import AISoftwareOrganization from './pages/evolution/AISoftwareOrganization';
 
 import ModeSwitchModal from './components/ModeSwitchModal';
 import NewLeadModal from './components/modals/NewLeadModal';
@@ -128,6 +129,9 @@ export default function App() {
     }
     if (path === '/tools/dns-tester' || path === '/tools/dns-lookup') {
       return 'tool_dns_tester';
+    }
+    if (path === '/aisoftwareorganization' || path.startsWith('/aisoftwareorganization')) {
+      return 'ai_software_organization';
     }
     if (path === '/app' || path === '/admin/app') {
       return 'app';
@@ -752,6 +756,17 @@ export default function App() {
       <DnsTester
         onNavigateHome={() => {
           navigateTo('/');
+        }}
+      />
+    );
+  }
+
+  // 7b. Autonomous AI Software Organization Master Dashboard (/AISoftwareOrganization)
+  if (currentView === 'ai_software_organization') {
+    return (
+      <AISoftwareOrganization
+        onNavigateHome={() => {
+          navigateTo('/app');
         }}
       />
     );

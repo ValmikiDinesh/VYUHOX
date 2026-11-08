@@ -35,6 +35,8 @@ import microSiteRoutes from './src/routes/microSiteRoutes.js';
 import seoToolsRoutes from './src/routes/seoToolsRoutes.js';
 import sanjayaRoutes from './src/routes/sanjayaRoutes.js';
 import supportRoutes from './src/routes/supportRoutes.js';
+import evolutionRoutes from './src/routes/evolutionRoutes.js';
+import { EvolutionOrchestrator } from './src/services/evolution/EvolutionOrchestrator.js';
 import { agentEventBus } from './src/services/agents/AgentEventBus.js';
 import { initSocialPublisher } from './src/cron/socialPublisher.js';
 import { initAdOptimizerCron } from './src/cron/adOptimizer.js';
@@ -64,6 +66,7 @@ const io = new SocketIOServer(server, {
 
 app.set('io', io);
 agentEventBus.setSocketIO(io);
+EvolutionOrchestrator.setSocketIO(io);
 
 // Socket connection and room assignment
 io.on('connection', (socket) => {
@@ -139,6 +142,7 @@ app.use('/api/microsite', microSiteRoutes);
 app.use('/api/seo-tools', seoToolsRoutes);
 app.use('/api/sanjaya', sanjayaRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/evolution', evolutionRoutes);
 
 // Serve static client production build & SPA fallback (Render / Production)
 const distPath = path.resolve(__dirname, 'client', 'dist');

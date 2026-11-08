@@ -162,6 +162,28 @@ export default function TopBar({
 
       {/* Right: Currency Toggle, Compute Wallet, Quick Action, Profile */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Direct Link to Standalone Autonomous AI Software Organization */}
+        <a
+          href="/AISoftwareOrganization"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'linear-gradient(90deg, rgba(2, 132, 199, 0.25) 0%, rgba(56, 189, 248, 0.15) 100%)',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
+            color: '#38BDF8',
+            borderRadius: '6px',
+            padding: '5px 10px',
+            fontSize: '0.75rem',
+            fontWeight: '700',
+            textDecoration: 'none',
+            letterSpacing: '0.02em',
+          }}
+          title="Open Standalone Autonomous AI Software Organization"
+        >
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38BDF8', boxShadow: '0 0 6px #38BDF8' }} />
+          AI Software Org
+        </a>
         {/* Currency Switcher Pill */}
         {onToggleCurrency && (
           <div

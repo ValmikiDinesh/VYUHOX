@@ -231,6 +231,29 @@ export default function SuperAdminTopBar({
           </div>
         )}
 
+        {/* 1-Click "AI Software Org" Standalone Dashboard */}
+        <a
+          href="/AISoftwareOrganization"
+          title="Open Autonomous AI Software Organization Dashboard"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.25) 0%, rgba(56, 189, 248, 0.15) 100%)',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
+            color: '#38BDF8',
+            fontSize: '0.75rem',
+            fontWeight: '700',
+            textDecoration: 'none',
+            letterSpacing: '0.02em',
+          }}
+        >
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38BDF8', boxShadow: '0 0 6px #38BDF8' }} />
+          <span>AI Software Org</span>
+        </a>
+
         {/* 1-Click "Switch to Platform HQ Client Workspace" Button */}
         <button
           onClick={onSwitchToPlatformHQ}
