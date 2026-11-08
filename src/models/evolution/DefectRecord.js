@@ -92,3 +92,4 @@ const defectRecordSchema = new mongoose.Schema(
 
 export const DefectRecord = mongoose.model('DefectRecord', defectRecordSchema);
 export default DefectRecord;
+

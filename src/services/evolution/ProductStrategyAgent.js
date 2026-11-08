@@ -168,3 +168,4 @@ Produce exhaustive, evidence-based markdown without placeholders.
     return { doc, filePath, tokensUsed, recommendations };
   }
 }
+
