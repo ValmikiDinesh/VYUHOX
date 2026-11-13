@@ -246,15 +246,21 @@ export default function LeadFinder({
   const targetAudience = strategy?.analysisResult?.targetAudience || {};
   const primaryPersona = targetAudience.primaryPersona || 'Enterprise Decision Makers & C-Suite';
 
-  // Automatically resolve decision maker personas from LLM crawl strategy
+  // Automatically resolve commercial buyer personas and target company segments from LLM crawl strategy
+  const aiTargetCompanies = strategy?.analysisResult?.leadDiscoveryCriteria?.targetCompanyTypes || [];
+  const aiCommercialPersonas = strategy?.analysisResult?.leadDiscoveryCriteria?.buyerPersonas || [];
   const aiDecisionMakers =
-    targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0
+    aiTargetCompanies.length > 0
+      ? aiTargetCompanies
+      : aiCommercialPersonas.length > 0
+      ? aiCommercialPersonas
+      : (targetAudience.decisionMakers && targetAudience.decisionMakers.length > 0)
       ? targetAudience.decisionMakers
       : [
-          'Chief Information Security Officer (CISO)',
-          'Chief Technology Officer (CTO)',
-          'VP of Engineering',
-          'Director of Infrastructure & Cloud Security',
+          'Managing Director',
+          'Purchasing & Procurement Head',
+          'Category Buyer',
+          'Commercial Operations Director',
         ];
 
   const aiPainPoint =
@@ -1032,7 +1038,7 @@ export default function LeadFinder({
 
           {/* Decision Makers Chips */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.675rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>Target Roles:</span>
+            <span style={{ fontSize: '0.675rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>Target Buyer Segments:</span>
             {aiDecisionMakers.slice(0, 3).map((dm, idx) => (
               <span
                 key={idx}

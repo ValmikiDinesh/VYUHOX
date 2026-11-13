@@ -548,27 +548,46 @@ Return strictly a JSON object:
 
     // 1. Dynamic LLM Buyer Matrix Synthesis (Universal AI for ANY business)
     try {
-      const prompt = `You are a world-class Commercial Growth Strategist and Lead Prospecting Architect.
-Analyze this business and determine the exact target buyer matrix and lead search parameters for lead scraping.
+      const whatTheySell = strategy?.analysisResult?.whatTheySell || strategy?.analysisResult?.summary || workspace?.businessModelDescription || '';
+      const coreOfferings = (strategy?.analysisResult?.coreOfferings || []).join(', ');
+      const businessModel = strategy?.analysisResult?.businessModel || workspace?.operatingMode || 'Commercial';
+
+      const prompt = `You are a world-class Commercial Growth Strategist and Outbound Lead Prospecting Architect.
+Analyze this business and determine the exact target BUYER matrix and search queries for commercial lead prospecting.
+
+CRITICAL COMMERCIAL PROSPECTING & ANTI-COMPETITOR RULE:
+1. We are prospecting prospective commercial BUYERS, CLIENTS, DISTRIBUTORS, or INSTITUTIONAL PARTNERS who pay for this business's products or services.
+2. NEVER return or search for direct competitors who manufacture or sell the same product!
+   - Example 1 (Sunglasses Brand): DO NOT search for sunglasses makers (Ray-Ban, Oakley). Search for WHO BUYS sunglasses: Optical retail store owners, Eyewear category managers, Department store merchandisers, Lifestyle boutique buyers, Corporate gifting specialists.
+   - Example 2 (Cultural Heritage & Religious Tourism Information): DO NOT search for anonymous blog readers. Search for commercial entities that BUY, PACKAGE, or LICENSE this content: Pilgrimage Tour Operators, Cultural Travel Agencies, Temple Tourism Coordinators, Spiritual Retreat Organizers, Heritage Tour Directors.
+   - Example 3 (SaaS Accounting Software): Search for CFOs, Finance Directors, Accounting Firm Partners, Controllers at mid-market companies.
+   - Example 4 (Organic Food / Beverage): Search for Specialty Grocery Store Stockists, Hotel Food & Beverage Directors, Cafe Chain Purchasing Heads, Supermarket Category Managers.
 
 Business Name: "${businessName || 'Enterprise'}"
 Category / Industry: "${category || 'Commercial Services'}"
+What They Sell / Value Offering: "${whatTheySell || `${businessName} offerings`}"
+Core Products / Services: "${coreOfferings || category}"
+Business Model: "${businessModel}"
 Role: "${targetRole}"
-Keywords / Context: "${customKeywords || ''}"
+Keywords / Specific Focus: "${customKeywords || ''}"
 
-Return a strict JSON object with these EXACT keys:
+Return a strict JSON object:
 {
   "serviceType": "Concise category name of what they provide",
   "valueOffering": "Clear 1-sentence value proposition explaining what they sell and why buyers want it",
-  "buyerDescription": "Detailed description of who the prospective buyers, retail stockists, corporate clients, or patients are",
-  "buyerPersonas": ["List of 4-6 specific job titles or roles who make the purchasing decision"],
-  "buyerSearchKeywords": ["List of 4-6 specific search queries to find prospective client organizations or partners in Google Maps, LinkedIn, and local business directories"],
-  "painPoint": "Primary pain point or challenge the prospective buyer faces that this business solves"
+  "buyerDescription": "Detailed commercial description of who the prospective buyers, retail stockists, corporate clients, tour operators, or partner agencies are",
+  "buyerPersonas": [
+    "4-6 specific commercial decision-maker job titles who buy, license, stock, or partner for this product/service (e.g. 'Tour Operations Director', 'Purchasing Manager', 'Category Buyer', 'Managing Director', 'Owner')"
+  ],
+  "buyerSearchKeywords": [
+    "4-6 specific search queries to find prospective commercial client organizations in Google Maps, LinkedIn, and local business directories (e.g. 'pilgrimage tour operators', 'temple travel agencies', 'heritage holiday packages')"
+  ],
+  "painPoint": "Primary business bottleneck or operational need that buying this offering solves for them"
 }`;
 
       const aiResponse = await LlmGatewayService.execute({
         prompt,
-        systemInstruction: 'You are an autonomous B2B and D2C lead generation and market intelligence agent. Always respond in valid JSON.',
+        systemInstruction: 'You are an autonomous B2B and commercial lead generation architect. Always respond in valid JSON.',
         jsonResponse: true,
         temperature: 0.2,
         timeoutMs: 8000,
