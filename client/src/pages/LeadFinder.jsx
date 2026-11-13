@@ -927,7 +927,9 @@ export default function LeadFinder({
               {remainingFreeQuota.toLocaleString()} <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>/ {monthlyQuota.toLocaleString()} leads</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '1px' }}>
-              {isNoPlan ? 'Upgrade to a package to unlock lead quotas' : `${scrapedThisMonth.toLocaleString()} used (${quotaPercent}%) • 0 overage`}
+              {isNoPlan
+                ? `${scrapedThisMonth.toLocaleString()} leads scraped • Funded via Wallet reserve`
+                : `${scrapedThisMonth.toLocaleString()} free credits used (${quotaPercent}%) • ${remainingFreeQuota.toLocaleString()} remaining`}
             </div>
           </div>
           <Zap size={20} color="#10B981" />
@@ -1269,8 +1271,16 @@ export default function LeadFinder({
           marginTop: '10px',
           padding: '8px 12px',
           borderRadius: '7px',
-          background: 'rgba(16, 185, 129, 0.05)',
-          border: '1px solid rgba(16, 185, 129, 0.18)',
+          background: overageBatch === 0
+            ? 'rgba(16, 185, 129, 0.05)'
+            : freeBatch > 0
+            ? 'rgba(245, 158, 11, 0.06)'
+            : 'rgba(56, 189, 248, 0.06)',
+          border: overageBatch === 0
+            ? '1px solid rgba(16, 185, 129, 0.18)'
+            : freeBatch > 0
+            ? '1px solid rgba(245, 158, 11, 0.25)'
+            : '1px solid rgba(56, 189, 248, 0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -1279,14 +1289,36 @@ export default function LeadFinder({
           fontSize: '0.73rem',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#E2E8F0' }}>
-            <CheckCircle2 size={13} color="#10B981" />
-            <strong style={{ color: '#34D399' }}>✓ 100% Free with {planInfo.name}</strong>
-            <span style={{ color: '#94A3B8' }}>
-              ({limit} leads drawn from {remainingFreeQuota} free allowance. Results listed below).
-            </span>
+            {overageBatch === 0 ? (
+              <>
+                <CheckCircle2 size={13} color="#10B981" />
+                <strong style={{ color: '#34D399' }}>✓ 100% Free with {planInfo.name}</strong>
+                <span style={{ color: '#94A3B8' }}>
+                  ({limit} leads covered by remaining monthly plan allowance).
+                </span>
+              </>
+            ) : freeBatch > 0 ? (
+              <>
+                <Zap size={13} color="#F59E0B" />
+                <strong style={{ color: '#FBBF24' }}>⚡ Split Billing ({planInfo.badge} + Wallet)</strong>
+                <span style={{ color: '#CBD5E1' }}>
+                  {freeBatch} covered by plan quota • {overageBatch} billable leads from Wallet ({currency === 'INR' ? `₹${overageCostINR}` : `$${overageCostUSD}`} at {currency === 'INR' ? `₹${RATE_PER_LEAD_INR}` : `$${RATE_PER_LEAD_USD}`}/lead).
+                </span>
+              </>
+            ) : (
+              <>
+                <CreditCard size={13} color="#38BDF8" />
+                <strong style={{ color: '#38BDF8' }}>💳 Paid Volume Batch ({isNoPlan ? 'No Plan Active' : 'Quota Exhausted'})</strong>
+                <span style={{ color: '#CBD5E1' }}>
+                  {limit} leads debited from Wallet ({currency === 'INR' ? `₹${overageCostINR}` : `$${overageCostUSD}`} at {currency === 'INR' ? `₹${RATE_PER_LEAD_INR}` : `$${RATE_PER_LEAD_USD}`}/lead).
+                </span>
+              </>
+            )}
           </div>
           <div style={{ color: '#94A3B8' }}>
-            Wallet: <strong style={{ color: '#10B981' }}>{currency === 'INR' ? `₹${walletBalanceINR.toLocaleString('en-IN')}` : `$${walletBalanceUSD.toFixed(2)}`}</strong>
+            Wallet Reserve: <strong style={{ color: (walletBalanceINR >= overageCostINR || walletBalanceUSD >= parseFloat(overageCostUSD)) ? '#10B981' : '#EF4444' }}>
+              {currency === 'INR' ? `₹${walletBalanceINR.toLocaleString('en-IN')}` : `$${walletBalanceUSD.toFixed(2)}`}
+            </strong>
           </div>
         </div>
 

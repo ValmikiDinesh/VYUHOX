@@ -67,14 +67,20 @@ router.post('/start', authMiddleware, async (req, res) => {
 
     // Fetch workspace to evaluate free monthly subscription quota
     const workspace = await Workspace.findById(workspaceId);
-    const planTier = workspace?.subscription?.planTier || (workspace?.operatingMode === 'AI_COMPANY' ? 'AI_COMPANY_SCALE' : 'TOOL_MODE');
+    const planTier = workspace?.subscription?.planTier || 'NONE';
 
-    let defaultQuota = 250;
-    if (planTier === 'AI_COMPANY_SCALE' || workspace?.operatingMode === 'AI_COMPANY') defaultQuota = 5000;
+    let defaultQuota = 0;
+    if (planTier === 'AI_COMPANY_SCALE') defaultQuota = 5000;
     else if (planTier === 'AI_COMPANY_STARTER') defaultQuota = 1000;
+    else if (planTier === 'TOOL_MODE' || planTier === 'STARTER') defaultQuota = 250;
+    else if (planTier === 'GROWTH') defaultQuota = 1000;
+    else if (planTier === 'SCALE') defaultQuota = 5000;
     else if (planTier === 'CUSTOM' || planTier === 'ENTERPRISE') defaultQuota = 25000;
+    else if (planTier === 'NONE') defaultQuota = 0;
 
-    const monthlyQuota = workspace?.leadUsage?.monthlyIncludedQuota || defaultQuota;
+    const monthlyQuota = (typeof workspace?.leadUsage?.monthlyIncludedQuota === 'number' && workspace.leadUsage.monthlyIncludedQuota > 0)
+      ? workspace.leadUsage.monthlyIncludedQuota
+      : defaultQuota;
     const scrapedThisMonth = workspace?.leadUsage?.scrapedThisMonth || 0;
     const remainingFreeQuota = Math.max(0, monthlyQuota - scrapedThisMonth);
 
@@ -90,11 +96,13 @@ router.post('/start', authMiddleware, async (req, res) => {
       });
     }
 
-    // Only enforce wallet balance if the requested limit exceeds remaining free plan quota
-    if (billableLeadsRequested > 0 && wallet.balanceUSD < ratePerLeadUSD) {
+    // Enforce required wallet balance if the requested limit exceeds remaining free plan quota
+    const requiredUSD = +(billableLeadsRequested * ratePerLeadUSD).toFixed(2);
+    if (billableLeadsRequested > 0 && wallet.balanceUSD < requiredUSD) {
+      const planName = planTier === 'NONE' ? 'Free Audit (No Plan)' : `${planTier} Plan`;
       return res.status(402).json({
         success: false,
-        message: `Monthly plan quota reached (${scrapedThisMonth}/${monthlyQuota} leads used). Additional leads cost $${ratePerLeadUSD.toFixed(2)} (₹${ratePerLeadINR.toFixed(2)}) each. Please top up your compute credit wallet to continue.`,
+        message: `${planName}: ${remainingFreeQuota} free lead allowance remaining. Scraping ${requestedLimit} leads requires $${requiredUSD.toFixed(2)} (₹${(billableLeadsRequested * ratePerLeadINR).toFixed(2)}) for ${billableLeadsRequested} billable leads. Your wallet balance is $${wallet.balanceUSD.toFixed(2)}. Please recharge your wallet.`,
       });
     }
 
