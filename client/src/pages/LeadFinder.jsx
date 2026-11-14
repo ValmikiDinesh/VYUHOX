@@ -151,9 +151,38 @@ export default function LeadFinder({
     }
   };
 
-  // Per-Lead Pricing Rate
-  const RATE_PER_LEAD_USD = 0.15;
-  const RATE_PER_LEAD_INR = 12.5;
+  // Enrichment Scope & Tiered Channel Pricing
+  const ENRICHMENT_TIERS = {
+    ALL: {
+      key: 'ALL',
+      name: 'Omnichannel Bundle',
+      shortLabel: 'Omnichannel',
+      rateUSD: 0.25,
+      rateINR: 20.0,
+      description: 'Verified Corporate Email + TRAI 10-Digit Mobile + WhatsApp + Social',
+    },
+    PHONE_WHATSAPP: {
+      key: 'PHONE_WHATSAPP',
+      name: 'Direct Mobile & WhatsApp',
+      shortLabel: 'Mobile & WhatsApp',
+      rateUSD: 0.20,
+      rateINR: 16.0,
+      description: 'Direct Mobile Lines & WhatsApp Active (Maya Voice Ready)',
+    },
+    EMAIL_ONLY: {
+      key: 'EMAIL_ONLY',
+      name: 'Verified Corporate Email',
+      shortLabel: 'Email Only',
+      rateUSD: 0.10,
+      rateINR: 8.5,
+      description: '100% Live DNS MX & SMTP-Verified Corporate Emails',
+    },
+  };
+
+  const [enrichmentScope, setEnrichmentScope] = useState('ALL');
+  const currentTier = ENRICHMENT_TIERS[enrichmentScope] || ENRICHMENT_TIERS.ALL;
+  const RATE_PER_LEAD_USD = currentTier.rateUSD;
+  const RATE_PER_LEAD_INR = currentTier.rateINR;
 
   // Plan-Aware Free Quotas
   const PLAN_LIMITS = {
@@ -427,6 +456,7 @@ export default function LeadFinder({
         limit,
         targetRole: aiCalibratedRole, // Pure AI-Calibrated Role
         customKeywords: customKeywords.trim(),
+        enrichmentScope,
       });
       if (res.success && res.jobId) {
         setActiveJobId(res.jobId);
@@ -1061,7 +1091,7 @@ export default function LeadFinder({
         {/* Inputs Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1.4fr 1fr 0.8fr auto',
+          gridTemplateColumns: '1.2fr 0.9fr 1.15fr 0.8fr auto',
           gap: '12px',
           alignItems: 'flex-end',
           marginBottom: '10px',
@@ -1144,6 +1174,38 @@ export default function LeadFinder({
             />
           </div>
 
+          {/* Required Channels & Enrichment Scope */}
+          <div>
+            <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px', fontWeight: '600' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Sliders size={12} color="#38BDF8" /> Required Channels
+              </span>
+              <span style={{ fontSize: '0.68rem', color: '#38BDF8', fontWeight: '700' }}>
+                {currency === 'INR' ? `₹${currentTier.rateINR.toFixed(2)}` : `$${currentTier.rateUSD.toFixed(2)}`}/lead
+              </span>
+            </label>
+            <select
+              value={enrichmentScope}
+              onChange={(e) => setEnrichmentScope(e.target.value)}
+              style={{
+                height: '38px',
+                padding: '0 10px',
+                cursor: 'pointer',
+                width: '100%',
+                fontSize: '0.78rem',
+                color: '#F8FAFC',
+                background: 'rgba(15, 23, 42, 0.95)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                borderRadius: '8px',
+                outline: 'none',
+              }}
+            >
+              <option value="ALL">Omnichannel Bundle (Email + Mobile + WA + Social) — {currency === 'INR' ? '₹20.00' : '$0.25'}</option>
+              <option value="PHONE_WHATSAPP">Direct Mobile & WhatsApp Only (Maya Voice) — {currency === 'INR' ? '₹16.00' : '$0.20'}</option>
+              <option value="EMAIL_ONLY">Verified Corporate Email Only (Live DNS MX) — {currency === 'INR' ? '₹8.50' : '$0.10'}</option>
+            </select>
+          </div>
+
           {/* Batch Volume */}
           <div>
             <label style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginBottom: '5px', fontWeight: '600' }}>
@@ -1200,7 +1262,7 @@ export default function LeadFinder({
                 </>
               ) : (
                 <>
-                  <Play size={14} fill="#021C11" /> Run AI Scraper ({limit} Leads)
+                  <Play size={14} fill="#021C11" /> Run AI Scraper ({limit} {currentTier.shortLabel} Leads)
                 </>
               )}
             </button>

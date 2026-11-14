@@ -959,13 +959,90 @@ Return a strict JSON object:
   }
 
   /**
+   * Location-Intelligent Regional Email/Phone Scorer
+   * When a website provides multiple branch/office contacts (e.g. NYC, Miami, LA, London, Hyderabad),
+   * prioritizes the exact contact matching the client's target location.
+   */
+  static scoreContactForLocation(contactStr, locationStr) {
+    if (!contactStr || !locationStr) return 0;
+    const cleanContact = String(contactStr).toLowerCase();
+    const cleanLoc = String(locationStr).toLowerCase();
+
+    const locTokens = cleanLoc.split(/[\s,]+/).filter((t) => t.length > 2);
+    let score = 0;
+
+    // New York City aliases
+    if (cleanLoc.includes('new york') || cleanLoc.includes('nyc')) {
+      if (cleanContact.includes('nyc') || cleanContact.includes('newyork') || cleanContact.includes('212') || cleanContact.includes('646') || cleanContact.includes('917')) {
+        score += 25;
+      }
+    }
+
+    // Miami / Florida aliases
+    if (cleanLoc.includes('miami') || cleanLoc.includes('florida')) {
+      if (cleanContact.includes('miami') || cleanContact.includes('305') || cleanContact.includes('786')) {
+        score += 25;
+      }
+    }
+
+    // California / Los Angeles / San Francisco aliases
+    if (cleanLoc.includes('california') || cleanLoc.includes('los angeles') || cleanLoc.includes('san francisco') || cleanLoc.includes('la')) {
+      if (cleanContact.includes('losangeles') || cleanContact.includes('la@') || cleanContact.includes('310') || cleanContact.includes('415') || cleanContact.includes('california')) {
+        score += 25;
+      }
+    }
+
+    // Hyderabad / Telangana regional aliases
+    if (cleanLoc.includes('hyderabad') || cleanLoc.includes('telangana')) {
+      if (cleanContact.includes('hyd') || cleanContact.includes('hyderabad') || cleanContact.includes('telangana') || cleanContact.includes('040')) {
+        score += 25;
+      }
+    }
+
+    // Bangalore / Karnataka aliases
+    if (cleanLoc.includes('bengaluru') || cleanLoc.includes('bangalore')) {
+      if (cleanContact.includes('blr') || cleanContact.includes('bangalore') || cleanContact.includes('bengaluru') || cleanContact.includes('080')) {
+        score += 25;
+      }
+    }
+
+    // Mumbai / Maharashtra aliases
+    if (cleanLoc.includes('mumbai') || cleanLoc.includes('bombay') || cleanLoc.includes('maharashtra')) {
+      if (cleanContact.includes('mumbai') || cleanContact.includes('bom') || cleanContact.includes('022')) {
+        score += 25;
+      }
+    }
+
+    // Delhi / NCR / Gurgaon aliases
+    if (cleanLoc.includes('delhi') || cleanLoc.includes('gurgaon') || cleanLoc.includes('noida')) {
+      if (cleanContact.includes('delhi') || cleanContact.includes('ncr') || cleanContact.includes('011') || cleanContact.includes('0124')) {
+        score += 25;
+      }
+    }
+
+    // London / UK aliases
+    if (cleanLoc.includes('london') || cleanLoc.includes('uk') || cleanLoc.includes('united kingdom')) {
+      if (cleanContact.includes('london') || cleanContact.includes('uk') || cleanContact.includes('+44') || cleanContact.includes('020')) {
+        score += 25;
+      }
+    }
+
+    for (const t of locTokens) {
+      if (cleanContact.includes(t)) score += 6;
+    }
+
+    return score;
+  }
+
+  /**
    * Deep Crawl Domain & Extract Real Contact Coordinates
    * GUARANTEES:
    * 1. Returns live: false if domain is unreachable, dead, 404, or parked.
    * 2. Strips any synthetic, sequential, or dummy phone numbers.
    * 3. Extracts authentic email and phone coordinates from active HTML DOM.
+   * 4. Location-intelligent: Ranks regional branch contacts matching target location.
    */
-  static async crawlTargetDomain(domainOrUrl) {
+  static async crawlTargetDomain(domainOrUrl, location = '') {
     const domain = (domainOrUrl || '')
       .replace(/https?:\/\//i, '')
       .split('/')[0]
@@ -1007,7 +1084,7 @@ Return a strict JSON object:
       });
       const bodyText = $('body').text();
       const emailMatches = bodyText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-      emailMatches.slice(0, 5).forEach((e) => {
+      emailMatches.slice(0, 8).forEach((e) => {
         const lower = e.toLowerCase();
         const prefix = lower.split('@')[0];
         if (!this.isDisposableEmail(lower) && !/(test|demo|example|sample|dummy|temp|fake|user|admin123|none)/i.test(prefix)) {
@@ -1025,7 +1102,7 @@ Return a strict JSON object:
 
       // Extract genuine cellular phone numbers from page content (India + International)
       const inPhoneMatches = bodyText.match(/(?:(?:\+91|0091|91|0)[\-\s]?)?([6-9]\d{4}[\-\s]?\d{5}|[6-9]\d{9})/g) || [];
-      inPhoneMatches.slice(0, 5).forEach((p) => {
+      inPhoneMatches.slice(0, 8).forEach((p) => {
         const trimmed = p.trim();
         if (!this.isSyntheticPhoneNumber(trimmed)) {
           phones.add(trimmed);
@@ -1033,19 +1110,30 @@ Return a strict JSON object:
       });
 
       const intlPhoneMatches = bodyText.match(/\+?[1-9]\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}/g) || [];
-      intlPhoneMatches.slice(0, 5).forEach((p) => {
+      intlPhoneMatches.slice(0, 8).forEach((p) => {
         const trimmed = p.trim();
         if (trimmed.replace(/[^0-9]/g, '').length >= 10 && !this.isSyntheticPhoneNumber(trimmed)) {
           phones.add(trimmed);
         }
       });
 
+      // Location-Intelligent Regional Sorting
+      const emailList = Array.from(emails);
+      if (location && emailList.length > 1) {
+        emailList.sort((a, b) => this.scoreContactForLocation(b, location) - this.scoreContactForLocation(a, location));
+      }
+
+      const phoneList = Array.from(phones);
+      if (location && phoneList.length > 1) {
+        phoneList.sort((a, b) => this.scoreContactForLocation(b, location) - this.scoreContactForLocation(a, location));
+      }
+
       return {
         domain,
         title,
         metaDesc,
-        emails: Array.from(emails),
-        phones: Array.from(phones),
+        emails: emailList,
+        phones: phoneList,
         live: true,
       };
     } catch (e) {
@@ -1073,8 +1161,9 @@ Return a strict JSON object:
     limit = 10,
     targetRole = 'BUYER',
     customKeywords = '',
-    ratePerLeadUSD = 0.15,
-    ratePerLeadINR = 12.50,
+    enrichmentScope = 'ALL',
+    ratePerLeadUSD = 0.25,
+    ratePerLeadINR = 20.00,
     io,
   }) {
     const job = {
@@ -1417,14 +1506,14 @@ JSON Format:
         if (verifiedTargetAccounts.length >= limit) break;
         const acc = rawCandidates[i];
 
-        // MANDATORY GATE 1: Active Live Website Liveness Check
-        const crawlData = await this.crawlTargetDomain(acc.domain);
+        // MANDATORY GATE 1: Active Live Website Liveness Check with Regional Office Prioritization
+        const crawlData = await this.crawlTargetDomain(acc.domain, acc.location || locationSummary);
         if (!crawlData.live) {
           console.log(`[LeadScraper] Discarding dead or unreachable website: ${acc.domain} (${crawlData.reason || 'Offline'})`);
           continue;
         }
 
-        // Email Resolution: Prefer crawled email from active website DOM
+        // Email Resolution: Prefer crawled email from active website DOM (ranked by location relevance)
         let resolvedEmail = '';
         if (crawlData.emails && crawlData.emails.length > 0) {
           const valid = crawlData.emails.find((e) => !usedEmails.has(e.toLowerCase()));
@@ -1449,7 +1538,7 @@ JSON Format:
         }
 
         // Fallback Email Check: If no email found on page, verify domain mail exchanger
-        if (!resolvedEmail && !resolvedPhone) {
+        if (!resolvedEmail && !resolvedPhone && enrichmentScope !== 'PHONE_WHATSAPP') {
           const defaultContactEmail = `info@${acc.domain}`;
           try {
             const mx = await this.verifyMxRecord(defaultContactEmail);
@@ -1459,10 +1548,23 @@ JSON Format:
           } catch (e) { }
         }
 
-        // MANDATORY GATE 2: Client must have at least one authentic contact channel
-        if (!resolvedEmail && !resolvedPhone) {
-          console.log(`[LeadScraper] Discarded live site without authentic contact info: ${acc.domain}`);
-          continue;
+        // MANDATORY GATE 2: Enforce client's selected Enrichment Scope & Data Requirements
+        if (enrichmentScope === 'PHONE_WHATSAPP') {
+          if (!resolvedPhone || this.isSyntheticPhoneNumber(resolvedPhone)) {
+            console.log(`[LeadScraper] Discarded lead "${acc.company}" (${acc.domain}) - Scope is PHONE_WHATSAPP but no authentic cellular mobile was found.`);
+            continue;
+          }
+        } else if (enrichmentScope === 'EMAIL_ONLY') {
+          if (!resolvedEmail || this.isDisposableEmail(resolvedEmail)) {
+            console.log(`[LeadScraper] Discarded lead "${acc.company}" (${acc.domain}) - Scope is EMAIL_ONLY but no verified corporate email was found.`);
+            continue;
+          }
+        } else {
+          // Omnichannel Bundle: Requires at least one verified contact channel
+          if (!resolvedEmail && !resolvedPhone) {
+            console.log(`[LeadScraper] Discarded live site without authentic contact info: ${acc.domain}`);
+            continue;
+          }
         }
 
         if (resolvedEmail) usedEmails.add(resolvedEmail.toLowerCase());
@@ -1478,8 +1580,8 @@ JSON Format:
         verifiedTargetAccounts.push(verifiedAcc);
       }
 
-      // ITERATIVE PRECISION HARVESTING: If any candidates were dropped due to dead websites,
-      // discover additional candidates and MANDATORILY verify their websites before accepting!
+      // ITERATIVE PRECISION HARVESTING: If any candidates were dropped,
+      // discover additional candidates and MANDATORILY verify their websites and channels before accepting!
       if (verifiedTargetAccounts.length < limit) {
         let harvestRounds = 0;
         while (verifiedTargetAccounts.length < limit && harvestRounds < 4) {
@@ -1497,16 +1599,20 @@ JSON Format:
             const cleanDomain = cand.domain.toLowerCase().replace(/^www\./i, '').trim();
             if (existingDomains.has(cleanDomain) || verifiedTargetAccounts.some((a) => a.domain === cleanDomain)) continue;
 
-            const crawlData = await this.crawlTargetDomain(cleanDomain);
+            const crawlData = await this.crawlTargetDomain(cleanDomain, curLocation);
             if (!crawlData.live) continue;
 
             let email = crawlData.emails[0] || '';
             let phone = crawlData.phones.find((p) => !this.isSyntheticPhoneNumber(p)) || '';
-            if (!email && !phone) {
+            if (!email && !phone && enrichmentScope !== 'PHONE_WHATSAPP') {
               const defEmail = `info@${cleanDomain}`;
               const mx = await this.verifyMxRecord(defEmail);
               if (mx.hasMx) email = defEmail;
             }
+
+            // Enforce Enrichment Scope
+            if (enrichmentScope === 'PHONE_WHATSAPP' && (!phone || this.isSyntheticPhoneNumber(phone))) continue;
+            if (enrichmentScope === 'EMAIL_ONLY' && (!email || this.isDisposableEmail(email))) continue;
             if (!email && !phone) continue;
 
             const firstNames = isIndiaTarget ? EXECUTIVE_FIRST_NAMES_INDIA : EXECUTIVE_FIRST_NAMES_GLOBAL;
@@ -1532,6 +1638,7 @@ JSON Format:
 Target: List real operating businesses, agencies, distributors, or partner companies in "${curLocation}" matching client "${businessName}" (${category}).
 Target Personas: ${(buyerMatrix.buyerPersonas || []).join(', ')}
 Keywords: ${(buyerMatrix.buyerSearchKeywords || []).join(', ')}
+Required Data Scope: ${enrichmentScope === 'PHONE_WHATSAPP' ? 'Direct Mobile Numbers & WhatsApp Lines' : enrichmentScope === 'EMAIL_ONLY' ? 'Verified Corporate Emails' : 'Full Omnichannel Coordinates (Email, Phone, WhatsApp)'}
 
 Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.length + 3, 8)} real operating entities:
 [
@@ -1562,7 +1669,7 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
                 if (!cleanDomain || existingDomains.has(cleanDomain) || verifiedTargetAccounts.some((a) => a.domain === cleanDomain)) continue;
 
                 // MANDATORY LIVE WEBSITE CHECK ON AI SUGGESTIONS
-                const crawlData = await this.crawlTargetDomain(cleanDomain);
+                const crawlData = await this.crawlTargetDomain(cleanDomain, curLocation);
                 if (!crawlData.live) {
                   console.log(`[LeadScraper] Discarding AI hallucinated/unreachable domain: ${cleanDomain}`);
                   continue;
@@ -1570,11 +1677,15 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
 
                 let email = crawlData.emails[0] || '';
                 let phone = crawlData.phones.find((p) => !this.isSyntheticPhoneNumber(p)) || '';
-                if (!email && !phone) {
+                if (!email && !phone && enrichmentScope !== 'PHONE_WHATSAPP') {
                   const defEmail = `info@${cleanDomain}`;
                   const mx = await this.verifyMxRecord(defEmail);
                   if (mx.hasMx) email = defEmail;
                 }
+
+                // Enforce Enrichment Scope
+                if (enrichmentScope === 'PHONE_WHATSAPP' && (!phone || this.isSyntheticPhoneNumber(phone))) continue;
+                if (enrichmentScope === 'EMAIL_ONLY' && (!email || this.isDisposableEmail(email))) continue;
                 if (!email && !phone) continue;
 
                 verifiedTargetAccounts.push({
@@ -1650,7 +1761,13 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
         const cleanFirst = p.name.split(' ')[0].toLowerCase().replace(/[^a-z]/g, '');
         const cleanLast = (p.name.split(' ')[1] || 'exec').toLowerCase().replace(/[^a-z]/g, '');
 
-        const notes = `Targeted for ${businessName}. AI identified ${p.title} at ${p.company} as an ideal ${targetRole || 'buyer'} for ${buyerMatrix.serviceType}. Pain point addressed: "${buyerMatrix.painPoint}". Email: ${bouncebanRes.verified ? 'BounceBan Catch-All Passed' : mxResult.mxHost}. Phone: ${twilioLineRes.lineType} (${twilioLineRes.carrier}). Location: ${p.location}.`;
+        const scopeLabel = enrichmentScope === 'PHONE_WHATSAPP'
+          ? 'Mobile & WhatsApp'
+          : enrichmentScope === 'EMAIL_ONLY'
+          ? 'Email Only'
+          : 'Omnichannel Bundle';
+
+        const notes = `Targeted for ${businessName}. AI identified ${p.title} at ${p.company} as an ideal ${targetRole || 'buyer'} for ${buyerMatrix.serviceType}. Scope: ${scopeLabel}. Email: ${bouncebanRes.verified ? 'BounceBan Catch-All Passed' : mxResult.mxHost}. Phone: ${twilioLineRes.lineType} (${twilioLineRes.carrier}). Location: ${p.location}.`;
 
         const [roleAudit, phoneAudit] = await Promise.all([
           this.auditLeadRoleWithAi({
@@ -1706,6 +1823,7 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
           },
           tags: [
             'AI Autonomous Scraper',
+            `Scope: ${scopeLabel}`,
             routePlan?.archetype ? `Archetype: ${routePlan.archetype}` : 'Autonomous Match',
             roleAudit.entityRole || targetRole || 'BUYER',
             bouncebanRes.verified ? 'BounceBan Catch-All Clean' : (verificationStatus === 'VERIFIED' ? 'DNS MX Verified' : 'Direct Phone Verified'),
@@ -1717,6 +1835,7 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
           metadata: {
             scrapedForBusiness: businessName,
             buyerServiceCategory: buyerMatrix.serviceType,
+            enrichmentScope,
             entityRole: roleAudit.entityRole || targetRole || 'BUYER',
             tradeDetails: roleAudit,
             phoneVerification: phoneAudit,
@@ -1783,7 +1902,13 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
       const freeLeadsCount = Math.min(verifiedCount, remainingFreeQuota);
       const billableLeadsCount = Math.max(0, verifiedCount - freeLeadsCount);
       const totalDeductionUSD = +(billableLeadsCount * ratePerLeadUSD).toFixed(2);
-      const totalDeductionINR = +(billableLeadsCount * (ratePerLeadINR || 12.5)).toFixed(2);
+      const totalDeductionINR = +(billableLeadsCount * (ratePerLeadINR || 20.0)).toFixed(2);
+
+      const scopeBillingLabel = enrichmentScope === 'PHONE_WHATSAPP'
+        ? 'Direct Mobile & WhatsApp'
+        : enrichmentScope === 'EMAIL_ONLY'
+        ? 'Verified Email Only'
+        : 'Omnichannel Bundle';
 
       let updatedWalletBalance = 0;
       let wallet = (isDbConnected && isValidWs) ? await Wallet.findOne({ workspaceId }) : null;
@@ -1792,7 +1917,7 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
         const transaction = {
           type: 'DEBIT',
           amountUSD: totalDeductionUSD,
-          description: `Lead Prospecting: ${billableLeadsCount} leads in "${location}" for ${businessName} ($${ratePerLeadUSD.toFixed(2)} / ₹${(ratePerLeadINR || 12.5).toFixed(2)} per lead${freeLeadsCount > 0 ? ` after ${freeLeadsCount} free plan leads` : ''})`,
+          description: `Lead Prospecting: ${billableLeadsCount} ${scopeBillingLabel} leads in "${location}" for ${businessName} ($${ratePerLeadUSD.toFixed(2)} / ₹${(ratePerLeadINR || 20.0).toFixed(2)} per lead${freeLeadsCount > 0 ? ` after ${freeLeadsCount} free plan leads` : ''})`,
           timestamp: new Date(),
           referenceId: `SCRAPE_${Date.now()}_${jobId.substring(0, 8)}`,
         };

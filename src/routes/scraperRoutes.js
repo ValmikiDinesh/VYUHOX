@@ -7,16 +7,39 @@ import { PlatformConfig } from '../models/PlatformConfig.js';
 
 const router = express.Router();
 
-// GET /api/scraper/pricing - Get current lead scraping rate
+// GET /api/scraper/pricing - Get current lead scraping rate and channel tiers
 router.get('/pricing', authMiddleware, async (req, res) => {
   try {
     const config = await PlatformConfig.findOne({ configKey: 'GLOBAL_CONFIG' }).lean();
-    const rateUSD = config?.usageRates?.scrapingPerLeadUSD || 0.15;
-    const rateINR = config?.usageRates?.scrapingPerLeadINR || 12.50;
+    const rateUSD = config?.usageRates?.scrapingPerLeadUSD || 0.25;
+    const rateINR = config?.usageRates?.scrapingPerLeadINR || 20.00;
     return res.json({
       success: true,
       rateUSD,
       rateINR,
+      tiers: {
+        ALL: {
+          rateUSD: 0.25,
+          rateINR: 20.00,
+          label: 'Omnichannel Bundle (Email + Mobile + WhatsApp + Social)',
+          shortName: 'Omnichannel Bundle',
+          description: 'Full profile enrichment with verified corporate email, direct mobile, WhatsApp, and social profiles.',
+        },
+        PHONE_WHATSAPP: {
+          rateUSD: 0.20,
+          rateINR: 16.00,
+          label: 'Direct Mobile & WhatsApp Only',
+          shortName: 'Mobile & WhatsApp Only',
+          description: 'Direct mobile lines & WhatsApp active numbers, ready for Maya AI voice calling & messaging.',
+        },
+        EMAIL_ONLY: {
+          rateUSD: 0.10,
+          rateINR: 8.50,
+          label: 'Verified Corporate Email Only',
+          shortName: 'Email Only',
+          description: '100% Live DNS MX & SMTP-verified corporate emails, bounce-proof for cold outreach campaigns.',
+        },
+      },
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -33,6 +56,7 @@ router.post('/start', authMiddleware, async (req, res) => {
       limit = 10,
       targetRole = 'BUYER',
       customKeywords = '',
+      enrichmentScope = 'ALL',
     } = req.body;
 
     const workspaceId = bodyWsId || req.workspaceId;
@@ -60,10 +84,15 @@ router.post('/start', authMiddleware, async (req, res) => {
 
     const requestedLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 10000);
 
-    // Fetch platform pricing rate per single lead
-    const config = await PlatformConfig.findOne({ configKey: 'GLOBAL_CONFIG' }).lean();
-    const ratePerLeadUSD = config?.usageRates?.scrapingPerLeadUSD || 0.15;
-    const ratePerLeadINR = config?.usageRates?.scrapingPerLeadINR || 12.50;
+    // Dynamic pricing based on user-selected enrichment scope
+    const ENRICHMENT_TIER_RATES = {
+      ALL: { usd: 0.25, inr: 20.00 },
+      PHONE_WHATSAPP: { usd: 0.20, inr: 16.00 },
+      EMAIL_ONLY: { usd: 0.10, inr: 8.50 },
+    };
+    const tierKey = ENRICHMENT_TIER_RATES[enrichmentScope] ? enrichmentScope : 'ALL';
+    const ratePerLeadUSD = ENRICHMENT_TIER_RATES[tierKey].usd;
+    const ratePerLeadINR = ENRICHMENT_TIER_RATES[tierKey].inr;
 
     // Fetch workspace to evaluate free monthly subscription quota
     const workspace = await Workspace.findById(workspaceId);
@@ -119,6 +148,7 @@ router.post('/start', authMiddleware, async (req, res) => {
       limit: requestedLimit,
       targetRole,
       customKeywords: customKeywords.trim(),
+      enrichmentScope: tierKey,
       ratePerLeadUSD,
       ratePerLeadINR,
       io,
@@ -128,7 +158,7 @@ router.post('/start', authMiddleware, async (req, res) => {
       success: true,
       jobId,
       message: `Autonomous AI Multi-Source Lead Scraper launched across ${parsedLocations.length} target territory(ies)`,
-      params: { location: locationDisplay, locations: parsedLocations, limit: requestedLimit, targetRole, customKeywords, ratePerLeadUSD, ratePerLeadINR },
+      params: { location: locationDisplay, locations: parsedLocations, limit: requestedLimit, targetRole, customKeywords, enrichmentScope: tierKey, ratePerLeadUSD, ratePerLeadINR },
     });
   } catch (error) {
     console.error('Scraper start error:', error);
