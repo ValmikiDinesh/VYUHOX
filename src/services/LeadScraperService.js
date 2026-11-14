@@ -163,6 +163,43 @@ export class LeadScraperService {
   }
 
   /**
+   * Anti-Synthetic Phone Number Filter
+   * Detects and blocks fake, sequential, repetitive, or placeholder phone numbers.
+   */
+  static isSyntheticPhoneNumber(phone) {
+    if (!phone || typeof phone !== 'string') return true;
+    const digits = phone.replace(/[^0-9]/g, '');
+    if (digits.length < 8) return true;
+
+    // 1. Sequential digit patterns (ascending or descending) anywhere in the number
+    const sequentialPatterns = [
+      '01234', '12345', '23456', '34567', '45678', '56789', '67890',
+      '98765', '87654', '76543', '65432', '54321', '43210',
+    ];
+    for (const pat of sequentialPatterns) {
+      if (digits.includes(pat)) return true;
+    }
+
+    // 2. Repetitive digit sequences of 4 or more identical digits (e.g. 0000, 1111, 9999)
+    if (/(\d)\1{3,}/.test(digits)) {
+      return true;
+    }
+
+    // 3. Known dummy, test, or placeholder telephone sequences
+    const dummyPatterns = [
+      '9876543210', '9876543211', '9999999999', '9000000000', '8000000000',
+      '7000000000', '9123456789', '1234567890', '0000000000', '1111111111',
+      '9898989898', '9191919191', '8989898989', '7878787878', '9000090000',
+      '1231231234', '5555555555', '5551234', '12345678', '87654321',
+    ];
+    for (const pat of dummyPatterns) {
+      if (digits.includes(pat)) return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Intelligent International Phone Number Formatter & Authenticator
    * Guarantees authentic cellular mobile formats:
    * - India (+91): Strictly 10-digit cellular mobile numbers starting with 9, 8, 7, 6 (TRAI compliant). NEVER landline STD area codes (like 40, 80, 22).
@@ -171,8 +208,8 @@ export class LeadScraperService {
    * - US/CA (+1): Standard 10-digit E.164 cellular/corporate formats
    */
   static formatLocalizedPhoneNumber(location, address = '', workspace = {}, candidateRawPhone = null) {
-    // STRICT AUTHENTICITY: If no authentic phone was extracted from website, return null
-    if (!candidateRawPhone || typeof candidateRawPhone !== 'string') {
+    // STRICT AUTHENTICITY: If no phone or if synthetic/dummy, return null
+    if (!candidateRawPhone || typeof candidateRawPhone !== 'string' || this.isSyntheticPhoneNumber(candidateRawPhone)) {
       return null;
     }
 
@@ -196,14 +233,15 @@ export class LeadScraperService {
         return `+91 ${ten.substring(0, 5)} ${ten.substring(5)}`;
       }
       // Standard Indian landline/contact number with STD
-      if (digits.length >= 10) {
-        return `+91 ${digits.slice(-10)}`;
+      if (digits.length >= 10 && /^[6-9]/.test(digits.slice(-10))) {
+        const ten = digits.slice(-10);
+        return `+91 ${ten.substring(0, 5)} ${ten.substring(5)}`;
       }
     } else if (region === 'US_GLOBAL') {
-      if (digits.length === 10) {
+      if (digits.length === 10 && /^[2-9]/.test(digits)) {
         return `+1 (${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
       }
-      if (digits.length === 11 && digits.startsWith('1')) {
+      if (digits.length === 11 && digits.startsWith('1') && /^[2-9]/.test(digits.substring(1))) {
         return `+1 (${digits.substring(1, 4)}) ${digits.substring(4, 7)}-${digits.substring(7)}`;
       }
     } else if (region === 'UK') {
@@ -271,13 +309,13 @@ Return a strict JSON object:
    * checks WhatsApp delivery readiness, and uses AI analysis.
    */
   static async auditAndVerifyPhoneWithAi({ phone, company, location, domain }) {
-    if (!phone) {
+    if (!phone || this.isSyntheticPhoneNumber(phone)) {
       return {
         isValidMobile: false,
         telecomStandard: 'NONE',
         whatsappSupported: false,
         confidenceScore: 0,
-        auditSummary: 'No phone number provided',
+        auditSummary: 'Synthetic, dummy, or invalid phone number rejected',
         verified: false,
       };
     }
@@ -519,10 +557,19 @@ Return strictly a JSON object:
    */
   static async resolveTargetBuyerMatrix(strategy, workspace, targetRole = 'BUYER', customKeywords = '') {
     const businessName = strategy?.businessName || workspace?.name || 'Client Business';
-    const category = (strategy?.category || workspace?.industry || '').toLowerCase();
+    const rawCategory = (strategy?.category || workspace?.industry || '').toLowerCase().trim();
     const modelDesc = (workspace?.businessModelDescription || '').toLowerCase();
     const url = (strategy?.targetUrl || workspace?.domain || '').toLowerCase();
-    const rawTokens = `${businessName} ${category} ${modelDesc} ${url} ${customKeywords}`.toLowerCase();
+    const rawData = strategy?.rawExtractedData || {};
+    const siteTitle = rawData.title || '';
+    const siteDesc = rawData.metaDescription || '';
+    const siteHeadings = (rawData.h1List || []).concat(rawData.h2List || []).slice(0, 6).join('; ');
+    const crawledWebsiteContext = siteTitle ? `Title: ${siteTitle} | Description: ${siteDesc} | Offerings: ${siteHeadings}` : '';
+
+    const isGenericCategory = !rawCategory || ['general business', 'general', 'commercial enterprise', 'n/a', 'business'].includes(rawCategory);
+    const category = isGenericCategory && crawledWebsiteContext
+      ? 'Deduce exact vertical from crawled website context'
+      : (rawCategory || 'Commercial Enterprise');
 
     // 0. DYNAMIC AI DISCOVERY: Use the active GTM Strategy's AI-generated criteria if available
     const aiCriteria = strategy?.analysisResult?.leadDiscoveryCriteria;
@@ -534,7 +581,7 @@ Return strictly a JSON object:
       ? aiCriteria.buyerSearchKeywords
       : null;
 
-    if (targetRole === 'BUYER' && aiKeywords && aiPersonas) {
+    if (targetRole === 'BUYER' && aiKeywords && aiPersonas && !isGenericCategory) {
       return {
         serviceType: strategy?.category || category || 'Bespoke Offerings',
         valueOffering: strategy?.analysisResult?.positioning?.coreValueProp || strategy?.analysisResult?.whatTheySell || `${businessName} offerings`,
@@ -548,7 +595,7 @@ Return strictly a JSON object:
 
     // 1. Dynamic LLM Buyer Matrix Synthesis (Universal AI for ANY business)
     try {
-      const whatTheySell = strategy?.analysisResult?.whatTheySell || strategy?.analysisResult?.summary || workspace?.businessModelDescription || '';
+      const whatTheySell = strategy?.analysisResult?.whatTheySell || strategy?.analysisResult?.summary || workspace?.businessModelDescription || crawledWebsiteContext || '';
       const coreOfferings = (strategy?.analysisResult?.coreOfferings || []).join(', ');
       const businessModel = strategy?.analysisResult?.businessModel || workspace?.operatingMode || 'Commercial';
 
@@ -559,12 +606,15 @@ CRITICAL COMMERCIAL PROSPECTING & ANTI-COMPETITOR RULE:
 1. We are prospecting prospective commercial BUYERS, CLIENTS, DISTRIBUTORS, or INSTITUTIONAL PARTNERS who pay for this business's products or services.
 2. NEVER return or search for direct competitors who manufacture or sell the same product!
    - Example 1 (Sunglasses Brand): DO NOT search for sunglasses makers (Ray-Ban, Oakley). Search for WHO BUYS sunglasses: Optical retail store owners, Eyewear category managers, Department store merchandisers, Lifestyle boutique buyers, Corporate gifting specialists.
-   - Example 2 (Cultural Heritage & Religious Tourism Information): DO NOT search for anonymous blog readers. Search for commercial entities that BUY, PACKAGE, or LICENSE this content: Pilgrimage Tour Operators, Cultural Travel Agencies, Temple Tourism Coordinators, Spiritual Retreat Organizers, Heritage Tour Directors.
-   - Example 3 (SaaS Accounting Software): Search for CFOs, Finance Directors, Accounting Firm Partners, Controllers at mid-market companies.
-   - Example 4 (Organic Food / Beverage): Search for Specialty Grocery Store Stockists, Hotel Food & Beverage Directors, Cafe Chain Purchasing Heads, Supermarket Category Managers.
+   - Example 2 (Wedding Video Invitations - Toran Invites): DO NOT search for other invitation card makers. Search for WHO RECALLS/PACKAGES/RECOMMENDS invitations to couples: Wedding Planners, Event Management Companies, Luxury Wedding Photographers, Banquet Sales Managers, Event Decorators.
+   - Example 3 (Cultural Heritage & Religious Tourism Information - Aalayakatha): Search for Pilgrimage Tour Operators, Cultural Travel Agencies, Temple Tourism Coordinators, Spiritual Retreat Organizers, Heritage Tour Directors.
+   - Example 4 (SaaS Accounting Software): Search for CFOs, Finance Directors, Accounting Firm Partners, Controllers at mid-market companies.
+   - Example 5 (Organic Food / Beverage): Search for Specialty Grocery Store Stockists, Hotel Food & Beverage Directors, Cafe Chain Purchasing Heads, Supermarket Category Managers.
 
 Business Name: "${businessName || 'Enterprise'}"
-Category / Industry: "${category || 'Commercial Services'}"
+Website URL: "${strategy?.targetUrl || workspace?.domain || url}"
+Category / Industry: "${category}"
+Crawled Website Content: "${crawledWebsiteContext}"
 What They Sell / Value Offering: "${whatTheySell || `${businessName} offerings`}"
 Core Products / Services: "${coreOfferings || category}"
 Business Model: "${businessModel}"
@@ -727,12 +777,12 @@ Return a strict JSON object:
         const name = item.name || item.display_name.split(',')[0].trim();
         const address = item.display_name;
 
-        // Only include Nominatim entries if they represent an actual organization with a domain or phone
-        if (cleanDomain || rawPhone) {
+        // Only include Nominatim entries if they represent an actual organization with a verified domain
+        if (cleanDomain) {
           validResults.push({
             name,
             address,
-            domain: cleanDomain || `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.in`,
+            domain: cleanDomain,
             phone: rawPhone,
             email: rawEmail,
             location: item.address?.city || item.address?.state || location,
@@ -784,10 +834,15 @@ Return a strict JSON object:
               const uData = await uRes.json();
               const comp = (uData.company || '').replace(/^@/, '').trim();
               if (!comp) return null;
+              let compDomain = '';
+              if (uData.blog) {
+                compDomain = uData.blog.replace(/https?:\/\//i, '').split('/')[0].replace(/^www\./i, '').trim();
+              }
+              if (!compDomain) return null; // Only accept entries with verified domain
               return {
                 name: uData.name || u.login,
                 company: comp,
-                domain: comp.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com',
+                domain: compDomain,
                 bio: uData.bio || '',
                 blog: uData.blog || '',
                 twitter: uData.twitter_username || '',
@@ -820,68 +875,182 @@ Return a strict JSON object:
   }
 
   /**
+   * Mandatory Live Website Liveness Gate:
+   * 1. Resolves DNS (A or CNAME) to ensure domain actually exists and has an IP.
+   * 2. Issues live HTTP/HTTPS fetch with browser headers and 4.5s timeout.
+   * 3. Confirms HTTP status 200..399. Rejects 404, 500, 502, 503, connection refused, timed out.
+   * 4. Detects and rejects parked domain placeholders / domain-for-sale pages.
+   */
+  static async checkWebsiteLiveness(domainOrUrl) {
+    if (!domainOrUrl || typeof domainOrUrl !== 'string') {
+      return { live: false, reason: 'INVALID_DOMAIN' };
+    }
+    const cleanDomain = domainOrUrl
+      .replace(/https?:\/\//i, '')
+      .split('/')[0]
+      .replace(/^www\./i, '')
+      .toLowerCase()
+      .trim();
+
+    if (!cleanDomain || cleanDomain.includes(' ') || !cleanDomain.includes('.')) {
+      return { live: false, reason: 'MALFORMED_DOMAIN' };
+    }
+
+    // Step 1: DNS Resolution Check (ensures host is registered and routed)
+    try {
+      const addresses = await dns.promises.resolve4(cleanDomain);
+      if (!addresses || addresses.length === 0) {
+        return { live: false, reason: 'NO_A_RECORD' };
+      }
+    } catch (dnsErr) {
+      try {
+        const cnames = await dns.promises.resolveCname(cleanDomain);
+        if (!cnames || cnames.length === 0) {
+          return { live: false, reason: 'DNS_RESOLUTION_FAILED' };
+        }
+      } catch (cErr) {
+        return { live: false, reason: 'DNS_NOT_FOUND' };
+      }
+    }
+
+    // Step 2: Live HTTP / HTTPS Probe
+    const protocols = ['https://', 'http://'];
+    for (const proto of protocols) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4500);
+        const res = await fetch(`${proto}${cleanDomain}`, {
+          method: 'GET',
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            Accept:
+              'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          redirect: 'follow',
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (res.status >= 200 && res.status < 400) {
+          const html = await res.text();
+          // Detect parked or for-sale placeholder sites
+          const isParked = /(domain is for sale|buy this domain|this domain is parked|godaddy parking|hugedomains|domain name renewal|parked free|dan\.com\/buy-domain)/i.test(
+            html.slice(0, 4000)
+          );
+          if (isParked) {
+            return { live: false, reason: 'PARKED_OR_FOR_SALE' };
+          }
+          return {
+            live: true,
+            status: res.status,
+            proto,
+            cleanDomain,
+            html,
+          };
+        }
+      } catch (httpErr) {
+        // Try next protocol or continue
+      }
+    }
+
+    return { live: false, reason: 'UNREACHABLE_OR_TIMEOUT' };
+  }
+
+  /**
    * Deep Crawl Domain & Extract Real Contact Coordinates
+   * GUARANTEES:
+   * 1. Returns live: false if domain is unreachable, dead, 404, or parked.
+   * 2. Strips any synthetic, sequential, or dummy phone numbers.
+   * 3. Extracts authentic email and phone coordinates from active HTML DOM.
    */
   static async crawlTargetDomain(domainOrUrl) {
-    const domain = domainOrUrl
+    const domain = (domainOrUrl || '')
       .replace(/https?:\/\//i, '')
       .split('/')[0]
       .replace(/^www\./i, '')
       .trim();
 
+    if (!domain) {
+      return { domain: '', title: '', metaDesc: '', emails: [], phones: [], live: false, reason: 'EMPTY_DOMAIN' };
+    }
+
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3500);
-      const res = await fetch(`https://${domain}`, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-
-      if (res.ok) {
-        const html = await res.text();
-        const $ = cheerio.load(html);
-        const title = $('title').text().trim();
-        const metaDesc = $('meta[name="description"]').attr('content') || '';
-
-        const emails = new Set();
-        $('a[href^="mailto:"]').each((_, a) => {
-          const m = $(a).attr('href')?.replace(/^mailto:/i, '').split('?')[0].trim();
-          if (m && m.includes('@')) emails.add(m.toLowerCase());
-        });
-        const bodyText = $('body').text();
-        const emailMatches = bodyText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-        emailMatches.slice(0, 3).forEach((e) => emails.add(e.toLowerCase()));
-
-        const phones = new Set();
-        $('a[href^="tel:"]').each((_, a) => {
-          const t = $(a).attr('href')?.replace(/^tel:/i, '').trim();
-          if (t && t.length >= 8) phones.add(t);
-        });
-
-        // Extract genuine cellular phone numbers from page content (India + International)
-        const inPhoneMatches = bodyText.match(/(?:(?:\+91|0091|91|0)[\-\s]?)?([6-9]\d{4}[\-\s]?\d{5}|[6-9]\d{9})/g) || [];
-        inPhoneMatches.slice(0, 3).forEach((p) => phones.add(p.trim()));
-
-        const intlPhoneMatches = bodyText.match(/\+?[1-9]\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}/g) || [];
-        intlPhoneMatches.slice(0, 3).forEach((p) => {
-          if (p.replace(/[^0-9]/g, '').length >= 10) phones.add(p.trim());
-        });
-
+      const liveness = await this.checkWebsiteLiveness(domain);
+      if (!liveness.live) {
         return {
           domain,
-          title,
-          metaDesc,
-          emails: Array.from(emails),
-          phones: Array.from(phones),
-          live: true,
+          title: '',
+          metaDesc: '',
+          emails: [],
+          phones: [],
+          live: false,
+          reason: liveness.reason,
         };
       }
-    } catch (e) { }
-    return { domain, title: domain, metaDesc: '', emails: [], phones: [], live: true };
+
+      const html = liveness.html || '';
+      const $ = cheerio.load(html);
+      const title = $('title').text().trim();
+      const metaDesc = $('meta[name="description"]').attr('content') || '';
+
+      const emails = new Set();
+      $('a[href^="mailto:"]').each((_, a) => {
+        const m = $(a).attr('href')?.replace(/^mailto:/i, '').split('?')[0].trim();
+        if (m && m.includes('@') && !this.isDisposableEmail(m)) {
+          const emailPrefix = m.split('@')[0].toLowerCase();
+          if (!/(test|demo|example|sample|dummy|temp|fake|user|admin123|none)/i.test(emailPrefix)) {
+            emails.add(m.toLowerCase());
+          }
+        }
+      });
+      const bodyText = $('body').text();
+      const emailMatches = bodyText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+      emailMatches.slice(0, 5).forEach((e) => {
+        const lower = e.toLowerCase();
+        const prefix = lower.split('@')[0];
+        if (!this.isDisposableEmail(lower) && !/(test|demo|example|sample|dummy|temp|fake|user|admin123|none)/i.test(prefix)) {
+          emails.add(lower);
+        }
+      });
+
+      const phones = new Set();
+      $('a[href^="tel:"]').each((_, a) => {
+        const t = $(a).attr('href')?.replace(/^tel:/i, '').trim();
+        if (t && t.length >= 8 && !this.isSyntheticPhoneNumber(t)) {
+          phones.add(t);
+        }
+      });
+
+      // Extract genuine cellular phone numbers from page content (India + International)
+      const inPhoneMatches = bodyText.match(/(?:(?:\+91|0091|91|0)[\-\s]?)?([6-9]\d{4}[\-\s]?\d{5}|[6-9]\d{9})/g) || [];
+      inPhoneMatches.slice(0, 5).forEach((p) => {
+        const trimmed = p.trim();
+        if (!this.isSyntheticPhoneNumber(trimmed)) {
+          phones.add(trimmed);
+        }
+      });
+
+      const intlPhoneMatches = bodyText.match(/\+?[1-9]\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}/g) || [];
+      intlPhoneMatches.slice(0, 5).forEach((p) => {
+        const trimmed = p.trim();
+        if (trimmed.replace(/[^0-9]/g, '').length >= 10 && !this.isSyntheticPhoneNumber(trimmed)) {
+          phones.add(trimmed);
+        }
+      });
+
+      return {
+        domain,
+        title,
+        metaDesc,
+        emails: Array.from(emails),
+        phones: Array.from(phones),
+        live: true,
+      };
+    } catch (e) {
+      return { domain, title: '', metaDesc: '', emails: [], phones: [], live: false, reason: e.message };
+    }
   }
 
   /**
@@ -1230,42 +1399,203 @@ JSON Format:
         }
       }
 
-      // Convert Map values to array and take EXACTLY the requested limit
-      const targetAccounts = Array.from(candidateMap.values()).slice(0, limit);
+      // Convert Map values to array for live domain validation
+      const rawCandidates = Array.from(candidateMap.values());
+      const verifiedTargetAccounts = [];
 
-      // 4. Step 2: Deep Domain Crawling, Email & Phone Formatting
+      // 4. Step 2: Live Website Verification, Deep Crawling & Authentic Contact Extraction
       emit('scraper:progress', {
         jobId,
         step: 'METADATA_ENRICHMENT',
         stepIndex: 2,
         totalSteps: 4,
-        message: `Resolving contact channels for ${targetAccounts.length} verified buyer accounts in "${location}"...`,
+        message: `Verifying live websites and extracting authentic contacts across target territories...`,
         percent: 45,
       });
 
-      for (let i = 0; i < targetAccounts.length; i++) {
-        const acc = targetAccounts[i];
+      for (let i = 0; i < rawCandidates.length; i++) {
+        if (verifiedTargetAccounts.length >= limit) break;
+        const acc = rawCandidates[i];
 
-        // Always crawl domain for live contact coordinates if website is active
+        // MANDATORY GATE 1: Active Live Website Liveness Check
         const crawlData = await this.crawlTargetDomain(acc.domain);
+        if (!crawlData.live) {
+          console.log(`[LeadScraper] Discarding dead or unreachable website: ${acc.domain} (${crawlData.reason || 'Offline'})`);
+          continue;
+        }
+
+        // Email Resolution: Prefer crawled email from active website DOM
+        let resolvedEmail = '';
         if (crawlData.emails && crawlData.emails.length > 0) {
           const valid = crawlData.emails.find((e) => !usedEmails.has(e.toLowerCase()));
-          if (valid) {
-            acc.email = valid;
-            usedEmails.add(valid.toLowerCase());
+          if (valid) resolvedEmail = valid;
+        }
+        if (!resolvedEmail && acc.email && !usedEmails.has(acc.email.toLowerCase())) {
+          const prefix = acc.email.split('@')[0].toLowerCase();
+          if (!/(test|demo|example|sample|dummy|temp|fake|user|admin123|none)/i.test(prefix)) {
+            resolvedEmail = acc.email;
           }
         }
 
-        // Format localized phone number: prefer crawled phone, fallback to candidate phone
+        // Phone Resolution: Prefer crawled phone, strictly reject synthetic/sequential patterns
+        let resolvedPhone = '';
         const rawCrawledPhone = crawlData.phones && crawlData.phones.length > 0 ? crawlData.phones[0] : null;
-        if (rawCrawledPhone) {
+        if (rawCrawledPhone && !this.isSyntheticPhoneNumber(rawCrawledPhone)) {
           const formatted = this.formatLocalizedPhoneNumber(location, acc.location, workspace, rawCrawledPhone);
-          if (formatted) acc.phone = formatted;
-        } else if (acc.phone) {
+          if (formatted) resolvedPhone = formatted;
+        } else if (acc.phone && !this.isSyntheticPhoneNumber(acc.phone)) {
           const formatted = this.formatLocalizedPhoneNumber(location, acc.location, workspace, acc.phone);
-          if (formatted) acc.phone = formatted;
+          if (formatted) resolvedPhone = formatted;
+        }
+
+        // Fallback Email Check: If no email found on page, verify domain mail exchanger
+        if (!resolvedEmail && !resolvedPhone) {
+          const defaultContactEmail = `info@${acc.domain}`;
+          try {
+            const mx = await this.verifyMxRecord(defaultContactEmail);
+            if (mx.hasMx && !usedEmails.has(defaultContactEmail.toLowerCase())) {
+              resolvedEmail = defaultContactEmail;
+            }
+          } catch (e) { }
+        }
+
+        // MANDATORY GATE 2: Client must have at least one authentic contact channel
+        if (!resolvedEmail && !resolvedPhone) {
+          console.log(`[LeadScraper] Discarded live site without authentic contact info: ${acc.domain}`);
+          continue;
+        }
+
+        if (resolvedEmail) usedEmails.add(resolvedEmail.toLowerCase());
+
+        const verifiedAcc = {
+          ...acc,
+          company: (crawlData.title && crawlData.title.length > 2)
+            ? crawlData.title.split(/[-|:]/)[0].trim() || acc.company
+            : acc.company,
+          email: resolvedEmail,
+          phone: resolvedPhone,
+        };
+        verifiedTargetAccounts.push(verifiedAcc);
+      }
+
+      // ITERATIVE PRECISION HARVESTING: If any candidates were dropped due to dead websites,
+      // discover additional candidates and MANDATORILY verify their websites before accepting!
+      if (verifiedTargetAccounts.length < limit) {
+        let harvestRounds = 0;
+        while (verifiedTargetAccounts.length < limit && harvestRounds < 4) {
+          harvestRounds++;
+          const curLocation = targetLocationList[harvestRounds % targetLocationList.length] || location;
+          const isIndiaTarget = this.detectRegion(curLocation, '', workspace) === 'INDIA';
+          const needed = limit - verifiedTargetAccounts.length;
+
+          // Search live organic business listings for target buyer roles
+          const buyerSearchKw = buyerMatrix.buyerSearchKeywords[harvestRounds % (buyerMatrix.buyerSearchKeywords.length || 1)] || 'companies';
+          const searchBatches = await this.scrapeDirectBusinessSearch(curLocation, buyerSearchKw, Math.min(needed * 2, 10));
+
+          for (const cand of searchBatches) {
+            if (verifiedTargetAccounts.length >= limit) break;
+            const cleanDomain = cand.domain.toLowerCase().replace(/^www\./i, '').trim();
+            if (existingDomains.has(cleanDomain) || verifiedTargetAccounts.some((a) => a.domain === cleanDomain)) continue;
+
+            const crawlData = await this.crawlTargetDomain(cleanDomain);
+            if (!crawlData.live) continue;
+
+            let email = crawlData.emails[0] || '';
+            let phone = crawlData.phones.find((p) => !this.isSyntheticPhoneNumber(p)) || '';
+            if (!email && !phone) {
+              const defEmail = `info@${cleanDomain}`;
+              const mx = await this.verifyMxRecord(defEmail);
+              if (mx.hasMx) email = defEmail;
+            }
+            if (!email && !phone) continue;
+
+            const firstNames = isIndiaTarget ? EXECUTIVE_FIRST_NAMES_INDIA : EXECUTIVE_FIRST_NAMES_GLOBAL;
+            const lastNames = isIndiaTarget ? EXECUTIVE_LAST_NAMES_INDIA : EXECUTIVE_LAST_NAMES_GLOBAL;
+            const name = `${firstNames[verifiedTargetAccounts.length % firstNames.length]} ${lastNames[verifiedTargetAccounts.length % lastNames.length]}`;
+
+            verifiedTargetAccounts.push({
+              name,
+              company: (crawlData.title && crawlData.title.length > 2) ? crawlData.title.split(/[-|:]/)[0].trim() : cand.title,
+              domain: cleanDomain,
+              title: buyerMatrix.buyerPersonas[verifiedTargetAccounts.length % buyerMatrix.buyerPersonas.length] || 'Director',
+              email,
+              phone: phone ? (this.formatLocalizedPhoneNumber(location, curLocation, workspace, phone) || phone) : '',
+              location: curLocation,
+              source: 'Verified Live Web Directory',
+            });
+          }
+
+          // If still below limit, query AI for candidate operating businesses in niche with MANDATORY crawl check
+          if (verifiedTargetAccounts.length < limit) {
+            try {
+              const aiPrompt = `You are Vyuhox Commercial Lead Discovery.
+Target: List real operating businesses, agencies, distributors, or partner companies in "${curLocation}" matching client "${businessName}" (${category}).
+Target Personas: ${(buyerMatrix.buyerPersonas || []).join(', ')}
+Keywords: ${(buyerMatrix.buyerSearchKeywords || []).join(', ')}
+
+Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.length + 3, 8)} real operating entities:
+[
+  {
+    "company": "Real Company Name",
+    "domain": "actualoperatingwebsite.com",
+    "contactName": "Full Name",
+    "title": "Exact Job Title",
+    "location": "${curLocation}"
+  }
+]`;
+              const aiRes = await LlmGatewayService.execute({
+                prompt: aiPrompt,
+                systemInstruction: 'Output strictly a JSON array of real operating entities with active public websites.',
+                jsonResponse: true,
+                temperature: 0.2,
+                timeoutMs: 12000,
+              });
+
+              const parsed = Array.isArray(aiRes?.parsedJson)
+                ? aiRes.parsedJson
+                : (Array.isArray(aiRes?.parsedJson?.leads) ? aiRes.parsedJson.leads : []);
+
+              for (const item of parsed) {
+                if (verifiedTargetAccounts.length >= limit) break;
+                if (!item?.domain || !item?.company) continue;
+                const cleanDomain = item.domain.replace(/^https?:\/\//i, '').split('/')[0].replace(/^www\./i, '').toLowerCase().trim();
+                if (!cleanDomain || existingDomains.has(cleanDomain) || verifiedTargetAccounts.some((a) => a.domain === cleanDomain)) continue;
+
+                // MANDATORY LIVE WEBSITE CHECK ON AI SUGGESTIONS
+                const crawlData = await this.crawlTargetDomain(cleanDomain);
+                if (!crawlData.live) {
+                  console.log(`[LeadScraper] Discarding AI hallucinated/unreachable domain: ${cleanDomain}`);
+                  continue;
+                }
+
+                let email = crawlData.emails[0] || '';
+                let phone = crawlData.phones.find((p) => !this.isSyntheticPhoneNumber(p)) || '';
+                if (!email && !phone) {
+                  const defEmail = `info@${cleanDomain}`;
+                  const mx = await this.verifyMxRecord(defEmail);
+                  if (mx.hasMx) email = defEmail;
+                }
+                if (!email && !phone) continue;
+
+                verifiedTargetAccounts.push({
+                  name: item.contactName || 'Managing Director',
+                  company: (crawlData.title && crawlData.title.length > 2) ? crawlData.title.split(/[-|:]/)[0].trim() : item.company,
+                  domain: cleanDomain,
+                  title: item.title || buyerMatrix.buyerPersonas[0] || 'Managing Director',
+                  email,
+                  phone: phone ? (this.formatLocalizedPhoneNumber(location, curLocation, workspace, phone) || phone) : '',
+                  location: item.location || curLocation,
+                  source: 'AI Autonomous Lead Discovery (Live Verified)',
+                });
+              }
+            } catch (aiErr) {
+              console.warn('[LeadScraper] AI Discovery harvest note:', aiErr.message);
+            }
+          }
         }
       }
+
+      const targetAccounts = verifiedTargetAccounts.slice(0, limit);
 
       // 5. Step 3: Live DNS MX Network Handshake & Verification
       emit('scraper:progress', {
@@ -1282,11 +1612,8 @@ JSON Format:
       for (let i = 0; i < targetAccounts.length; i++) {
         const p = targetAccounts[i];
 
-        // STRICT QUALITY RULE:
-        // Clients are paying for real, contactable leads.
-        // If neither a real email nor a real phone/WhatsApp number was found, DROP/IGNORE this lead!
         if (!p.email && !p.phone) {
-          console.log(`[LeadScraper] Discarded lead "${p.company}" (${p.domain}) - No real email or phone discovered.`);
+          console.log(`[LeadScraper] Discarded lead "${p.company}" (${p.domain}) - No real email or phone.`);
           continue;
         }
 
@@ -1296,7 +1623,6 @@ JSON Format:
         let twilioLineRes = { lineType: 'CELLULAR', isMobile: true, readyForMayaVoice: true, provider: 'Twilio Intelligence' };
 
         if (p.email) {
-          // 1. BounceBan Catch-All Verification Shield
           bouncebanRes = await this.verifyWithBounceban({
             email: p.email,
             apiKey: bouncebanKey,
@@ -1314,7 +1640,6 @@ JSON Format:
         }
 
         if (p.phone) {
-          // 2. Twilio Lookup v2 Line-Type Classification (Mobile vs Landline vs VoIP)
           twilioLineRes = await this.lookupTwilioLineType({
             phone: p.phone,
             accountSid: twilioSid,
@@ -1325,7 +1650,6 @@ JSON Format:
         const cleanFirst = p.name.split(' ')[0].toLowerCase().replace(/[^a-z]/g, '');
         const cleanLast = (p.name.split(' ')[1] || 'exec').toLowerCase().replace(/[^a-z]/g, '');
 
-        // Generate tailored strategy note addressing buyer's need
         const notes = `Targeted for ${businessName}. AI identified ${p.title} at ${p.company} as an ideal ${targetRole || 'buyer'} for ${buyerMatrix.serviceType}. Pain point addressed: "${buyerMatrix.painPoint}". Email: ${bouncebanRes.verified ? 'BounceBan Catch-All Passed' : mxResult.mxHost}. Phone: ${twilioLineRes.lineType} (${twilioLineRes.carrier}). Location: ${p.location}.`;
 
         const [roleAudit, phoneAudit] = await Promise.all([
@@ -1407,7 +1731,6 @@ JSON Format:
 
         leadObj.score = this.calculateAiScore(leadObj);
 
-        // Safe upsert using email if available, otherwise phone + company
         const upsertQuery = leadObj.email
           ? { workspaceId, email: leadObj.email }
           : { workspaceId, phone: leadObj.phone, company: leadObj.company };
@@ -1423,7 +1746,6 @@ JSON Format:
 
         enrichedList.push(savedLead);
 
-        // Emit real-time lead found
         emit('scraper:lead_found', {
           jobId,
           lead: savedLead,
@@ -1433,115 +1755,6 @@ JSON Format:
         });
 
         await new Promise((r) => setTimeout(r, 160));
-      }
-
-      // GUARANTEED EXACT COUNT BACKFILL:
-      // If any leads were discarded and enrichedList.length is below the requested limit,
-      // run a precision backfill to ensure client receives 100% of requested volume.
-      if (enrichedList.length < limit) {
-        const deficit = limit - enrichedList.length;
-        const curLocation = targetLocationList[0] || location;
-        const isIndiaTarget = this.detectRegion(curLocation, '', workspace) === 'INDIA';
-
-        try {
-          const backfillPrompt = `You are Vyuhox Commercial Lead Discovery.
-Target: Discover EXACTLY ${deficit} distinct operating businesses, travel agencies, tour operators, or partner organizations in "${curLocation}" matching "${businessName}" (${category}).
-Target Personas: ${(buyerMatrix.buyerPersonas || []).join(', ')}
-
-Output strictly a JSON array of ${deficit} verified entities:
-[
-  {
-    "company": "Company Name",
-    "domain": "actualdomain.com",
-    "contactName": "Full Name",
-    "title": "Exact Title",
-    "phone": "${isIndiaTarget ? '+91 9XXXXXXXXX' : '+1XXXXXXXXXX'}",
-    "email": "contact@actualdomain.com",
-    "location": "${curLocation}",
-    "description": "Short description"
-  }
-]`;
-
-          const backfillRes = await LlmGatewayService.execute({
-            prompt: backfillPrompt,
-            systemInstruction: 'Output strictly a JSON array of valid commercial leads.',
-            jsonResponse: true,
-            temperature: 0.2,
-            timeoutMs: 15000,
-          });
-
-          const bfItems = Array.isArray(backfillRes?.parsedJson)
-            ? backfillRes.parsedJson
-            : (Array.isArray(backfillRes?.parsedJson?.leads) ? backfillRes.parsedJson.leads : []);
-
-          for (const item of bfItems) {
-            if (enrichedList.length >= limit) break;
-            if (item?.company && (item?.email || item?.phone)) {
-              const cleanDomain = (item.domain || item.company.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com')
-                .replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase().trim();
-
-              const formattedPhone = this.formatLocalizedPhoneNumber(location, item.location || curLocation, workspace, item.phone) || item.phone || '';
-              const mxResult = item.email ? await this.verifyMxRecord(item.email) : { hasMx: false, mxHost: 'Phone Verified' };
-
-              const notes = `Targeted for ${businessName}. AI identified ${item.title || 'Director'} at ${item.company} as ideal client for ${buyerMatrix.serviceType}. Pain point addressed: "${buyerMatrix.painPoint}".`;
-
-              const backfillLeadObj = {
-                workspaceId,
-                name: item.contactName || 'Managing Director',
-                company: item.company,
-                website: `https://${cleanDomain}`,
-                title: item.title || buyerMatrix.buyerPersonas[0] || 'Managing Director',
-                email: item.email || '',
-                phone: formattedPhone,
-                location: item.location || curLocation,
-                stage: 'Prospect',
-                source: 'AI Autonomous Lead Discovery',
-                entityRole: targetRole || 'BUYER',
-                verificationStatus: item.email ? (mxResult.hasMx ? 'VERIFIED' : 'PHONE_VERIFIED') : 'PHONE_VERIFIED',
-                mxHost: mxResult.mxHost || 'Phone Verified',
-                phoneLineType: 'CELLULAR',
-                catchAllPassed: true,
-                readyForMayaVoice: !!formattedPhone,
-                channels: {
-                  email: item.email || '',
-                  phone: formattedPhone,
-                  whatsapp: formattedPhone,
-                  linkedin: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${item.company} ${item.title || ''}`)}`,
-                },
-                tags: ['AI Autonomous Scraper', 'Autonomous Match', targetRole || 'BUYER', 'Precision Verified', businessName],
-                notes,
-                metadata: {
-                  scrapedForBusiness: businessName,
-                  buyerServiceCategory: buyerMatrix.serviceType,
-                  locationTarget: location,
-                  verifiedAt: new Date().toISOString(),
-                },
-              };
-
-              backfillLeadObj.score = this.calculateAiScore(backfillLeadObj);
-
-              const upsertQuery = backfillLeadObj.email
-                ? { workspaceId, email: backfillLeadObj.email }
-                : { workspaceId, phone: backfillLeadObj.phone, company: backfillLeadObj.company };
-
-              let savedLead = backfillLeadObj;
-              if (isDbConnected && isValidWs) {
-                savedLead = await Lead.findOneAndUpdate(upsertQuery, backfillLeadObj, { upsert: true, new: true });
-              }
-              enrichedList.push(savedLead);
-
-              emit('scraper:lead_found', {
-                jobId,
-                lead: savedLead,
-                index: enrichedList.length,
-                total: limit,
-                rateUSD: ratePerLeadUSD,
-              });
-            }
-          }
-        } catch (bfErr) {
-          console.warn('[LeadScraperService] Backfill generation note:', bfErr.message);
-        }
       }
 
       // 6. Plan-Aware Lead Quota & Accurate Per-Lead Wallet Deduction
