@@ -959,79 +959,93 @@ Return a strict JSON object:
   }
 
   /**
-   * Location-Intelligent Regional Email/Phone Scorer
-   * When a website provides multiple branch/office contacts (e.g. NYC, Miami, LA, London, Hyderabad),
-   * prioritizes the exact contact matching the client's target location.
+   * Evaluate Contact Utility & Relevance for B2B Commercial Prospecting
+   * CRITICAL GUARANTEES:
+   * 1. NEVER manufactures or invents synthetic emails (e.g. city@domain.com or city@gmail.com).
+   * 2. Assumes ANY authentic business email on the domain has high baseline value (50 pts).
+   * 3. Prioritizes personal executive mailboxes (founder, ceo, director, personal names) & commercial inquiry desks (events@, sales@, inquiries@).
+   * 4. De-prioritizes administrative or non-commercial inboxes (billing@, careers@, legal@, support@).
+   * 5. If a business explicitly lists regional branch desks (e.g. NYC Desk, Miami Desk), awards a regional affinity bonus to the matching branch for the primary slot.
    */
-  static scoreContactForLocation(contactStr, locationStr) {
-    if (!contactStr || !locationStr) return 0;
-    const cleanContact = String(contactStr).toLowerCase();
-    const cleanLoc = String(locationStr).toLowerCase();
+  static evaluateContactUtility(contactEntry, locationStr = '') {
+    const value = String(contactEntry.email || contactEntry.phone || contactEntry.value || '').toLowerCase();
+    const label = String(contactEntry.label || '').toLowerCase();
+    const context = String(contactEntry.context || '').toLowerCase();
+    const cleanLoc = String(locationStr || '').toLowerCase();
 
-    const locTokens = cleanLoc.split(/[\s,]+/).filter((t) => t.length > 2);
-    let score = 0;
+    let score = 50; // Positive baseline score for any authentic discovered contact
 
-    // New York City aliases
-    if (cleanLoc.includes('new york') || cleanLoc.includes('nyc')) {
-      if (cleanContact.includes('nyc') || cleanContact.includes('newyork') || cleanContact.includes('212') || cleanContact.includes('646') || cleanContact.includes('917')) {
+    if (value.includes('@')) {
+      const [prefix] = value.split('@');
+
+      // 1. High-Value Executive / Decision-Maker inboxes
+      if (/^(founder|ceo|director|president|partner|principal|managing|owner|chair|chief)/.test(prefix)) {
+        score += 30;
+      } else if (!/(info|contact|support|sales|admin|team|office|help|service|mail)/.test(prefix) && prefix.length > 2 && !prefix.includes('.')) {
+        // Individual personal name (e.g. colin@, sarah@, alex@)
         score += 25;
+      } else if (prefix.includes('.') && prefix.length > 5) {
+        // firstname.lastname@ (e.g. john.doe@)
+        score += 25;
+      }
+
+      // 2. High-Intent Commercial / Sales / Event / Inquiries inboxes
+      if (/^(inquir|event|sale|book|wed|concierge|project|growth|biz|commercial|order|client|reserv)/.test(prefix)) {
+        score += 20;
+      } else if (/^(info|contact|hello|office|team)/.test(prefix)) {
+        score += 15;
+      }
+
+      // 3. Low-Intent Operational / Administrative inboxes (deprioritized for prospecting)
+      if (/^(career|job|hr|recruit|billing|invoice|account|pay|legal|privacy|press|media|pr|support|help|abuse|postmaster|noreply|donotreply|admin|webmaster)/.test(prefix)) {
+        score -= 40;
+      }
+    } else {
+      const digitsOnly = value.replace(/[^0-9]/g, '');
+      if (digitsOnly.length >= 10 && digitsOnly.length <= 12) {
+        score += 20;
       }
     }
 
-    // Miami / Florida aliases
-    if (cleanLoc.includes('miami') || cleanLoc.includes('florida')) {
-      if (cleanContact.includes('miami') || cleanContact.includes('305') || cleanContact.includes('786')) {
-        score += 25;
-      }
-    }
+    // 4. Regional Branch Office Affinity (ONLY when site explicitly provides multi-office desks)
+    if (cleanLoc) {
+      const locTokens = cleanLoc.split(/[\s,]+/).filter((t) => t.length > 2);
+      const combinedText = `${label} ${context} ${value}`;
 
-    // California / Los Angeles / San Francisco aliases
-    if (cleanLoc.includes('california') || cleanLoc.includes('los angeles') || cleanLoc.includes('san francisco') || cleanLoc.includes('la')) {
-      if (cleanContact.includes('losangeles') || cleanContact.includes('la@') || cleanContact.includes('310') || cleanContact.includes('415') || cleanContact.includes('california')) {
-        score += 25;
+      for (const token of locTokens) {
+        if (combinedText.includes(token)) {
+          score += 15;
+          break;
+        }
       }
-    }
 
-    // Hyderabad / Telangana regional aliases
-    if (cleanLoc.includes('hyderabad') || cleanLoc.includes('telangana')) {
-      if (cleanContact.includes('hyd') || cleanContact.includes('hyderabad') || cleanContact.includes('telangana') || cleanContact.includes('040')) {
-        score += 25;
+      if (cleanLoc.includes('new york') || cleanLoc.includes('nyc')) {
+        if (combinedText.includes('212') || combinedText.includes('646') || combinedText.includes('nyc') || combinedText.includes('new york')) {
+          score += 15;
+        }
+      } else if (cleanLoc.includes('miami') || cleanLoc.includes('florida')) {
+        if (combinedText.includes('305') || combinedText.includes('786') || combinedText.includes('miami')) {
+          score += 15;
+        }
+      } else if (cleanLoc.includes('hyderabad') || cleanLoc.includes('telangana')) {
+        if (combinedText.includes('040') || combinedText.includes('hyderabad') || combinedText.includes('hyd')) {
+          score += 15;
+        }
+      } else if (cleanLoc.includes('bangalore') || cleanLoc.includes('bengaluru')) {
+        if (combinedText.includes('080') || combinedText.includes('bangalore') || combinedText.includes('blr')) {
+          score += 15;
+        }
       }
-    }
-
-    // Bangalore / Karnataka aliases
-    if (cleanLoc.includes('bengaluru') || cleanLoc.includes('bangalore')) {
-      if (cleanContact.includes('blr') || cleanContact.includes('bangalore') || cleanContact.includes('bengaluru') || cleanContact.includes('080')) {
-        score += 25;
-      }
-    }
-
-    // Mumbai / Maharashtra aliases
-    if (cleanLoc.includes('mumbai') || cleanLoc.includes('bombay') || cleanLoc.includes('maharashtra')) {
-      if (cleanContact.includes('mumbai') || cleanContact.includes('bom') || cleanContact.includes('022')) {
-        score += 25;
-      }
-    }
-
-    // Delhi / NCR / Gurgaon aliases
-    if (cleanLoc.includes('delhi') || cleanLoc.includes('gurgaon') || cleanLoc.includes('noida')) {
-      if (cleanContact.includes('delhi') || cleanContact.includes('ncr') || cleanContact.includes('011') || cleanContact.includes('0124')) {
-        score += 25;
-      }
-    }
-
-    // London / UK aliases
-    if (cleanLoc.includes('london') || cleanLoc.includes('uk') || cleanLoc.includes('united kingdom')) {
-      if (cleanContact.includes('london') || cleanContact.includes('uk') || cleanContact.includes('+44') || cleanContact.includes('020')) {
-        score += 25;
-      }
-    }
-
-    for (const t of locTokens) {
-      if (cleanContact.includes(t)) score += 6;
     }
 
     return score;
+  }
+
+  /**
+   * Location-Intelligent Regional Email/Phone Scorer (Legacy helper for standalone calls)
+   */
+  static scoreContactForLocation(contactStr, locationStr) {
+    return this.evaluateContactUtility({ value: contactStr }, locationStr);
   }
 
   /**
@@ -1039,8 +1053,9 @@ Return a strict JSON object:
    * GUARANTEES:
    * 1. Returns live: false if domain is unreachable, dead, 404, or parked.
    * 2. Strips any synthetic, sequential, or dummy phone numbers.
-   * 3. Extracts authentic email and phone coordinates from active HTML DOM.
-   * 4. Location-intelligent: Ranks regional branch contacts matching target location.
+   * 3. NEVER invents fake emails (e.g. city@domain.com). All contacts come from live HTML.
+   * 4. Multi-Contact Preservation: Captures ALL available branch desks, inboxes, and numbers with contextual labels.
+   * 5. Intelligently ranks the most relevant decision-maker / commercial contact as Primary.
    */
   static async crawlTargetDomain(domainOrUrl, location = '') {
     const domain = (domainOrUrl || '')
@@ -1050,7 +1065,7 @@ Return a strict JSON object:
       .trim();
 
     if (!domain) {
-      return { domain: '', title: '', metaDesc: '', emails: [], phones: [], live: false, reason: 'EMPTY_DOMAIN' };
+      return { domain: '', title: '', metaDesc: '', emails: [], phones: [], allDiscoveredContacts: [], additionalEmails: [], additionalPhones: [], live: false, reason: 'EMPTY_DOMAIN' };
     }
 
     try {
@@ -1062,6 +1077,9 @@ Return a strict JSON object:
           metaDesc: '',
           emails: [],
           phones: [],
+          allDiscoveredContacts: [],
+          additionalEmails: [],
+          additionalPhones: [],
           live: false,
           reason: liveness.reason,
         };
@@ -1072,61 +1090,130 @@ Return a strict JSON object:
       const title = $('title').text().trim();
       const metaDesc = $('meta[name="description"]').attr('content') || '';
 
-      const emails = new Set();
+      const rawEmailEntries = [];
+      const rawPhoneEntries = [];
+      const seenEmails = new Set();
+      const seenPhones = new Set();
+
+      // 1. Extract HTML mailto: anchors with contextual labels (e.g. Miami, NYC, Event Inquiry, Corporate Sales)
       $('a[href^="mailto:"]').each((_, a) => {
-        const m = $(a).attr('href')?.replace(/^mailto:/i, '').split('?')[0].trim();
+        const href = $(a).attr('href') || '';
+        const m = href.replace(/^mailto:/i, '').split('?')[0].trim();
         if (m && m.includes('@') && !this.isDisposableEmail(m)) {
-          const emailPrefix = m.split('@')[0].toLowerCase();
-          if (!/(test|demo|example|sample|dummy|temp|fake|user|admin123|none)/i.test(emailPrefix)) {
-            emails.add(m.toLowerCase());
+          const emailLower = m.toLowerCase();
+          const emailPrefix = emailLower.split('@')[0];
+          if (!/(test|demo|example|sample|dummy|temp|fake|user|admin123|none)/i.test(emailPrefix) && !seenEmails.has(emailLower)) {
+            seenEmails.add(emailLower);
+
+            let querySubject = '';
+            try {
+              const queryPart = href.split('?')[1];
+              if (queryPart) {
+                const params = new URLSearchParams(queryPart);
+                querySubject = params.get('Subject') || params.get('subject') || '';
+              }
+            } catch (e) {}
+
+            let linkText = $(a).text().trim();
+            let parentText = $(a).parent().text().replace(/\s+/g, ' ').trim();
+            let label = linkText;
+            if (!label || label.toLowerCase() === emailLower) {
+              const cleanedParent = parentText.replace(new RegExp(m, 'ig'), '').trim();
+              if (cleanedParent && cleanedParent.length < 50) {
+                label = cleanedParent;
+              } else if (querySubject) {
+                label = querySubject;
+              } else {
+                label = 'Direct Inbox';
+              }
+            }
+            rawEmailEntries.push({ email: emailLower, label: label.slice(0, 45), context: parentText.slice(0, 80) });
           }
         }
       });
+
+      // 2. Extract plain-text emails on page
       const bodyText = $('body').text();
       const emailMatches = bodyText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
       emailMatches.slice(0, 8).forEach((e) => {
-        const lower = e.toLowerCase();
+        let lower = e.toLowerCase();
+        // Strip glued words from unspaced HTML DOM (e.g. .comNew -> .com)
+        lower = lower.replace(/(\.(com|org|net|in|io|ai|co|info|biz|uk|us|ca))[a-z]{2,}$/i, '$1');
         const prefix = lower.split('@')[0];
-        if (!this.isDisposableEmail(lower) && !/(test|demo|example|sample|dummy|temp|fake|user|admin123|none)/i.test(prefix)) {
-          emails.add(lower);
+        if (!this.isDisposableEmail(lower) && !/(test|demo|example|sample|dummy|temp|fake|user|admin123|none)/i.test(prefix) && !seenEmails.has(lower)) {
+          seenEmails.add(lower);
+          rawEmailEntries.push({ email: lower, label: 'Website Contact', context: '' });
         }
       });
 
-      const phones = new Set();
+      // 3. Extract HTML tel: anchors with contextual labels (e.g. New York City, Miami, Direct Line)
       $('a[href^="tel:"]').each((_, a) => {
         const t = $(a).attr('href')?.replace(/^tel:/i, '').trim();
-        if (t && t.length >= 8 && !this.isSyntheticPhoneNumber(t)) {
-          phones.add(t);
+        if (t && t.length >= 8 && !this.isSyntheticPhoneNumber(t) && !seenPhones.has(t)) {
+          seenPhones.add(t);
+          let linkText = $(a).text().trim();
+          let parentText = $(a).parent().text().replace(/\s+/g, ' ').trim();
+          let label = linkText;
+          if (!label || label === t) {
+            const cleanedParent = parentText.replace(new RegExp(t.replace(/[-+()]/g, ''), 'g'), '').trim();
+            if (cleanedParent && cleanedParent.length < 50) {
+              label = cleanedParent;
+            } else {
+              label = 'Direct Line';
+            }
+          }
+          rawPhoneEntries.push({ phone: t, label: label.slice(0, 45), context: parentText.slice(0, 80) });
         }
       });
 
-      // Extract genuine cellular phone numbers from page content (India + International)
+      // 4. Extract genuine cellular phone numbers from page content (India + International)
       const inPhoneMatches = bodyText.match(/(?:(?:\+91|0091|91|0)[\-\s]?)?([6-9]\d{4}[\-\s]?\d{5}|[6-9]\d{9})/g) || [];
       inPhoneMatches.slice(0, 8).forEach((p) => {
         const trimmed = p.trim();
-        if (!this.isSyntheticPhoneNumber(trimmed)) {
-          phones.add(trimmed);
+        if (!this.isSyntheticPhoneNumber(trimmed) && !seenPhones.has(trimmed)) {
+          seenPhones.add(trimmed);
+          rawPhoneEntries.push({ phone: trimmed, label: 'Cellular Line', context: '' });
         }
       });
 
       const intlPhoneMatches = bodyText.match(/\+?[1-9]\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}/g) || [];
       intlPhoneMatches.slice(0, 8).forEach((p) => {
         const trimmed = p.trim();
-        if (trimmed.replace(/[^0-9]/g, '').length >= 10 && !this.isSyntheticPhoneNumber(trimmed)) {
-          phones.add(trimmed);
+        if (trimmed.replace(/[^0-9]/g, '').length >= 10 && !this.isSyntheticPhoneNumber(trimmed) && !seenPhones.has(trimmed)) {
+          seenPhones.add(trimmed);
+          rawPhoneEntries.push({ phone: trimmed, label: 'Office Line', context: '' });
         }
       });
 
-      // Location-Intelligent Regional Sorting
-      const emailList = Array.from(emails);
-      if (location && emailList.length > 1) {
-        emailList.sort((a, b) => this.scoreContactForLocation(b, location) - this.scoreContactForLocation(a, location));
-      }
+      // 5. Intelligent Multi-Criteria Utility Ranking
+      rawEmailEntries.forEach((e) => {
+        e.score = this.evaluateContactUtility(e, location);
+      });
+      rawEmailEntries.sort((a, b) => b.score - a.score);
 
-      const phoneList = Array.from(phones);
-      if (location && phoneList.length > 1) {
-        phoneList.sort((a, b) => this.scoreContactForLocation(b, location) - this.scoreContactForLocation(a, location));
-      }
+      rawPhoneEntries.forEach((p) => {
+        p.score = this.evaluateContactUtility(p, location);
+      });
+      rawPhoneEntries.sort((a, b) => b.score - a.score);
+
+      const emailList = rawEmailEntries.map((e) => e.email);
+      const phoneList = rawPhoneEntries.map((p) => p.phone);
+
+      // Package all discovered contacts with their desk labels
+      const allDiscoveredContacts = [
+        ...rawEmailEntries.map((e, idx) => ({
+          type: 'EMAIL',
+          value: e.email,
+          label: e.label || (idx === 0 ? 'Primary Email' : 'Secondary Desk'),
+          isPrimary: idx === 0,
+        })),
+        ...rawPhoneEntries.map((p, idx) => ({
+          type: 'PHONE',
+          value: p.phone,
+          label: p.label || (idx === 0 ? 'Primary Line' : 'Secondary Line'),
+          isPrimary: idx === 0,
+        })),
+      ];
 
       return {
         domain,
@@ -1134,10 +1221,15 @@ Return a strict JSON object:
         metaDesc,
         emails: emailList,
         phones: phoneList,
+        primaryEmail: emailList[0] || '',
+        primaryPhone: phoneList[0] || '',
+        allDiscoveredContacts,
+        additionalEmails: rawEmailEntries.slice(1).map((e) => ({ email: e.email, label: e.label })),
+        additionalPhones: rawPhoneEntries.slice(1).map((p) => ({ phone: p.phone, label: p.label })),
         live: true,
       };
     } catch (e) {
-      return { domain, title: '', metaDesc: '', emails: [], phones: [], live: false, reason: e.message };
+      return { domain, title: '', metaDesc: '', emails: [], phones: [], allDiscoveredContacts: [], additionalEmails: [], additionalPhones: [], live: false, reason: e.message };
     }
   }
 
@@ -1576,6 +1668,9 @@ JSON Format:
             : acc.company,
           email: resolvedEmail,
           phone: resolvedPhone,
+          allDiscoveredContacts: crawlData.allDiscoveredContacts || [],
+          additionalEmails: crawlData.additionalEmails || [],
+          additionalPhones: crawlData.additionalPhones || [],
         };
         verifiedTargetAccounts.push(verifiedAcc);
       }
@@ -1628,6 +1723,9 @@ JSON Format:
               phone: phone ? (this.formatLocalizedPhoneNumber(location, curLocation, workspace, phone) || phone) : '',
               location: curLocation,
               source: 'Verified Live Web Directory',
+              allDiscoveredContacts: crawlData.allDiscoveredContacts || [],
+              additionalEmails: crawlData.additionalEmails || [],
+              additionalPhones: crawlData.additionalPhones || [],
             });
           }
 
@@ -1697,6 +1795,9 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
                   phone: phone ? (this.formatLocalizedPhoneNumber(location, curLocation, workspace, phone) || phone) : '',
                   location: item.location || curLocation,
                   source: 'AI Autonomous Lead Discovery (Live Verified)',
+                  allDiscoveredContacts: crawlData.allDiscoveredContacts || [],
+                  additionalEmails: crawlData.additionalEmails || [],
+                  additionalPhones: crawlData.additionalPhones || [],
                 });
               }
             } catch (aiErr) {
@@ -1767,7 +1868,16 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
           ? 'Email Only'
           : 'Omnichannel Bundle';
 
-        const notes = `Targeted for ${businessName}. AI identified ${p.title} at ${p.company} as an ideal ${targetRole || 'buyer'} for ${buyerMatrix.serviceType}. Scope: ${scopeLabel}. Email: ${bouncebanRes.verified ? 'BounceBan Catch-All Passed' : mxResult.mxHost}. Phone: ${twilioLineRes.lineType} (${twilioLineRes.carrier}). Location: ${p.location}.`;
+        // Format all discovered contacts for structured notes
+        let contactSummaryMemo = '';
+        if (p.allDiscoveredContacts && p.allDiscoveredContacts.length > 0) {
+          const formattedList = p.allDiscoveredContacts.map(
+            (c) => `• ${c.isPrimary ? '[Primary Desk] ' : '[Desk/Line] '}${c.label ? `${c.label}: ` : ''}${c.value}`
+          );
+          contactSummaryMemo = `\n\nAll Discovered Coordinates from Website (${p.allDiscoveredContacts.length}):\n${formattedList.join('\n')}`;
+        }
+
+        const notes = `Targeted for ${businessName}. AI identified ${p.title} at ${p.company} as an ideal ${targetRole || 'buyer'} for ${buyerMatrix.serviceType}. Scope: ${scopeLabel}. Email: ${bouncebanRes.verified ? 'BounceBan Catch-All Passed' : mxResult.mxHost}. Phone: ${twilioLineRes.lineType} (${twilioLineRes.carrier}). Location: ${p.location}.${contactSummaryMemo}`;
 
         const [roleAudit, phoneAudit] = await Promise.all([
           this.auditLeadRoleWithAi({
@@ -1815,6 +1925,8 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
             email: p.email || '',
             phone: p.phone || '',
             whatsapp: p.phone || '',
+            additionalEmails: p.additionalEmails || [],
+            additionalPhones: p.additionalPhones || [],
             telegram: `@${cleanFirst}_${cleanLast}`,
             linkedin: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
               `${p.company} ${p.title}`
@@ -1836,6 +1948,9 @@ Output strictly a JSON array of up to ${Math.min(limit - verifiedTargetAccounts.
             scrapedForBusiness: businessName,
             buyerServiceCategory: buyerMatrix.serviceType,
             enrichmentScope,
+            allDiscoveredContacts: p.allDiscoveredContacts || [],
+            additionalEmails: p.additionalEmails || [],
+            additionalPhones: p.additionalPhones || [],
             entityRole: roleAudit.entityRole || targetRole || 'BUYER',
             tradeDetails: roleAudit,
             phoneVerification: phoneAudit,

@@ -1997,6 +1997,23 @@ export default function LeadFinder({
                                 <AlertTriangle size={9} /> Unverified
                               </span>
                             )}
+                            {lead.metadata?.additionalEmails && lead.metadata.additionalEmails.length > 0 && (
+                              <span
+                                title={`All Discovered Inboxes:\n${lead.email} (Primary)\n${lead.metadata.additionalEmails.map((e) => `• ${e.label ? `${e.label}: ` : ''}${e.email}`).join('\n')}`}
+                                style={{
+                                  fontSize: '0.6rem',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  background: 'rgba(56, 189, 248, 0.12)',
+                                  color: '#38BDF8',
+                                  border: '1px solid rgba(56, 189, 248, 0.28)',
+                                  cursor: 'help',
+                                  fontWeight: '600',
+                                }}
+                              >
+                                +{lead.metadata.additionalEmails.length} inboxes
+                              </span>
+                            )}
                             {lead.mxHost && (
                               <span style={{ fontSize: '0.65rem', color: '#64748B' }}>
                                 ({lead.mxHost.split('.')[0]})
@@ -2052,6 +2069,23 @@ export default function LeadFinder({
                                 fontWeight: '600',
                               }}>
                                 WhatsApp
+                              </span>
+                            )}
+                            {lead.metadata?.additionalPhones && lead.metadata.additionalPhones.length > 0 && (
+                              <span
+                                title={`All Discovered Phone Lines:\n${lead.phone} (Primary)\n${lead.metadata.additionalPhones.map((p) => `• ${p.label ? `${p.label}: ` : ''}${p.phone}`).join('\n')}`}
+                                style={{
+                                  fontSize: '0.6rem',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  background: 'rgba(16, 185, 129, 0.12)',
+                                  color: '#34D399',
+                                  border: '1px solid rgba(16, 185, 129, 0.28)',
+                                  cursor: 'help',
+                                  fontWeight: '600',
+                                }}
+                              >
+                                +{lead.metadata.additionalPhones.length} lines
                               </span>
                             )}
                           </div>
@@ -2276,20 +2310,79 @@ export default function LeadFinder({
                       {/* Expanded Strategy Notes Row */}
                       {isNotesExpanded && (
                         <tr style={{ background: 'rgba(6, 182, 212, 0.04)', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                          <td colSpan={11} style={{ padding: '12px 20px' }}>
+                          <td colSpan={11} style={{ padding: '14px 20px' }}>
                             <div style={{
                               display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: '10px',
+                              flexDirection: 'column',
+                              gap: '12px',
                               fontSize: '0.785rem',
                               color: '#CBD5E1',
                               lineHeight: '1.5',
                             }}>
-                              <Zap size={14} color="#06B6D4" style={{ flexShrink: 0, marginTop: '2px' }} />
-                              <div>
-                                <span style={{ color: '#38BDF8', fontWeight: '700' }}>Strategy-Calibrated Pitch Angle: </span>
-                                {lead.notes || 'No specific outreach memo generated.'}
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                <Zap size={14} color="#06B6D4" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                <div>
+                                  <span style={{ color: '#38BDF8', fontWeight: '700' }}>Strategy-Calibrated Pitch Angle: </span>
+                                  {lead.notes || 'No specific outreach memo generated.'}
+                                </div>
                               </div>
+
+                              {/* All Discovered Website Contacts & Desks */}
+                              {lead.metadata?.allDiscoveredContacts && lead.metadata.allDiscoveredContacts.length > 0 && (
+                                <div style={{
+                                  marginTop: '4px',
+                                  padding: '12px 16px',
+                                  borderRadius: '8px',
+                                  background: 'rgba(15, 23, 42, 0.7)',
+                                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                                }}>
+                                  <div style={{
+                                    fontSize: '0.72rem',
+                                    fontWeight: '800',
+                                    color: '#38BDF8',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.04em',
+                                    marginBottom: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                  }}>
+                                    <Globe size={13} color="#38BDF8" /> All Available Contact Desks Discovered On Website ({lead.metadata.allDiscoveredContacts.length})
+                                  </div>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px' }}>
+                                    {lead.metadata.allDiscoveredContacts.map((c, cIdx) => (
+                                      <div
+                                        key={cIdx}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          padding: '6px 10px',
+                                          background: c.isPrimary ? 'rgba(6, 182, 212, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                                          borderRadius: '6px',
+                                          border: c.isPrimary ? '1px solid rgba(6, 182, 212, 0.35)' : '1px solid rgba(255, 255, 255, 0.06)',
+                                          fontSize: '0.75rem',
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                          {c.type === 'EMAIL' ? <Mail size={12} color="#38BDF8" /> : <Phone size={12} color="#10B981" />}
+                                          <span style={{ color: '#F1F5F9', fontWeight: '600' }}>{c.value}</span>
+                                        </div>
+                                        <span style={{
+                                          fontSize: '0.66rem',
+                                          color: c.isPrimary ? '#38BDF8' : '#94A3B8',
+                                          background: c.isPrimary ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                                          padding: '1px 6px',
+                                          borderRadius: '4px',
+                                          fontWeight: '700',
+                                        }}>
+                                          {c.isPrimary ? `⭐ ${c.label || 'Primary'}` : (c.label || 'Desk')}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
