@@ -1953,10 +1953,10 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   flexShrink: 0,
                 }}>
                   <img
-                    src={selectedPost.mediaUrl || '/media/hedgex_carousel.jpg'}
+                    src={selectedPost.mediaUrl || '/media/vyuhox_banner.jpg'}
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = '/media/hedgex_carousel.jpg';
+                      e.target.src = '/media/vyuhox_banner.jpg';
                     }}
                     alt="Brand Visual Asset"
                     style={{
@@ -1996,7 +1996,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                         </span>
                       </div>
                       <span style={{ fontSize: '0.64rem', color: '#34D399', fontWeight: '800', background: 'rgba(16, 185, 129, 0.2)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                        8K OCTANE RENDER
+                        8K VISUAL ASSET
                       </span>
                     </div>
 
@@ -2012,13 +2012,13 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                         color: '#A7F3D0',
                         marginBottom: '8px',
                       }}>
-                        +3.82 ANNUALIZED SHARPE RATIO
+                        {selectedPost?.carouselSlides?.[0]?.statCallout || '✨ FEATURED COLLECTION'}
                       </div>
                       <h2 style={{ margin: '0 0 8px', fontSize: '1.25rem', fontWeight: '900', color: '#F8FAFC', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
-                        {selectedPost.title || 'Sub-600ms Cross-Exchange Arbitrage Execution'}
+                        {selectedPost.title || activeWorkspace?.name || 'Exclusive Showcase'}
                       </h2>
                       <p style={{ margin: 0, fontSize: '0.76rem', color: '#CBD5E1', lineHeight: '1.4' }}>
-                        Automated liquidity routing across Binance, OKX, and Bybit with institutional multi-party custody.
+                        {selectedPost.scriptHook || selectedPost.caption?.slice(0, 140) || 'Custom designed for discerning clients.'}
                       </p>
                     </div>
                   </div>
@@ -2041,7 +2041,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   {/* Header Badge */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#10B981', letterSpacing: '0.04em' }}>
-                      {activeWorkspace?.name?.toUpperCase() || 'VYUHOX'} • QUANTITATIVE
+                      {activeWorkspace?.name?.toUpperCase() || 'VYUHOX'} • {activeWorkspace?.industry?.toUpperCase() || 'EXCLUSIVE'}
                     </span>
                     <span style={{
                       fontSize: '0.7rem',
@@ -2068,7 +2068,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                       color: '#34D399',
                       marginBottom: '16px',
                     }}>
-                      {selectedPost.carouselSlides?.[currentSlideIndex]?.statCallout || '+382% Pipeline Velocity'}
+                      {selectedPost.carouselSlides?.[currentSlideIndex]?.statCallout || '100% Handcrafted'}
                     </div>
 
                     <h2 style={{

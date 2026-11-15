@@ -1134,7 +1134,7 @@ export default function AdsManager({
                 marginBottom: '10px',
               }}>
                 <img
-                  src={activeCreative.mediaUrl || '/media/hedgex_reel.jpg'}
+                  src={activeCreative.mediaUrl || '/media/vyuhox_banner.jpg'}
                   alt="Ad Creative"
                   style={{ width: '100%', height: '220px', objectFit: 'cover' }}
                 />
@@ -1210,7 +1210,7 @@ export default function AdsManager({
                 background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%)',
               }}>
                 <img
-                  src={activeCreative.mediaUrl || '/media/hedgex_reel.jpg'}
+                  src={activeCreative.mediaUrl || '/media/vyuhox_banner.jpg'}
                   alt="Reels Media"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />

@@ -428,15 +428,19 @@ export class MultiProviderVisualGateway {
             };
           }
 
-          // 7. Pollinations FLUX.1 (Free, Zero Quota, Unlimited 8K)
+          // 7. Pollinations FLUX.1 (Free / Authenticated via enter.pollinations.ai)
           case 'POLLINATIONS_FLUX': {
+            const pollKey = pollinationsConfig.apiKey?.trim();
             const encoded = encodeURIComponent(styledPrompt.slice(0, 480));
-            const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&model=flux&nologo=true&seed=${seed}&enhance=true`;
+            const imageUrl = pollKey
+              ? `https://gen.pollinations.ai/image/${encoded}?width=${width}&height=${height}&model=flux&key=${pollKey}`
+              : `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&model=flux&nologo=true&seed=${seed}&enhance=true`;
+
             return {
               success: true,
               imageUrl,
               provider: 'Pollinations_FLUX_1',
-              providerName: 'Pollinations FLUX.1 Neural Engine',
+              providerName: pollKey ? 'Pollinations FLUX.1 Pro (Authenticated)' : 'Pollinations FLUX.1 Neural Engine',
               width,
               height,
               seed,
@@ -642,17 +646,51 @@ export class MultiProviderVisualGateway {
     const safeSubtext = (subtext || 'Eliminate manual prospecting with autonomous AI orchestration.').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const safeBrand = (brandName || 'VYUHOX').replace(/&/g, '&amp;');
 
+    const textToScan = `${safeHeadline} ${safeSubtext} ${safeBrand}`.toLowerCase();
+    const isWeddingOrLuxury = /wedding|invite|stationery|event|jewelry|luxury|floral/i.test(textToScan);
+    const isSunglassesOrFashion = /sunglass|shades|eyewear|fashion|apparel|summer|beach/i.test(textToScan);
+
+    // Dynamic theme palettes
+    let bgColors = ['#070C18', '#0B132B', '#041C2C'];
+    let accentColors = ['#06B6D4', '#10B981', '#38BDF8'];
+    let pillText = `⚡ ${safeBrand} OFFICIAL`;
+    let badgeMetric = '3.8x ROI';
+    let badgeSubtext = 'Verified Benchmarks';
+    let ctaLabel = 'Claim Priority Access →';
+    let glowColor1 = '#06B6D4';
+    let glowColor2 = '#10B981';
+
+    if (isWeddingOrLuxury) {
+      bgColors = ['#1A0F14', '#2C1822', '#140810'];
+      accentColors = ['#F59E0B', '#FBBF24', '#D97706'];
+      pillText = `✨ ${safeBrand} COUTURE`;
+      badgeMetric = '100% BESPOKE';
+      badgeSubtext = 'Handcrafted Luxury';
+      ctaLabel = 'Preview Invitation Suite →';
+      glowColor1 = '#F59E0B';
+      glowColor2 = '#EC4899';
+    } else if (isSunglassesOrFashion) {
+      bgColors = ['#180C1A', '#24102A', '#0D1527'];
+      accentColors = ['#EC4899', '#F59E0B', '#8B5CF6'];
+      pillText = `🕶️ ${safeBrand} EYEWEAR`;
+      badgeMetric = 'UV400 POLARIZED';
+      badgeSubtext = 'Limited Summer Release';
+      ctaLabel = 'Shop The Collection →';
+      glowColor1 = '#EC4899';
+      glowColor2 = '#F59E0B';
+    }
+
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <defs>
         <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#070C18"/>
-          <stop offset="50%" stop-color="#0B132B"/>
-          <stop offset="100%" stop-color="#041C2C"/>
+          <stop offset="0%" stop-color="${bgColors[0]}"/>
+          <stop offset="50%" stop-color="${bgColors[1]}"/>
+          <stop offset="100%" stop-color="${bgColors[2]}"/>
         </linearGradient>
         <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#06B6D4"/>
-          <stop offset="50%" stop-color="#10B981"/>
-          <stop offset="100%" stop-color="#38BDF8"/>
+          <stop offset="0%" stop-color="${accentColors[0]}"/>
+          <stop offset="50%" stop-color="${accentColors[1]}"/>
+          <stop offset="100%" stop-color="${accentColors[2]}"/>
         </linearGradient>
         <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="35" result="blur" />
@@ -664,8 +702,8 @@ export class MultiProviderVisualGateway {
       <rect width="100%" height="100%" fill="url(#bgGrad)"/>
 
       <!-- Ambient Glow Orbs -->
-      <circle cx="${width * 0.85}" cy="${height * 0.2}" r="${width * 0.35}" fill="#06B6D4" opacity="0.18" filter="url(#glow)"/>
-      <circle cx="${width * 0.15}" cy="${height * 0.8}" r="${width * 0.3}" fill="#10B981" opacity="0.15" filter="url(#glow)"/>
+      <circle cx="${width * 0.85}" cy="${height * 0.2}" r="${width * 0.35}" fill="${glowColor1}" opacity="0.18" filter="url(#glow)"/>
+      <circle cx="${width * 0.15}" cy="${height * 0.8}" r="${width * 0.3}" fill="${glowColor2}" opacity="0.15" filter="url(#glow)"/>
 
       <!-- Grid lines -->
       <g stroke="rgba(255,255,255,0.04)" stroke-width="1">
@@ -679,8 +717,8 @@ export class MultiProviderVisualGateway {
 
       <!-- Brand Pill -->
       <g transform="translate(${width * 0.08}, ${height * 0.1})">
-        <rect width="${width * 0.3}" height="${height * 0.055}" rx="${height * 0.027}" fill="rgba(6,182,212,0.15)" stroke="rgba(6,182,212,0.4)" stroke-width="1.5"/>
-        <text x="${width * 0.15}" y="${height * 0.036}" fill="#38BDF8" font-family="system-ui, -apple-system, sans-serif" font-size="${height * 0.022}" font-weight="800" text-anchor="middle" letter-spacing="1">⚡ ${safeBrand} OFFICIAL</text>
+        <rect width="${width * 0.36}" height="${height * 0.055}" rx="${height * 0.027}" fill="rgba(255,255,255,0.08)" stroke="${accentColors[0]}" stroke-width="1.5"/>
+        <text x="${width * 0.18}" y="${height * 0.036}" fill="${accentColors[1]}" font-family="system-ui, -apple-system, sans-serif" font-size="${height * 0.022}" font-weight="800" text-anchor="middle" letter-spacing="1">${pillText}</text>
       </g>
 
       <!-- Headline -->
@@ -693,7 +731,7 @@ export class MultiProviderVisualGateway {
 
       <!-- Subtext -->
       <g transform="translate(${width * 0.08}, ${height * 0.52})">
-        <text fill="#94A3B8" font-family="system-ui, -apple-system, sans-serif" font-size="${height * 0.026}" font-weight="500">
+        <text fill="#CBD5E1" font-family="system-ui, -apple-system, sans-serif" font-size="${height * 0.026}" font-weight="500">
           <tspan x="0" dy="0">${safeSubtext.slice(0, 55)}</tspan>
           <tspan x="0" dy="${height * 0.038}">${safeSubtext.slice(55, 110)}</tspan>
         </text>
@@ -701,15 +739,15 @@ export class MultiProviderVisualGateway {
 
       <!-- CTA Button Mockup -->
       <g transform="translate(${width * 0.08}, ${height * 0.72})">
-        <rect width="${width * 0.36}" height="${height * 0.075}" rx="10" fill="url(#accentGrad)" filter="drop-shadow(0 8px 24px rgba(16,185,129,0.35))"/>
-        <text x="${width * 0.18}" y="${height * 0.048}" fill="#021C11" font-family="system-ui, -apple-system, sans-serif" font-size="${height * 0.026}" font-weight="800" text-anchor="middle">Claim Priority Access →</text>
+        <rect width="${width * 0.42}" height="${height * 0.075}" rx="10" fill="url(#accentGrad)" filter="drop-shadow(0 8px 24px rgba(255,255,255,0.15))"/>
+        <text x="${width * 0.21}" y="${height * 0.048}" fill="#0A0A0A" font-family="system-ui, -apple-system, sans-serif" font-size="${height * 0.024}" font-weight="900" text-anchor="middle">${ctaLabel}</text>
       </g>
 
       <!-- Metric Badge -->
       <g transform="translate(${width * 0.65}, ${height * 0.7})">
         <rect width="${width * 0.27}" height="${height * 0.18}" rx="14" fill="rgba(15,23,42,0.85)" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
-        <text x="${width * 0.135}" y="${height * 0.06}" fill="#34D399" font-family="system-ui, -apple-system, sans-serif" font-size="${height * 0.045}" font-weight="900" text-anchor="middle">3.8x ROI</text>
-        <text x="${width * 0.135}" y="${height * 0.11}" fill="#94A3B8" font-family="system-ui, -apple-system, sans-serif" font-size="${height * 0.018}" font-weight="600" text-anchor="middle">Verified Benchmarks</text>
+        <text x="${width * 0.135}" y="${height * 0.06}" fill="${accentColors[0]}" font-family="system-ui, -apple-system, sans-serif" font-size="${height * 0.04}" font-weight="900" text-anchor="middle">${badgeMetric}</text>
+        <text x="${width * 0.135}" y="${height * 0.11}" fill="#94A3B8" font-family="system-ui, -apple-system, sans-serif" font-size="${height * 0.018}" font-weight="600" text-anchor="middle">${badgeSubtext}</text>
       </g>
     </svg>`;
 

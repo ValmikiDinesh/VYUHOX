@@ -218,11 +218,20 @@ Return STRICTLY a JSON object with this exact structure:
           brandName: businessContext.companyName,
         });
       } else {
+        // Intelligently rotate across distinct zero-collision engines across variations in a single batch
+        let variationProvider = preferredVisualProvider;
+        if (!preferredVisualProvider || preferredVisualProvider === 'AUTO_ROTATE' || preferredVisualProvider === 'POLLINATIONS_FLUX') {
+          if (i === 0) variationProvider = 'GOOGLE_FLOW_IMAGEN';
+          else if (i === 1) variationProvider = 'DYNAMIC_VECTOR_GRAPHIC';
+          else if (i === 2) variationProvider = 'NANO_BANANA_GPU';
+          else variationProvider = 'GOOGLE_FLOW_IMAGEN';
+        }
+
         assetResult = await MultiProviderVisualGateway.generateImage({
-          prompt: `${businessContext.companyName} ad: ${visualConcept.detailedVisualPrompt || variation.headline}`,
+          prompt: `${businessContext.companyName} ${businessContext.industry}: ${visualConcept.detailedVisualPrompt || variation.headline}`,
           width: platformSpec.width || 1080,
           height: platformSpec.height || 1080,
-          preferredProvider: preferredVisualProvider,
+          preferredProvider: variationProvider,
           style: 'cinematic',
           platform,
           headline: visualConcept.textOverlayHeadline || variation.headline,

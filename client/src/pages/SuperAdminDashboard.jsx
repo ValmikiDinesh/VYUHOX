@@ -2748,14 +2748,18 @@ export default function SuperAdminDashboard({
                   accentBorder: 'rgba(20, 184, 166, 0.3)',
                   icon: <Sparkles size={18} />,
                   authType: 'ZERO_CONFIG_CLUSTER',
-                  badgeText: '100% FREE (NO API KEY NEEDED)',
+                  badgeText: platformConfig?.integrations?.pollinationsVisualAi?.apiKey ? 'PRO KEY ACTIVE (NO COOLDOWN)' : 'FREE TIER ACTIVE',
                   isConfigured: true,
-                  infoMessage: 'Pollinations FLUX.1 is a public high-performance neural cluster with zero quota limits and zero cost. Pre-configured as the platform\'s automatic failover engine so client generation never fails.',
-                  fields: [], // ZERO API keys required!
+                  infoMessage: 'Pollinations provides high-speed 8K FLUX.1 neural diffusion. Free anonymous requests enforce a 45-second cooldown between requests. Adding a secret key (sk_...) from enter.pollinations.ai completely removes the cooldown and enables unlimited concurrent generations across all workspaces.',
+                  portalLink: { label: 'Get Free/Pro Secret Key at enter.pollinations.ai ↗', url: 'https://enter.pollinations.ai' },
+                  fields: [
+                    { name: 'apiKey', label: 'Pollinations Secret Key (sk_...) [Lifts 45s Cooldown]', placeholder: 'sk_... (Optional: leave blank for free tier)', secret: true, required: false },
+                  ],
                   setupGuide: [
-                    '1. Pre-configured zero-cost, zero-quota neural cluster.',
-                    '2. All client workspaces inherit unlimited 8K FLUX.1 generation out-of-the-box.',
-                    '3. Serves as the guaranteed automatic failover engine if commercial API quotas expire.',
+                    '1. By default, VYUHOX includes free Pollinations access for all workspaces.',
+                    '2. To prevent the "Free limit reached (1 image every 45s)" message during rapid generation, visit enter.pollinations.ai.',
+                    '3. Create a Secret Key (starts with "sk_...").',
+                    '4. Paste below and click "Save All Master Settings". All workspaces will immediately generate with zero cooldown.',
                   ],
                 },
                 {

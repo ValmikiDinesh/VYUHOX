@@ -137,11 +137,20 @@ router.post('/generate-from-prompt', authMiddleware, verifyWorkspaceAccess('work
       : (isNow ? new Date() : new Date(Date.now() + 1000 * 60 * 60 * 18)); // in 18 hrs
 
     // 4. Autonomous Generative Visual Engine with multi-provider rotation
-    let mediaUrl = '/media/hedgex_reel.jpg';
-    let thumbnailUrl = '/media/hedgex_reel.jpg';
+    const defaultFallbackMedia = MultiProviderVisualGateway.generateDynamicCreativeSvg({
+      headline: content.title || ws?.name || 'Exclusive Showcase',
+      subtext: content.scriptHook || content.scriptBody || 'Crafted with dedicated precision.',
+      brandName: ws?.name || 'VYUHOX',
+      width: postType === 'REEL' ? 720 : 1080,
+      height: postType === 'REEL' ? 1280 : 1080,
+      platform: postType === 'REEL' ? 'INSTAGRAM_REELS' : 'META_FEED',
+    });
+
+    let mediaUrl = defaultFallbackMedia;
+    let thumbnailUrl = defaultFallbackMedia;
     try {
       const isReel = postType === 'REEL';
-      const visualPrompt = `${ws?.name || 'VYUHOX'} ${content.title}: ${content.scriptHook || prompt}`;
+      const visualPrompt = content.visualImagePrompt || `${ws?.name || 'VYUHOX'} ${content.title}: ${content.scriptHook || prompt}`;
       if (isReel) {
         const vidResult = await MultiProviderVisualGateway.generateVideo({
           prompt: visualPrompt,
@@ -149,8 +158,9 @@ router.post('/generate-from-prompt', authMiddleware, verifyWorkspaceAccess('work
           headline: content.scriptHook || content.title,
           subtext: ws?.name || 'VYUHOX',
           brandName: ws?.name || 'VYUHOX',
+          preferredProvider: preferredVisualProvider,
         });
-        mediaUrl = vidResult.mediaUrl || mediaUrl;
+        mediaUrl = vidResult.mediaUrl || defaultFallbackMedia;
         thumbnailUrl = vidResult.thumbnailUrl || mediaUrl;
       } else {
         const imgResult = await MultiProviderVisualGateway.generateImage({
@@ -163,14 +173,13 @@ router.post('/generate-from-prompt', authMiddleware, verifyWorkspaceAccess('work
           subtext: content.scriptHook || '',
           brandName: ws?.name || 'VYUHOX',
         });
-        mediaUrl = imgResult.imageUrl || mediaUrl;
-        thumbnailUrl = imgResult.imageUrl || mediaUrl;
+        mediaUrl = imgResult.imageUrl || defaultFallbackMedia;
+        thumbnailUrl = imgResult.imageUrl || defaultFallbackMedia;
       }
     } catch (vErr) {
       console.warn('[SocialRoutes] Visual generation fallback:', vErr.message);
-      if (postType === 'CAROUSEL') mediaUrl = '/media/hedgex_carousel.jpg';
-      else if (ws?.industry === 'B2B') mediaUrl = '/media/vyuhox_reel.jpg';
-      thumbnailUrl = mediaUrl;
+      mediaUrl = defaultFallbackMedia;
+      thumbnailUrl = defaultFallbackMedia;
     }
 
     const newPost = await SocialPost.create({
@@ -320,8 +329,8 @@ router.post('/create-custom', authMiddleware, verifyWorkspaceAccess('workspaceId
       scriptBody: scriptBody || '',
       scriptCta: scriptCta || '',
       timedCaptions,
-      mediaUrl: mediaUrl || '/media/hedgex_reel.jpg',
-      thumbnailUrl: thumbnailUrl || mediaUrl || '/media/hedgex_reel.jpg',
+      mediaUrl: mediaUrl || MultiProviderVisualGateway.generateDynamicCreativeSvg({ headline: title, brandName: ws?.name }),
+      thumbnailUrl: thumbnailUrl || mediaUrl || MultiProviderVisualGateway.generateDynamicCreativeSvg({ headline: title, brandName: ws?.name }),
       audioUrl: resolvedAudioUrl,
       caption: caption || `${scriptHook || title}\n\n#GTM #AutonomousGrowth`,
       hashtags: hashtags.length > 0 ? hashtags : ['#Business', '#Growth', '#Marketing'],

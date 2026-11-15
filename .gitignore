@@ -31,3 +31,6 @@ Thumbs.db
 *.sln
 *.sw?
 scratch/
+client/public/audio/reels/reel_voice_*.wav
+client/public/uploads/*
+!client/public/uploads/.gitkeep
