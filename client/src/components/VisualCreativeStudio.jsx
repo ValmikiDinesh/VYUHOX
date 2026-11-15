@@ -659,6 +659,34 @@ ${slidesHtml}
               <Sparkles size={16} />
               <span>{isGeneratingImage ? 'Synthesizing Visual Creative...' : 'Generate Visual Image (Free)'}</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (prompt?.trim()) {
+                  navigator.clipboard.writeText(prompt);
+                }
+                window.open('https://flow.google.com', '_blank');
+              }}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                background: 'rgba(66, 133, 244, 0.12)',
+                border: '1px solid rgba(66, 133, 244, 0.3)',
+                color: '#60A5FA',
+                fontSize: '0.8rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                marginTop: '8px',
+              }}
+            >
+              <span>🎨 Design in Google Flow Studio (flow.google.com) ↗</span>
+            </button>
           </div>
 
           {/* Preview Panel */}

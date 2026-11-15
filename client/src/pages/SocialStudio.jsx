@@ -3379,7 +3379,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   <option value="OPENAI_DALLE_3">OpenAI DALL-E 3</option>
                   <option value="STABILITY_AI">Stability AI (SD 3.5 & SDXL)</option>
                   <option value="NANO_BANANA_GPU">Nano Banana / SDXL</option>
-                  <option value="GOOGLE_FLOW_IMAGEN">Google Flow / Imagen 3</option>
+                  <option value="GOOGLE_FLOW_IMAGEN">Google Flow / Imagen 3 (Autonomous + Studio Bridge)</option>
                   <option value="POLLINATIONS_FLUX">Pollinations FLUX.1</option>
                   <option value="HUGGINGFACE_FLUX">HuggingFace Schnell</option>
                   <option value="REPLICATE_FAL_FLUX">Fal.ai / Replicate Flux</option>
@@ -3473,45 +3473,72 @@ export default function SocialStudio({ activeWorkspace, socket }) {
             </div>
 
             {/* Modal Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginTop: '4px', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => setIsPromptModalOpen(false)}
+                onClick={() => {
+                  const text = `${activeWorkspace?.name || 'VYUHOX'} social media creative for ${promptTopic || 'business'}. Format: ${promptPostType}. 8k resolution, cinematic lighting, ultra-realistic commercial photography.`;
+                  navigator.clipboard?.writeText(text);
+                  showToast('📋 Creative prompt copied! Opening Google Flow Studio (flow.google.com)...');
+                  window.open('https://flow.google.com', '_blank');
+                }}
+                title="Google Flow is Google's creative web studio. Copies your generated prompt and opens flow.google.com directly."
                 style={{
-                  padding: '9px 16px',
+                  padding: '9px 14px',
                   borderRadius: '8px',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#CBD5E1',
-                  fontSize: '0.78rem',
-                  fontWeight: '600',
+                  background: 'rgba(66, 133, 244, 0.12)',
+                  border: '1px solid rgba(66, 133, 244, 0.35)',
+                  color: '#93C5FD',
+                  fontSize: '0.76rem',
+                  fontWeight: '700',
                   cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleGenerateFromPrompt}
-                disabled={isPromptGenerating}
-                style={{
-                  padding: '9px 24px',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
-                  border: 'none',
-                  color: '#FFFFFF',
-                  fontSize: '0.82rem',
-                  fontWeight: '800',
-                  cursor: isPromptGenerating ? 'not-allowed' : 'pointer',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 0 20px rgba(236, 72, 153, 0.45)',
+                  gap: '6px',
                 }}
               >
-                {isPromptGenerating ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                {isPromptGenerating ? 'Synthesizing with Business AI...' : (promptPublishMode === 'AUTOMATIC_NOW' ? '⚡ Generate & Publish Live' : '✨ Generate & Schedule Post')}
+                🎨 Open Google Flow Studio ↗
               </button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsPromptModalOpen(false)}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#CBD5E1',
+                    fontSize: '0.78rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateFromPrompt}
+                  disabled={isPromptGenerating}
+                  style={{
+                    padding: '9px 24px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    fontSize: '0.82rem',
+                    fontWeight: '800',
+                    cursor: isPromptGenerating ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 0 20px rgba(236, 72, 153, 0.45)',
+                  }}
+                >
+                  {isPromptGenerating ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  {isPromptGenerating ? 'Synthesizing with Business AI...' : (promptPublishMode === 'AUTOMATIC_NOW' ? '⚡ Generate & Publish Live' : '✨ Generate & Schedule Post')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

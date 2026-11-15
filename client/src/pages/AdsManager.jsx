@@ -487,6 +487,16 @@ export default function AdsManager({
     }
   };
 
+  // Google Flow Creative Studio 1-Click Bridge
+  const handleOpenGoogleFlowBridge = (creativeIndex) => {
+    const targetCreative = aiDirectorResult?.creatives?.[creativeIndex];
+    if (!targetCreative) return;
+    const promptText = `${activeWorkspace?.name || 'VYUHOX'} ad creative: ${targetCreative.headline}. ${targetCreative.description || targetCreative.primaryText || ''} Platform: ${aiDirectorPlatform}. Commercial studio lighting, 8k resolution, photorealistic, pristine art direction.`;
+    navigator.clipboard.writeText(promptText);
+    showToast('📋 AI prompt copied to clipboard! Opening Google Flow Studio (flow.google.com)...');
+    window.open('https://flow.google.com', '_blank');
+  };
+
   // Quick 1-Click Approval from Table Row
   const handleLaunchDirectFromRow = async (campaignId) => {
     if (!campaignId || !activeWorkspace) return;
@@ -3353,7 +3363,7 @@ export default function AdsManager({
                     <option value="OPENAI_DALLE_3">OpenAI DALL-E 3 (Master Engine)</option>
                     <option value="STABILITY_AI">Stability AI (SD 3.5 & SDXL)</option>
                     <option value="NANO_BANANA_GPU">Nano Banana / Serverless SDXL</option>
-                    <option value="GOOGLE_FLOW_IMAGEN">Google Flow / Imagen 3 Pipeline</option>
+                    <option value="GOOGLE_FLOW_IMAGEN">Google Flow / Imagen 3 (Autonomous + Studio Bridge)</option>
                     <option value="POLLINATIONS_FLUX">Pollinations FLUX.1 Neural Engine</option>
                     <option value="HUGGINGFACE_FLUX">HuggingFace FLUX.1 Schnell</option>
                     <option value="REPLICATE_FAL_FLUX">Fal.ai / Replicate Fast Flux</option>
@@ -3670,34 +3680,78 @@ export default function AdsManager({
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               fontSize: '0.7rem',
+                              gap: '6px',
+                              flexWrap: 'wrap',
                             }}>
-                              <span style={{ color: '#94A3B8' }}>Rotate visual engine:</span>
-                              <div style={{ display: 'flex', gap: '4px' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRerollVisual(cIdx, 'NANO_BANANA_GPU')}
-                                  disabled={rerollingIndex === cIdx}
-                                  style={{ padding: '3px 6px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#FBBF24', fontSize: '0.65rem', cursor: 'pointer' }}
-                                >
-                                  Banana
-                                </button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                                <span style={{ color: '#94A3B8', fontSize: '0.66rem' }}>AI Engine:</span>
                                 <button
                                   type="button"
                                   onClick={() => handleRerollVisual(cIdx, 'GOOGLE_FLOW_IMAGEN')}
                                   disabled={rerollingIndex === cIdx}
-                                  style={{ padding: '3px 6px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#38BDF8', fontSize: '0.65rem', cursor: 'pointer' }}
+                                  title="Generate with Google Flow / Imagen 3 Vision"
+                                  style={{ padding: '3px 7px', borderRadius: '4px', background: 'rgba(66, 133, 244, 0.15)', border: '1px solid rgba(66, 133, 244, 0.35)', color: '#60A5FA', fontSize: '0.64rem', fontWeight: '700', cursor: 'pointer' }}
                                 >
                                   Google Flow
                                 </button>
                                 <button
                                   type="button"
+                                  onClick={() => handleRerollVisual(cIdx, 'OPENAI_DALLE_3')}
+                                  disabled={rerollingIndex === cIdx}
+                                  title="Generate with OpenAI DALL-E 3"
+                                  style={{ padding: '3px 7px', borderRadius: '4px', background: 'rgba(16, 163, 127, 0.15)', border: '1px solid rgba(16, 163, 127, 0.35)', color: '#34D399', fontSize: '0.64rem', fontWeight: '700', cursor: 'pointer' }}
+                                >
+                                  DALL-E 3
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRerollVisual(cIdx, 'NANO_BANANA_GPU')}
+                                  disabled={rerollingIndex === cIdx}
+                                  title="Generate with Nano Banana SDXL (Zero-Config)"
+                                  style={{ padding: '3px 7px', borderRadius: '4px', background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.25)', color: '#FBBF24', fontSize: '0.64rem', fontWeight: '700', cursor: 'pointer' }}
+                                >
+                                  Banana
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRerollVisual(cIdx, 'POLLINATIONS_FLUX')}
+                                  disabled={rerollingIndex === cIdx}
+                                  title="Generate with Pollinations FLUX.1 (Free Unlimited)"
+                                  style={{ padding: '3px 7px', borderRadius: '4px', background: 'rgba(20, 184, 166, 0.12)', border: '1px solid rgba(20, 184, 166, 0.25)', color: '#2DD4BF', fontSize: '0.64rem', fontWeight: '700', cursor: 'pointer' }}
+                                >
+                                  Flux 1
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => handleRerollVisual(cIdx, 'HUGGINGFACE_FLUX')}
                                   disabled={rerollingIndex === cIdx}
-                                  style={{ padding: '3px 6px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.06)', border: 'none', color: '#A855F7', fontSize: '0.65rem', cursor: 'pointer' }}
+                                  title="Generate with HuggingFace FLUX.1 Schnell"
+                                  style={{ padding: '3px 7px', borderRadius: '4px', background: 'rgba(255, 210, 30, 0.12)', border: '1px solid rgba(255, 210, 30, 0.25)', color: '#FDE047', fontSize: '0.64rem', fontWeight: '700', cursor: 'pointer' }}
                                 >
-                                  Flux Pro
+                                  HF Schnell
                                 </button>
                               </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleOpenGoogleFlowBridge(cIdx)}
+                                title="Open Google Flow Studio (flow.google.com) with pre-copied prompt"
+                                style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '5px',
+                                  background: 'linear-gradient(135deg, rgba(66, 133, 244, 0.2) 0%, rgba(219, 68, 85, 0.2) 100%)',
+                                  border: '1px solid rgba(66, 133, 244, 0.4)',
+                                  color: '#93C5FD',
+                                  fontSize: '0.65rem',
+                                  fontWeight: '800',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <span>🎨 Open Google Flow ↗</span>
+                              </button>
                             </div>
 
                             {/* Authentic Platform Schema Boxes */}

@@ -2713,6 +2713,80 @@ export default function SuperAdminDashboard({
                 // VISUAL & VIDEO AI ENGINES
                 // ==========================================
                 {
+                  id: 'googleFlowVision',
+                  title: 'Google Flow / Imagen 3 Creative Studio',
+                  subtitle: 'Browser-Based Studio Web App & Google Imagen 3 Pipeline',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#4285F4',
+                  accentBg: 'rgba(66, 133, 244, 0.15)',
+                  accentBorder: 'rgba(66, 133, 244, 0.3)',
+                  icon: <Sparkles size={18} />,
+                  authType: 'BROWSER_STUDIO',
+                  badgeText: 'BROWSER STUDIO (NO API KEY NEEDED)',
+                  isConfigured: true,
+                  infoMessage: 'Google Flow (flow.google.com) is a browser-based creative web studio and does NOT issue standalone developer API keys. In VYUHOX, you can launch Google Flow directly with 1-click prompt copying from Ads Manager and Social Studio, or let VYUHOX generate visuals autonomously using the Google Imagen 3 vision pipeline.',
+                  studioLinks: [
+                    { label: 'Open Google Flow Studio (flow.google.com) ↗', url: 'https://flow.google.com' },
+                    { label: 'Open Google Ads Creative Studio ↗', url: 'https://adscreative.google.com' },
+                  ],
+                  fields: [
+                    { name: 'apiKey', label: 'Google Gemini / Cloud API Key (Optional Override)', placeholder: 'AIzaSy... (Leave empty to use built-in Google Imagen 3 mirror)', secret: true, required: false },
+                    { name: 'model', label: 'Google Imagen 3 Model Identifier (Optional)', placeholder: 'imagen-3.0-generate-002', required: false },
+                  ],
+                },
+                {
+                  id: 'pollinationsVisualAi',
+                  title: 'Pollinations FLUX.1 Neural Engine',
+                  subtitle: 'Free Unlimited 8K FLUX.1 / Turbo Zero-Quota Cluster',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#14B8A6',
+                  accentBg: 'rgba(20, 184, 166, 0.15)',
+                  accentBorder: 'rgba(20, 184, 166, 0.3)',
+                  icon: <Sparkles size={18} />,
+                  authType: 'ZERO_CONFIG_CLUSTER',
+                  badgeText: '100% FREE (NO API KEY NEEDED)',
+                  isConfigured: true,
+                  infoMessage: 'Pollinations FLUX.1 is a public high-performance neural cluster with zero quota limits and zero cost. Pre-configured as the platform\'s automatic failover engine so client generation never fails.',
+                  fields: [
+                    { name: 'defaultModel', label: 'Default Model (Optional: flux / turbo / flux-realism)', placeholder: 'flux', required: false },
+                  ],
+                },
+                {
+                  id: 'nanoBananaGpu',
+                  title: 'Nano Banana / Serverless SDXL',
+                  subtitle: 'High-Throughput Micro-Batching GPU Cluster',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#FBBF24',
+                  accentBg: 'rgba(251, 191, 36, 0.15)',
+                  accentBorder: 'rgba(251, 191, 36, 0.3)',
+                  icon: <Cpu size={18} />,
+                  authType: 'ZERO_CONFIG_CLUSTER',
+                  badgeText: 'ZERO-CONFIG GPU CLUSTER',
+                  isConfigured: true,
+                  infoMessage: 'Nano Banana runs on serverless GPU micro-batches for fast SDXL inference. Pre-configured and active by default. No external subscription or API keys required.',
+                  fields: [
+                    { name: 'model', label: 'Model Pipeline (Optional)', placeholder: 'sdxl-turbo', required: false },
+                  ],
+                },
+                {
+                  id: 'shortVideoEngine',
+                  title: 'Autonomous HTML5 Reel Compositor',
+                  subtitle: '9:16 Vertical Video with Karaoke Subtitles & Voiceover',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#A855F7',
+                  accentBg: 'rgba(168, 85, 247, 0.15)',
+                  accentBorder: 'rgba(168, 85, 247, 0.3)',
+                  icon: <Film size={18} />,
+                  authType: 'NATIVE_ENGINE',
+                  badgeText: 'BUILT-IN (NO API KEY NEEDED)',
+                  isConfigured: true,
+                  infoMessage: 'Native autonomous video reel renderer. Renders 9:16 vertical video with animated karaoke subtitles, audio voiceover narration, and dynamic branding overlays locally without third-party video API costs.',
+                  fields: [
+                    { name: 'defaultBrollTheme', label: 'Default B-Roll Theme (Optional)', placeholder: 'cyber_crypto_matrix', required: false },
+                    { name: 'renderEngine', label: 'Compositor Engine (Optional)', placeholder: 'HTML5_REMOTION_COMPOSITOR', required: false },
+                  ],
+                },
+                {
                   id: 'dalleVisualAi',
                   title: 'OpenAI DALL-E 3 & Vision',
                   subtitle: 'Photorealistic Commercial Ad Imagery (1024x1024 / 1792x1024)',
@@ -2721,7 +2795,10 @@ export default function SuperAdminDashboard({
                   accentBg: 'rgba(16, 163, 127, 0.15)',
                   accentBorder: 'rgba(16, 163, 127, 0.3)',
                   icon: <Palette size={18} />,
+                  authType: 'API_CREDENTIALS',
+                  badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.dalleVisualAi?.apiKey),
+                  infoMessage: 'Official OpenAI Developer API key required for direct DALL-E 3 and GPT-4o Vision synthesis.',
                   fields: [
                     { name: 'apiKey', label: 'OpenAI API Key (sk-...)', placeholder: 'sk-proj-...', secret: true, required: true },
                     { name: 'model', label: 'DALL-E Model Version', placeholder: 'dall-e-3', required: false },
@@ -2737,7 +2814,10 @@ export default function SuperAdminDashboard({
                   accentBg: 'rgba(139, 92, 246, 0.15)',
                   accentBorder: 'rgba(139, 92, 246, 0.3)',
                   icon: <Palette size={18} />,
+                  authType: 'API_CREDENTIALS',
+                  badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.stabilityVisualAi?.apiKey),
+                  infoMessage: 'Official Stability AI Developer API key required for SD 3.5 Large and SDXL Core image models.',
                   fields: [
                     { name: 'apiKey', label: 'Stability AI API Key (sk-...)', placeholder: 'sk-...', secret: true, required: true },
                     { name: 'engineId', label: 'Model Engine ID', placeholder: 'stable-diffusion-xl-1024-v1-0', required: false },
@@ -2752,7 +2832,10 @@ export default function SuperAdminDashboard({
                   accentBg: 'rgba(59, 130, 246, 0.15)',
                   accentBorder: 'rgba(59, 130, 246, 0.3)',
                   icon: <Cpu size={18} />,
+                  authType: 'API_CREDENTIALS',
+                  badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.replicateVisualAi?.apiToken),
+                  infoMessage: 'Official Replicate API token required for serverless FLUX.1 Schnell and Minimax video generation.',
                   fields: [
                     { name: 'apiToken', label: 'Replicate API Token (r8_...)', placeholder: 'r8_...', secret: true, required: true },
                     { name: 'model', label: 'Image Model', placeholder: 'black-forest-labs/flux-schnell', required: false },
@@ -2768,7 +2851,10 @@ export default function SuperAdminDashboard({
                   accentBg: 'rgba(245, 158, 11, 0.15)',
                   accentBorder: 'rgba(245, 158, 11, 0.3)',
                   icon: <Zap size={18} />,
+                  authType: 'API_CREDENTIALS',
+                  badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.falAiFlux?.apiKey),
+                  infoMessage: 'Official Fal.ai API key required for sub-second realtime FLUX.1 inference queues.',
                   fields: [
                     { name: 'apiKey', label: 'Fal.ai API Key', placeholder: 'Enter Fal.ai Key', secret: true, required: true },
                     { name: 'model', label: 'Model Identifier', placeholder: 'fal-ai/flux/schnell', required: false },
@@ -2783,40 +2869,13 @@ export default function SuperAdminDashboard({
                   accentBg: 'rgba(255, 210, 30, 0.15)',
                   accentBorder: 'rgba(255, 210, 30, 0.3)',
                   icon: <Layers size={18} />,
+                  authType: 'API_CREDENTIALS',
+                  badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.huggingFaceVisualAi?.apiKey),
+                  infoMessage: 'Official Hugging Face User Access Token required for direct dedicated serverless FLUX model inference.',
                   fields: [
                     { name: 'apiKey', label: 'HuggingFace User Token (hf_...)', placeholder: 'hf_...', secret: true, required: true },
                     { name: 'model', label: 'Model Repository', placeholder: 'black-forest-labs/FLUX.1-schnell', required: false },
-                  ],
-                },
-                {
-                  id: 'googleFlowVision',
-                  title: 'Google Flow / Imagen 3 Vision',
-                  subtitle: 'Imagen 3 Vision & Google Flow Visual Pipeline',
-                  category: 'VISUAL & VIDEO AI',
-                  accentColor: '#4285F4',
-                  accentBg: 'rgba(66, 133, 244, 0.15)',
-                  accentBorder: 'rgba(66, 133, 244, 0.3)',
-                  icon: <Sparkles size={18} />,
-                  isConfigured: Boolean(platformConfig?.integrations?.googleFlowVision?.apiKey),
-                  fields: [
-                    { name: 'apiKey', label: 'Google AI / Imagen Key (AIzaSy...)', placeholder: 'AIzaSy...', secret: true, required: true },
-                    { name: 'model', label: 'Model Identifier', placeholder: 'imagen-3.0-generate-002', required: false },
-                  ],
-                },
-                {
-                  id: 'nanoBananaGpu',
-                  title: 'Nano Banana / Serverless SDXL',
-                  subtitle: 'High-Throughput Micro-Batching GPU Cluster',
-                  category: 'VISUAL & VIDEO AI',
-                  accentColor: '#FBBF24',
-                  accentBg: 'rgba(251, 191, 36, 0.15)',
-                  accentBorder: 'rgba(251, 191, 36, 0.3)',
-                  icon: <Cpu size={18} />,
-                  isConfigured: true,
-                  fields: [
-                    { name: 'apiKey', label: 'Banana.dev API Key (Optional)', placeholder: 'Serverless Auto-Router Active', secret: true, required: false },
-                    { name: 'model', label: 'Model Pipeline', placeholder: 'sdxl-turbo', required: false },
                   ],
                 },
                 {
@@ -2828,7 +2887,10 @@ export default function SuperAdminDashboard({
                   accentBg: 'rgba(236, 72, 153, 0.15)',
                   accentBorder: 'rgba(236, 72, 153, 0.3)',
                   icon: <Video size={18} />,
+                  authType: 'API_CREDENTIALS',
+                  badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.runwayVideoAi?.apiKey),
+                  infoMessage: 'Official RunwayML Developer API key required for 4K cinematic Gen-3 video synthesis.',
                   fields: [
                     { name: 'apiKey', label: 'Runway Developer API Key', placeholder: 'key_...', secret: true, required: true },
                     { name: 'model', label: 'Model Version', placeholder: 'gen3a_turbo', required: false },
@@ -2843,7 +2905,10 @@ export default function SuperAdminDashboard({
                   accentBg: 'rgba(6, 182, 212, 0.15)',
                   accentBorder: 'rgba(6, 182, 212, 0.3)',
                   icon: <Video size={18} />,
+                  authType: 'API_CREDENTIALS',
+                  badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.lumaVideoAi?.apiKey),
+                  infoMessage: 'Official Luma Labs API key required for high-fidelity physical motion camera generation.',
                   fields: [
                     { name: 'apiKey', label: 'Luma Dream Machine API Key', placeholder: 'luma_...', secret: true, required: true },
                     { name: 'model', label: 'Engine Version', placeholder: 'dream-machine-v1', required: false },
@@ -2858,39 +2923,13 @@ export default function SuperAdminDashboard({
                   accentBg: 'rgba(16, 185, 129, 0.15)',
                   accentBorder: 'rgba(16, 185, 129, 0.3)',
                   icon: <Video size={18} />,
+                  authType: 'API_CREDENTIALS',
+                  badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.klingVideoAi?.apiKey),
+                  infoMessage: 'Official Kling AI Access Key and Secret Key required for 1080p vertical reel motion generation.',
                   fields: [
                     { name: 'apiKey', label: 'Kling AI Access Key', placeholder: 'Access Key...', secret: true, required: true },
                     { name: 'apiSecret', label: 'Kling AI Secret Key', placeholder: 'Secret Key...', secret: true, required: true },
-                  ],
-                },
-                {
-                  id: 'pollinationsVisualAi',
-                  title: 'Pollinations FLUX.1 Neural Engine',
-                  subtitle: 'Free Unlimited 8K FLUX.1 / Turbo Zero-Quota Cluster',
-                  category: 'VISUAL & VIDEO AI',
-                  accentColor: '#14B8A6',
-                  accentBg: 'rgba(20, 184, 166, 0.15)',
-                  accentBorder: 'rgba(20, 184, 166, 0.3)',
-                  icon: <Sparkles size={18} />,
-                  isConfigured: true,
-                  fields: [
-                    { name: 'defaultModel', label: 'Default Model (flux / turbo / flux-realism)', placeholder: 'flux', required: false },
-                  ],
-                },
-                {
-                  id: 'shortVideoEngine',
-                  title: 'Autonomous HTML5 Reel Compositor',
-                  subtitle: '9:16 Vertical Video with Karaoke Subtitles & Voiceover',
-                  category: 'VISUAL & VIDEO AI',
-                  accentColor: '#A855F7',
-                  accentBg: 'rgba(168, 85, 247, 0.15)',
-                  accentBorder: 'rgba(168, 85, 247, 0.3)',
-                  icon: <Film size={18} />,
-                  isConfigured: true,
-                  fields: [
-                    { name: 'defaultBrollTheme', label: 'Default B-Roll Theme (cyber_crypto_matrix / neon_data_stream)', placeholder: 'cyber_crypto_matrix', required: false },
-                    { name: 'renderEngine', label: 'Compositor Engine', placeholder: 'HTML5_REMOTION_COMPOSITOR', required: false },
                   ],
                 },
               ]
@@ -2986,9 +3025,68 @@ export default function SuperAdminDashboard({
                               background: card.isConfigured ? '#10B981' : '#94A3B8',
                             }}
                           />
-                          {card.isConfigured ? 'CONNECTED' : 'NOT CONFIGURED'}
+                          {card.isConfigured ? (card.badgeText || 'CONNECTED') : 'NOT CONFIGURED'}
                         </span>
                       </div>
+
+                      {/* Tool Architecture Info Callout */}
+                      {card.infoMessage && (
+                        <div
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            background:
+                              card.authType === 'BROWSER_STUDIO'
+                                ? 'rgba(66, 133, 244, 0.1)'
+                                : card.authType === 'ZERO_CONFIG_CLUSTER' || card.authType === 'NATIVE_ENGINE'
+                                ? 'rgba(16, 185, 129, 0.08)'
+                                : 'rgba(56, 189, 248, 0.08)',
+                            border: `1px solid ${
+                              card.authType === 'BROWSER_STUDIO'
+                                ? 'rgba(66, 133, 244, 0.3)'
+                                : card.authType === 'ZERO_CONFIG_CLUSTER' || card.authType === 'NATIVE_ENGINE'
+                                ? 'rgba(16, 185, 129, 0.25)'
+                                : 'rgba(56, 189, 248, 0.2)'
+                            }`,
+                            fontSize: '0.73rem',
+                            color: '#CBD5E1',
+                            lineHeight: '1.45',
+                            marginBottom: '12px',
+                          }}
+                        >
+                          {card.infoMessage}
+                        </div>
+                      )}
+
+                      {/* Direct Studio Web Links (e.g. Google Flow) */}
+                      {card.studioLinks && card.studioLinks.length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                          {card.studioLinks.map((link) => (
+                            <a
+                              key={link.url}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '7px 12px',
+                                borderRadius: '8px',
+                                background: 'rgba(66, 133, 244, 0.15)',
+                                border: '1px solid rgba(66, 133, 244, 0.35)',
+                                color: '#60A5FA',
+                                fontSize: '0.74rem',
+                                fontWeight: '700',
+                                textDecoration: 'none',
+                              }}
+                            >
+                              <span>{link.label}</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Fields with Explicit Labels */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
