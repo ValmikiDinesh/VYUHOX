@@ -202,23 +202,6 @@ export class ImagePostAgent {
         },
       ];
     }
-            visualTheme: 'purple-gradient',
-          },
-          {
-            slideNumber: 4,
-            headline: 'Sub-Second Conversational Voice AI',
-            subtext: 'Maya dials high-intent leads instantly, qualifies budget and timeline, and seamlessly hands off to your AE.',
-            statCallout: '88% Intent Score',
-            visualTheme: 'emerald-glow',
-          },
-          {
-            slideNumber: 5,
-            headline: 'Automate your entire GTM pipeline today',
-            subtext: 'Visit vyuhox.io or drop a comment below for early access to the autonomous sales suite.',
-            statCallout: 'GET ACCESS',
-            visualTheme: 'call-to-action-cyan',
-          },
-        ];
 
     return {
       type: 'CAROUSEL',
