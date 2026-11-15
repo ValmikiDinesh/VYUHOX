@@ -183,7 +183,9 @@ Return STRICTLY a JSON object with this exact structure:
         temperature: 0.3,
       });
 
-      strategyResult = typeof llmOutput.content === 'string' ? JSON.parse(llmOutput.content) : llmOutput.content;
+      strategyResult = llmOutput.parsedJson 
+        || (typeof llmOutput.text === 'string' ? JSON.parse(llmOutput.text) : null)
+        || (typeof llmOutput.content === 'string' ? JSON.parse(llmOutput.content) : llmOutput.content);
     } catch (llmErr) {
       console.warn('[CreativeDirectorAgent] Primary LLM failed, using strategic template fallback:', llmErr.message);
       strategyResult = this.buildFallbackStrategy({
@@ -246,10 +248,14 @@ Return STRICTLY a JSON object with this exact structure:
     }
 
     // 4. Create and Save Draft Ad Campaign & Creatives in MongoDB (Status: AWAITING_CLIENT_APPROVAL)
+    const validCampaignName = strategyResult.campaignName || `[AI Draft] ${businessContext.companyName || 'Campaign'} - ${platform} (${objective})`;
+    const validPlatform = platform.startsWith('GOOGLE') ? 'GOOGLE_ADS' : 'META';
+
     const campaignDoc = new AdCampaign({
       workspaceId,
-      name: strategyResult.campaignName || `[AI Draft] ${businessContext.companyName} - ${platform} (${objective})`,
-      platform: platform.startsWith('META') ? 'META' : platform.startsWith('GOOGLE') ? 'GOOGLE' : 'LINKEDIN',
+      campaignName: validCampaignName,
+      name: validCampaignName,
+      platform: validPlatform,
       objective,
       status: 'DRAFT', // Client must approve before launch!
       reviewStatus: 'AWAITING_CLIENT_APPROVAL',

@@ -149,7 +149,9 @@ export class UniversalBusinessContext {
     return {
       workspaceId,
       businessName,
+      companyName: businessName,
       category,
+      industry: category,
       domain,
       bookingLink,
       valueProp,
@@ -192,37 +194,72 @@ export class UniversalBusinessContext {
   }
 
   /**
-   * Builds an enriched, concise prompt context string ready for injection into any AI LLM agent
+   * Formats retrieved multi-dimensional business context into a structured prompt string
    */
-  static async getPromptContextString(workspaceId, moduleName = 'GENERAL') {
-    const data = await this.getCompleteIntelligence(workspaceId);
+  static formatIntelligenceForPrompt(data, moduleName = 'GENERAL') {
+    if (!data) return '=== BUSINESS INTELLIGENCE: NO DATA AVAILABLE ===';
 
+    if (typeof data === 'string') {
+      return `=== BUSINESS INTELLIGENCE ===\nWorkspace identifier: ${data}\nModule: ${moduleName}`;
+    }
+
+    const businessName = data.businessName || 'Our Enterprise';
+    const category = data.category || 'General Business & Commercial Services';
+    const operatingModel = data.operatingModelType || 'Hybrid';
+    const domain = data.domain || 'https://vyuhox.com';
+    const valueProp = data.valueProp || 'High-converting business growth solutions';
+    const differentiators = data.differentiators || 'Industry-leading performance & autonomous execution';
+    const services = Array.isArray(data.services) && data.services.length > 0
+      ? data.services
+      : ['Primary Commercial Offering', 'Full-Service Business Delivery'];
+    const targetPersonas = Array.isArray(data.targetPersonas) && data.targetPersonas.length > 0
+      ? data.targetPersonas
+      : ['High-Intent Buyers', 'Decision Makers', 'Enterprise Clients'];
+    const painPoints = Array.isArray(data.painPoints) && data.painPoints.length > 0
+      ? data.painPoints
+      : ['Operational inefficiency', 'Slow turnaround times', 'High customer acquisition cost'];
+    const targetLocations = Array.isArray(data.targetLocations) && data.targetLocations.length > 0
+      ? data.targetLocations
+      : ['Global / National Reach'];
+    const bookingLink = data.bookingLink || `${domain}/contact`;
     const targetsSummary = data.businessTargets?.day30
       ? `30-Day: ${data.businessTargets.day30.targetRevenue || '$10k'} | 60-Day: ${data.businessTargets?.day60?.targetRevenue || '$25k'} | 90-Day: ${data.businessTargets?.day90?.targetRevenue || '$60k'}`
       : '30-Day Milestone: Accelerate Pipeline & Achieve 3.5x Blended ROAS';
 
-    return `=== UNIFIED BUSINESS INTELLIGENCE FOR ${data.businessName.toUpperCase()} ===
-Business Domain/Vertical: ${data.category}
-Operating Model: ${data.operatingModelType} (Online/Offline/Hybrid)
-Website URL: ${data.domain}
-Core Value Proposition: "${data.valueProp}"
-Proven Differentiators: "${data.differentiators}"
+    const objections = Array.isArray(data.topObjections) && data.topObjections.length > 0
+      ? data.topObjections.map((o) => (typeof o === 'object' && o !== null ? o.objection || o.title || JSON.stringify(o) : String(o))).join(', ')
+      : 'Price sensitivity, timing concerns, vendor comparison';
+
+    return `=== UNIFIED BUSINESS INTELLIGENCE FOR ${businessName.toUpperCase()} ===
+Business Domain/Vertical: ${category}
+Operating Model: ${operatingModel} (Online/Offline/Hybrid)
+Website URL: ${domain}
+Core Value Proposition: "${valueProp}"
+Proven Differentiators: "${differentiators}"
 Full Products & Services Catalog:
-${data.services.map((s, idx) => `  ${idx + 1}. ${s}`).join('\n')}
-Target Customer Personas: ${data.targetPersonas.join(', ')}
-Key Pain Points Solved: ${data.painPoints.join('; ')}
-Target Markets & Territories: ${data.targetLocations.join(', ')}
-Primary Booking/Contact URL: ${data.bookingLink}
+${services.map((s, idx) => `  ${idx + 1}. ${s}`).join('\n')}
+Target Customer Personas: ${targetPersonas.join(', ')}
+Key Pain Points Solved: ${painPoints.join('; ')}
+Target Markets & Territories: ${targetLocations.join(', ')}
+Primary Booking/Contact URL: ${bookingLink}
 Active Quantitative Targets: ${targetsSummary}
 Operational Directives:
 - Company Management SOP: ${data.companyManagementStrategy?.dailyOperations || 'Execute high-velocity customer triage & verified delivery'}
 - Footfall / In-Person Strategy: ${data.offlinePlaybook?.summary || 'Local Map Pack dominance, walk-in consultations, and community authority'}
 - Online Digital Funnel: ${data.onlinePlaybook?.summary || 'Rapid inbound lead conversion, sub-45s AI voice speed-to-lead, and multi-channel retargeting'}
 Active Live Telemetry:
-- Total Prospect Pipeline: ${data.telemetry.totalLeads} verified leads
-- Blended Ad ROAS: ${data.telemetry.blendedRoas}x across active paid campaigns
-- Resolved Customer Objections: ${data.topObjections.map((o) => o.objection).join(', ')}
+- Total Prospect Pipeline: ${data.telemetry?.totalLeads ?? 0} verified leads
+- Blended Ad ROAS: ${data.telemetry?.blendedRoas ?? '0.0'}x across active paid campaigns
+- Resolved Customer Objections: ${objections}
 Module Being Executed: ${moduleName}
 ========================================================================`;
+  }
+
+  /**
+   * Builds an enriched, concise prompt context string ready for injection into any AI LLM agent
+   */
+  static async getPromptContextString(workspaceId, moduleName = 'GENERAL') {
+    const data = await this.getCompleteIntelligence(workspaceId);
+    return this.formatIntelligenceForPrompt(data, moduleName);
   }
 }

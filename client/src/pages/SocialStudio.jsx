@@ -3385,6 +3385,35 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   <option value="REPLICATE_FAL_FLUX">Fal.ai / Replicate Flux</option>
                   <option value="DYNAMIC_VECTOR_GRAPHIC">Dynamic Vector SVG</option>
                 </select>
+
+                {/* Dynamic Visual Engine Intelligence Notice */}
+                <div style={{ marginTop: '6px', fontSize: '0.7rem', color: '#94A3B8', lineHeight: '1.4' }}>
+                  {promptPreferredVisualProvider === 'GOOGLE_FLOW_IMAGEN' && (
+                    <div style={{ padding: '6px 10px', borderRadius: '6px', background: 'rgba(66, 133, 244, 0.1)', border: '1px solid rgba(66, 133, 244, 0.25)', color: '#93C5FD' }}>
+                      🎨 <strong>Google Flow Studio:</strong> Browser web studio (flow.google.com). Use "🎨 Open Google Flow Studio ↗" button below to design interactively, or let VYUHOX generate 8K visuals automatically.
+                    </div>
+                  )}
+                  {promptPreferredVisualProvider === 'POLLINATIONS_FLUX' && (
+                    <div style={{ padding: '6px 10px', borderRadius: '6px', background: 'rgba(20, 184, 166, 0.1)', border: '1px solid rgba(20, 184, 166, 0.25)', color: '#5EEAD4' }}>
+                      ✅ <strong>100% Free & Unlimited:</strong> Zero-cost neural cluster active out-of-the-box. Zero API key required.
+                    </div>
+                  )}
+                  {promptPreferredVisualProvider === 'NANO_BANANA_GPU' && (
+                    <div style={{ padding: '6px 10px', borderRadius: '6px', background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.25)', color: '#FDE68A' }}>
+                      ⚡ <strong>Zero-Config GPU Cluster:</strong> Serverless SDXL diffusion cluster ready out-of-the-box.
+                    </div>
+                  )}
+                  {(promptPreferredVisualProvider === 'OPENAI_DALLE_3' || promptPreferredVisualProvider === 'STABILITY_AI' || promptPreferredVisualProvider === 'REPLICATE_FAL_FLUX' || promptPreferredVisualProvider === 'HUGGINGFACE_FLUX') && (
+                    <div style={{ padding: '6px 10px', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#FCD34D' }}>
+                      🔑 <strong>Requires Developer API Key:</strong> Add credentials in Super Admin &gt; Integrations. If no key is set, VYUHOX automatically uses high-fidelity neural fallback.
+                    </div>
+                  )}
+                  {promptPreferredVisualProvider === 'AUTO_ROTATE' && (
+                    <div style={{ padding: '6px 10px', borderRadius: '6px', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.2)', color: '#BAE6FD' }}>
+                      ⚡ <strong>Autonomous Auto-Rotation:</strong> Intelligently rotates across active enterprise APIs and zero-cost clusters with zero-failure guarantee.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -2714,8 +2714,8 @@ export default function SuperAdminDashboard({
                 // ==========================================
                 {
                   id: 'googleFlowVision',
-                  title: 'Google Flow / Imagen 3 Creative Studio',
-                  subtitle: 'Browser-Based Studio Web App & Google Imagen 3 Pipeline',
+                  title: 'Google Flow Creative Studio (flow.google.com)',
+                  subtitle: 'Interactive Google Web Studio & Autonomous Imagen 3 Engine',
                   category: 'VISUAL & VIDEO AI',
                   accentColor: '#4285F4',
                   accentBg: 'rgba(66, 133, 244, 0.15)',
@@ -2724,14 +2724,18 @@ export default function SuperAdminDashboard({
                   authType: 'BROWSER_STUDIO',
                   badgeText: 'BROWSER STUDIO (NO API KEY NEEDED)',
                   isConfigured: true,
-                  infoMessage: 'Google Flow (flow.google.com) is a browser-based creative web studio and does NOT issue standalone developer API keys. In VYUHOX, you can launch Google Flow directly with 1-click prompt copying from Ads Manager and Social Studio, or let VYUHOX generate visuals autonomously using the Google Imagen 3 vision pipeline.',
+                  infoMessage: 'Google Flow is a consumer/enterprise web studio (flow.google.com) accessed directly in your browser using your Google Account. Google does NOT provide public developer API keys for Flow. In VYUHOX, you can launch Google Flow with 1-click prompt copying from Ads Manager and Social Studio. Meanwhile, autonomous 24/7 background campaigns run inside VYUHOX without requiring browser intervention.',
                   studioLinks: [
-                    { label: 'Open Google Flow Studio (flow.google.com) ↗', url: 'https://flow.google.com' },
+                    { label: 'Launch Google Flow Studio (flow.google.com) ↗', url: 'https://flow.google.com' },
                     { label: 'Open Google Ads Creative Studio ↗', url: 'https://adscreative.google.com' },
                   ],
-                  fields: [
-                    { name: 'apiKey', label: 'Google Gemini / Cloud API Key (Optional Override)', placeholder: 'AIzaSy... (Leave empty to use built-in Google Imagen 3 mirror)', secret: true, required: false },
-                    { name: 'model', label: 'Google Imagen 3 Model Identifier (Optional)', placeholder: 'imagen-3.0-generate-002', required: false },
+                  fields: [], // ZERO API keys required!
+                  setupGuide: [
+                    '1. In Ads Manager or Social Video Studio, click "Open Google Flow Studio ↗".',
+                    '2. VYUHOX automatically formats an 8K prompt with your brand positioning, lighting, and aspect ratio and copies it to your clipboard.',
+                    '3. In the new tab, sign into your personal or Google Workspace account at flow.google.com.',
+                    '4. Paste the prompt directly into Google Flow to generate or edit your visual.',
+                    '5. Autonomous background ad campaigns & cron pipelines run automatically inside VYUHOX 24/7 without requiring manual browser interaction.',
                   ],
                 },
                 {
@@ -2747,8 +2751,11 @@ export default function SuperAdminDashboard({
                   badgeText: '100% FREE (NO API KEY NEEDED)',
                   isConfigured: true,
                   infoMessage: 'Pollinations FLUX.1 is a public high-performance neural cluster with zero quota limits and zero cost. Pre-configured as the platform\'s automatic failover engine so client generation never fails.',
-                  fields: [
-                    { name: 'defaultModel', label: 'Default Model (Optional: flux / turbo / flux-realism)', placeholder: 'flux', required: false },
+                  fields: [], // ZERO API keys required!
+                  setupGuide: [
+                    '1. Pre-configured zero-cost, zero-quota neural cluster.',
+                    '2. All client workspaces inherit unlimited 8K FLUX.1 generation out-of-the-box.',
+                    '3. Serves as the guaranteed automatic failover engine if commercial API quotas expire.',
                   ],
                 },
                 {
@@ -2761,11 +2768,14 @@ export default function SuperAdminDashboard({
                   accentBorder: 'rgba(251, 191, 36, 0.3)',
                   icon: <Cpu size={18} />,
                   authType: 'ZERO_CONFIG_CLUSTER',
-                  badgeText: 'ZERO-CONFIG GPU CLUSTER',
+                  badgeText: 'ZERO-CONFIG GPU (NO API KEY NEEDED)',
                   isConfigured: true,
                   infoMessage: 'Nano Banana runs on serverless GPU micro-batches for fast SDXL inference. Pre-configured and active by default. No external subscription or API keys required.',
-                  fields: [
-                    { name: 'model', label: 'Model Pipeline (Optional)', placeholder: 'sdxl-turbo', required: false },
+                  fields: [], // ZERO API keys required!
+                  setupGuide: [
+                    '1. Built-in serverless SDXL micro-batch diffusion cluster.',
+                    '2. Optimized for high-throughput product and commercial ad mockups.',
+                    '3. Permanently available to all tenant workspaces without third-party subscriptions.',
                   ],
                 },
                 {
@@ -2781,9 +2791,11 @@ export default function SuperAdminDashboard({
                   badgeText: 'BUILT-IN (NO API KEY NEEDED)',
                   isConfigured: true,
                   infoMessage: 'Native autonomous video reel renderer. Renders 9:16 vertical video with animated karaoke subtitles, audio voiceover narration, and dynamic branding overlays locally without third-party video API costs.',
-                  fields: [
-                    { name: 'defaultBrollTheme', label: 'Default B-Roll Theme (Optional)', placeholder: 'cyber_crypto_matrix', required: false },
-                    { name: 'renderEngine', label: 'Compositor Engine (Optional)', placeholder: 'HTML5_REMOTION_COMPOSITOR', required: false },
+                  fields: [], // ZERO API keys required!
+                  setupGuide: [
+                    '1. Native HTML5 & Node video reel compositor.',
+                    '2. Automatically generates 9:16 vertical reels with animated karaoke subtitles, audio voiceover narration, and dynamic branding.',
+                    '3. Zero external rendering fees or third-party video subscriptions required.',
                   ],
                 },
                 {
@@ -2799,6 +2811,13 @@ export default function SuperAdminDashboard({
                   badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.dalleVisualAi?.apiKey),
                   infoMessage: 'Official OpenAI Developer API key required for direct DALL-E 3 and GPT-4o Vision synthesis.',
+                  portalLink: { label: 'Get OpenAI Key at platform.openai.com/api-keys ↗', url: 'https://platform.openai.com/api-keys' },
+                  setupGuide: [
+                    '1. Sign up or log in at platform.openai.com.',
+                    '2. Go to API Keys and click "Create new secret key".',
+                    '3. Copy your key (starts with "sk-...") and paste below.',
+                    '4. Click "Test Ping" to verify connection. All client workspaces will immediately inherit access.',
+                  ],
                   fields: [
                     { name: 'apiKey', label: 'OpenAI API Key (sk-...)', placeholder: 'sk-proj-...', secret: true, required: true },
                     { name: 'model', label: 'DALL-E Model Version', placeholder: 'dall-e-3', required: false },
@@ -2818,6 +2837,13 @@ export default function SuperAdminDashboard({
                   badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.stabilityVisualAi?.apiKey),
                   infoMessage: 'Official Stability AI Developer API key required for SD 3.5 Large and SDXL Core image models.',
+                  portalLink: { label: 'Get Stability API Key at platform.stability.ai ↗', url: 'https://platform.stability.ai/account/keys' },
+                  setupGuide: [
+                    '1. Sign up or log in at platform.stability.ai.',
+                    '2. Navigate to Account > API Keys.',
+                    '3. Generate and copy your API key (starts with "sk-...").',
+                    '4. Paste below and click "Test Ping" to verify.',
+                  ],
                   fields: [
                     { name: 'apiKey', label: 'Stability AI API Key (sk-...)', placeholder: 'sk-...', secret: true, required: true },
                     { name: 'engineId', label: 'Model Engine ID', placeholder: 'stable-diffusion-xl-1024-v1-0', required: false },
@@ -2836,6 +2862,12 @@ export default function SuperAdminDashboard({
                   badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.replicateVisualAi?.apiToken),
                   infoMessage: 'Official Replicate API token required for serverless FLUX.1 Schnell and Minimax video generation.',
+                  portalLink: { label: 'Get Replicate API Token at replicate.com/account/api-tokens ↗', url: 'https://replicate.com/account/api-tokens' },
+                  setupGuide: [
+                    '1. Create an account at replicate.com.',
+                    '2. Go to Account Settings > API Tokens.',
+                    '3. Copy your API token (starts with "r8_...") and paste below.',
+                  ],
                   fields: [
                     { name: 'apiToken', label: 'Replicate API Token (r8_...)', placeholder: 'r8_...', secret: true, required: true },
                     { name: 'model', label: 'Image Model', placeholder: 'black-forest-labs/flux-schnell', required: false },
@@ -2855,6 +2887,12 @@ export default function SuperAdminDashboard({
                   badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.falAiFlux?.apiKey),
                   infoMessage: 'Official Fal.ai API key required for sub-second realtime FLUX.1 inference queues.',
+                  portalLink: { label: 'Get Fal.ai API Key at fal.ai/dashboard/keys ↗', url: 'https://fal.ai/dashboard/keys' },
+                  setupGuide: [
+                    '1. Sign in to fal.ai.',
+                    '2. Go to Dashboard > Keys.',
+                    '3. Copy your Key and paste below.',
+                  ],
                   fields: [
                     { name: 'apiKey', label: 'Fal.ai API Key', placeholder: 'Enter Fal.ai Key', secret: true, required: true },
                     { name: 'model', label: 'Model Identifier', placeholder: 'fal-ai/flux/schnell', required: false },
@@ -2873,6 +2911,12 @@ export default function SuperAdminDashboard({
                   badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.huggingFaceVisualAi?.apiKey),
                   infoMessage: 'Official Hugging Face User Access Token required for direct dedicated serverless FLUX model inference.',
+                  portalLink: { label: 'Get HuggingFace Token at huggingface.co/settings/tokens ↗', url: 'https://huggingface.co/settings/tokens' },
+                  setupGuide: [
+                    '1. Sign in to huggingface.co.',
+                    '2. Go to Settings > Access Tokens.',
+                    '3. Create a token with "Read" permissions (starts with "hf_...") and paste below.',
+                  ],
                   fields: [
                     { name: 'apiKey', label: 'HuggingFace User Token (hf_...)', placeholder: 'hf_...', secret: true, required: true },
                     { name: 'model', label: 'Model Repository', placeholder: 'black-forest-labs/FLUX.1-schnell', required: false },
@@ -2891,6 +2935,11 @@ export default function SuperAdminDashboard({
                   badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.runwayVideoAi?.apiKey),
                   infoMessage: 'Official RunwayML Developer API key required for 4K cinematic Gen-3 video synthesis.',
+                  portalLink: { label: 'Runway Developer Portal at dev.runwayml.com ↗', url: 'https://dev.runwayml.com' },
+                  setupGuide: [
+                    '1. Apply for developer API access at dev.runwayml.com.',
+                    '2. Copy your Runway API Key and paste below.',
+                  ],
                   fields: [
                     { name: 'apiKey', label: 'Runway Developer API Key', placeholder: 'key_...', secret: true, required: true },
                     { name: 'model', label: 'Model Version', placeholder: 'gen3a_turbo', required: false },
@@ -2902,13 +2951,18 @@ export default function SuperAdminDashboard({
                   subtitle: 'Realistic Camera Movement & Motion Simulation',
                   category: 'VISUAL & VIDEO AI',
                   accentColor: '#06B6D4',
-                  accentBg: 'rgba(6, 182, 212, 0.15)',
-                  accentBorder: 'rgba(6, 182, 212, 0.3)',
+                  accentBg: 'rgba(66, 182, 212, 0.15)',
+                  accentBorder: 'rgba(66, 182, 212, 0.3)',
                   icon: <Video size={18} />,
                   authType: 'API_CREDENTIALS',
                   badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.lumaVideoAi?.apiKey),
                   infoMessage: 'Official Luma Labs API key required for high-fidelity physical motion camera generation.',
+                  portalLink: { label: 'Luma Dream Machine API at lumalabs.ai ↗', url: 'https://lumalabs.ai/dream-machine/api' },
+                  setupGuide: [
+                    '1. Sign in at lumalabs.ai/dream-machine/api.',
+                    '2. Create an API key and paste below.',
+                  ],
                   fields: [
                     { name: 'apiKey', label: 'Luma Dream Machine API Key', placeholder: 'luma_...', secret: true, required: true },
                     { name: 'model', label: 'Engine Version', placeholder: 'dream-machine-v1', required: false },
@@ -2927,6 +2981,11 @@ export default function SuperAdminDashboard({
                   badgeText: 'API KEY CONFIGURED',
                   isConfigured: Boolean(platformConfig?.integrations?.klingVideoAi?.apiKey),
                   infoMessage: 'Official Kling AI Access Key and Secret Key required for 1080p vertical reel motion generation.',
+                  portalLink: { label: 'Kling AI Developer Portal at klingai.com ↗', url: 'https://klingai.com' },
+                  setupGuide: [
+                    '1. Register in Kling AI Open Platform.',
+                    '2. Enter your Access Key ID and API Secret below.',
+                  ],
                   fields: [
                     { name: 'apiKey', label: 'Kling AI Access Key', placeholder: 'Access Key...', secret: true, required: true },
                     { name: 'apiSecret', label: 'Kling AI Secret Key', placeholder: 'Secret Key...', secret: true, required: true },
@@ -3007,9 +3066,23 @@ export default function SuperAdminDashboard({
                             fontSize: '0.62rem',
                             padding: '3px 8px',
                             borderRadius: '20px',
-                            background: card.isConfigured ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.12)',
-                            color: card.isConfigured ? '#10B981' : '#94A3B8',
-                            border: `1px solid ${card.isConfigured ? 'rgba(16, 185, 129, 0.3)' : 'rgba(148, 163, 184, 0.2)'}`,
+                            background: card.isConfigured
+                              ? 'rgba(16, 185, 129, 0.15)'
+                              : card.authType === 'API_CREDENTIALS'
+                              ? 'rgba(239, 68, 68, 0.15)'
+                              : 'rgba(148, 163, 184, 0.12)',
+                            color: card.isConfigured
+                              ? '#10B981'
+                              : card.authType === 'API_CREDENTIALS'
+                              ? '#F87171'
+                              : '#94A3B8',
+                            border: `1px solid ${
+                              card.isConfigured
+                                ? 'rgba(16, 185, 129, 0.3)'
+                                : card.authType === 'API_CREDENTIALS'
+                                ? 'rgba(239, 68, 68, 0.3)'
+                                : 'rgba(148, 163, 184, 0.2)'
+                            }`,
                             fontWeight: '800',
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -3022,10 +3095,18 @@ export default function SuperAdminDashboard({
                               width: '6px',
                               height: '6px',
                               borderRadius: '50%',
-                              background: card.isConfigured ? '#10B981' : '#94A3B8',
+                              background: card.isConfigured
+                                ? '#10B981'
+                                : card.authType === 'API_CREDENTIALS'
+                                ? '#F87171'
+                                : '#94A3B8',
                             }}
                           />
-                          {card.isConfigured ? (card.badgeText || 'CONNECTED') : 'NOT CONFIGURED'}
+                          {card.isConfigured
+                            ? (card.badgeText || 'CONNECTED')
+                            : card.authType === 'API_CREDENTIALS'
+                            ? 'API KEY MISSING'
+                            : 'NOT CONFIGURED'}
                         </span>
                       </div>
 
@@ -3058,6 +3139,57 @@ export default function SuperAdminDashboard({
                         </div>
                       )}
 
+                      {/* Direct Developer Portal Link */}
+                      {card.portalLink && (
+                        <div style={{ marginBottom: '10px' }}>
+                          <a
+                            href={card.portalLink.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              color: '#38BDF8',
+                              fontSize: '0.74rem',
+                              fontWeight: '700',
+                              textDecoration: 'none',
+                              padding: '6px 12px',
+                              borderRadius: '7px',
+                              background: 'rgba(56, 189, 248, 0.08)',
+                              border: '1px solid rgba(56, 189, 248, 0.25)',
+                            }}
+                          >
+                            <span>{card.portalLink.label}</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Step-by-Step Instructions */}
+                      {card.setupGuide && card.setupGuide.length > 0 && (
+                        <div
+                          style={{
+                            marginBottom: '12px',
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                          }}
+                        >
+                          <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>
+                            📋 Quick Step-by-Step Setup Guide:
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            {card.setupGuide.map((step, sIdx) => (
+                              <div key={sIdx} style={{ fontSize: '0.72rem', color: '#CBD5E1', lineHeight: '1.4' }}>
+                                {step}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Direct Studio Web Links (e.g. Google Flow) */}
                       {card.studioLinks && card.studioLinks.length > 0 && (
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
@@ -3085,6 +3217,27 @@ export default function SuperAdminDashboard({
                               <ExternalLink size={12} />
                             </a>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Zero API Key Required Callout */}
+                      {card.fields.length === 0 && (
+                        <div
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: 'rgba(16, 185, 129, 0.08)',
+                            border: '1px solid rgba(16, 185, 129, 0.25)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginBottom: '10px',
+                          }}
+                        >
+                          <Check size={16} color="#10B981" style={{ flexShrink: 0 }} />
+                          <div style={{ fontSize: '0.74rem', color: '#34D399', fontWeight: '700' }}>
+                            Zero Configuration Required — Active & Operational Across All Client Workspaces Out-of-the-Box
+                          </div>
                         </div>
                       )}
 
