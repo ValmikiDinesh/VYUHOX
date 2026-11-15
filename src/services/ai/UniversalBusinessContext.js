@@ -18,6 +18,8 @@
  */
 
 import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
 import { Workspace } from '../../models/Workspace.js';
 import { GtmStrategy } from '../../models/GtmStrategy.js';
 import { Lead } from '../../models/Lead.js';
@@ -146,6 +148,37 @@ export class UniversalBusinessContext {
 
     const blendedRoas = totalAdSpend > 0 ? parseFloat((totalAdRevenue / totalAdSpend).toFixed(2)) || 3.4 : 3.4;
 
+    // 7. Real Business Product Assets & Crawled Media
+    let uploadedMediaFiles = [];
+    try {
+      const uploadDir = path.resolve(process.cwd(), 'client', 'public', 'uploads');
+      if (fs.existsSync(uploadDir)) {
+        const files = fs.readdirSync(uploadDir);
+        uploadedMediaFiles = files
+          .filter(f => /\.(jpe?g|png|webp|gif|mp4)$/i.test(f))
+          .map(f => `/uploads/${f}`);
+      }
+    } catch {}
+
+    const rawImages = [
+      ...(Array.isArray(rawExt?.scannedImages) ? rawExt.scannedImages.map(img => typeof img === 'string' ? img : img?.src) : []),
+      ...(Array.isArray(analysis?.scannedImages) ? analysis.scannedImages.map(img => typeof img === 'string' ? img : img?.src) : []),
+      ...(rawExt?.ogImage ? [rawExt.ogImage] : []),
+      ...(workspace?.logo ? [workspace.logo] : []),
+      ...uploadedMediaFiles,
+    ].filter(Boolean);
+
+    const realProductImages = [...new Set(rawImages)];
+
+    const offeringType = workspace?.offeringType && workspace.offeringType !== 'UNSPECIFIED'
+      ? workspace.offeringType
+      : (analysis?.offeringType ? analysis.offeringType.toUpperCase() : 'UNSPECIFIED');
+
+    const whatTheySell = analysis?.whatTheySell || analysis?.whatWeSell || analysis?.summary || '';
+    const products = Array.isArray(analysis?.scannedProducts) && analysis.scannedProducts.length > 0
+      ? analysis.scannedProducts
+      : (Array.isArray(rawExt?.scannedProducts) ? rawExt.scannedProducts : services);
+
     return {
       workspaceId,
       businessName,
@@ -157,6 +190,10 @@ export class UniversalBusinessContext {
       valueProp,
       differentiators,
       services,
+      products,
+      whatTheySell,
+      offeringType,
+      realProductImages,
       painPoints,
       targetPersonas,
       targetLocations,
@@ -232,12 +269,15 @@ export class UniversalBusinessContext {
 
     return `=== UNIFIED BUSINESS INTELLIGENCE FOR ${businessName.toUpperCase()} ===
 Business Domain/Vertical: ${category}
+Offering Model Classification: ${data.offeringType || 'UNSPECIFIED'} (PRODUCT vs SERVICE vs HYBRID)
+Detailed What They Sell: ${data.whatTheySell || 'Bespoke high-value offerings'}
 Operating Model: ${operatingModel} (Online/Offline/Hybrid)
 Website URL: ${domain}
 Core Value Proposition: "${valueProp}"
 Proven Differentiators: "${differentiators}"
 Full Products & Services Catalog:
 ${services.map((s, idx) => `  ${idx + 1}. ${s}`).join('\n')}
+Discovered Real Business Product Assets: ${data.realProductImages?.length || 0} images available (${(data.realProductImages || []).slice(0, 3).join(', ')})
 Target Customer Personas: ${targetPersonas.join(', ')}
 Key Pain Points Solved: ${painPoints.join('; ')}
 Target Markets & Territories: ${targetLocations.join(', ')}

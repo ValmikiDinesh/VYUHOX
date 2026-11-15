@@ -1,5 +1,6 @@
 import pptxgen from 'pptxgenjs';
 import { MultiProviderVisualGateway } from './MultiProviderVisualGateway.js';
+import { CommercialVisualCatalog } from './CommercialVisualSynthesizer.js';
 
 /**
  * VisualAiService.js
@@ -68,9 +69,7 @@ export class VisualAiService {
    * Generates a tailored business visual representation image for the strategy cover
    */
   static generateBusinessCoverImage(businessName, category, valueProp = '') {
-    const prompt = `Futuristic enterprise software interface, modern digital dashboard, abstract geometric cyber elements, theme representing ${category} and ${businessName}, ${valueProp}, sleek dark obsidian UI with neon cyan and violet luminescence, 8k, professional executive presentation banner`;
-    const encoded = encodeURIComponent(prompt);
-    return `https://image.pollinations.ai/prompt/${encoded}?width=1280&height=720&model=flux&nologo=true&seed=42`;
+    return CommercialVisualCatalog.getCuratedAsset(`${category} ${businessName} ${valueProp}`, 42);
   }
 
   /**

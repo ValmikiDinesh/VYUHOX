@@ -25,7 +25,7 @@
 import { UniversalBusinessContext } from '../ai/UniversalBusinessContext.js';
 import { LlmGatewayService } from '../ai/LlmGatewayService.js';
 import { MultiProviderVisualGateway } from '../visual/MultiProviderVisualGateway.js';
-import { CommercialVisualCatalog } from '../visual/CommercialVisualCatalog.js';
+import { CommercialVisualSynthesizer } from '../visual/CommercialVisualSynthesizer.js';
 import { AdCampaign } from '../../models/AdCampaign.js';
 import { AdCreative } from '../../models/AdCreative.js';
 
@@ -131,13 +131,17 @@ TASK INSTRUCTIONS:
    - For Meta: primaryText (2-3 paragraphs with hook, bullet benefits, and CTA), headline (catchy, max 40 chars), description (subtext/urgency), callToAction (${platformSpec.ctaOptions.join(', ')}), whatsAppGreeting (if WhatsApp click-to-chat), instantFormQuestions (2-3 qualifying questions).
    - For Google: headlines (list of 5-10 headlines max 30 chars), descriptions (list of 3-4 descriptions max 90 chars), sitelinks (3-4 quick links), callouts (3-4 feature callouts).
    - For LinkedIn: introText (executive tone), headline, ctaText.
-4. For each variation, write a hyper-detailed, purpose-built prompt for an AI Image/Video Generator:
-   - CRITICAL RULE (WORLD-CLASS CREATIVE SEPARATION): Ad copy (headlines, hooks, text) persuades with words. The VISUAL CREATIVE must showcase the physical product or aspirational service outcome in an ultra-high-desire commercial aesthetic with ZERO text.
-   - NEVER output headlines, slogans, offers, discounts, or words inside "detailedVisualPrompt". Diffusion models distort text and ruin ad credibility.
-   - If physical product (e.g. sunglasses, apparel, jewelry): describe macro product photography, tangible textures (matte acetate, gold, teak wood, leather), lighting (golden hour rim light, softbox studio), luxury setting (yacht, travertine pedestal, boutique), 8k photorealistic.
-   - If bespoke / event (e.g. wedding invitations, stationery): describe royal flat-lay of gold-foil embossed cards, wax seals, fresh jasmine/marigold petals, sleek smartphone displaying glowing digital invitation, warm candlelight bokeh.
-   - If SaaS / professional service: describe sunlit modern architectural designer office, minimalist oak desk, MacBook displaying clean growth metrics, confident executive.
-   - Strictly include: "award-winning commercial advertising photography, photorealistic 8k, pristine lighting, zero text overlays, no typography".
+4. For each variation, design an elite commercial visual creative concept tailored specifically to whether this business is PRODUCT-BASED or SERVICE-BASED:
+   - Identify Offering Model:
+     * If PRODUCT-BASED (e.g. physical goods, eyewear, stationery suites, boxed invitations, apparel, cosmetics):
+       Heroize the physical product. In "detailedVisualPrompt", specify macro product details, rich textures, materials, and luxury studio or lifestyle lighting.
+       In "textOverlayBadge", include a punchy promotional badge (e.g. "100% BESPOKE", "LIMITED SUMMER DROP", "FROM ₹3,499", "50% OFF").
+       In "textOverlayHeadline", give a bold product benefit (e.g. "Personalized Native Tongue Invitations" or "Polarized Italian Acetate").
+     * If SERVICE-BASED (e.g. event planning, bespoke video production, SaaS, consulting):
+       Highlight the client transformation, emotional relief, authority, or behind-the-scenes mastery.
+       In "textOverlayBadge", provide an authority seal (e.g. "100% GUARANTEE", "TOP RATED", "VERIFIED BENCHMARK").
+       In "textOverlayHeadline", present the bold transformation hook (e.g. "Never Miss An Elder's RSVP" or "Cut Acquisition Costs 42%").
+       In "textOverlaySubtext", provide the concrete proof or urgency (e.g. "Sub-48h Delivery" or "Zero Technical Friction").
 
 Return STRICTLY a JSON object with this exact structure:
 {
@@ -168,10 +172,12 @@ Return STRICTLY a JSON object with this exact structure:
       "instantFormQuestions": ["string"],
       "visualCreativeConcept": {
         "title": "string",
-        "purpose": "PAID_AD_SCROLL_STOPPER",
+        "offeringModel": "PRODUCT | SERVICE | HYBRID",
         "detailedVisualPrompt": "string",
+        "textOverlayBadge": "string",
         "textOverlayHeadline": "string",
         "textOverlaySubtext": "string",
+        "ctaButtonLabel": "string",
         "suggestedFormat": "${platformSpec.formatType}"
       }
     }
@@ -211,52 +217,74 @@ Return STRICTLY a JSON object with this exact structure:
 
       console.log(`[CreativeDirectorAgent] Generating visual asset for Variation #${i + 1} (${platformSpec.aspectRatio}) via MultiProviderVisualGateway...`);
 
-      // World-Class Product-Centric Visual Prompt Synthesis:
-      // Ensure the visual prompt describes the actual physical product / aspirational service outcome, NEVER the ad headline!
-      const productVisualPrompt = (visualConcept.detailedVisualPrompt && visualConcept.detailedVisualPrompt.length > 25 && !/headline|click|buy now|guarantee|stop losing/i.test(visualConcept.detailedVisualPrompt))
+      // 1. Resolve authentic product images from business context (crawled assets, uploaded media)
+      const realProductImage = CommercialVisualSynthesizer.resolveProductImage(businessContext, i);
+
+      // 2. Synthesize Dynamic, Product-Centric or Outcome-Oriented Visual Prompt (Zero hardcoding)
+      const dynamicVisualPrompt = (visualConcept.detailedVisualPrompt && visualConcept.detailedVisualPrompt.length > 25 && !/headline|click|buy now|guarantee|stop losing/i.test(visualConcept.detailedVisualPrompt))
         ? visualConcept.detailedVisualPrompt
-        : CommercialVisualCatalog.synthesizeProductVisualPrompt({
-            companyName: businessContext.companyName,
-            industry: businessContext.industry,
-            productFocus: productFocus || businessContext.companyName,
+        : CommercialVisualSynthesizer.synthesizeDynamicVisualPrompt({
+            businessContext,
+            strategicAngle: variation.strategicAngle,
             variationIndex: i,
             platform,
+            customProductFocus: productFocus,
           });
+
+      // 3. Synthesize Tasteful Strategic Agency Layout Elements (Badges, Overlays, CTA)
+      const layout = CommercialVisualSynthesizer.synthesizeAgencyLayoutElements({
+        businessContext,
+        variation: {
+          ...variation,
+          textOverlayBadge: visualConcept.textOverlayBadge,
+          headline: visualConcept.textOverlayHeadline || variation.headline,
+          description: visualConcept.textOverlaySubtext || variation.description,
+          callToAction: visualConcept.ctaButtonLabel || variation.callToAction,
+        },
+        variationIndex: i,
+      });
 
       let assetResult = null;
 
       if (platformSpec.formatType === 'VIDEO') {
         assetResult = await MultiProviderVisualGateway.generateVideo({
-          prompt: `${productVisualPrompt}, cinematic 8k commercial video, photorealistic, zero text overlays`,
+          prompt: `${dynamicVisualPrompt}, cinematic 8k commercial video, photorealistic`,
           aspectRatio: platformSpec.aspectRatio,
           durationSeconds: 15,
-          headline: visualConcept.textOverlayHeadline || variation.headline,
-          subtext: visualConcept.textOverlaySubtext || variation.description,
+          headline: layout.headlineText,
+          subtext: layout.subtext,
           brandName: businessContext.companyName,
+          productImageUrl: realProductImage,
         });
       } else {
-        // Intelligently rotate across distinct zero-collision engines across variations in a single batch:
-        // Variation 1: Curated 8K commercial product photo (Instant, 100% rate-limit proof)
-        // Variation 2: Dynamic Vector Graphic (Custom luxury/commercial palette)
-        // Variation 3: Google Flow / Imagen 3 Vision Engine (or Nano-Banana)
+        // Zero-collision multi-engine rotation across variations:
+        // Variation 1: Genuine business product photo / curated 8K photography
+        // Variation 2: Dynamic Vector Graphic (Agency layout embedding product photo + badge + WhatsApp CTA)
+        // Variation 3: Dynamic Vector Graphic (Agency transformation layout with social proof & guarantee)
         let variationProvider = preferredVisualProvider;
         if (!preferredVisualProvider || preferredVisualProvider === 'AUTO_ROTATE' || preferredVisualProvider === 'POLLINATIONS_FLUX') {
           if (i === 0) variationProvider = 'CURATED_COMMERCIAL_PHOTO';
           else if (i === 1) variationProvider = 'DYNAMIC_VECTOR_GRAPHIC';
-          else if (i === 2) variationProvider = 'GOOGLE_FLOW_IMAGEN';
+          else if (i === 2) variationProvider = 'DYNAMIC_VECTOR_GRAPHIC';
           else variationProvider = 'CURATED_COMMERCIAL_PHOTO';
         }
 
         assetResult = await MultiProviderVisualGateway.generateImage({
-          prompt: `${productVisualPrompt}, award-winning commercial advertising photography, photorealistic 8k, pristine lighting, zero text overlays, no typography`,
+          prompt: `${dynamicVisualPrompt}, award-winning commercial advertising photography, photorealistic 8k, pristine lighting`,
           width: platformSpec.width || 1080,
           height: platformSpec.height || 1080,
           preferredProvider: variationProvider,
           style: 'cinematic',
           platform,
-          headline: visualConcept.textOverlayHeadline || variation.headline,
-          subtext: visualConcept.textOverlaySubtext || variation.description,
+          headline: layout.headlineText,
+          subtext: layout.subtext,
           brandName: businessContext.companyName,
+          productImageUrl: realProductImage,
+          badgeText: layout.badgeText,
+          ctaLabel: layout.ctaLabel,
+          ratingText: layout.ratingText,
+          offerPill: layout.offerPill,
+          businessContext,
         });
       }
 

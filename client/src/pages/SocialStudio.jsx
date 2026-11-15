@@ -76,7 +76,10 @@ export default function SocialStudio({ activeWorkspace, socket }) {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [carouselViewMode, setCarouselViewMode] = useState('RENDER'); // 'RENDER' | 'SLIDES'
 
-  // 60FPS Dynamic Motion Canvas (Candlesticks, Liquidity Depth Wave, Floating Data Particles, Spectrum)
+  // Dynamic Workspace Industry Detection
+  const isWeddingOrLuxury = /wedding|invite|stationery|event|jewelry|luxury|fashion/i.test(`${activeWorkspace?.industry || ''} ${activeWorkspace?.name || ''}`);
+
+  // 60FPS Dynamic Motion Canvas (Atmospheric Particles, Ambient Waves, Audio Spectrum)
   useEffect(() => {
     let animId;
     let tick = 0;
@@ -84,8 +87,6 @@ export default function SocialStudio({ activeWorkspace, socket }) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    const isWeddingOrLuxury = /wedding|invite|stationery|event|jewelry|luxury|fashion/i.test(`${activeWorkspace?.industry || ''} ${activeWorkspace?.name || ''}`);
 
     // Generate 35 ambient particles
     const particles = Array.from({ length: 35 }, () => ({
