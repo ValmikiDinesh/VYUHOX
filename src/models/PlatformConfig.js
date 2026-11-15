@@ -200,7 +200,7 @@ const platformConfigSchema = new mongoose.Schema(
         isActive: { type: Boolean, default: false },
       },
       shortVideoEngine: {
-        defaultBrollTheme: { type: String, default: 'cyber_crypto_matrix' },
+        defaultBrollTheme: { type: String, default: 'cinematic_luxury' },
         renderEngine: { type: String, default: 'HTML5_Canvas_Compositor' },
         defaultVoiceId: { type: String, default: 'maya' },
         watermarkEnabled: { type: Boolean, default: false },

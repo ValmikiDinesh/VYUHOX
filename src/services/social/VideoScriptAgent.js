@@ -15,9 +15,12 @@ export class VideoScriptAgent {
   static async generateScript({ workspaceName, industry, topic, targetAudience, brandVoice }) {
     const isCrypto = (industry || '').toLowerCase().includes('crypto');
     const isEcommerce = (industry || '').toLowerCase().includes('ecom');
+    const isWeddingOrLuxury = /wedding|invite|stationery|event|jewelry|luxury|fashion|bridal/i.test(`${industry} ${workspaceName} ${topic || ''}`);
 
     // Default topics if none provided
-    const defaultTopic = isCrypto
+    const defaultTopic = isWeddingOrLuxury
+      ? 'Why bespoke personalized digital invitations leave wedding guests speechless'
+      : isCrypto
       ? 'Why 99% of algorithmic funds bleed alpha on execution latency'
       : isEcommerce
       ? 'The 45-second checkout recovery trick that prints 38% more revenue'
@@ -26,35 +29,47 @@ export class VideoScriptAgent {
     const selectedTopic = topic || defaultTopic;
 
     // Viral Script Templates tailored to industry
-    const templates = isCrypto
-      ? [
-          {
-            hook: "Stop manually checking order books. You're losing 18 basis points on every single cross-exchange trade.",
-            body: "High-frequency arbitrage isn't about guessing direction—it's about execution velocity. While legacy funds wait for human traders to approve block orders, autonomous execution algorithms bridge Binance, OKX, and Bybit in sub-600 milliseconds with institutional Fireblocks custody. In Q2 alone, automated latency routing prevented over $4.2 million in slippage.",
-            cta: "Drop the word 'ALPHA' below and I'll send you our institutional low-latency execution framework for free.",
-            hashtags: ['#CryptoTrading', '#AlgorithmicFinance', '#QuantTrading', '#Web3Alpha', '#DeFiSpeed'],
-          },
-          {
-            hook: "If your crypto fund doesn't have an AI agent taking sales calls in under 45 seconds, you're lighting LP capital on fire.",
-            body: "When an institutional allocator requests an audit dossier at 2 AM, they don't wait for your London desk to wake up. An autonomous voice agent qualifies their AUM, verifies their multi-sig setup, and books them directly onto your calendar while your competition is asleep.",
-            cta: "Comment 'SCALE' to see our live sub-second Bland AI dialer in action.",
-            hashtags: ['#HedgeFund', '#CryptoInvesting', '#AIAutomation', '#GTMStrategy', '#FinTech'],
-          },
-        ]
-      : [
-          {
-            hook: "Cold outbound isn't dead—your human reps are just too slow to convert high-intent inbound traffic.",
-            body: "Harvard Business Review proved that responding within 5 minutes makes you 21 times more likely to close enterprise deals. With VYUHOX autonomous speed-to-lead, our conversational voice AI dials inbound prospects in 42 seconds, conducts a full technical discovery, and transfers them straight to your account executive's headset.",
-            cta: "Save this reel and link your workspace today to automate your entire outbound GTM pipeline.",
-            hashtags: ['#SaaSGrowth', '#B2BSales', '#ColdOutbound', '#AIEnterprise', '#FounderTips'],
-          },
-          {
-            hook: "Here's the secret 3-channel stack scaling B2B SaaS to $100k MRR without hiring a single outbound SDR.",
-            body: "First: Automated WhatsApp drip sequences with sentiment detection. Second: Sub-second voice AI phone calls that qualify leads within 45 seconds. Third: Programmatic Omnichannel orchestration that syncs Telegram, SMS, and Email in one unified inbox. The result? 3.8x higher demo booking rates at 80% lower cost.",
-            cta: "Drop 'PIPELINE' in the comments and I'll send the full 30-day automation blueprint.",
-            hashtags: ['#SaaSStartup', '#GrowthHacking', '#AIAutomation', '#LeadGen', '#StartupFounder'],
-          },
-        ];
+    let templates;
+    if (isWeddingOrLuxury) {
+      templates = [
+        {
+          hook: "If you are still sending static paper cards or generic PDFs for luxury weddings, your guests are missing the warmth they deserve.",
+          body: `With ${workspaceName}, every guest receives an intimate, cinematic invitation film addressed directly to them in their family language—whether Telugu, Hindi, Tamil, or English. Plus, track RSVPs live and collect all celebration memories into one seamless digital keepsake.`,
+          cta: "Comment 'PREVIEW' to test-drive a bespoke invitation with your family's names right now.",
+          hashtags: ['#LuxuryWeddings', '#WeddingInvitations', '#BespokeStationery', '#EventTech', '#RoyalWeddings'],
+        },
+        {
+          hook: "The number one reason wedding RSVPs get forgotten is cold, impersonal broadcast messages.",
+          body: `When guests see an invitation addressed respectfully to 'Ravi Mamayya garu' or 'Meena Mausi ji', engagement triples. ${workspaceName} personalizes every single digital invite across thousands of guests within 48 hours.`,
+          cta: "Tap the link in bio or message us today for your complimentary bespoke sample.",
+          hashtags: ['#BespokeInvites', '#WeddingInspiration', '#WeddingPlanner', '#BridalTrends', '#LuxuryStationery'],
+        },
+      ];
+    } else if (isCrypto) {
+      templates = [
+        {
+          hook: "Stop manually checking order books. You're losing 18 basis points on every single cross-exchange trade.",
+          body: "High-frequency arbitrage isn't about guessing direction—it's about execution velocity. While legacy funds wait for human traders to approve block orders, autonomous execution algorithms bridge exchanges in sub-600 milliseconds.",
+          cta: "Comment 'SCALE' to see our low-latency execution framework.",
+          hashtags: ['#CryptoTrading', '#AlgorithmicFinance', '#QuantTrading', '#Web3Alpha', '#DeFiSpeed'],
+        },
+      ];
+    } else {
+      templates = [
+        {
+          hook: "Cold outbound isn't dead—your human reps are just too slow to convert high-intent inbound traffic.",
+          body: `Harvard Business Review proved that responding within 5 minutes makes you 21 times more likely to close enterprise deals. With ${workspaceName} autonomous speed-to-lead, our conversational AI dials inbound prospects in 42 seconds, conducts discovery, and schedules qualified demos directly.`,
+          cta: "Save this reel and link your workspace today to automate your entire pipeline.",
+          hashtags: ['#BusinessGrowth', '#SalesAutomation', '#LeadGen', '#EnterpriseAI', '#GTMStrategy'],
+        },
+        {
+          hook: `Here is the secret 3-channel system scaling ${industry || 'modern brands'} to record growth without bloated overhead.`,
+          body: `First: Automated WhatsApp touchpoints with sentiment detection. Second: Sub-second voice AI that qualifies inbound queries instantly. Third: Programmatic Omnichannel coordination that syncs all interactions in one place. The result? 3.8x higher conversions at 80% lower cost.`,
+          cta: "Comment 'GROWTH' below and we will send the full blueprint straight to your inbox.",
+          hashtags: ['#BusinessSuccess', '#GrowthHacking', '#AIAutomation', '#LeadGen', '#Founders'],
+        },
+      ];
+    }
 
     const template = templates[Math.floor(Math.random() * templates.length)];
     const hook = template.hook;

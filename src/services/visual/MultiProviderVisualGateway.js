@@ -18,6 +18,7 @@
 
 import mongoose from 'mongoose';
 import { PlatformConfig } from '../../models/PlatformConfig.js';
+import { CommercialVisualCatalog } from './CommercialVisualCatalog.js';
 
 export class MultiProviderVisualGateway {
   /**
@@ -31,6 +32,7 @@ export class MultiProviderVisualGateway {
     { id: 'GOOGLE_FLOW_IMAGEN', name: 'Google Flow / Imagen 3 Vision Pipeline', isFree: true },
     { id: 'NANO_BANANA_GPU', name: 'Nano Banana / Banana.dev Serverless SDXL', isFree: true },
     { id: 'POLLINATIONS_FLUX', name: 'Pollinations FLUX.1 Neural Engine', isFree: true },
+    { id: 'CURATED_COMMERCIAL_PHOTO', name: 'Curated 8K Commercial Product Photography', isFree: true },
     { id: 'DYNAMIC_VECTOR_GRAPHIC', name: 'High-Definition Dynamic Creative Vector Engine', isFree: true },
   ];
 
@@ -51,10 +53,10 @@ export class MultiProviderVisualGateway {
    */
   static commercialStylePrompt(prompt, platform = 'META_FEED', style = 'cinematic') {
     const platformDirectives = {
-      META_FEED: 'award-winning commercial advertising photography, 85mm portrait lens, f/1.8 depth of field, dramatic studio softbox lighting, ultra-sharp focus, vivid color contrast, 8k resolution, photorealistic, pristine art direction',
-      INSTAGRAM_REELS: 'cinematic 9:16 vertical frame, hyper-dynamic natural illumination, modern high-end aesthetic, tactile textures, ultra-crisp focus, professional editorial shoot, 8k, masterwork',
-      LINKEDIN: 'high-end executive business editorial photography, sleek glass architectural background, subtle blue-cyan volumetric lighting, sharp professional composition, Forbes visual standard, 8k',
-      GOOGLE_DISPLAY: 'minimalist high-contrast commercial product display, clean studio lighting, pristine reflections, hyper-detailed rendering, crisp edges, premium brand presentation',
+      META_FEED: 'award-winning commercial advertising photography, 85mm portrait lens, f/1.8 depth of field, dramatic studio softbox lighting, ultra-sharp focus, vivid color contrast, 8k resolution, photorealistic, pristine art direction, zero text, no typography, no words, no headlines, zero text overlays',
+      INSTAGRAM_REELS: 'cinematic 9:16 vertical frame, hyper-dynamic natural illumination, modern high-end aesthetic, tactile textures, ultra-crisp focus, professional editorial shoot, 8k, masterwork, zero text, no typography',
+      LINKEDIN: 'high-end executive business editorial photography, sleek glass architectural background, subtle volumetric lighting, sharp professional composition, Forbes visual standard, 8k, zero text, no typography',
+      GOOGLE_DISPLAY: 'minimalist high-contrast commercial product display, clean studio lighting, pristine reflections, hyper-detailed rendering, crisp edges, premium brand presentation, no typography',
     };
     const directive = platformDirectives[platform] || platformDirectives.META_FEED;
     return `${prompt}, ${directive}, no blur, no distortion, no text clipping, no watermark, masterwork`;
@@ -107,6 +109,7 @@ export class MultiProviderVisualGateway {
     const hfConfig = integrations.huggingFaceVisualAi || {};
     const googleConfig = integrations.googleFlowVision || {};
     const nanoBananaConfig = integrations.nanoBananaGpu || {};
+    const pollinationsConfig = integrations.pollinationsAi || {};
 
     // 2. Order providers: preferred first, then remaining
     const orderedProviders = preferredProvider && preferredProvider !== 'AUTO_ROTATE'
@@ -448,7 +451,22 @@ export class MultiProviderVisualGateway {
             };
           }
 
-          // 8. Guaranteed Dynamic Creative Vector SVG Renderer
+          // 8. Curated 8K Commercial Product Photography (Instant, Zero Latency, 100% Rate-Limit Proof)
+          case 'CURATED_COMMERCIAL_PHOTO': {
+            const photoUrl = CommercialVisualCatalog.getCuratedAsset(`${cleanPrompt} ${headline} ${brandName}`, seed);
+            return {
+              success: true,
+              imageUrl: photoUrl,
+              provider: 'Curated_Commercial_Photo',
+              providerName: 'Curated 8K Commercial Product Photography',
+              width,
+              height,
+              seed,
+              rotationLogs,
+            };
+          }
+
+          // 9. Guaranteed Dynamic Creative Vector SVG Renderer
           case 'DYNAMIC_VECTOR_GRAPHIC': {
             const svgUrl = this.generateDynamicCreativeSvg({
               headline: headline || brandName,

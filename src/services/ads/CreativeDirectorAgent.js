@@ -25,6 +25,7 @@
 import { UniversalBusinessContext } from '../ai/UniversalBusinessContext.js';
 import { LlmGatewayService } from '../ai/LlmGatewayService.js';
 import { MultiProviderVisualGateway } from '../visual/MultiProviderVisualGateway.js';
+import { CommercialVisualCatalog } from '../visual/CommercialVisualCatalog.js';
 import { AdCampaign } from '../../models/AdCampaign.js';
 import { AdCreative } from '../../models/AdCreative.js';
 
@@ -131,8 +132,12 @@ TASK INSTRUCTIONS:
    - For Google: headlines (list of 5-10 headlines max 30 chars), descriptions (list of 3-4 descriptions max 90 chars), sitelinks (3-4 quick links), callouts (3-4 feature callouts).
    - For LinkedIn: introText (executive tone), headline, ctaText.
 4. For each variation, write a hyper-detailed, purpose-built prompt for an AI Image/Video Generator:
-   - The visual must match the purpose (e.g. Paid Ad vs Organic Post: Ads require clear visual focal point, contrasting focal elements, vibrant lighting, no cluttered background).
-   - Must specify aspect ratio, photography style, lighting, depth of field, and exact visual metaphor representing the product/service.
+   - CRITICAL RULE (WORLD-CLASS CREATIVE SEPARATION): Ad copy (headlines, hooks, text) persuades with words. The VISUAL CREATIVE must showcase the physical product or aspirational service outcome in an ultra-high-desire commercial aesthetic with ZERO text.
+   - NEVER output headlines, slogans, offers, discounts, or words inside "detailedVisualPrompt". Diffusion models distort text and ruin ad credibility.
+   - If physical product (e.g. sunglasses, apparel, jewelry): describe macro product photography, tangible textures (matte acetate, gold, teak wood, leather), lighting (golden hour rim light, softbox studio), luxury setting (yacht, travertine pedestal, boutique), 8k photorealistic.
+   - If bespoke / event (e.g. wedding invitations, stationery): describe royal flat-lay of gold-foil embossed cards, wax seals, fresh jasmine/marigold petals, sleek smartphone displaying glowing digital invitation, warm candlelight bokeh.
+   - If SaaS / professional service: describe sunlit modern architectural designer office, minimalist oak desk, MacBook displaying clean growth metrics, confident executive.
+   - Strictly include: "award-winning commercial advertising photography, photorealistic 8k, pristine lighting, zero text overlays, no typography".
 
 Return STRICTLY a JSON object with this exact structure:
 {
@@ -206,11 +211,23 @@ Return STRICTLY a JSON object with this exact structure:
 
       console.log(`[CreativeDirectorAgent] Generating visual asset for Variation #${i + 1} (${platformSpec.aspectRatio}) via MultiProviderVisualGateway...`);
 
+      // World-Class Product-Centric Visual Prompt Synthesis:
+      // Ensure the visual prompt describes the actual physical product / aspirational service outcome, NEVER the ad headline!
+      const productVisualPrompt = (visualConcept.detailedVisualPrompt && visualConcept.detailedVisualPrompt.length > 25 && !/headline|click|buy now|guarantee|stop losing/i.test(visualConcept.detailedVisualPrompt))
+        ? visualConcept.detailedVisualPrompt
+        : CommercialVisualCatalog.synthesizeProductVisualPrompt({
+            companyName: businessContext.companyName,
+            industry: businessContext.industry,
+            productFocus: productFocus || businessContext.companyName,
+            variationIndex: i,
+            platform,
+          });
+
       let assetResult = null;
 
       if (platformSpec.formatType === 'VIDEO') {
         assetResult = await MultiProviderVisualGateway.generateVideo({
-          prompt: `${businessContext.companyName} commercial: ${visualConcept.detailedVisualPrompt || variation.headline}`,
+          prompt: `${productVisualPrompt}, cinematic 8k commercial video, photorealistic, zero text overlays`,
           aspectRatio: platformSpec.aspectRatio,
           durationSeconds: 15,
           headline: visualConcept.textOverlayHeadline || variation.headline,
@@ -218,17 +235,20 @@ Return STRICTLY a JSON object with this exact structure:
           brandName: businessContext.companyName,
         });
       } else {
-        // Intelligently rotate across distinct zero-collision engines across variations in a single batch
+        // Intelligently rotate across distinct zero-collision engines across variations in a single batch:
+        // Variation 1: Curated 8K commercial product photo (Instant, 100% rate-limit proof)
+        // Variation 2: Dynamic Vector Graphic (Custom luxury/commercial palette)
+        // Variation 3: Google Flow / Imagen 3 Vision Engine (or Nano-Banana)
         let variationProvider = preferredVisualProvider;
         if (!preferredVisualProvider || preferredVisualProvider === 'AUTO_ROTATE' || preferredVisualProvider === 'POLLINATIONS_FLUX') {
-          if (i === 0) variationProvider = 'GOOGLE_FLOW_IMAGEN';
+          if (i === 0) variationProvider = 'CURATED_COMMERCIAL_PHOTO';
           else if (i === 1) variationProvider = 'DYNAMIC_VECTOR_GRAPHIC';
-          else if (i === 2) variationProvider = 'NANO_BANANA_GPU';
-          else variationProvider = 'GOOGLE_FLOW_IMAGEN';
+          else if (i === 2) variationProvider = 'GOOGLE_FLOW_IMAGEN';
+          else variationProvider = 'CURATED_COMMERCIAL_PHOTO';
         }
 
         assetResult = await MultiProviderVisualGateway.generateImage({
-          prompt: `${businessContext.companyName} ${businessContext.industry}: ${visualConcept.detailedVisualPrompt || variation.headline}`,
+          prompt: `${productVisualPrompt}, award-winning commercial advertising photography, photorealistic 8k, pristine lighting, zero text overlays, no typography`,
           width: platformSpec.width || 1080,
           height: platformSpec.height || 1080,
           preferredProvider: variationProvider,
@@ -432,60 +452,78 @@ Return STRICTLY a JSON object with this exact structure:
           ],
           instantFormQuestions: ['What is your current monthly revenue goal?', 'What is your primary growth bottleneck?'],
           visualCreativeConcept: {
-            title: 'High-Impact Pattern Interrupt',
+            title: 'High-Impact Product Showcase',
             purpose: 'PAID_AD_SCROLL_STOPPER',
-            detailedVisualPrompt: `Dramatic, high-contrast studio photograph of a modern tech executive workstation with illuminated holographic performance analytics dashboards, sleek dark glassmorphism, vibrant turquoise and violet accents, cinematic depth of field, 8k resolution`,
-            textOverlayHeadline: `Stop Losing Revenue`,
-            textOverlaySubtext: `Autonomous Growth for Modern Leaders`,
+            detailedVisualPrompt: CommercialVisualCatalog.synthesizeProductVisualPrompt({
+              companyName: businessName,
+              industry,
+              productFocus: focus,
+              variationIndex: 0,
+              platform,
+            }),
+            textOverlayHeadline: `Premium ${industry || 'Excellence'}`,
+            textOverlaySubtext: `${businessName} Bespoke Solutions`,
           },
         },
         {
           variationIndex: 2,
           strategicAngle: 'SOCIAL_PROOF_AND_METRICS',
-          headline: `How Leading Brands Scale with ${businessName}`,
-          primaryText: `When our clients deployed ${businessName}, they cut their acquisition cost by 42% while tripling qualified pipeline volume.\n\nNo guesswork. No bloated retainers. Just precision execution built for speed.\n\nSee how it works in our 3-minute interactive breakdown.`,
+          headline: `How Leading Clients Elevate with ${businessName}`,
+          primaryText: `When our clients chose ${businessName}, they unlocked unmatched quality and seamless execution.\n\nNo guesswork. No compromises. Just precision craftsmanship built to stand out.\n\nExplore our bespoke collection and client stories now.`,
           description: `Rated 4.9/5 by industry leaders.`,
           callToAction: 'SIGN_UP',
           whatsAppGreeting: `Hi! I would like to see the case studies and proof metrics for ${businessName}.`,
           googleHeadlines: [
-            `Cut Acquisition Costs 42%`,
+            `Top Rated ${industry || 'Solutions'}`,
             `Proven Performance Blueprint`,
             `See Real Client Results`,
           ],
           googleDescriptions: [
             `Verified case studies showing rapid scaling. Explore the full breakdown now.`,
           ],
-          instantFormQuestions: ['What is your company size?', 'When are you looking to implement?'],
+          instantFormQuestions: ['What is your primary goal?', 'When are you looking to launch?'],
           visualCreativeConcept: {
-            title: 'Executive Metric Showcase',
+            title: 'Editorial Masterwork Showcase',
             purpose: 'PAID_AD_SCROLL_STOPPER',
-            detailedVisualPrompt: `Editorial Forbes-style photograph of a confident business leader reviewing exponential growth graphs on a futuristic transparent tablet in an illuminated architectural glass office at dusk, warm interior glow with cool city twilight background`,
-            textOverlayHeadline: `3.8x Average Pipeline Boost`,
-            textOverlaySubtext: `Verified Client Results`,
+            detailedVisualPrompt: CommercialVisualCatalog.synthesizeProductVisualPrompt({
+              companyName: businessName,
+              industry,
+              productFocus: focus,
+              variationIndex: 1,
+              platform,
+            }),
+            textOverlayHeadline: `Verified 5-Star Benchmark`,
+            textOverlaySubtext: `Trusted by Leading Clients`,
           },
         },
         {
           variationIndex: 3,
           strategicAngle: 'IRRESISTIBLE_OFFER',
-          headline: `Get Your Custom Growth Blueprint (100% Free)`,
-          primaryText: `Ready to upgrade your business engine? For a limited time, get a complimentary, pin-to-pin growth audit and deployment strategy tailored specifically to your business.\n\nClaim your spot today before allocations fill up.`,
-          description: `Limited to the next 15 verified businesses.`,
+          headline: `Experience the Difference with ${businessName}`,
+          primaryText: `Ready to upgrade your experience? For a limited time, get a complimentary live preview and customized execution blueprint tailored specifically to your needs.\n\nClaim your spot today before allocations fill up.`,
+          description: `Limited availability for discerning clients.`,
           callToAction: 'GET_OFFER',
-          whatsAppGreeting: `Hello! I am claiming my free custom growth blueprint from ${businessName}.`,
+          whatsAppGreeting: `Hello! I am claiming my free custom preview from ${businessName}.`,
           googleHeadlines: [
-            `Free Growth Audit Blueprint`,
-            `Claim Your Strategy Session`,
-            `Zero-Risk Implementation`,
+            `Free Custom Preview`,
+            `Claim Your Consultation`,
+            `Zero-Risk Experience`,
           ],
           googleDescriptions: [
-            `Get a customized revenue expansion plan mapped pin-to-pin to your business needs.`,
+            `Get a customized plan mapped pin-to-pin to your exact requirements.`,
           ],
-          instantFormQuestions: ['What is your website URL?', 'What is your best contact phone number?'],
+          instantFormQuestions: ['What is your website or event date?', 'What is your best contact phone number?'],
           visualCreativeConcept: {
-            title: 'Golden Key Blueprint Graphic',
+            title: 'Luxury Detail Showcase',
             purpose: 'PAID_AD_SCROLL_STOPPER',
-            detailedVisualPrompt: `Minimalist, ultra-luxurious product packaging presentation of a glowing digital blueprint key with cybernetic circuitry patterns, soft ambient studio lighting, elegant dark obsidian stone pedestal, premium corporate aesthetic`,
-            textOverlayHeadline: `Claim Your Custom Blueprint`,
+            detailedVisualPrompt: CommercialVisualCatalog.synthesizeProductVisualPrompt({
+              companyName: businessName,
+              industry,
+              productFocus: focus,
+              variationIndex: 2,
+              platform,
+            }),
+            textOverlayHeadline: `Bespoke Preview Available`,
             textOverlaySubtext: `Limited Availability`,
           },
         },

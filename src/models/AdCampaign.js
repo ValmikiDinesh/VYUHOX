@@ -90,8 +90,8 @@ const adCampaignSchema = new mongoose.Schema(
     targeting: {
       locations: { type: [String], default: ['United States', 'United Kingdom', 'Switzerland', 'Singapore'] },
       ageRange: { type: [Number], default: [25, 65] },
-      interests: { type: [String], default: ['Algorithmic Trading', 'Hedge Funds', 'Quant Finance', 'Family Office'] },
-      keywords: { type: [String], default: ['crypto hedge fund execution', 'sub second trading latency', 'institutional quant alpha'] },
+      interests: { type: [String], default: ['Business Growth', 'Luxury Lifestyle', 'High-Intent Decision Makers', 'Quality Products'] },
+      keywords: { type: [String], default: ['premium products', 'luxury bespoke solutions', 'verified client services'] },
     },
     metrics: {
       spend: { type: Number, default: 0 },

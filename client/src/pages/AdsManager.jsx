@@ -563,7 +563,7 @@ export default function AdsManager({
           primaryText: formPrimaryText || `Accelerate operations with ${activeWorkspace.name || 'enterprise automation'}.`,
           ctaText: formCta,
           destinationUrl: `https://${activeWorkspace.domain || 'vyuhox.com'}/demo`,
-          mediaUrl: formMediaUrl || (formFormat.includes('REELS') ? '/media/hedgex_reel.jpg' : '/media/vyuhox_banner.jpg'),
+          mediaUrl: formMediaUrl || (formFormat.includes('REELS') ? '/media/vyuhox_reel.jpg' : '/media/vyuhox_banner.jpg'),
           platformFormat: formFormat,
           whatsappGreeting: formWhatsappGreeting,
         },
@@ -2790,7 +2790,7 @@ export default function AdsManager({
                       type="text"
                       value={formMediaUrl}
                       onChange={(e) => setFormMediaUrl(e.target.value)}
-                      placeholder="/media/hedgex_reel.jpg or URL"
+                      placeholder="/media/vyuhox_reel.jpg or URL"
                       style={{
                         width: '100%',
                         padding: '9px 12px',

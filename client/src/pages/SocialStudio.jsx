@@ -85,7 +85,9 @@ export default function SocialStudio({ activeWorkspace, socket }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Generate 35 particles
+    const isWeddingOrLuxury = /wedding|invite|stationery|event|jewelry|luxury|fashion/i.test(`${activeWorkspace?.industry || ''} ${activeWorkspace?.name || ''}`);
+
+    // Generate 35 ambient particles
     const particles = Array.from({ length: 35 }, () => ({
       x: Math.random() * 340,
       y: Math.random() * 604,
@@ -93,19 +95,16 @@ export default function SocialStudio({ activeWorkspace, socket }) {
       speedY: Math.random() * 0.8 + 0.3,
       speedX: (Math.random() - 0.5) * 0.4,
       alpha: Math.random() * 0.7 + 0.2,
-      color: Math.random() > 0.4 ? '#06B6D4' : Math.random() > 0.5 ? '#10B981' : '#FACC15',
+      color: isWeddingOrLuxury
+        ? (Math.random() > 0.4 ? '#F59E0B' : Math.random() > 0.5 ? '#FBBF24' : '#EC4899')
+        : (Math.random() > 0.4 ? '#06B6D4' : Math.random() > 0.5 ? '#10B981' : '#8B5CF6'),
     }));
-
-    // Candlesticks configuration
-    const candleCount = 14;
-    const candleWidth = 12;
-    const candleSpacing = 22;
 
     const render = () => {
       tick++;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 1. Draw Floating Cybernetic Particles
+      // 1. Draw Floating Cinematic Particles
       particles.forEach((p) => {
         p.y -= p.speedY;
         p.x += p.speedX;
@@ -123,42 +122,20 @@ export default function SocialStudio({ activeWorkspace, socket }) {
         ctx.shadowBlur = 0;
       });
 
-      // 2. Draw Active Order Book Candlesticks (in lower area: Y = 360 to 440)
-      const baseCandleY = 390;
-      for (let i = 0; i < candleCount; i++) {
-        const cx = 16 + i * candleSpacing;
-        const phase = tick * 0.04 + i * 0.75;
-        const height = 12 + Math.sin(phase) * 10 + Math.cos(phase * 0.5) * 6;
-        const isBullish = Math.sin(phase) >= 0;
-        const candleColor = isBullish ? '#10B981' : '#EF4444';
-        const topWick = height + Math.abs(Math.sin(phase * 1.5)) * 12;
-        const botWick = height + Math.abs(Math.cos(phase * 1.2)) * 10;
-
-        ctx.globalAlpha = isPlayingReel ? 0.6 : 0.35;
-        ctx.strokeStyle = candleColor;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(cx + candleWidth / 2, baseCandleY - topWick);
-        ctx.lineTo(cx + candleWidth / 2, baseCandleY + botWick);
-        ctx.stroke();
-
-        ctx.fillStyle = candleColor;
-        ctx.fillRect(cx, baseCandleY - height, candleWidth, height * 2);
-      }
-
-      // 3. Draw Undulating Liquidity Wave (Sine wave with cyan neon glow)
+      // 2. Draw Elegant Atmospheric Ambient Wave
       ctx.beginPath();
-      const waveY = 430;
+      const waveY = 460;
       ctx.moveTo(0, waveY);
       for (let x = 0; x <= canvas.width; x += 10) {
-        const y = waveY + Math.sin(x * 0.03 + tick * 0.04) * 12 + Math.cos(x * 0.015 - tick * 0.02) * 6;
+        const y = waveY + Math.sin(x * 0.02 + tick * 0.03) * 10 + Math.cos(x * 0.015 - tick * 0.02) * 5;
         ctx.lineTo(x, y);
       }
-      ctx.strokeStyle = '#06B6D4';
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = '#06B6D4';
-      ctx.shadowBlur = 10;
-      ctx.globalAlpha = isPlayingReel ? 0.85 : 0.45;
+      const waveStrokeColor = isWeddingOrLuxury ? '#F59E0B' : '#06B6D4';
+      ctx.strokeStyle = waveStrokeColor;
+      ctx.lineWidth = 2.0;
+      ctx.shadowColor = waveStrokeColor;
+      ctx.shadowBlur = 8;
+      ctx.globalAlpha = isPlayingReel ? 0.8 : 0.4;
       ctx.stroke();
       ctx.shadowBlur = 0;
 
@@ -167,13 +144,13 @@ export default function SocialStudio({ activeWorkspace, socket }) {
       ctx.lineTo(0, canvas.height);
       ctx.closePath();
       const waveGrad = ctx.createLinearGradient(0, waveY, 0, canvas.height);
-      waveGrad.addColorStop(0, 'rgba(6, 182, 212, 0.22)');
+      waveGrad.addColorStop(0, isWeddingOrLuxury ? 'rgba(245, 158, 11, 0.18)' : 'rgba(6, 182, 212, 0.18)');
       waveGrad.addColorStop(1, 'rgba(2, 6, 23, 0)');
       ctx.fillStyle = waveGrad;
-      ctx.globalAlpha = isPlayingReel ? 0.75 : 0.35;
+      ctx.globalAlpha = isPlayingReel ? 0.7 : 0.3;
       ctx.fill();
 
-      // 4. Top Audio Spectrum Frequency Bars (Right under ticker)
+      // 3. Top Audio Spectrum Frequency Bars (Right under header)
       const numBars = 22;
       const barWidth = 7;
       const barSpacing = 14;
@@ -184,7 +161,9 @@ export default function SocialStudio({ activeWorkspace, socket }) {
         const bx = startX + b * barSpacing;
         const bPhase = tick * 0.12 + b * 0.6;
         const rawHeight = (Math.sin(bPhase) * 0.5 + 0.5) * (isPlayingReel ? 22 : 8) + 4;
-        ctx.fillStyle = b % 2 === 0 ? '#38BDF8' : '#F472B6';
+        ctx.fillStyle = isWeddingOrLuxury
+          ? (b % 2 === 0 ? '#F59E0B' : '#EC4899')
+          : (b % 2 === 0 ? '#38BDF8' : '#10B981');
         ctx.globalAlpha = isPlayingReel ? 0.85 : 0.35;
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 6;
@@ -206,7 +185,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [newReelTopic, setNewReelTopic] = useState('');
   const [newReelPlatform, setNewReelPlatform] = useState('INSTAGRAM');
-  const [newReelTheme, setNewReelTheme] = useState('cyber_crypto_matrix');
+  const [newReelTheme, setNewReelTheme] = useState('cinematic_luxury');
 
   // Business Owner Upload & Automated Publishing Modal State
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -218,7 +197,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
   const [uploadPostType, setUploadPostType] = useState('REEL'); // 'REEL' | 'STATIC_GRAPHIC' | 'CAROUSEL'
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCaption, setUploadCaption] = useState('');
-  const [uploadHashtags, setUploadHashtags] = useState('#Crypto #AlgorithmicFinance #QuantitativeTrading #FinTech');
+  const [uploadHashtags, setUploadHashtags] = useState('#QualityFirst #CustomerSuccess #Growth');
   const [uploadPublishMode, setUploadPublishMode] = useState('AUTOMATIC_NOW'); // 'AUTOMATIC_NOW' | 'SCHEDULED_AUTOPILOT'
   const [uploadScheduledDate, setUploadScheduledDate] = useState('');
   const [uploadGenerateVoiceover, setUploadGenerateVoiceover] = useState(true);
@@ -1364,19 +1343,16 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   fontSize: '0.6rem',
                   fontWeight: '800',
                   fontFamily: 'monospace',
-                  color: '#38BDF8',
+                  color: isWeddingOrLuxury ? '#F59E0B' : '#38BDF8',
                   gap: '20px',
                 }}>
-                  <span>🟢 BTC/USDT $94,820 ▲ +4.2%</span>
-                  <span>⚡ OKX / BYBIT ARB +18.4 bps</span>
-                  <span>⏱️ LATENCY: 480ms</span>
-                  <span>📊 3.82 SHARPE (Q2)</span>
-                  <span>🛡️ SPEARBIT AUDITED</span>
-                  <span>🔐 FIREBLOCKS MPC</span>
-                  <span>🟢 BTC/USDT $94,820 ▲ +4.2%</span>
-                  <span>⚡ OKX / BYBIT ARB +18.4 bps</span>
-                  <span>⏱️ LATENCY: 480ms</span>
-                  <span>📊 3.82 SHARPE (Q2)</span>
+                  <span>✨ {activeWorkspace?.name?.toUpperCase() || 'VYUHOX'} OFFICIAL</span>
+                  <span>⭐ 100% BESPOKE SATISFACTION</span>
+                  <span>🚀 AUTONOMOUS REACH</span>
+                  <span>💫 {activeWorkspace?.industry?.toUpperCase() || 'PREMIUM'} SPOTLIGHT</span>
+                  <span>💎 VERIFIED CLIENT TRUST</span>
+                  <span>✨ {activeWorkspace?.name?.toUpperCase() || 'VYUHOX'} OFFICIAL</span>
+                  <span>⭐ 100% BESPOKE SATISFACTION</span>
                 </div>
               </div>
 
@@ -1421,7 +1397,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   color: '#34D399',
                   fontWeight: '800',
                 }}>
-                  LIVE ARB
+                  {isWeddingOrLuxury ? 'EXCLUSIVE' : 'VERIFIED'}
                 </span>
               </div>
 
@@ -1447,10 +1423,10 @@ export default function SocialStudio({ activeWorkspace, socket }) {
               ) : (
                 <img
                   src={
-                    selectedPost.mediaUrl
+                    selectedPost.mediaUrl && !selectedPost.mediaUrl.includes('hedgex')
                       ? selectedPost.mediaUrl
-                      : ((activeWorkspace?.industry || '').toLowerCase().includes('crypto') || (activeWorkspace?.name || '').toLowerCase().includes('hedge')
-                          ? '/media/hedgex_reel.jpg'
+                      : (isWeddingOrLuxury
+                          ? 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85'
                           : '/media/vyuhox_reel.jpg')
                   }
                   onError={(e) => {
@@ -1618,7 +1594,11 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   gap: '6px',
                 }}>
                   <Sparkles size={12} color="#FACC15" />
-                  <span>COMMENT "ALPHA" FOR LP DOSSIER</span>
+                  <span>
+                    {selectedPost?.scriptCta
+                      ? selectedPost.scriptCta.slice(0, 36).toUpperCase()
+                      : (isWeddingOrLuxury ? 'COMMENT "PREVIEW" FOR VIP ACCESS' : 'TAP TO DISCOVER MORE')}
+                  </span>
                 </div>
               </div>
 
@@ -1854,7 +1834,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                     Phase 3: Conversion Call-To-Action (25-35s)
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#F8FAFC', fontWeight: '600' }}>
-                    {selectedPost.scriptCta || "Drop the word 'ALPHA' below and I'll send you our institutional framework."}
+                    {selectedPost.scriptCta || "Send us a direct message or tap the link in bio to preview our bespoke collection."}
                   </div>
                 </div>
 
@@ -1928,13 +1908,13 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   }}
                 >
                   <Layers size={14} />
-                  Institutional Slide Deck ({selectedPost.carouselSlides?.length || 5} Slides)
+                  Presentation Slide Deck ({selectedPost.carouselSlides?.length || 5} Slides)
                 </button>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.72rem', color: '#10B981', fontWeight: '800' }}>
-                  🛡️ Spearbit Audited • Fireblocks Custody
+                <span style={{ fontSize: '0.72rem', color: isWeddingOrLuxury ? '#F59E0B' : '#10B981', fontWeight: '800' }}>
+                  ⭐ 100% Bespoke Craftsmanship • Verified Client Satisfaction
                 </span>
               </div>
             </div>
@@ -1949,14 +1929,22 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   position: 'relative',
                   overflow: 'hidden',
                   boxShadow: '0 24px 70px rgba(0, 0, 0, 0.9), 0 0 40px rgba(16, 185, 129, 0.25)',
-                  border: '2px solid rgba(16, 185, 129, 0.4)',
+                  border: `2px solid ${isWeddingOrLuxury ? 'rgba(245, 158, 11, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
                   flexShrink: 0,
                 }}>
                   <img
-                    src={selectedPost.mediaUrl || '/media/vyuhox_banner.jpg'}
+                    src={
+                      selectedPost.mediaUrl && !selectedPost.mediaUrl.includes('hedgex')
+                        ? selectedPost.mediaUrl
+                        : (isWeddingOrLuxury
+                            ? 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85'
+                            : '/media/vyuhox_banner.jpg')
+                    }
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = '/media/vyuhox_banner.jpg';
+                      e.target.src = isWeddingOrLuxury
+                        ? 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85'
+                        : '/media/vyuhox_banner.jpg';
                     }}
                     alt="Brand Visual Asset"
                     style={{
@@ -2328,7 +2316,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                 </label>
                 <input
                   type="text"
-                  defaultValue={config.defaultHashtags?.join(' ') || '#CryptoAlpha #QuantTrading #GTMStrategy'}
+                  defaultValue={config.defaultHashtags?.join(' ') || (isWeddingOrLuxury ? '#WeddingInvitations #LuxuryStationery #Bespoke' : '#Growth #BrandStrategy #Excellence')}
                   style={{
                     width: '100%',
                     background: 'rgba(255, 255, 255, 0.04)',
@@ -2502,7 +2490,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
               </label>
               <input
                 type="text"
-                placeholder="e.g. Why high-frequency funds bleed alpha without sub-second routing"
+                placeholder={isWeddingOrLuxury ? "e.g. Why personalized digital wedding invitations leave guests speechless" : "e.g. How our custom solutions elevate your client experience"}
                 value={newReelTopic}
                 onChange={(e) => setNewReelTopic(e.target.value)}
                 style={{
@@ -2517,12 +2505,17 @@ export default function SocialStudio({ activeWorkspace, socket }) {
               />
               {/* 1-Click Tailored Business Topic Chips */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
-                {[
-                  '⚡ Cross-Exchange Latency Arbitrage (OKX / Bybit)',
-                  '📈 Q2 3.82 Sharpe Ratio Performance Audit',
-                  '🔐 Institutional Fireblocks MPC Multi-Sig Security',
-                  '🤖 Maya Sub-Second Inbound Lead Voice Agent',
-                ].map((chip) => (
+                {(isWeddingOrLuxury ? [
+                  '✨ Royal Bespoke Digital Invitation Suite',
+                  '💌 Personalized Native Guest Greetings (Telugu, Hindi, Tamil)',
+                  '🌸 Cinematic Wedding Invitation Reel Preview',
+                  '📱 Unified Photo-Aggregation & Instant RSVP Tracking',
+                ] : [
+                  `🚀 How ${activeWorkspace?.name || 'We'} Outperform Legacy Alternatives`,
+                  '⭐ Real Client Results & Verified Satisfaction',
+                  '🎯 The New Standard in Modern Experience',
+                  '💡 Exclusive Behind-The-Scenes Feature',
+                ]).map((chip) => (
                   <button
                     key={chip}
                     type="button"
@@ -2530,9 +2523,9 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                     style={{
                       padding: '3px 8px',
                       borderRadius: '6px',
-                      background: 'rgba(6, 182, 212, 0.1)',
-                      border: '1px solid rgba(6, 182, 212, 0.25)',
-                      color: '#38BDF8',
+                      background: isWeddingOrLuxury ? 'rgba(245, 158, 11, 0.12)' : 'rgba(6, 182, 212, 0.1)',
+                      border: `1px solid ${isWeddingOrLuxury ? 'rgba(245, 158, 11, 0.3)' : 'rgba(6, 182, 212, 0.25)'}`,
+                      color: isWeddingOrLuxury ? '#FBBF24' : '#38BDF8',
                       fontSize: '0.66rem',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
@@ -2585,9 +2578,10 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                     fontSize: '0.78rem',
                   }}
                 >
-                  <option value="cyber_crypto_matrix">Cybernetic Matrix HUD</option>
-                  <option value="neon_data_stream">High-Velocity Neon Tunnel</option>
-                  <option value="abstract_ai_cube">Abstract Neural Architecture</option>
+                  <option value="cinematic_luxury">Cinematic Luxury &amp; Elegance</option>
+                  <option value="golden_hour_editorial">Golden Hour Editorial</option>
+                  <option value="minimal_clean_studio">Minimalist Studio Showcase</option>
+                  <option value="cyber_tech_stream">Modern High-Tech Flow</option>
                 </select>
               </div>
             </div>
@@ -2898,7 +2892,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
               </label>
               <input
                 type="text"
-                placeholder="#Crypto #FinTech #AlgorithmicTrading #QuantAlpha"
+                placeholder={isWeddingOrLuxury ? "#Wedding #LuxuryInvitations #Bespoke #EventTech" : "#QualityFirst #BrandGrowth #Innovation"}
                 value={uploadHashtags}
                 onChange={(e) => setUploadHashtags(e.target.value)}
                 style={{
@@ -3298,7 +3292,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   <option value="david">David (UK Male • Founder)</option>
                   <option value="priya">Priya (Indian Tech • Fast/Crisp)</option>
                   <option value="mateo">Mateo (LatAm • Dynamic Energy)</option>
-                  <option value="kenji">Kenji (Global • Calm Quant)</option>
+                  <option value="kenji">Kenji (Global • Calm & Professional)</option>
                 </select>
               </div>
 

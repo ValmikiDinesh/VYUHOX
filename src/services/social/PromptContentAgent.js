@@ -5,6 +5,7 @@
  */
 
 import { LlmGatewayService } from '../ai/LlmGatewayService.js';
+import { CommercialVisualCatalog } from '../visual/CommercialVisualCatalog.js';
 
 export class PromptContentAgent {
   /**
@@ -72,10 +73,10 @@ STRICT INSTRUCTIONS:
 4. "title": Punchy, memorable title (max 50 chars).
 5. "scriptHook": Captivating, thumb-stopping 1-sentence opening hook.
 6. "scriptBody": 2-3 engaging sentences highlighting what makes ${companyName} extraordinary.
-7. "scriptCta": Clear, urgent call-to-action (e.g. "Comment 'DEMO' or tap link in bio").
+7. "scriptCta": Clear, urgent call-to-action (e.g. "Comment 'PREVIEW' or tap link in bio").
 8. "hashtags": Array of 5-8 relevant hashtags matching this exact industry.
 9. "carouselSlides": Array of 5 progressive slides for carousel post (each with slideNumber, headline, subtext, statCallout).
-10. "visualImagePrompt": A detailed 8K visual generation prompt tailored specifically to this business's products and aesthetics.
+10. "visualImagePrompt": A detailed 8K commercial product/scene photography prompt tailored specifically to this business's products and aesthetics. NEVER include slogans, headlines, or text in the visual prompt. Describe physical product/scene materials, textures, lighting, and setting only.
 
 Respond STRICTLY with valid JSON.`;
 
@@ -88,6 +89,16 @@ Respond STRICTLY with valid JSON.`;
 
       const parsed = llmRes.parsedJson || (typeof llmRes.text === 'string' ? JSON.parse(llmRes.text) : null);
       if (parsed && parsed.scriptHook && parsed.scriptBody) {
+        const cleanVisualPrompt = (parsed.visualImagePrompt && parsed.visualImagePrompt.length > 25 && !/headline|click|buy now|guarantee/i.test(parsed.visualImagePrompt))
+          ? parsed.visualImagePrompt
+          : CommercialVisualCatalog.synthesizeProductVisualPrompt({
+              companyName,
+              industry,
+              productFocus: cleanPrompt || companyName,
+              variationIndex: 0,
+              platform,
+            });
+
         contentMatrix = {
           title: parsed.title || `${companyName} • Spotlight`,
           hook: parsed.scriptHook,
@@ -95,7 +106,7 @@ Respond STRICTLY with valid JSON.`;
           cta: parsed.scriptCta || 'Tap the link in bio to learn more.',
           hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : [`#${companyName.replace(/\s+/g, '')}`, `#${industry.replace(/\s+/g, '')}`],
           slides: Array.isArray(parsed.carouselSlides) && parsed.carouselSlides.length >= 3 ? parsed.carouselSlides : null,
-          visualImagePrompt: parsed.visualImagePrompt || `${companyName} commercial visual for ${industry}`,
+          visualImagePrompt: cleanVisualPrompt,
         };
       }
     } catch (llmErr) {
@@ -253,7 +264,15 @@ Respond STRICTLY with valid JSON.`;
       },
     ];
 
-    return { hook, body, cta, title, hashtags, slides, visualImagePrompt: `${companyName} ${title}` };
+    const adaptiveVisualPrompt = CommercialVisualCatalog.synthesizeProductVisualPrompt({
+      companyName,
+      industry,
+      productFocus: prompt || companyName,
+      variationIndex: 0,
+      platform,
+    });
+
+    return { hook, body, cta, title, hashtags, slides, visualImagePrompt: adaptiveVisualPrompt };
   }
 }
 

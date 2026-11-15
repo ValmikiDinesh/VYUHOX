@@ -445,11 +445,11 @@ router.get('/posts/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspa
 router.post('/generate-reel', authMiddleware, verifyWorkspaceAccess('workspaceId'), async (req, res) => {
   try {
     const workspaceId = req.workspaceId || req.body.workspaceId;
-    const { topic, platform = 'INSTAGRAM', theme = 'cyber_crypto_matrix' } = req.body;
+    const { topic, platform = 'INSTAGRAM', theme = 'cinematic_luxury' } = req.body;
 
     const ws = await Workspace.findById(workspaceId);
     const workspaceName = ws?.name || 'VYUHOX';
-    const industry = ws?.industry || 'Crypto';
+    const industry = ws?.industry || 'Commercial Services';
 
     // 1. Generate viral script & timed karaoke captions
     const scriptData = await VideoScriptAgent.generateScript({
@@ -527,7 +527,7 @@ router.post('/generate-graphics', authMiddleware, verifyWorkspaceAccess('workspa
 
     const ws = await Workspace.findById(workspaceId);
     const workspaceName = ws?.name || 'VYUHOX';
-    const industry = ws?.industry || 'Crypto';
+    const industry = ws?.industry || 'Commercial Services';
 
     let graphicData = null;
     let postType = format;
@@ -576,7 +576,7 @@ router.post('/generate-30-days', authMiddleware, verifyWorkspaceAccess('workspac
     const workspaceId = req.workspaceId || req.body.workspaceId;
     const ws = await Workspace.findById(workspaceId);
     const workspaceName = ws?.name || 'VYUHOX';
-    const industry = ws?.industry || 'Crypto';
+    const industry = ws?.industry || 'Commercial Services';
 
     const config = await SocialAccountConfig.findOne({ workspaceId });
     const isAutopilot = config ? config.autopilotEnabled : true;

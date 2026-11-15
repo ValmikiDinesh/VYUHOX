@@ -32,8 +32,8 @@ const socialAccountConfigSchema = new mongoose.Schema(
     brandVoice: {
       tone: { type: String, default: 'Authoritative, Data-Driven & Visionary' },
       style: { type: String, default: 'Punchy hooks, high-energy cadence, zero corporate fluff' },
-      targetAudience: { type: String, default: 'Founders, quantitative traders, and GTM leaders' },
-      keywords: { type: [String], default: ['Autonomous GTM', 'Algorithmic Scale', 'Sub-second Voice AI'] },
+      targetAudience: { type: String, default: 'Founders, discerning customers, and decision-makers' },
+      keywords: { type: [String], default: ['Bespoke Excellence', 'Quality Products', 'Autonomous Scale'] },
     },
     defaultHashtags: {
       type: [String],
@@ -76,7 +76,7 @@ const socialAccountConfigSchema = new mongoose.Schema(
       },
       facebook: {
         connected: { type: Boolean, default: true },
-        pageName: { type: String, default: 'VYUHOX Growth & Quantitative Systems' },
+        pageName: { type: String, default: 'VYUHOX Official' },
         followers: { type: Number, default: 18400 },
         adAccountId: { type: String, default: 'act_492019482019' },
       },

@@ -40,7 +40,7 @@ const adCreativeSchema = new mongoose.Schema(
     },
     destinationUrl: {
       type: String,
-      default: 'https://growth.hedgex.io/demo',
+      default: 'https://vyuhox.com',
     },
     mediaType: {
       type: String,
@@ -49,7 +49,7 @@ const adCreativeSchema = new mongoose.Schema(
     },
     mediaUrl: {
       type: String,
-      default: '/media/hedgex_reel.jpg',
+      default: '/media/vyuhox_banner.jpg',
     },
     thumbnailUrl: {
       type: String,
