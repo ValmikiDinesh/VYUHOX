@@ -153,20 +153,51 @@ const platformConfigSchema = new mongoose.Schema(
         quality: { type: String, default: 'standard' },
         isActive: { type: Boolean, default: false },
       },
-      nanoBananaGpu: {
+      stabilityVisualAi: {
         apiKey: { type: String, default: '' },
-        model: { type: String, default: 'sdxl-turbo' },
+        engineId: { type: String, default: 'stable-diffusion-xl-1024-v1-0' },
+        isActive: { type: Boolean, default: false },
+      },
+      replicateVisualAi: {
+        apiToken: { type: String, default: '' },
+        model: { type: String, default: 'black-forest-labs/flux-schnell' },
+        videoModel: { type: String, default: 'minimax/video-01' },
+        isActive: { type: Boolean, default: false },
+      },
+      falAiFlux: {
+        apiKey: { type: String, default: '' },
+        model: { type: String, default: 'fal-ai/flux/schnell' },
         isActive: { type: Boolean, default: true },
+      },
+      huggingFaceVisualAi: {
+        apiKey: { type: String, default: '' },
+        model: { type: String, default: 'black-forest-labs/FLUX.1-schnell' },
+        isActive: { type: Boolean, default: false },
       },
       googleFlowVision: {
         apiKey: { type: String, default: '' },
         model: { type: String, default: 'imagen-3' },
         isActive: { type: Boolean, default: true },
       },
-      falAiFlux: {
+      nanoBananaGpu: {
         apiKey: { type: String, default: '' },
-        model: { type: String, default: 'fal-ai/flux-pro' },
+        model: { type: String, default: 'sdxl-turbo' },
         isActive: { type: Boolean, default: true },
+      },
+      runwayVideoAi: {
+        apiKey: { type: String, default: '' },
+        model: { type: String, default: 'gen3a_turbo' },
+        isActive: { type: Boolean, default: false },
+      },
+      lumaVideoAi: {
+        apiKey: { type: String, default: '' },
+        model: { type: String, default: 'ray-1' },
+        isActive: { type: Boolean, default: false },
+      },
+      klingVideoAi: {
+        apiKey: { type: String, default: '' },
+        apiSecret: { type: String, default: '' },
+        isActive: { type: Boolean, default: false },
       },
       shortVideoEngine: {
         defaultBrollTheme: { type: String, default: 'cyber_crypto_matrix' },

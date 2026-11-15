@@ -43,6 +43,8 @@ import {
   Send,
   Clock,
   UserCheck,
+  Video,
+  Film,
   X,
 } from 'lucide-react';
 import { api } from '../services/api';
@@ -100,8 +102,21 @@ export default function SuperAdminDashboard({
       geminiMaster: { apiKey: '' },
       bounceban: { apiKey: '' },
       apify: { apiToken: '' },
+      dalleVisualAi: { apiKey: '', model: 'dall-e-3', quality: 'standard' },
+      stabilityVisualAi: { apiKey: '', engineId: 'stable-diffusion-xl-1024-v1-0' },
+      replicateVisualAi: { apiToken: '', model: 'black-forest-labs/flux-schnell', videoModel: 'minimax/video-01' },
+      falAiFlux: { apiKey: '', model: 'fal-ai/flux/schnell' },
+      huggingFaceVisualAi: { apiKey: '', model: 'black-forest-labs/FLUX.1-schnell' },
+      googleFlowVision: { apiKey: '', model: 'imagen-3.0-generate-002' },
+      nanoBananaGpu: { apiKey: '', model: 'sdxl-turbo' },
+      runwayVideoAi: { apiKey: '', model: 'gen3a_turbo' },
+      lumaVideoAi: { apiKey: '', model: 'dream-machine-v1' },
+      klingVideoAi: { apiKey: '', apiSecret: '' },
+      pollinationsVisualAi: { defaultModel: 'flux', allowFreeUnlimited: true },
+      shortVideoEngine: { defaultBrollTheme: 'cyber_crypto_matrix', renderEngine: 'HTML5_REMOTION_COMPOSITOR' },
     },
   });
+  const [integrationCategoryFilter, setIntegrationCategoryFilter] = useState('ALL');
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [revealedKeys, setRevealedKeys] = useState({});
@@ -356,6 +371,18 @@ export default function SuperAdminDashboard({
       stripeGlobal: 'Stripe Global Payments',
       sendgridSmtp: 'SendGrid SMTP Gateway',
       instantlyEmail: 'Instantly Email Warmup',
+      dalleVisualAi: 'OpenAI DALL-E 3 & Vision',
+      stabilityVisualAi: 'Stability AI (SD 3.5 & SDXL)',
+      replicateVisualAi: 'Replicate AI Cloud (FLUX & Video)',
+      falAiFlux: 'Fal.ai High-Speed FLUX & Video',
+      huggingFaceVisualAi: 'HuggingFace FLUX.1 Schnell',
+      googleFlowVision: 'Google Flow / Imagen 3 Vision',
+      nanoBananaGpu: 'Nano Banana / Serverless SDXL',
+      runwayVideoAi: 'Runway Gen-3 Alpha Cinematic Video',
+      lumaVideoAi: 'Luma Dream Machine Video Engine',
+      klingVideoAi: 'Kling AI Video Studio',
+      pollinationsVisualAi: 'Pollinations FLUX.1 Neural Engine',
+      shortVideoEngine: 'Autonomous HTML5 Reel Compositor',
     };
     return map[provider] || provider;
   };
@@ -387,7 +414,10 @@ export default function SuperAdminDashboard({
         (providerState.apiToken && providerState.apiToken.trim()) ||
         (providerState.secretKey && providerState.secretKey.trim()) ||
         (providerState.keySecret && providerState.keySecret.trim()) ||
+        (providerState.apiSecret && providerState.apiSecret.trim()) ||
         (providerState.accessToken && providerState.accessToken.trim()) ||
+        (providerState.allowFreeUnlimited === true) ||
+        (providerState.renderEngine && providerState.renderEngine.trim()) ||
         (providerState.accountSid && providerState.accountSid.trim() && providerState.apiKey && providerState.apiKey.trim())
       );
       providerState.isActive = hasKey;
@@ -2437,7 +2467,7 @@ export default function SuperAdminDashboard({
                   Master Integrations Switchboard (Screen-Share Safe)
                 </h3>
                 <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-                  API keys are masked by default (••••••••) to protect platform secrets during founder presentations
+                  Centralized platform credentials: One set of API keys configured here powers all client accounts platform-wide with 100% zero-failure failover
                 </div>
               </div>
               <button
@@ -2456,6 +2486,43 @@ export default function SuperAdminDashboard({
               >
                 {savingConfig ? 'Saving...' : 'Save All Keys'}
               </button>
+            </div>
+
+            {/* Category Filter Tabs */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '18px' }}>
+              {[
+                { id: 'ALL', label: 'All Engines & Rails' },
+                { id: 'VISUAL & VIDEO AI', label: '🎨 Visual & Video AI Engines' },
+                { id: 'TELECOM (INDIA)', label: '📞 Telecom (India)' },
+                { id: 'TELECOM (GLOBAL)', label: '🌐 Telecom (Global)' },
+                { id: 'AI VOICE AGENT', label: '🎙️ AI Voice (Maya)' },
+                { id: 'WHATSAPP MESSAGING', label: '💬 WhatsApp API' },
+                { id: 'DATA ENRICHMENT', label: '🔍 Data Enrichment' },
+                { id: 'LEAD SCRAPING', label: '🗺️ Lead Scraping' },
+                { id: 'EMAIL HYGIENE', label: '🛡️ Email Hygiene' },
+                { id: 'CORE INTELLIGENCE', label: '🧠 Core LLM Gateway' },
+                { id: 'PAYMENTS (INDIA)', label: '💳 Razorpay' },
+                { id: 'PAYMENTS (GLOBAL)', label: '💳 Stripe' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setIntegrationCategoryFilter(tab.id)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.74rem',
+                    fontWeight: '700',
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: integrationCategoryFilter === tab.id ? '#0284C7' : 'rgba(255, 255, 255, 0.06)',
+                    color: integrationCategoryFilter === tab.id ? '#FFFFFF' : '#94A3B8',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
             {/* Integrations Grid */}
@@ -2642,54 +2709,259 @@ export default function SuperAdminDashboard({
                     { name: 'secretKey', label: 'Stripe Secret Key', placeholder: 'sk_live_...', secret: true, required: true },
                   ],
                 },
-              ].map((card) => {
-                const currentVals = platformConfig?.integrations?.[card.id] || {};
-                return (
-                  <div
-                    key={card.id}
-                    id={`integration-${card.id}`}
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%)',
-                      borderRadius: '14px',
-                      border: `1px solid ${card.isConfigured ? 'rgba(16, 185, 129, 0.35)' : 'rgba(255, 255, 255, 0.08)'}`,
-                      padding: '20px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: '16px',
-                      boxShadow: card.isConfigured ? '0 4px 20px rgba(16, 185, 129, 0.05)' : 'none',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <div>
-                      {/* Top Header */}
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div
-                            style={{
-                              width: '38px',
-                              height: '38px',
-                              borderRadius: '10px',
-                              background: card.accentBg,
-                              border: `1px solid ${card.accentBorder}`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: card.accentColor,
-                              flexShrink: 0,
-                            }}
-                          >
-                            {card.icon}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: '800', fontSize: '0.92rem', color: '#F8FAFC' }}>
-                              {card.title}
+                // ==========================================
+                // VISUAL & VIDEO AI ENGINES
+                // ==========================================
+                {
+                  id: 'dalleVisualAi',
+                  title: 'OpenAI DALL-E 3 & Vision',
+                  subtitle: 'Photorealistic Commercial Ad Imagery (1024x1024 / 1792x1024)',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#10A37F',
+                  accentBg: 'rgba(16, 163, 127, 0.15)',
+                  accentBorder: 'rgba(16, 163, 127, 0.3)',
+                  icon: <Palette size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.dalleVisualAi?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'OpenAI API Key (sk-...)', placeholder: 'sk-proj-...', secret: true, required: true },
+                    { name: 'model', label: 'DALL-E Model Version', placeholder: 'dall-e-3', required: false },
+                    { name: 'quality', label: 'Image Quality (standard / hd)', placeholder: 'standard', required: false },
+                  ],
+                },
+                {
+                  id: 'stabilityVisualAi',
+                  title: 'Stability AI (SD 3.5 & SDXL)',
+                  subtitle: 'High-Fidelity Prompt Comprehension & Commercial Visuals',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#8B5CF6',
+                  accentBg: 'rgba(139, 92, 246, 0.15)',
+                  accentBorder: 'rgba(139, 92, 246, 0.3)',
+                  icon: <Palette size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.stabilityVisualAi?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Stability AI API Key (sk-...)', placeholder: 'sk-...', secret: true, required: true },
+                    { name: 'engineId', label: 'Model Engine ID', placeholder: 'stable-diffusion-xl-1024-v1-0', required: false },
+                  ],
+                },
+                {
+                  id: 'replicateVisualAi',
+                  title: 'Replicate AI Cloud (FLUX & Video)',
+                  subtitle: 'Serverless FLUX Schnell, Minimax Video & SVD Cloud',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#3B82F6',
+                  accentBg: 'rgba(59, 130, 246, 0.15)',
+                  accentBorder: 'rgba(59, 130, 246, 0.3)',
+                  icon: <Cpu size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.replicateVisualAi?.apiToken),
+                  fields: [
+                    { name: 'apiToken', label: 'Replicate API Token (r8_...)', placeholder: 'r8_...', secret: true, required: true },
+                    { name: 'model', label: 'Image Model', placeholder: 'black-forest-labs/flux-schnell', required: false },
+                    { name: 'videoModel', label: 'Video Model', placeholder: 'minimax/video-01', required: false },
+                  ],
+                },
+                {
+                  id: 'falAiFlux',
+                  title: 'Fal.ai High-Speed FLUX & Video',
+                  subtitle: 'Sub-Second Realtime FLUX Inference & Kling Connector',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#F59E0B',
+                  accentBg: 'rgba(245, 158, 11, 0.15)',
+                  accentBorder: 'rgba(245, 158, 11, 0.3)',
+                  icon: <Zap size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.falAiFlux?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Fal.ai API Key', placeholder: 'Enter Fal.ai Key', secret: true, required: true },
+                    { name: 'model', label: 'Model Identifier', placeholder: 'fal-ai/flux/schnell', required: false },
+                  ],
+                },
+                {
+                  id: 'huggingFaceVisualAi',
+                  title: 'HuggingFace FLUX.1 Schnell Fast API',
+                  subtitle: 'Direct HuggingFace Serverless Inference Gateway',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#FFD21E',
+                  accentBg: 'rgba(255, 210, 30, 0.15)',
+                  accentBorder: 'rgba(255, 210, 30, 0.3)',
+                  icon: <Layers size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.huggingFaceVisualAi?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'HuggingFace User Token (hf_...)', placeholder: 'hf_...', secret: true, required: true },
+                    { name: 'model', label: 'Model Repository', placeholder: 'black-forest-labs/FLUX.1-schnell', required: false },
+                  ],
+                },
+                {
+                  id: 'googleFlowVision',
+                  title: 'Google Flow / Imagen 3 Vision',
+                  subtitle: 'Imagen 3 Vision & Google Flow Visual Pipeline',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#4285F4',
+                  accentBg: 'rgba(66, 133, 244, 0.15)',
+                  accentBorder: 'rgba(66, 133, 244, 0.3)',
+                  icon: <Sparkles size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.googleFlowVision?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Google AI / Imagen Key (AIzaSy...)', placeholder: 'AIzaSy...', secret: true, required: true },
+                    { name: 'model', label: 'Model Identifier', placeholder: 'imagen-3.0-generate-002', required: false },
+                  ],
+                },
+                {
+                  id: 'nanoBananaGpu',
+                  title: 'Nano Banana / Serverless SDXL',
+                  subtitle: 'High-Throughput Micro-Batching GPU Cluster',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#FBBF24',
+                  accentBg: 'rgba(251, 191, 36, 0.15)',
+                  accentBorder: 'rgba(251, 191, 36, 0.3)',
+                  icon: <Cpu size={18} />,
+                  isConfigured: true,
+                  fields: [
+                    { name: 'apiKey', label: 'Banana.dev API Key (Optional)', placeholder: 'Serverless Auto-Router Active', secret: true, required: false },
+                    { name: 'model', label: 'Model Pipeline', placeholder: 'sdxl-turbo', required: false },
+                  ],
+                },
+                {
+                  id: 'runwayVideoAi',
+                  title: 'Runway Gen-3 Alpha Cinematic Video',
+                  subtitle: 'High-Definition 4K Cinematic Text-to-Video Engine',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#EC4899',
+                  accentBg: 'rgba(236, 72, 153, 0.15)',
+                  accentBorder: 'rgba(236, 72, 153, 0.3)',
+                  icon: <Video size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.runwayVideoAi?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Runway Developer API Key', placeholder: 'key_...', secret: true, required: true },
+                    { name: 'model', label: 'Model Version', placeholder: 'gen3a_turbo', required: false },
+                  ],
+                },
+                {
+                  id: 'lumaVideoAi',
+                  title: 'Luma Dream Machine Video Engine',
+                  subtitle: 'Realistic Camera Movement & Motion Simulation',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#06B6D4',
+                  accentBg: 'rgba(6, 182, 212, 0.15)',
+                  accentBorder: 'rgba(6, 182, 212, 0.3)',
+                  icon: <Video size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.lumaVideoAi?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Luma Dream Machine API Key', placeholder: 'luma_...', secret: true, required: true },
+                    { name: 'model', label: 'Engine Version', placeholder: 'dream-machine-v1', required: false },
+                  ],
+                },
+                {
+                  id: 'klingVideoAi',
+                  title: 'Kling AI Video Studio Engine',
+                  subtitle: '1080p High-Retention Vertical Motion & Reel Synthesis',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#10B981',
+                  accentBg: 'rgba(16, 185, 129, 0.15)',
+                  accentBorder: 'rgba(16, 185, 129, 0.3)',
+                  icon: <Video size={18} />,
+                  isConfigured: Boolean(platformConfig?.integrations?.klingVideoAi?.apiKey),
+                  fields: [
+                    { name: 'apiKey', label: 'Kling AI Access Key', placeholder: 'Access Key...', secret: true, required: true },
+                    { name: 'apiSecret', label: 'Kling AI Secret Key', placeholder: 'Secret Key...', secret: true, required: true },
+                  ],
+                },
+                {
+                  id: 'pollinationsVisualAi',
+                  title: 'Pollinations FLUX.1 Neural Engine',
+                  subtitle: 'Free Unlimited 8K FLUX.1 / Turbo Zero-Quota Cluster',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#14B8A6',
+                  accentBg: 'rgba(20, 184, 166, 0.15)',
+                  accentBorder: 'rgba(20, 184, 166, 0.3)',
+                  icon: <Sparkles size={18} />,
+                  isConfigured: true,
+                  fields: [
+                    { name: 'defaultModel', label: 'Default Model (flux / turbo / flux-realism)', placeholder: 'flux', required: false },
+                  ],
+                },
+                {
+                  id: 'shortVideoEngine',
+                  title: 'Autonomous HTML5 Reel Compositor',
+                  subtitle: '9:16 Vertical Video with Karaoke Subtitles & Voiceover',
+                  category: 'VISUAL & VIDEO AI',
+                  accentColor: '#A855F7',
+                  accentBg: 'rgba(168, 85, 247, 0.15)',
+                  accentBorder: 'rgba(168, 85, 247, 0.3)',
+                  icon: <Film size={18} />,
+                  isConfigured: true,
+                  fields: [
+                    { name: 'defaultBrollTheme', label: 'Default B-Roll Theme (cyber_crypto_matrix / neon_data_stream)', placeholder: 'cyber_crypto_matrix', required: false },
+                    { name: 'renderEngine', label: 'Compositor Engine', placeholder: 'HTML5_REMOTION_COMPOSITOR', required: false },
+                  ],
+                },
+              ]
+                .filter((card) => {
+                  if (integrationCategoryFilter === 'ALL') return true;
+                  return card.category === integrationCategoryFilter;
+                })
+                .map((card) => {
+                  const currentVals = platformConfig?.integrations?.[card.id] || {};
+                  return (
+                    <div
+                      key={card.id}
+                      id={`integration-${card.id}`}
+                      style={{
+                        background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%)',
+                        borderRadius: '14px',
+                        border: `1px solid ${card.isConfigured ? 'rgba(16, 185, 129, 0.35)' : 'rgba(255, 255, 255, 0.08)'}`,
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '16px',
+                        boxShadow: card.isConfigured ? '0 4px 20px rgba(16, 185, 129, 0.05)' : 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div>
+                        {/* Top Header */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div
+                              style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '10px',
+                                background: card.accentBg,
+                                border: `1px solid ${card.accentBorder}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: card.accentColor,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {card.icon}
                             </div>
-                            <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: '1px' }}>
-                              {card.subtitle}
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                                <span
+                                  style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: '800',
+                                    color: card.accentColor,
+                                    letterSpacing: '0.5px',
+                                    background: card.accentBg,
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    border: `1px solid ${card.accentBorder}`,
+                                  }}
+                                >
+                                  {card.category}
+                                </span>
+                              </div>
+                              <div style={{ fontWeight: '800', fontSize: '0.92rem', color: '#F8FAFC' }}>
+                                {card.title}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: '1px' }}>
+                                {card.subtitle}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
                         <span
                           style={{

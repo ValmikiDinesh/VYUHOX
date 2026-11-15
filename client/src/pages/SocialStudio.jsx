@@ -1447,12 +1447,16 @@ export default function SocialStudio({ activeWorkspace, socket }) {
               ) : (
                 <img
                   src={
-                    selectedPost.mediaUrl?.startsWith('/media/') || selectedPost.mediaUrl?.startsWith('/uploads/')
+                    selectedPost.mediaUrl
                       ? selectedPost.mediaUrl
                       : ((activeWorkspace?.industry || '').toLowerCase().includes('crypto') || (activeWorkspace?.name || '').toLowerCase().includes('hedge')
                           ? '/media/hedgex_reel.jpg'
                           : '/media/vyuhox_reel.jpg')
                   }
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/media/vyuhox_reel.jpg';
+                  }}
                   alt="Cinematic B-Roll Backdrop"
                   style={{
                     position: 'absolute',
@@ -1949,7 +1953,11 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   flexShrink: 0,
                 }}>
                   <img
-                    src={selectedPost.mediaUrl?.startsWith('/media/') ? selectedPost.mediaUrl : '/media/hedgex_carousel.jpg'}
+                    src={selectedPost.mediaUrl || '/media/hedgex_carousel.jpg'}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/media/hedgex_carousel.jpg';
+                    }}
                     alt="Brand Visual Asset"
                     style={{
                       width: '100%',
@@ -3368,10 +3376,13 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   }}
                 >
                   <option value="AUTO_ROTATE">⚡ Auto-Rotating Engine</option>
+                  <option value="OPENAI_DALLE_3">OpenAI DALL-E 3</option>
+                  <option value="STABILITY_AI">Stability AI (SD 3.5 & SDXL)</option>
                   <option value="NANO_BANANA_GPU">Nano Banana / SDXL</option>
                   <option value="GOOGLE_FLOW_IMAGEN">Google Flow / Imagen 3</option>
                   <option value="POLLINATIONS_FLUX">Pollinations FLUX.1</option>
                   <option value="HUGGINGFACE_FLUX">HuggingFace Schnell</option>
+                  <option value="REPLICATE_FAL_FLUX">Fal.ai / Replicate Flux</option>
                   <option value="DYNAMIC_VECTOR_GRAPHIC">Dynamic Vector SVG</option>
                 </select>
               </div>

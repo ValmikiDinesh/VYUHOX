@@ -3350,6 +3350,8 @@ export default function AdsManager({
                     }}
                   >
                     <option value="AUTO_ROTATE">⚡ Auto-Rotating Zero-Limit Engine</option>
+                    <option value="OPENAI_DALLE_3">OpenAI DALL-E 3 (Master Engine)</option>
+                    <option value="STABILITY_AI">Stability AI (SD 3.5 & SDXL)</option>
                     <option value="NANO_BANANA_GPU">Nano Banana / Serverless SDXL</option>
                     <option value="GOOGLE_FLOW_IMAGEN">Google Flow / Imagen 3 Pipeline</option>
                     <option value="POLLINATIONS_FLUX">Pollinations FLUX.1 Neural Engine</option>
@@ -3635,7 +3637,7 @@ export default function AdsManager({
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     onError={(e) => {
                                       e.target.onerror = null;
-                                      e.target.src = '/media/vyuhox_banner.jpg';
+                                      e.target.src = '/media/vyuhox_reel.jpg';
                                     }}
                                   />
                                 </div>
