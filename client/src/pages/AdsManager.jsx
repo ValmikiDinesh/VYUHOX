@@ -51,6 +51,17 @@ import {
   BrainCircuit,
 } from 'lucide-react';
 import { api } from '../services/api';
+import { resolveSafeMediaUrl, getDynamicBrandPlaceholder as getSharedBrandPlaceholder } from '../utils/safeMediaResolver';
+
+// Dynamic, Industry-Aware Brand Placeholder Generator
+// Guarantees zero hardcoded trader images, foreign content, or broken fallbacks
+export const getDynamicBrandPlaceholder = (workspace, width = 1080, height = 1080) => {
+  return getSharedBrandPlaceholder(workspace, { width, height, isReel: false });
+};
+
+export const resolveSafeAdMediaUrl = (url, workspace, width = 1080, height = 1080) => {
+  return resolveSafeMediaUrl(url, workspace, { width, height, isReel: false });
+};
 
 export default function AdsManager({
   activeWorkspace,
@@ -366,10 +377,11 @@ export default function AdsManager({
     } catch (err) {
       console.warn('AI generation fallback in wizard:', err.message);
       const bizName = activeWorkspace?.name || 'Company';
-      setFormHeadline(`Automate & Scale with ${bizName}`);
-      setFormPrimaryText(`Discover how market-leading organizations modernize and accelerate operations with ${bizName}. Book an executive briefing today.`);
-      setFormCta('Book Strategy Call');
-      setFormMediaUrl('/media/vyuhox_banner.jpg');
+      const bizInd = activeWorkspace?.industry || 'Bespoke Services';
+      setFormHeadline(`Experience Excellence with ${bizName}`);
+      setFormPrimaryText(`Discover premium ${bizInd} tailored specifically to your needs with ${bizName}. Contact our specialists today.`);
+      setFormCta('Learn More');
+      setFormMediaUrl(getDynamicBrandPlaceholder(activeWorkspace));
       showToast('Generated strategic copy template for workspace.');
     } finally {
       setIsGeneratingAiCopy(false);
@@ -471,13 +483,17 @@ export default function AdsManager({
           metadata: {
             ...targetCreative.metadata,
             providerUsed: res.asset.providerName,
+            isAiGenerated: res.asset.isAiGenerated === true,
+            fallbackReason: res.asset.fallbackReason || null,
           },
         };
         setAiDirectorResult({
           ...aiDirectorResult,
           creatives: updatedCreatives,
         });
-        showToast(`✨ Generated fresh creative visual via ${res.asset.providerName}!`);
+        showToast(res.asset.isAiGenerated
+          ? `✨ Generated authentic AI visual via ${res.asset.providerName}!`
+          : `📷 Resolved authentic visual via ${res.asset.providerName}`);
       }
     } catch (err) {
       console.error('Reroll error:', err);
@@ -560,10 +576,10 @@ export default function AdsManager({
         },
         creative: {
           headline: formHeadline || formName,
-          primaryText: formPrimaryText || `Accelerate operations with ${activeWorkspace.name || 'enterprise automation'}.`,
-          ctaText: formCta,
-          destinationUrl: `https://${activeWorkspace.domain || 'vyuhox.com'}/demo`,
-          mediaUrl: formMediaUrl || (formFormat.includes('REELS') ? '/media/vyuhox_reel.jpg' : '/media/vyuhox_banner.jpg'),
+          primaryText: formPrimaryText || `Experience bespoke solutions tailored for your needs with ${activeWorkspace?.name || 'our platform'}.`,
+          ctaText: formCta || 'Learn More',
+          destinationUrl: `https://${activeWorkspace?.domain || 'company.com'}`,
+          mediaUrl: formMediaUrl || getDynamicBrandPlaceholder(activeWorkspace),
           platformFormat: formFormat,
           whatsappGreeting: formWhatsappGreeting,
         },
@@ -587,12 +603,13 @@ export default function AdsManager({
   };
 
   // Active creative for preview
-  const activeCreative = selectedCampaignForPreview?.primaryCreative || selectedCampaignForPreview?.creatives?.[0] || {
-    headline: `Transform How You Scale with ${activeWorkspace?.name || 'Our Platform'}`,
-    primaryText: `Accelerate customer acquisition and scale modern operations autonomously with ${activeWorkspace?.name || 'our platform'}.`,
-    ctaText: 'Book Strategy Call',
-    destinationUrl: `https://${activeWorkspace?.domain || 'company.com'}/demo`,
-    mediaUrl: '',
+  const hasRealCreative = !!(selectedCampaignForPreview?.primaryCreative || selectedCampaignForPreview?.creatives?.[0] || (campaigns.length > 0 && campaigns[0]?.primaryCreative));
+  const activeCreative = selectedCampaignForPreview?.primaryCreative || selectedCampaignForPreview?.creatives?.[0] || (campaigns[0]?.primaryCreative) || {
+    headline: `Experience Premium Solutions with ${activeWorkspace?.name || 'Our Brand'}`,
+    primaryText: `Discover how ${activeWorkspace?.name || 'our team'} delivers bespoke ${activeWorkspace?.industry || 'solutions'} tailored for high-intent clients.`,
+    ctaText: 'Learn More',
+    destinationUrl: `https://${activeWorkspace?.domain || 'company.com'}`,
+    mediaUrl: getDynamicBrandPlaceholder(activeWorkspace, 1080, 1080),
   };
 
   return (
@@ -1084,8 +1101,83 @@ export default function AdsManager({
             )}
           </div>
 
-          {/* Render Active Creative Simulated Mockup */}
-          {previewPlatform === 'META_FEED' ? (
+          {/* Render Active Creative Simulated Mockup or Onboarding Empty State */}
+          {!hasRealCreative && campaigns.length === 0 ? (
+            <div style={{
+              padding: '44px 24px',
+              textAlign: 'center',
+              background: 'rgba(2, 6, 23, 0.65)',
+              borderRadius: '14px',
+              border: '1px dashed rgba(255, 255, 255, 0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+            }}>
+              <div style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '12px',
+                background: 'rgba(24, 119, 242, 0.15)',
+                border: '1px solid rgba(24, 119, 242, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#60A5FA',
+              }}>
+                <Sparkles size={24} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#F8FAFC' }}>
+                No Active Ad Creatives Drafted for {activeWorkspace?.name || 'This Workspace'}
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: '#94A3B8', maxWidth: '480px', lineHeight: '1.5' }}>
+                Trigger the Strategic AI Creative Director to formulate SWOT research, target persona angles, and high-converting ad variations calibrated specifically to {activeWorkspace?.name || 'your business'}.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsAiDirectorModalOpen(true)}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    fontWeight: '700',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 0 20px rgba(236, 72, 153, 0.35)',
+                  }}
+                >
+                  <Sparkles size={14} />
+                  AI Creative Director & SWOT
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#F8FAFC',
+                    fontWeight: '700',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Plus size={14} />
+                  Launch AI Campaign
+                </button>
+              </div>
+            </div>
+          ) : previewPlatform === 'META_FEED' ? (
             /* 1. FACEBOOK & INSTAGRAM FEED AD MOCKUP */
             <div style={{
               background: '#0B1120',
@@ -1134,9 +1226,13 @@ export default function AdsManager({
                 marginBottom: '10px',
               }}>
                 <img
-                  src={activeCreative.mediaUrl || '/media/vyuhox_banner.jpg'}
+                  src={resolveSafeAdMediaUrl(activeCreative.mediaUrl, activeWorkspace)}
                   alt="Ad Creative"
                   style={{ width: '100%', height: '220px', objectFit: 'cover' }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = getDynamicBrandPlaceholder(activeWorkspace);
+                  }}
                 />
                 <div style={{
                   padding: '12px 14px',
@@ -1210,9 +1306,13 @@ export default function AdsManager({
                 background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%)',
               }}>
                 <img
-                  src={activeCreative.mediaUrl || '/media/vyuhox_banner.jpg'}
+                  src={resolveSafeAdMediaUrl(activeCreative.mediaUrl, activeWorkspace)}
                   alt="Reels Media"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = getDynamicBrandPlaceholder(activeWorkspace);
+                  }}
                 />
 
                 {/* Right-Side Interactive Action Stack */}
@@ -1448,26 +1548,26 @@ export default function AdsManager({
                 cursor: 'pointer',
                 textDecoration: 'underline',
               }}>
-                {activeCreative.headline} | Verified Enterprise Alpha | VYUHOX
+                {activeCreative.headline} | {activeWorkspace?.name || 'Official Showcase'} | VYUHOX
               </h3>
 
               <p style={{ margin: 0, fontSize: '0.8rem', color: '#CBD5E1', lineHeight: '1.45' }}>
-                {activeCreative.primaryText} Deploy institutional infrastructure with sub-second SLA and verified compliance audit.
+                {activeCreative.primaryText || `Experience bespoke solutions by ${activeWorkspace?.name || 'our team'} tailored to deliver exceptional quality and customer satisfaction.`}
               </p>
 
               {/* Sitelink Extensions (4 Rich Sub-Links) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: '600', cursor: 'pointer' }}>
-                  ▸ Schedule Executive Demo
+                  ▸ View Full Portfolio &amp; Reviews
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: '600', cursor: 'pointer' }}>
-                  ▸ Live Speed &amp; Security Benchmark
+                  ▸ Direct Consultation &amp; Booking
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: '600', cursor: 'pointer' }}>
-                  ▸ Enterprise Pricing &amp; ROI Plans
+                  ▸ Custom Packages &amp; Pricing
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: '600', cursor: 'pointer' }}>
-                  ▸ Developer API &amp; SDK Docs
+                  ▸ Verified Client Satisfaction
                 </div>
               </div>
 
@@ -1510,9 +1610,13 @@ export default function AdsManager({
 
               <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '16px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px', borderRadius: '8px' }}>
                 <img
-                  src={activeCreative.mediaUrl || '/media/vyuhox_banner.jpg'}
+                  src={resolveSafeAdMediaUrl(activeCreative.mediaUrl, activeWorkspace)}
                   alt="Product"
                   style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.08)' }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = getDynamicBrandPlaceholder(activeWorkspace);
+                  }}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <div>
@@ -1610,9 +1714,13 @@ export default function AdsManager({
               ) : pmaxSubTab === 'DISCOVER' ? (
                 <div style={{ background: '#0F172A', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <img
-                    src={activeCreative.mediaUrl || '/media/vyuhox_banner.jpg'}
+                    src={resolveSafeAdMediaUrl(activeCreative.mediaUrl, activeWorkspace)}
                     alt="Discover"
                     style={{ width: '100%', height: '140px', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = getDynamicBrandPlaceholder(activeWorkspace);
+                    }}
                   />
                   <div style={{ padding: '12px 14px' }}>
                     <div style={{ fontSize: '0.84rem', fontWeight: '800', color: '#F8FAFC' }}>
@@ -1674,9 +1782,13 @@ export default function AdsManager({
                 height: '230px',
               }}>
                 <img
-                  src={activeCreative.mediaUrl || '/media/vyuhox_banner.jpg'}
+                  src={resolveSafeAdMediaUrl(activeCreative.mediaUrl, activeWorkspace)}
                   alt="YouTube Ad"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = getDynamicBrandPlaceholder(activeWorkspace);
+                  }}
                 />
 
                 {/* Yellow Timeline Progress */}
@@ -2790,7 +2902,7 @@ export default function AdsManager({
                       type="text"
                       value={formMediaUrl}
                       onChange={(e) => setFormMediaUrl(e.target.value)}
-                      placeholder="/media/vyuhox_reel.jpg or URL"
+                      placeholder="https://... image or video URL (optional)"
                       style={{
                         width: '100%',
                         padding: '9px 12px',
@@ -3641,9 +3753,13 @@ export default function AdsManager({
                                   position: 'relative',
                                 }}>
                                   <img
-                                    src={creative.thumbnailUrl || creative.mediaUrl}
+                                    src={resolveSafeAdMediaUrl(creative.thumbnailUrl || creative.mediaUrl, activeWorkspace)}
                                     alt="Video thumbnail"
                                     style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }}
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = getDynamicBrandPlaceholder(activeWorkspace);
+                                    }}
                                   />
                                   <div style={{
                                     position: 'absolute',
@@ -3671,32 +3787,39 @@ export default function AdsManager({
                                   background: '#090D16',
                                 }}>
                                   <img
-                                    src={creative.mediaUrl}
+                                    src={resolveSafeAdMediaUrl(creative.mediaUrl, activeWorkspace)}
                                     alt="Generated Ad Creative"
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     onError={(e) => {
                                       e.target.onerror = null;
-                                      e.target.src = '/media/vyuhox_reel.jpg';
+                                      e.target.src = getDynamicBrandPlaceholder(activeWorkspace);
                                     }}
                                   />
                                 </div>
                               )}
 
-                              {/* Provider Badge Overlay */}
+                              {/* Provider Badge Overlay with Real Transparency */}
                               <div style={{
                                 position: 'absolute',
                                 bottom: '8px',
                                 left: '8px',
                                 padding: '3px 8px',
                                 borderRadius: '5px',
-                                background: 'rgba(3, 7, 18, 0.85)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                color: '#38BDF8',
+                                background: creative.metadata?.isAiGenerated ? 'rgba(16, 185, 129, 0.9)' : 'rgba(3, 7, 18, 0.88)',
+                                border: `1px solid ${creative.metadata?.isAiGenerated ? '#10B981' : 'rgba(255, 255, 255, 0.15)'}`,
+                                color: creative.metadata?.isAiGenerated ? '#FFFFFF' : '#38BDF8',
                                 fontSize: '0.64rem',
                                 fontWeight: '700',
                                 backdropFilter: 'blur(4px)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
                               }}>
-                                ⚡ {creative.metadata?.providerUsed || 'Multi-Provider Rotating Engine'}
+                                <span>{creative.metadata?.isAiGenerated ? '✨' : '📷'}</span>
+                                <span>{creative.metadata?.providerUsed || 'Curated 8K Commercial Photography'}</span>
+                                {creative.metadata?.fallbackReason === 'MISSING_API_CREDENTIALS' && (
+                                  <span style={{ color: '#FBBF24', fontSize: '0.58rem' }}>• Key Required for Live AI</span>
+                                )}
                               </div>
                             </div>
 

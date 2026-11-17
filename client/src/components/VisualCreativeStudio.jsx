@@ -21,6 +21,12 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { api } from '../services/api';
+import {
+  resolveSafeMediaUrl,
+  isSafeMediaUrl,
+  isValidDownloadUrl,
+  getDynamicBrandPlaceholder,
+} from '../utils/safeMediaResolver';
 
 export default function VisualCreativeStudio({
   strategy = null,
@@ -143,9 +149,9 @@ export default function VisualCreativeStudio({
     }
   };
 
-  // Copy Image Link
+  // Copy Image Link (Strictly validated to avoid copying unsafe/prohibited URLs)
   const handleCopyLink = () => {
-    if (generatedImage?.imageUrl) {
+    if (generatedImage?.imageUrl && isSafeMediaUrl(generatedImage.imageUrl)) {
       navigator.clipboard.writeText(generatedImage.imageUrl);
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
@@ -411,7 +417,11 @@ ${slidesHtml}
                     border: '1px solid rgba(6, 182, 212, 0.3)',
                   }}>
                     <img
-                      src={currentSlide.coverImage}
+                      src={resolveSafeMediaUrl(currentSlide.coverImage, strategy)}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = getDynamicBrandPlaceholder(strategy);
+                      }}
                       alt="Strategy Visual Cover"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
@@ -711,23 +721,38 @@ ${slidesHtml}
                   background: '#040711',
                 }}>
                   <img
-                    src={generatedImage.imageUrl}
+                    src={resolveSafeMediaUrl(generatedImage.imageUrl, strategy)}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = getDynamicBrandPlaceholder(strategy);
+                    }}
                     alt="AI Visual Output"
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <a
-                    href={generatedImage.imageUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    download="vyuhox_marketing_visual.jpg"
-                    className="btn-secondary"
-                    style={{ flex: 1, padding: '8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textDecoration: 'none' }}
-                  >
-                    <Download size={13} /> Download JPG
-                  </a>
+                  {isValidDownloadUrl(generatedImage?.imageUrl) ? (
+                    <a
+                      href={generatedImage.imageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      download="vyuhox_marketing_visual.jpg"
+                      className="btn-secondary"
+                      style={{ flex: 1, padding: '8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textDecoration: 'none' }}
+                    >
+                      <Download size={13} /> Download JPG
+                    </a>
+                  ) : (
+                    <button
+                      disabled
+                      className="btn-secondary"
+                      style={{ flex: 1, padding: '8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', opacity: 0.5, cursor: 'not-allowed' }}
+                      title="Download unavailable: Source media URL failed security validation"
+                    >
+                      <Download size={13} /> Download Blocked
+                    </button>
+                  )}
 
                   <button
                     onClick={handleCopyLink}

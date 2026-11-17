@@ -6,6 +6,7 @@
 
 import { SocialPost } from '../models/SocialPost.js';
 import { SocialAccountConfig } from '../models/SocialAccountConfig.js';
+import { AssetDeliveryService } from '../services/media/AssetDeliveryService.js';
 
 let cronInterval = null;
 
@@ -65,6 +66,7 @@ export async function checkAndPublishPendingPosts(io = null) {
       await post.save();
 
       try {
+        await AssetDeliveryService.publishPostMedia(post);
         const dispatchResult = await dispatchToPlatform(post);
 
         post.status = 'PUBLISHED';

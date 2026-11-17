@@ -8,6 +8,9 @@ import { exec } from 'child_process';
 import util from 'util';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
+import { AssetDeliveryService } from '../media/AssetDeliveryService.js';
+import { WorkspaceAsset } from '../../models/WorkspaceAsset.js';
 
 const execPromise = util.promisify(exec);
 
@@ -37,12 +40,17 @@ export class VoiceoverService {
   }
 
   /**
-   * Generates a voiceover narration audio file from script text
+   * Generates a voiceover narration audio file from script text.
+   * Securely persists customer audio via the private media lifecycle (AssetDeliveryService & WorkspaceAsset)
+   * outside of client/public to preserve tenant privacy and authorization.
+   * 
    * @param {string} text - Script text to speak
    * @param {string} voiceId - Voice persona ID ('maya', 'marcus', 'elena', 'david', 'priya', 'mateo', 'kenji')
    * @param {string} tone - Tone style ('aggressive_challenger', 'institutional_authority', 'urgent_fomo', 'educational_breakdown')
    * @param {string} language - Target language ('en-US', 'es-ES', 'fr-FR', 'de-DE', 'hi-IN', etc.)
    * @param {string} filename - Target filename (without path)
+   * @param {string|ObjectId} workspaceId - Tenant workspace ID
+   * @param {string} userId - User creating the voiceover
    */
   static async generateVoiceover({
     text,
@@ -50,18 +58,11 @@ export class VoiceoverService {
     tone = 'aggressive_challenger',
     language = 'en-US',
     filename = null,
+    workspaceId = null,
+    userId = null,
   }) {
-    const audioDir = path.resolve(process.cwd(), 'client', 'public', 'audio', 'reels');
-    if (!fs.existsSync(audioDir)) {
-      fs.mkdirSync(audioDir, { recursive: true });
-    }
-
     const cleanVoiceId = (voiceId || 'maya').toLowerCase().split('_')[0];
     const voiceMeta = this.VOICE_CATALOG[cleanVoiceId] || this.VOICE_CATALOG.maya;
-
-    const safeFilename = filename || `reel_voice_${cleanVoiceId}_${Date.now()}.wav`;
-    const outputPath = path.join(audioDir, safeFilename);
-    const publicUrl = `/audio/reels/${safeFilename}`;
 
     // Clean text to avoid speech synthesis syntax errors
     const sanitizedText = (text || '')
@@ -82,52 +83,143 @@ export class VoiceoverService {
 
     const preferredVoiceName = voiceMeta.preferredSapi;
 
-    try {
-      // Execute Windows SAPI speech synthesis with targeted persona & rate
-      const psScript = `
-        Add-Type -AssemblyName System.Speech;
-        $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer;
-        try {
-          $synth.SelectVoice('${preferredVoiceName}');
-        } catch {}
-        $synth.Rate = ${speechRate};
-        $synth.SetOutputToWaveFile('${outputPath.replace(/\\/g, '\\\\')}');
-        $synth.Speak('${sanitizedText.slice(0, 500)}');
-        $synth.Dispose();
-      `;
+    // Helper to persist audio buffer into the private media lifecycle
+    const persistPrivateAudio = async (audioBuffer, fileExt, mimeType) => {
+      const safeFilename = filename || `voiceover_${cleanVoiceId}_${Date.now()}.${fileExt}`;
 
-      await execPromise(`powershell -ExecutionPolicy Bypass -Command "${psScript.replace(/\n/g, ' ')}"`, {
-        timeout: 12000,
-      });
+      if (workspaceId) {
+        const wsIdStr = workspaceId.toString();
+        await AssetDeliveryService.savePrivateAsset(wsIdStr, safeFilename, audioBuffer, mimeType);
 
-      if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
+        const assetRecord = await WorkspaceAsset.create({
+          workspaceId: wsIdStr,
+          userId: userId || null,
+          url: `/api/assets/pending_${Date.now()}`,
+          filename: safeFilename,
+          originalName: safeFilename,
+          mimeType,
+          size: audioBuffer.length,
+          assetType: 'GENERAL',
+          status: 'PRIVATE',
+          userAuthorized: true,
+          metadata: {
+            source: 'VOICEOVER_STUDIO',
+            voiceId: cleanVoiceId,
+            tone,
+            language,
+          },
+        });
+
+        const assetUrl = `/api/assets/${assetRecord._id}`;
+        assetRecord.url = assetUrl;
+        await assetRecord.save();
+
         return {
-          success: true,
-          audioUrl: publicUrl,
-          provider: 'WINDOWS_STUDIO_SAPI',
-          voice: voiceMeta,
-          tone,
-          language,
-          durationSeconds: Math.ceil(sanitizedText.split(' ').length * (speechRate > 0 ? 0.32 : 0.4)),
+          audioUrl: assetUrl,
+          assetId: assetRecord._id,
         };
       }
-    } catch (err) {
-      console.warn('[VoiceoverService] Speech synthesis command fallback:', err.message);
+
+      // If no workspace context provided, do not persist to public disk
+      return { audioUrl: null, assetId: null };
+    };
+
+    // 1. Production Cloud TTS via OpenAI Audio Speech API (Linux / Render / Cloud Native)
+    if (process.env.OPENAI_API_KEY && workspaceId) {
+      try {
+        const openaiVoice = voiceMeta.gender === 'Male' ? 'onyx' : 'nova';
+        const openAiRes = await fetch('https://api.openai.com/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'tts-1',
+            input: sanitizedText.slice(0, 800),
+            voice: openaiVoice,
+            response_format: 'mp3',
+          }),
+          signal: AbortSignal.timeout(10000),
+        });
+
+        if (openAiRes.ok) {
+          const buffer = Buffer.from(await openAiRes.arrayBuffer());
+          const persisted = await persistPrivateAudio(buffer, 'mp3', 'audio/mpeg');
+
+          if (persisted.audioUrl) {
+            return {
+              success: true,
+              audioUrl: persisted.audioUrl,
+              assetId: persisted.assetId,
+              provider: 'OPENAI_STUDIO_TTS',
+              voice: voiceMeta,
+              tone,
+              language,
+              durationSeconds: Math.ceil(sanitizedText.split(' ').length * 0.35),
+            };
+          }
+        }
+      } catch (cloudErr) {
+        console.warn('[VoiceoverService] Cloud TTS attempt notice:', cloudErr.message);
+      }
     }
 
-    // High quality pre-rendered fallback matching persona gender
-    const fallbackAudio = voiceMeta.gender === 'Male'
-      ? '/audio/reels/reel_arbitrage_speed.wav'
-      : '/audio/reels/reel_fund_speed.wav';
+    // 2. Windows Local SAPI (Only when executing on Windows host with an active workspace)
+    if (process.platform === 'win32' && workspaceId) {
+      try {
+        const tempWavName = `temp_voice_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.wav`;
+        const tempPath = path.join(os.tmpdir(), tempWavName);
 
+        const psScript = `
+          Add-Type -AssemblyName System.Speech;
+          $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer;
+          try {
+            $synth.SelectVoice('${preferredVoiceName}');
+          } catch {}
+          $synth.Rate = ${speechRate};
+          $synth.SetOutputToWaveFile('${tempPath.replace(/\\/g, '\\\\')}');
+          $synth.Speak('${sanitizedText.slice(0, 500)}');
+          $synth.Dispose();
+        `;
+
+        await execPromise(`powershell -ExecutionPolicy Bypass -Command "${psScript.replace(/\n/g, ' ')}"`, {
+          timeout: 12000,
+        });
+
+        if (fs.existsSync(tempPath) && fs.statSync(tempPath).size > 1000) {
+          const buffer = fs.readFileSync(tempPath);
+          try { fs.unlinkSync(tempPath); } catch (_) {}
+
+          const persisted = await persistPrivateAudio(buffer, 'wav', 'audio/wav');
+
+          if (persisted.audioUrl) {
+            return {
+              success: true,
+              audioUrl: persisted.audioUrl,
+              assetId: persisted.assetId,
+              provider: 'WINDOWS_STUDIO_SAPI',
+              voice: voiceMeta,
+              tone,
+              language,
+              durationSeconds: Math.ceil(sanitizedText.split(' ').length * (speechRate > 0 ? 0.32 : 0.4)),
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('[VoiceoverService] Speech synthesis command fallback:', err.message);
+      }
+    }
+
+    // 3. Clean Graceful Fallback: Browser Web Speech API Compatible (Zero hardcoded crypto hedge fund recordings)
     return {
       success: true,
-      audioUrl: fallbackAudio,
-      provider: 'STUDIO_PRESET_VOICE',
+      audioUrl: null, // Signals frontend to synthesize cleanly via Web Speech API
+      provider: 'BROWSER_WEB_SPEECH_API',
       voice: voiceMeta,
       tone,
       language,
-      durationSeconds: 24,
+      durationSeconds: Math.ceil(sanitizedText.split(' ').length * 0.35),
     };
   }
 }

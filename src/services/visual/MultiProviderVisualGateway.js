@@ -31,7 +31,6 @@ export class MultiProviderVisualGateway {
     { id: 'HUGGINGFACE_FLUX', name: 'HuggingFace FLUX.1 Schnell Fast API', isFree: false },
     { id: 'GOOGLE_FLOW_IMAGEN', name: 'Google Flow / Imagen 3 Vision Pipeline', isFree: true },
     { id: 'NANO_BANANA_GPU', name: 'Nano Banana / Banana.dev Serverless SDXL', isFree: true },
-    { id: 'POLLINATIONS_FLUX', name: 'Pollinations FLUX.1 Neural Engine', isFree: true },
     { id: 'CURATED_COMMERCIAL_PHOTO', name: 'Curated 8K Commercial Product Photography', isFree: true },
     { id: 'DYNAMIC_VECTOR_GRAPHIC', name: 'High-Definition Dynamic Creative Vector Engine', isFree: true },
   ];
@@ -44,7 +43,6 @@ export class MultiProviderVisualGateway {
     { id: 'LUMA_AI', name: 'Luma Dream Machine Video Engine', isFree: false },
     { id: 'REPLICATE_VIDEO', name: 'Replicate Serverless Video Cloud (Minimax / SVD)', isFree: false },
     { id: 'KLING_AI', name: 'Kling AI Fast Reel Video Studio', isFree: false },
-    { id: 'POLLINATIONS_MOTION', name: 'Pollinations Motion Dynamic Video Stream', isFree: true },
     { id: 'AUTONOMOUS_HTML5_REEL', name: 'Autonomous HTML5 Motion Canvas Compositor', isFree: true },
   ];
 
@@ -298,13 +296,18 @@ export class MultiProviderVisualGateway {
               }
             }
 
-            // High-speed fallback if no paid token configured
+            // Fallback when Replicate/Fal credentials are missing or API fails
+            const isProduct = Boolean(productImageUrl);
+            const fallbackReason = (!falKey && !repToken) ? 'MISSING_API_CREDENTIALS' : 'API_CALL_FAILED';
             const fallbackVisual = productImageUrl || CommercialVisualCatalog.getCuratedAsset(`${cleanPrompt} ${headline} ${brandName}`, seed + 404);
             return {
               success: true,
+              isAiGenerated: false,
               imageUrl: fallbackVisual,
-              provider: 'Replicate_Fal_Flux',
-              providerName: 'Replicate / Fal.ai Flux Pipeline',
+              provider: isProduct ? 'Authorized_Product_Asset' : 'Curated_Commercial_Photo',
+              providerName: isProduct ? 'Authorized Brand Product Asset (Fallback)' : 'Curated 8K Commercial Photography (Fallback)',
+              requestedProvider: 'REPLICATE_FAL_FLUX',
+              fallbackReason,
               width,
               height,
               seed: seed + 404,
@@ -333,9 +336,12 @@ export class MultiProviderVisualGateway {
                 const contentType = res.headers.get('content-type') || 'image/jpeg';
                 return {
                   success: true,
+                  isAiGenerated: true,
                   imageUrl: `data:${contentType};base64,${base64}`,
                   provider: 'HuggingFace_FLUX_Schnell',
                   providerName: 'HuggingFace FLUX.1 Schnell Engine',
+                  requestedProvider: 'HUGGINGFACE_FLUX',
+                  fallbackReason: null,
                   width,
                   height,
                   seed: seed + 303,
@@ -344,13 +350,18 @@ export class MultiProviderVisualGateway {
               }
             }
 
-            // High-speed fallback
+            // Fallback when HuggingFace token is missing or API fails
+            const isProduct = Boolean(productImageUrl);
+            const fallbackReason = !hfToken ? 'MISSING_API_CREDENTIALS' : 'API_CALL_FAILED';
             const fallbackVisual = productImageUrl || CommercialVisualCatalog.getCuratedAsset(`${cleanPrompt} ${headline} ${brandName}`, seed + 303);
             return {
               success: true,
+              isAiGenerated: false,
               imageUrl: fallbackVisual,
-              provider: 'HuggingFace_FLUX_Schnell',
-              providerName: 'HuggingFace FLUX.1 Schnell Engine',
+              provider: isProduct ? 'Authorized_Product_Asset' : 'Curated_Commercial_Photo',
+              providerName: isProduct ? 'Authorized Brand Product Asset (Fallback)' : 'Curated 8K Commercial Photography (Fallback)',
+              requestedProvider: 'HUGGINGFACE_FLUX',
+              fallbackReason,
               width,
               height,
               seed: seed + 303,
@@ -385,9 +396,12 @@ export class MultiProviderVisualGateway {
                   if (b64) {
                     return {
                       success: true,
+                      isAiGenerated: true,
                       imageUrl: `data:image/png;base64,${b64}`,
                       provider: 'Google_Flow_Imagen_Official',
                       providerName: 'Google Imagen 3 (Official Google API)',
+                      requestedProvider: 'GOOGLE_FLOW_IMAGEN',
+                      fallbackReason: null,
                       studioBridgeUrl: 'https://flow.google.com',
                       width,
                       height,
@@ -400,14 +414,18 @@ export class MultiProviderVisualGateway {
               }
             }
 
-            // If no Google Imagen API key configured, use product image or curated high-resolution commercial asset
-            // to guarantee zero 45-second rate limit blocks or ugly error banners!
+            // Fallback when Google Imagen credentials missing or API fails
+            const isProduct = Boolean(productImageUrl);
+            const fallbackReason = !googleKey ? 'MISSING_API_CREDENTIALS' : 'API_CALL_FAILED';
             const fallbackVisual = productImageUrl || CommercialVisualCatalog.getCuratedAsset(`${cleanPrompt} ${headline} ${brandName}`, seed + 202);
             return {
               success: true,
+              isAiGenerated: false,
               imageUrl: fallbackVisual,
-              provider: 'Google_Flow_Imagen',
-              providerName: 'Google Flow / Imagen 3 Vision Engine',
+              provider: isProduct ? 'Authorized_Product_Asset' : 'Curated_Commercial_Photo',
+              providerName: isProduct ? 'Authorized Brand Product Asset (Fallback)' : 'Curated 8K Commercial Photography (Fallback)',
+              requestedProvider: 'GOOGLE_FLOW_IMAGEN',
+              fallbackReason,
               studioBridgeUrl: 'https://flow.google.com',
               googleAdsCreativeUrl: 'https://adscreative.google.com',
               copyablePrompt: cleanPrompt,
@@ -420,12 +438,16 @@ export class MultiProviderVisualGateway {
 
           // 6. Nano Banana / Banana.dev Serverless SDXL Pipeline
           case 'NANO_BANANA_GPU': {
+            const isProduct = Boolean(productImageUrl);
             const fallbackVisual = productImageUrl || CommercialVisualCatalog.getCuratedAsset(`${cleanPrompt} ${headline} ${brandName}`, seed + 101);
             return {
               success: true,
+              isAiGenerated: false,
               imageUrl: fallbackVisual,
-              provider: 'Nano_Banana_GPU',
-              providerName: 'Nano Banana / Serverless GPU Engine',
+              provider: isProduct ? 'Authorized_Product_Asset' : 'Curated_Commercial_Photo',
+              providerName: isProduct ? 'Authorized Brand Product Asset (Fallback)' : 'Curated 8K Commercial Photography (Fallback)',
+              requestedProvider: 'NANO_BANANA_GPU',
+              fallbackReason: 'PROVIDER_OFFLINE_OR_UNAVAILABLE',
               width,
               height,
               seed: seed + 101,
@@ -433,7 +455,7 @@ export class MultiProviderVisualGateway {
             };
           }
 
-          // 7. Pollinations FLUX.1 (Free / Authenticated via enter.pollinations.ai)
+          // 7. Pollinations FLUX.1 (Enterprise Authenticated ONLY via enter.pollinations.ai)
           case 'POLLINATIONS_FLUX': {
             const pollKey = pollinationsConfig.apiKey?.trim();
             if (pollKey) {
@@ -441,9 +463,12 @@ export class MultiProviderVisualGateway {
               const imageUrl = `https://gen.pollinations.ai/image/${encoded}?width=${width}&height=${height}&model=flux&key=${pollKey}`;
               return {
                 success: true,
+                isAiGenerated: true,
                 imageUrl,
                 provider: 'Pollinations_FLUX_1',
                 providerName: 'Pollinations FLUX.1 Pro (Authenticated)',
+                requestedProvider: 'POLLINATIONS_FLUX',
+                fallbackReason: null,
                 width,
                 height,
                 seed,
@@ -451,13 +476,17 @@ export class MultiProviderVisualGateway {
               };
             }
 
-            // Zero-failover fallback without hitting the unauthenticated 45s cooldown
+            // Fallback: strictly curated commercial photography or dynamic brand vector layout
+            const isProduct = Boolean(productImageUrl);
             const fallbackVisual = productImageUrl || CommercialVisualCatalog.getCuratedAsset(`${cleanPrompt} ${headline} ${brandName}`, seed);
             return {
               success: true,
+              isAiGenerated: false,
               imageUrl: fallbackVisual,
-              provider: 'Pollinations_FLUX_1',
-              providerName: 'Pollinations FLUX.1 Neural Engine',
+              provider: isProduct ? 'Authorized_Product_Asset' : 'Curated_Commercial_Photo',
+              providerName: isProduct ? 'Authorized Brand Product Asset (Fallback)' : 'Curated 8K Commercial Photography (Fallback)',
+              requestedProvider: 'POLLINATIONS_FLUX',
+              fallbackReason: 'UNAUTHENTICATED_ACCESS_DISABLED',
               width,
               height,
               seed,
@@ -467,12 +496,16 @@ export class MultiProviderVisualGateway {
 
           // 8. Curated 8K Commercial Product Photography (Instant, Zero Latency, 100% Rate-Limit Proof)
           case 'CURATED_COMMERCIAL_PHOTO': {
+            const isProduct = Boolean(productImageUrl);
             const photoUrl = productImageUrl || CommercialVisualCatalog.getCuratedAsset(`${cleanPrompt} ${headline} ${brandName}`, seed);
             return {
               success: true,
+              isAiGenerated: false,
               imageUrl: photoUrl,
-              provider: 'Curated_Commercial_Photo',
-              providerName: 'Curated 8K Commercial Product Photography',
+              provider: isProduct ? 'Authorized_Product_Asset' : 'Curated_Commercial_Photo',
+              providerName: isProduct ? 'Authorized Brand Product Asset' : 'Curated 8K Commercial Product Photography',
+              requestedProvider: 'CURATED_COMMERCIAL_PHOTO',
+              fallbackReason: null,
               width,
               height,
               seed,
@@ -579,8 +612,10 @@ export class MultiProviderVisualGateway {
     const klingConfig = integrations.klingVideoAi || {};
     const replicateConfig = integrations.replicateVisualAi || {};
 
-    let providerUsed = 'Autonomous_HTML5_Motion_Engine';
-    let providerNameUsed = 'Autonomous HTML5 Motion Video Engine';
+    let isAiGenerated = false;
+    let fallbackReason = (!runwayConfig.apiKey && !lumaConfig.apiKey) ? 'MISSING_API_CREDENTIALS' : null;
+    let providerUsed = 'Dynamic_Motion_Simulator';
+    let providerNameUsed = 'Interactive Dynamic Motion Simulator (Canvas Preview)';
 
     // 2. Runway Gen-3 Alpha Cinematic Video (if key configured)
     if (runwayConfig.apiKey && (preferredProvider === 'RUNWAY_GEN' || !preferredProvider)) {
@@ -604,6 +639,8 @@ export class MultiProviderVisualGateway {
         if (runwayRes.ok) {
           const rwData = await runwayRes.json();
           if (rwData.id) {
+            isAiGenerated = true;
+            fallbackReason = null;
             providerUsed = 'Runway_Gen3_Engine';
             providerNameUsed = 'Runway Gen-3 Alpha Cinematic Video';
           }
@@ -614,7 +651,7 @@ export class MultiProviderVisualGateway {
     }
 
     // 3. Luma Dream Machine (if key configured)
-    if (lumaConfig.apiKey && (preferredProvider === 'LUMA_AI' || !preferredProvider)) {
+    if (!isAiGenerated && lumaConfig.apiKey && (preferredProvider === 'LUMA_AI' || !preferredProvider)) {
       try {
         const lumaRes = await fetch('https://api.lumalabs.ai/dream-machine/v1/generations', {
           method: 'POST',
@@ -632,6 +669,8 @@ export class MultiProviderVisualGateway {
         if (lumaRes.ok) {
           const lmData = await lumaRes.json();
           if (lmData.id) {
+            isAiGenerated = true;
+            fallbackReason = null;
             providerUsed = 'Luma_Dream_Machine';
             providerNameUsed = 'Luma Dream Machine Video Engine';
           }
@@ -647,6 +686,9 @@ export class MultiProviderVisualGateway {
     // Return full composite video data structure
     return {
       success: true,
+      isAiGenerated,
+      fallbackReason,
+      requestedProvider: preferredProvider || 'AUTO_ROTATE',
       mediaUrl: videoStreamUrl,
       videoUrl: videoStreamUrl,
       thumbnailUrl: videoStreamUrl,
@@ -762,7 +804,17 @@ export class MultiProviderVisualGateway {
     const finalRating = (ratingText || defaultRating).replace(/&/g, '&amp;');
     const finalOffer = (offerPill || defaultOffer).replace(/&/g, '&amp;');
 
-    const escapedImg = productImageUrl
+    const isInvalidOrThrottled = !productImageUrl ||
+      productImageUrl.includes('pollinations.ai') ||
+      productImageUrl.includes('vyuhox_banner.jpg') ||
+      productImageUrl.includes('vyuhox_reel.jpg') ||
+      productImageUrl.includes('hedgex') ||
+      productImageUrl.includes('my_custom_post');
+
+    // Browser SVG Security Sandbox: An SVG data URI in an <img> tag cannot fetch external subresources (relative or HTTP URLs).
+    // Only inline base64 data URIs can be safely rendered inside an SVG <image> tag.
+    const isInlineBase64 = productImageUrl && productImageUrl.startsWith('data:image/');
+    const escapedImg = (!isInvalidOrThrottled && isInlineBase64)
       ? productImageUrl.replace(/"/g, '&quot;').replace(/&/g, '&amp;')
       : null;
 

@@ -1041,50 +1041,48 @@ router.post('/test-integration-ping', async (req, res) => {
     // 23. Pollinations FLUX.1 Neural Engine
     if (provider === 'pollinationsVisualAi') {
       const apiKey = creds.apiKey?.trim();
-      if (apiKey && apiKey.startsWith('sk_')) {
-        try {
-          const resp = await fetch('https://gen.pollinations.ai/v1/models', {
-            headers: { Authorization: `Bearer ${apiKey}` },
-            signal: AbortSignal.timeout(5000),
-          });
-          const latencyMs = Date.now() - start;
-          if (resp.ok) {
-            return res.json({
-              success: true,
-              result: {
-                status: 'LIVE',
-                latencyMs,
-                message: 'Pollinations Authenticated Pro API Connected (Zero 45s Cooldown, Unlimited High-Speed Concurrency)',
-              },
-            });
-          }
-        } catch (e) {
-          // fallback to public ping
-        }
+      if (!apiKey) {
+        return res.json({
+          success: false,
+          result: {
+            status: 'KEY_REQUIRED',
+            latencyMs: 0,
+            message: 'Pollinations Enterprise API Key (sk_...) is not configured. Free unauthenticated access is disabled in production to protect creative quality.',
+          },
+        });
       }
 
       try {
-        const resp = await fetch('https://image.pollinations.ai/prompt/vyuhox?width=32&height=32&nologo=true', {
-          signal: AbortSignal.timeout(4000),
+        const resp = await fetch('https://gen.pollinations.ai/v1/models', {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          signal: AbortSignal.timeout(5000),
         });
         const latencyMs = Date.now() - start;
+        if (resp.ok) {
+          return res.json({
+            success: true,
+            result: {
+              status: 'LIVE',
+              latencyMs,
+              message: 'Pollinations Authenticated Pro API Connected (Zero 45s Cooldown, Unlimited High-Speed Concurrency)',
+            },
+          });
+        }
         return res.json({
-          success: true,
+          success: false,
           result: {
-            status: 'LIVE',
-            latencyMs: resp.ok ? latencyMs : 110,
-            message: apiKey
-              ? 'Pollinations Key Configured & Operational'
-              : 'Pollinations Public Engine Operational (Free Tier - 45s Cooldown per IP without sk_ key)',
+            status: 'AUTH_FAILED',
+            latencyMs,
+            message: `Pollinations API key authentication failed: HTTP ${resp.status}`,
           },
         });
       } catch (err) {
         return res.json({
-          success: true,
+          success: false,
           result: {
-            status: 'LIVE',
-            latencyMs: 120,
-            message: 'Pollinations Free Mirror Active (Automatic Multi-Provider Rotation)',
+            status: 'UNREACHABLE',
+            latencyMs: Date.now() - start,
+            message: `Pollinations gateway connection notice: ${err.message}`,
           },
         });
       }
@@ -1097,7 +1095,7 @@ router.post('/test-integration-ping', async (req, res) => {
         result: {
           status: 'LIVE',
           latencyMs: 15,
-          message: `Autonomous HTML5 Reel Compositor Operational (B-Roll Theme: ${creds.defaultBrollTheme || 'cyber_crypto_matrix'}, Engine: ${creds.renderEngine || 'HTML5_REMOTION_COMPOSITOR'})`,
+          message: `Autonomous HTML5 Reel Compositor Operational (B-Roll Theme: ${creds.defaultBrollTheme || 'modern_commercial_cinematic'}, Engine: ${creds.renderEngine || 'DYNAMIC_CANVAS_COMPOSITOR'})`,
         },
       });
     }

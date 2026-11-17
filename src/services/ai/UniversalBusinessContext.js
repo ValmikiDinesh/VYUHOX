@@ -31,6 +31,7 @@ import { SocialPost } from '../../models/SocialPost.js';
 import { Appointment } from '../../models/Appointment.js';
 import { BusinessBrain } from '../../models/BusinessBrain.js';
 import { PlatformConfig } from '../../models/PlatformConfig.js';
+import { WorkspaceAsset } from '../../models/WorkspaceAsset.js';
 
 export class UniversalBusinessContext {
   /**
@@ -148,27 +149,96 @@ export class UniversalBusinessContext {
 
     const blendedRoas = totalAdSpend > 0 ? parseFloat((totalAdRevenue / totalAdSpend).toFixed(2)) || 3.4 : 3.4;
 
-    // 7. Real Business Product Assets & Crawled Media
-    let uploadedMediaFiles = [];
+    // 7. Scraped Website Media vs. Explicitly Authorized Assets
+    // STRICT TENANT ISOLATION RULE:
+    // 1. Scraped website images are cataloged for reference only (userAuthorized: false) and must NEVER enter AI generation without user selection.
+    // 2. Client uploads are strictly scoped to the active workspace via database (WorkspaceAsset) and tenant folder (uploads/${workspaceId}).
+    // 3. Shared directories (e.g. client/public/uploads/*) are NEVER scanned globally to prevent cross-tenant data contamination.
+    let dbAuthorizedAssets = [];
     try {
-      const uploadDir = path.resolve(process.cwd(), 'client', 'public', 'uploads');
-      if (fs.existsSync(uploadDir)) {
-        const files = fs.readdirSync(uploadDir);
-        uploadedMediaFiles = files
-          .filter(f => /\.(jpe?g|png|webp|gif|mp4)$/i.test(f))
-          .map(f => `/uploads/${f}`);
+      if (isValidWs) {
+        dbAuthorizedAssets = await WorkspaceAsset.find({
+          workspaceId,
+          userAuthorized: true,
+        }).lean();
+      }
+    } catch (dbAssetErr) {
+      console.warn('[UniversalBusinessContext] WorkspaceAsset query notice:', dbAssetErr.message);
+    }
+
+    // Tenant-isolated directory check: strictly private workspace storage outside client/public
+    let tenantDiskFiles = [];
+    try {
+      if (workspaceId) {
+        const wsIdStr = workspaceId.toString();
+        const privateDir = path.resolve(process.cwd(), 'storage', 'uploads', 'private', wsIdStr);
+        if (fs.existsSync(privateDir)) {
+          const files = fs.readdirSync(privateDir);
+          tenantDiskFiles.push(...files
+            .filter(f => /\.(jpe?g|png|webp|gif|mp4)$/i.test(f))
+            .map(f => `/api/assets/raw/${wsIdStr}/${f}`));
+        }
+        const legacyDir = path.resolve(process.cwd(), 'client', 'public', 'uploads', wsIdStr);
+        if (fs.existsSync(legacyDir)) {
+          const legacyFiles = fs.readdirSync(legacyDir);
+          tenantDiskFiles.push(...legacyFiles
+            .filter(f => /\.(jpe?g|png|webp|gif|mp4)$/i.test(f))
+            .map(f => `/api/assets/raw/${wsIdStr}/${f}`));
+        }
       }
     } catch {}
 
-    const rawImages = [
-      ...(Array.isArray(rawExt?.scannedImages) ? rawExt.scannedImages.map(img => typeof img === 'string' ? img : img?.src) : []),
-      ...(Array.isArray(analysis?.scannedImages) ? analysis.scannedImages.map(img => typeof img === 'string' ? img : img?.src) : []),
-      ...(rawExt?.ogImage ? [rawExt.ogImage] : []),
-      ...(workspace?.logo ? [workspace.logo] : []),
-      ...uploadedMediaFiles,
-    ].filter(Boolean);
+    const scrapedAssets = [
+      ...(Array.isArray(rawExt?.scannedImages) ? rawExt.scannedImages.map(img => ({
+        url: typeof img === 'string' ? img : img?.src,
+        alt: typeof img === 'object' ? img?.alt || '' : '',
+        type: 'WEBSITE_SCRAPED',
+        userAuthorized: false,
+      })) : []),
+      ...(Array.isArray(analysis?.scannedImages) ? analysis.scannedImages.map(img => ({
+        url: typeof img === 'string' ? img : img?.src,
+        alt: typeof img === 'object' ? img?.alt || '' : '',
+        type: 'WEBSITE_SCRAPED',
+        userAuthorized: false,
+      })) : []),
+      ...(rawExt?.ogImage ? [{ url: rawExt.ogImage, alt: 'Website OpenGraph Image', type: 'WEBSITE_OG', userAuthorized: false }] : []),
+    ].filter(a => a.url);
 
-    const realProductImages = [...new Set(rawImages)];
+    // Validate brand logo: Must be explicitly assigned to this workspace and free of foreign demo tokens
+    const isValidLogo = workspace?.logo &&
+      typeof workspace.logo === 'string' &&
+      workspace.logo.trim() !== '' &&
+      !/hedgex|vyuhox_banner|vyuhox_reel|pollinations/i.test(workspace.logo);
+
+    // Explicitly authorized assets strictly scoped to this workspace
+    const rawAuthorized = [
+      ...(isValidLogo ? [{ url: workspace.logo, type: 'LOGO', userAuthorized: true }] : []),
+      ...dbAuthorizedAssets.map(a => ({
+        url: a.url,
+        type: 'CLIENT_UPLOADED',
+        userAuthorized: true,
+        originalName: a.originalName || '',
+      })),
+      ...tenantDiskFiles.map(url => ({
+        url,
+        type: 'CLIENT_UPLOADED',
+        userAuthorized: true,
+      })),
+    ];
+
+    // Deduplicate by URL
+    const seenUrls = new Set();
+    const authorizedProductAssets = [];
+    for (const asset of rawAuthorized) {
+      if (asset.url && !seenUrls.has(asset.url)) {
+        seenUrls.add(asset.url);
+        authorizedProductAssets.push(asset);
+      }
+    }
+
+    // For backwards compatibility, realProductImages contains ONLY strictly authorized assets for this tenant.
+    // Scraped images remain in scrapedAssets with userAuthorized: false.
+    const realProductImages = authorizedProductAssets.map(a => a.url);
 
     const offeringType = workspace?.offeringType && workspace.offeringType !== 'UNSPECIFIED'
       ? workspace.offeringType
@@ -193,6 +263,8 @@ export class UniversalBusinessContext {
       products,
       whatTheySell,
       offeringType,
+      scrapedAssets,
+      authorizedProductAssets,
       realProductImages,
       painPoints,
       targetPersonas,
@@ -303,3 +375,5 @@ Module Being Executed: ${moduleName}
     return this.formatIntelligenceForPrompt(data, moduleName);
   }
 }
+
+export default UniversalBusinessContext;

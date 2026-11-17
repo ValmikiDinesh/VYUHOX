@@ -7,31 +7,55 @@
 
 export class VideoRenderer {
   /**
-   * High-retention vertical B-roll video loops
+   * Industry-adaptive vertical B-roll presets (100% neutral and commercial-grade)
    */
   static B_ROLL_PRESETS = [
     {
-      id: 'cyber_crypto_matrix',
-      name: 'Cybernetic HUD & Liquidity Depth',
-      videoUrl: '/media/hedgex_reel.jpg',
-      fallbackGradient: 'linear-gradient(180deg, #020617 0%, #064E3B 50%, #0F172A 100%)',
+      id: 'modern_commercial_cinematic',
+      name: 'Modern Commercial & Brand Spotlight',
+      videoUrl: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1080&h=1920&q=85',
+      fallbackGradient: 'linear-gradient(180deg, #090D16 0%, #1E293B 50%, #030712 100%)',
+      accentColor: '#38BDF8',
+    },
+    {
+      id: 'luxury_wedding_event',
+      name: 'Luxury Wedding, Stationery & Celebration',
+      videoUrl: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1080&h=1920&q=85',
+      fallbackGradient: 'linear-gradient(180deg, #180512 0%, #4A0E2E 50%, #0D0208 100%)',
+      accentColor: '#F59E0B',
+    },
+    {
+      id: 'retail_fashion_lifestyle',
+      name: 'Retail, Fashion & Lifestyle Studio',
+      videoUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1080&h=1920&q=85',
+      fallbackGradient: 'linear-gradient(180deg, #0F172A 0%, #312E81 50%, #020617 100%)',
+      accentColor: '#EC4899',
+    },
+    {
+      id: 'growth_tech_saas',
+      name: 'Technology, Enterprise & Innovation',
+      videoUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1080&h=1920&q=85',
+      fallbackGradient: 'linear-gradient(180deg, #020617 0%, #0F766E 50%, #020617 100%)',
       accentColor: '#10B981',
     },
-    {
-      id: 'neon_data_stream',
-      name: 'High-Velocity Algorithmic Tunnel',
-      videoUrl: '/media/vyuhox_reel.jpg',
-      fallbackGradient: 'linear-gradient(180deg, #090D16 0%, #0E7490 50%, #020617 100%)',
-      accentColor: '#06B6D4',
-    },
-    {
-      id: 'abstract_ai_cube',
-      name: 'Neural Pipeline Architecture',
-      videoUrl: '/media/hedgex_carousel.jpg',
-      fallbackGradient: 'linear-gradient(180deg, #180928 0%, #7C3AED 50%, #020617 100%)',
-      accentColor: '#A855F7',
-    },
   ];
+
+  /**
+   * Resolves the best matching B-roll preset based on workspace industry and brand DNA
+   */
+  static resolvePreset(industry = '', brandName = '') {
+    const text = `${industry} ${brandName}`.toLowerCase();
+    if (/wedding|invite|invitation|stationery|matrimony|bridal|event/i.test(text)) {
+      return this.B_ROLL_PRESETS.find(p => p.id === 'luxury_wedding_event') || this.B_ROLL_PRESETS[1];
+    }
+    if (/fashion|apparel|jewelry|luxury|boutique|sunglass|eyewear/i.test(text)) {
+      return this.B_ROLL_PRESETS.find(p => p.id === 'retail_fashion_lifestyle') || this.B_ROLL_PRESETS[2];
+    }
+    if (/tech|software|saas|ai|cloud|data|platform/i.test(text)) {
+      return this.B_ROLL_PRESETS.find(p => p.id === 'growth_tech_saas') || this.B_ROLL_PRESETS[3];
+    }
+    return this.B_ROLL_PRESETS[0];
+  }
 
   /**
    * Compiles video reel configuration with animated subtitle tracks and assets
@@ -44,10 +68,15 @@ export class VideoRenderer {
     timedCaptions = [],
     audioUrl = null,
     brandName = 'VYUHOX',
-    theme = 'cyber_crypto_matrix',
+    theme = 'modern_commercial_cinematic',
   }) {
+    // Gracefully map any legacy crypto theme requests to modern commercial
+    const cleanTheme = (theme === 'cyber_crypto_matrix' || theme === 'abstract_ai_cube')
+      ? 'modern_commercial_cinematic'
+      : theme;
+
     const preset =
-      this.B_ROLL_PRESETS.find((p) => p.id === theme) || this.B_ROLL_PRESETS[0];
+      this.B_ROLL_PRESETS.find((p) => p.id === cleanTheme) || this.B_ROLL_PRESETS[0];
 
     // Compute total duration
     const totalDuration =
@@ -63,9 +92,9 @@ export class VideoRenderer {
       bRollPreset: preset,
       backgroundVideoUrl: preset.videoUrl,
       fallbackGradient: preset.fallbackGradient,
-      audioUrl: audioUrl || '/audio/call_harrison.wav',
+      audioUrl: audioUrl || null,
       watermark: {
-        text: `${brandName.toUpperCase()} • AUTONOMOUS GTM`,
+        text: `${brandName.toUpperCase()} • OFFICIAL SHOWCASE`,
         position: 'top-left',
         glowColor: preset.accentColor,
       },

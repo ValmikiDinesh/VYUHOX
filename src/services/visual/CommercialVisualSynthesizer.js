@@ -45,15 +45,17 @@ export class CommercialVisualSynthesizer {
   }
 
   /**
-   * Resolves the best available real product image from the business, or falls back to curated photographic assets.
+   * Resolves the best available user-authorized product image, or falls back to curated photographic assets.
+   * STRICT POLICY: Scraped website images are NEVER automatically reused. Only explicitly authorized assets.
    */
   static resolveProductImage(context = {}, variationIndex = 0) {
-    const realImages = context.realProductImages || [];
+    // Only consider explicitly authorized assets
+    const authorizedAssets = context.authorizedProductAssets?.map(a => a.url) || context.realProductImages || [];
 
-    // Filter out common non-product icons or SVGs if real photos are available
-    const productPhotos = realImages.filter((img) => {
+    // Filter out icons, svgs, avatars, throttled URLs, or demo assets
+    const productPhotos = authorizedAssets.filter((img) => {
       const src = (typeof img === 'string' ? img : img?.src || '').toLowerCase();
-      return !src.endsWith('.svg') && !src.includes('avatar') && !src.includes('favicon') && !src.includes('hedgex');
+      return !src.endsWith('.svg') && !src.includes('avatar') && !src.includes('favicon') && !src.includes('hedgex') && !src.includes('pollinations.ai');
     });
 
     if (productPhotos.length > 0) {
@@ -66,7 +68,7 @@ export class CommercialVisualSynthesizer {
     
     if (/wedding|invite|invitation|stationery|matrimony|bridal|event/i.test(textCorpus)) {
       const weddingAssets = [
-        'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85',
+        'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=85',
         'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1200&q=85',
         'https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=1200&q=85',
       ];

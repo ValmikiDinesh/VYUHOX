@@ -7,50 +7,128 @@ import { Wallet } from '../models/Wallet.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { PlatformConfig } from '../models/PlatformConfig.js';
 import { Workspace } from '../models/Workspace.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { AssetDeliveryService } from '../services/media/AssetDeliveryService.js';
 
 const router = express.Router();
 
-// Ensure uploads/support directory exists
-const uploadDir = path.resolve(process.cwd(), 'client', 'public', 'uploads', 'support');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Supported MIME types and extensions for strict support attachment validation
+const ALLOWED_SUPPORT_EXT = /^(jpe?g|png|webp|gif|pdf|txt|log)$/i;
+const ALLOWED_SUPPORT_MIME = /^(image\/(jpeg|png|webp|gif)|application\/pdf|text\/plain)$/i;
 
+// Multer Storage for Support Attachments: Stored in private support directory (outside client/public)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, AssetDeliveryService.getSupportDir());
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `support-${uniqueSuffix}${ext}`);
+    const ext = path.extname(file.originalname).toLowerCase();
+    const cleanBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
+    cb(null, `support_${cleanBase}_${Date.now()}${ext}`);
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB strict limit
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp|gif|pdf|txt|log/;
     const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
-    if (allowed.test(ext)) {
+    const isExtAllowed = ALLOWED_SUPPORT_EXT.test(ext);
+    const isMimeAllowed = ALLOWED_SUPPORT_MIME.test(file.mimetype);
+
+    // Strict validation: Require BOTH file extension and MIME type to match allowed support types
+    if (isExtAllowed && isMimeAllowed) {
       cb(null, true);
     } else {
-      cb(new Error('Only images, PDFs, or log files are permitted.'));
+      cb(new Error('Invalid support upload: Only images (JPEG, PNG, WebP, GIF), PDFs, or plain text logs under 5MB are permitted. Both extension and MIME type must match.'));
     }
   },
 });
 
+// In-memory sliding-window rate limiter for support uploads
+// Prevents resource exhaustion without external infrastructure dependencies
+const uploadRateLimitWindowMs = 15 * 60 * 1000; // 15 minutes
+const maxUploadsPerWindow = 10;
+const supportUploadTracker = new Map(); // key: userId/ip -> array of timestamps
+
+export const supportUploadRateLimiter = (req, res, next) => {
+  const identifier = req.user?._id?.toString() || req.user?.id?.toString() || req.ip;
+  const now = Date.now();
+  const windowStart = now - uploadRateLimitWindowMs;
+
+  const timestamps = (supportUploadTracker.get(identifier) || []).filter((t) => t > windowStart);
+
+  if (timestamps.length >= maxUploadsPerWindow) {
+    const oldestTimestamp = timestamps[0];
+    const retryAfterSeconds = Math.ceil((oldestTimestamp + uploadRateLimitWindowMs - now) / 1000);
+    res.setHeader('Retry-After', retryAfterSeconds);
+    res.setHeader('X-RateLimit-Limit', maxUploadsPerWindow);
+    res.setHeader('X-RateLimit-Remaining', 0);
+    res.setHeader('X-RateLimit-Reset', Math.ceil((oldestTimestamp + uploadRateLimitWindowMs) / 1000));
+    return res.status(429).json({
+      success: false,
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: `Upload rate limit exceeded. You may only upload up to ${maxUploadsPerWindow} support attachments every 15 minutes. Please wait ${retryAfterSeconds} seconds before trying again.`,
+      retryAfterSeconds,
+    });
+  }
+
+  timestamps.push(now);
+  supportUploadTracker.set(identifier, timestamps);
+
+  res.setHeader('X-RateLimit-Limit', maxUploadsPerWindow);
+  res.setHeader('X-RateLimit-Remaining', maxUploadsPerWindow - timestamps.length);
+
+  // Periodic pruning of stale tracker keys (every 50 requests)
+  if (Math.random() < 0.02) {
+    for (const [key, times] of supportUploadTracker.entries()) {
+      const active = times.filter((t) => t > windowStart);
+      if (active.length === 0) supportUploadTracker.delete(key);
+      else supportUploadTracker.set(key, active);
+    }
+  }
+
+  next();
+};
+
 /**
  * POST /api/support/upload
- * Two-way upload endpoint: client error screenshots & super admin resolution receipts
+ * Authenticated support upload: client error screenshots & super admin resolution receipts
+ * Enforces authentication, per-user rate limit (10 per 15 min), magic-byte inspection, strict MIME whitelist, and private storage.
  */
-router.post('/upload', upload.single('file'), (req, res) => {
+router.post('/upload', authMiddleware, supportUploadRateLimiter, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded.' });
     }
-    const fileUrl = `/uploads/support/${req.file.filename}`;
+
+    const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
+
+    // Deep content inspection: verify file magic bytes match declared extension and MIME type
+    const isValid = AssetDeliveryService.verifyMediaMagicBytes(req.file.path, ext, req.file.mimetype);
+    if (!isValid) {
+      if (fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Security validation failed: File content does not match allowed format or contains active scripts.',
+      });
+    }
+
+    // Persist via StorageAdapter abstraction (Local or Cloudflare R2)
+    await AssetDeliveryService.saveSupportAttachment(
+      req.file.filename,
+      req.file.path,
+      req.file.mimetype
+    );
+
+    // If cloud storage, unlink local staging file
+    if (AssetDeliveryService.storageAdapter.isCloudStorage && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+    }
+
+    const fileUrl = `/api/support/attachment/${req.file.filename}`;
     return res.json({
       success: true,
       file: {
@@ -61,8 +139,81 @@ router.post('/upload', upload.single('file'), (req, res) => {
       },
     });
   } catch (err) {
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+    }
     console.error('[SupportRoutes] Upload error:', err);
     return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/support/attachment/:filename
+ * Secure authenticated retrieval of support attachments
+ * Scoped to superadmins and authorized ticket holders.
+ */
+router.get('/attachment/:filename', authMiddleware, async (req, res) => {
+  try {
+    const safeFilename = path.basename(req.params.filename);
+    const supportDir = AssetDeliveryService.getSupportDir();
+    const filePath = path.resolve(supportDir, safeFilename);
+
+    if (!filePath.startsWith(supportDir)) {
+      return res.status(403).json({ success: false, message: 'Access denied: Path traversal detected.' });
+    }
+
+    const isSuperAdmin = req.user?.role === 'superadmin';
+    const userEmail = req.user?.email;
+    const userWsId = req.workspaceId ? req.workspaceId.toString() : null;
+
+    // Authorization check: Superadmin has global access; regular users can view attachments on their tickets or workspace
+    if (!isSuperAdmin) {
+      const authorizedTicket = await SupportTicket.findOne({
+        $or: [
+          { workspaceId: userWsId },
+          { userEmail },
+        ],
+        'attachments.fileUrl': new RegExp(safeFilename),
+      });
+
+      if (!authorizedTicket && req.user?.role !== 'workspace_owner') {
+        return res.status(403).json({ success: false, message: 'Forbidden: You do not have authorization to view this support attachment.' });
+      }
+    }
+
+    const mediaRes = await AssetDeliveryService.resolveSupportAttachmentStream(safeFilename);
+    if (!mediaRes) {
+      return res.status(404).json({ success: false, message: 'Attachment not found.' });
+    }
+
+    const ext = path.extname(safeFilename).toLowerCase().replace('.', '');
+    const mimeMap = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
+      gif: 'image/gif',
+      pdf: 'application/pdf',
+      txt: 'text/plain',
+      log: 'text/plain',
+    };
+    const mimeType = mimeMap[ext] || mediaRes.mimeType || 'application/octet-stream';
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    if (mediaRes.size) {
+      res.setHeader('Content-Length', mediaRes.size);
+    }
+
+    return AssetDeliveryService.pipeMediaStream(mediaRes, res, req);
+  } catch (error) {
+    console.error('[SupportRoutes] Attachment retrieval error:', error);
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, message: 'Failed to retrieve support attachment.' });
+    } else {
+      res.destroy();
+    }
   }
 });
 

@@ -18,18 +18,19 @@ export class GoogleAdsService {
     creative = {},
   }) {
     const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID || '782-491-0192';
+    const brand = campaignName?.replace(/\[.*?\]/g, '').split('-')[0]?.trim() || 'Official Brand';
 
-    // Responsive Search Ad headlines & descriptions
+    // Responsive Search Ad headlines & descriptions (100% Industry-Adaptive & Commercial-Grade)
     const headlines = [
-      creative.headline || 'Sub-Second Quant Execution',
-      'Zero Slippage Algorithmic Alpha',
-      'Institutional Fireblocks Custody',
-      'Download Q4 Performance Audit',
+      creative.headline || `${brand} Official Showcase`,
+      'Verified Excellence & Craftsmanship',
+      'Direct Consultation & Fast Support',
+      '100% Satisfaction Guarantee',
     ];
 
     const descriptions = [
-      creative.primaryText || 'Execute block orders across Bybit and OKX in sub-600ms without manual desk latency.',
-      'Verified 18bps spread savings for family offices and institutional allocators.',
+      creative.primaryText || `Experience bespoke solutions by ${brand} tailored to deliver exceptional quality and customer satisfaction.`,
+      'Explore verified client showcases, personalized options, and book your direct consultation today.',
     ];
 
     const mockCampaignId = `gads_camp_${Date.now()}_${Math.floor(Math.random() * 8999 + 1000)}`;
@@ -43,17 +44,17 @@ export class GoogleAdsService {
       biddingStrategy: 'TARGET_CPA',
       targetCpaUSD: 38.0,
       keywordsConfigured: targeting.keywords || [
-        'crypto hedge fund execution',
-        'sub second trading latency',
-        'institutional quant alpha',
-        'automated order routing api',
+        `${brand.toLowerCase()} services`,
+        'top rated professional solutions',
+        'verified customer reviews',
+        'schedule direct consultation',
       ],
       responsiveSearchAd: {
         headlines,
         descriptions,
-        finalUrl: creative.destinationUrl || 'https://growth.hedgex.io',
-        path1: 'institutional',
-        path2: 'alpha',
+        finalUrl: creative.destinationUrl || `https://${brand.toLowerCase().replace(/[^a-z0-9]/g, '') || 'vyuhox'}.com`,
+        path1: 'official',
+        path2: 'solutions',
       },
     };
   }

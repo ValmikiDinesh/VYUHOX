@@ -28,6 +28,7 @@ import { MultiProviderVisualGateway } from '../visual/MultiProviderVisualGateway
 import { CommercialVisualSynthesizer } from '../visual/CommercialVisualSynthesizer.js';
 import { AdCampaign } from '../../models/AdCampaign.js';
 import { AdCreative } from '../../models/AdCreative.js';
+import { AssetDeliveryService } from '../media/AssetDeliveryService.js';
 
 export class CreativeDirectorAgent {
   /**
@@ -296,6 +297,9 @@ Return STRICTLY a JSON object with this exact structure:
           thumbnailUrl: assetResult.thumbnailUrl || assetResult.imageUrl,
           provider: assetResult.provider,
           providerName: assetResult.providerName,
+          isAiGenerated: assetResult.isAiGenerated === true,
+          requestedProvider: assetResult.requestedProvider || preferredVisualProvider || 'AUTO_ROTATE',
+          fallbackReason: assetResult.fallbackReason || null,
           aspectRatio: platformSpec.aspectRatio,
           width: assetResult.width || platformSpec.width,
           height: assetResult.height || platformSpec.height,
@@ -363,6 +367,10 @@ Return STRICTLY a JSON object with this exact structure:
           googleDescriptions: varItem.googleDescriptions || [],
           instantFormQuestions: varItem.instantFormQuestions || [],
           providerUsed: varItem.visualAsset.providerName,
+          actualProvider: varItem.visualAsset.provider,
+          requestedProvider: varItem.visualAsset.requestedProvider,
+          isAiGenerated: varItem.visualAsset.isAiGenerated,
+          fallbackReason: varItem.visualAsset.fallbackReason,
         },
       });
 
@@ -415,6 +423,22 @@ Return STRICTLY a JSON object with this exact structure:
         { campaignId, workspaceId },
         { status: 'ACTIVE', approvalStatus: 'CLIENT_APPROVED' }
       );
+    }
+
+    // Export and publish approved creative media for external ad delivery
+    try {
+      const activeCreatives = await AdCreative.find({ campaignId, workspaceId, status: 'ACTIVE' });
+      for (const creative of activeCreatives) {
+        if (creative.mediaUrl && (creative.mediaUrl.includes('/api/assets/') || creative.mediaUrl.includes(`/uploads/${workspaceId}/`))) {
+          const pubRes = await AssetDeliveryService.publishAsset(creative.mediaUrl, workspaceId);
+          if (pubRes.success && pubRes.publishedUrl) {
+            creative.mediaUrl = pubRes.publishedUrl;
+            await creative.save();
+          }
+        }
+      }
+    } catch (pubErr) {
+      console.warn('[CreativeDirectorAgent] Notice during creative asset publishing:', pubErr.message);
     }
 
     console.log(`[CreativeDirectorAgent] Campaign ${campaignId} successfully approved by client and transitioned to ACTIVE status.`);

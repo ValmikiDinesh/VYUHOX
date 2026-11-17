@@ -15,16 +15,42 @@ import { checkAndPublishPendingPosts } from '../cron/socialPublisher.js';
 import { CumulativeContextService } from '../services/ai/CumulativeContextService.js';
 import { MultiProviderVisualGateway } from '../services/visual/MultiProviderVisualGateway.js';
 import { authMiddleware, verifyWorkspaceAccess } from '../middleware/auth.js';
+import { WorkspaceAsset } from '../models/WorkspaceAsset.js';
+import { AssetDeliveryService } from '../services/media/AssetDeliveryService.js';
 
 const router = express.Router();
 
-// Multer Storage for Business Media Uploads (Images & Videos)
+/**
+ * Signs private workspace audio asset URLs for immediate, secure browser playback.
+ */
+const signPostAudioUrl = (postDoc, workspaceId) => {
+  if (!postDoc) return postDoc;
+  const post = typeof postDoc.toObject === 'function' ? postDoc.toObject() : { ...postDoc };
+  if (post.audioUrl && typeof post.audioUrl === 'string' && post.audioUrl.startsWith('/api/assets/')) {
+    const match = post.audioUrl.match(/\/api\/assets\/([a-f\d]{24})/i);
+    if (match) {
+      try {
+        const signedToken = AssetDeliveryService.generateSignedMediaToken({
+          assetId: match[1],
+          workspaceId: workspaceId || post.workspaceId,
+          expiresInSeconds: 86400,
+        });
+        post.audioUrl = `/api/assets/view/${signedToken}`;
+      } catch (_) {}
+    }
+  }
+  return post;
+};
+
+// Supported MIME types and extensions for strict whitelist validation
+const ALLOWED_EXTENSIONS = /^(jpe?g|png|webp|gif|mp4|mov|webm|avi)$/i;
+const ALLOWED_MIME_TYPES = /^(image\/(jpeg|png|webp|gif)|video\/(mp4|quicktime|webm|x-msvideo))$/i;
+
+// Multer Storage for Business Media Uploads with private tenant directory scoping (outside client/public)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.resolve(process.cwd(), 'client', 'public', 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    const wsFolder = req.workspaceId ? req.workspaceId.toString() : (req.headers['x-workspace-id'] || 'shared');
+    const uploadDir = AssetDeliveryService.getPrivateDir(wsFolder);
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
@@ -38,12 +64,15 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB max for video reels
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp|gif|mp4|mov|webm|avi/i;
     const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
-    if (allowed.test(ext) || allowed.test(file.mimetype)) {
+    const isExtAllowed = ALLOWED_EXTENSIONS.test(ext);
+    const isMimeAllowed = ALLOWED_MIME_TYPES.test(file.mimetype);
+
+    // Strict validation: Require BOTH file extension and MIME type to match supported formats
+    if (isExtAllowed && isMimeAllowed) {
       cb(null, true);
     } else {
-      cb(new Error('Only image (.jpg, .png, .webp) and video (.mp4, .mov, .webm) files are supported.'));
+      cb(new Error('Invalid media upload: Supported formats are JPEG, PNG, WebP, GIF images and MP4, MOV, WebM videos. Both extension and MIME type must match.'));
     }
   },
 });
@@ -51,24 +80,81 @@ const upload = multer({
 /**
  * POST /api/social/upload
  * Business Owner Media Upload (Images & Video Reels)
+ * Strictly authenticated, stored in private storage (outside public tree), validated with magic bytes,
+ * and tracked in database-backed WorkspaceAsset with private access endpoints.
  */
-router.post('/upload', upload.single('file'), (req, res) => {
+router.post('/upload', authMiddleware, verifyWorkspaceAccess(), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
+
+    const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
     const isVideo = req.file.mimetype.startsWith('video/') || /\.(mp4|mov|webm|avi)$/i.test(req.file.filename);
-    const publicUrl = `/uploads/${req.file.filename}`;
+
+    // Deep content inspection: Verify file magic bytes match declared extension and MIME type
+    const isValidSignature = AssetDeliveryService.verifyMediaMagicBytes(req.file.path, ext, req.file.mimetype);
+    if (!isValidSignature) {
+      if (fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Security validation failed: File content does not match reported extension or MIME type.',
+      });
+    }
+
+    // Persist via StorageAdapter abstraction (Local or Cloudflare R2)
+    const storageTarget = await AssetDeliveryService.savePrivateAsset(
+      req.workspaceId || 'shared',
+      req.file.filename,
+      req.file.path,
+      req.file.mimetype
+    );
+
+    // If cloud storage, unlink local staging file
+    if (AssetDeliveryService.storageAdapter.isCloudStorage && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+    }
+
+    let assetRecord = null;
+    let assetUrl = null;
+
+    if (req.workspaceId) {
+      assetRecord = await WorkspaceAsset.create({
+        workspaceId: req.workspaceId,
+        userId: req.user?._id || null,
+        url: `/api/assets/pending_${Date.now()}`,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        assetType: isVideo ? 'B_ROLL_VIDEO' : 'PRODUCT_IMAGE',
+        status: 'PRIVATE',
+        storagePath: storageTarget,
+        userAuthorized: true,
+      });
+
+      assetUrl = `/api/assets/${assetRecord._id}`;
+      assetRecord.url = assetUrl;
+      await assetRecord.save();
+    }
+
     return res.json({
       success: true,
-      url: publicUrl,
+      url: assetUrl || `/api/assets/${req.file.filename}`,
+      assetId: assetRecord?._id || null,
       filename: req.file.filename,
       originalName: req.file.originalname,
       mimeType: req.file.mimetype,
       size: req.file.size,
       isVideo,
+      isPrivate: true,
     });
   } catch (err) {
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+    }
     console.error('[SocialRoutes] Upload error:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -117,13 +203,15 @@ router.post('/generate-from-prompt', authMiddleware, verifyWorkspaceAccess('work
     });
 
     // 2. Generate custom studio voiceover matching persona, rate, and tone
-    let audioUrl = '/audio/reels/reel_fund_speed.wav';
+    let audioUrl = null;
     if (postType === 'REEL' && generateVoice) {
       const vResult = await VoiceoverService.generateVoiceover({
         text: content.fullScript,
         voiceId,
         tone,
         language,
+        workspaceId,
+        userId: req.user?._id,
       });
       audioUrl = vResult.audioUrl;
     }
@@ -237,7 +325,7 @@ router.post('/generate-from-prompt', authMiddleware, verifyWorkspaceAccess('work
 
     return res.status(201).json({
       success: true,
-      post: newPost,
+      post: signPostAudioUrl(newPost, workspaceId),
       content,
     });
   } catch (error) {
@@ -305,10 +393,14 @@ router.post('/create-custom', authMiddleware, verifyWorkspaceAccess('workspaceId
     let resolvedAudioUrl = audioUrl;
     if (!resolvedAudioUrl && type === 'REEL') {
       if (generateVoiceover && fullScript.length > 5) {
-        const vResult = await VoiceoverService.generateVoiceover({ text: fullScript });
+        const vResult = await VoiceoverService.generateVoiceover({
+          text: fullScript,
+          workspaceId: req.workspaceId,
+          userId: req.user?._id,
+        });
         resolvedAudioUrl = vResult.audioUrl;
       } else {
-        resolvedAudioUrl = '/audio/reels/reel_fund_speed.wav';
+        resolvedAudioUrl = null;
       }
     }
 
@@ -355,6 +447,10 @@ router.post('/create-custom', authMiddleware, verifyWorkspaceAccess('workspaceId
 
     const newPost = await SocialPost.create(postDoc);
 
+    if (isNow) {
+      await AssetDeliveryService.publishPostMedia(newPost);
+    }
+
     const io = req.app.get('io');
     if (io) {
       if (isNow) {
@@ -372,7 +468,7 @@ router.post('/create-custom', authMiddleware, verifyWorkspaceAccess('workspaceId
 
     return res.status(201).json({
       success: true,
-      post: newPost,
+      post: signPostAudioUrl(newPost, workspaceId),
       message: isNow ? 'Published immediately across channels!' : 'Scheduled for autonomous publishing!',
     });
   } catch (error) {
@@ -400,6 +496,9 @@ router.get('/posts/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspa
       .limit(parseInt(limit, 10))
       .lean();
 
+    // Sign private audio URLs so browser HTML5 Audio elements can stream securely
+    const signedPosts = posts.map((post) => signPostAudioUrl(post, workspaceId));
+
     // Compute live analytics across all posts for this workspace
     const allPosts = await SocialPost.find({ workspaceId }).lean();
     let totalViews = 0;
@@ -422,7 +521,7 @@ router.get('/posts/:workspaceId', authMiddleware, verifyWorkspaceAccess('workspa
 
     return res.json({
       success: true,
-      posts,
+      posts: signedPosts,
       analytics: {
         totalScheduled,
         totalPublished,
@@ -461,9 +560,12 @@ router.post('/generate-reel', authMiddleware, verifyWorkspaceAccess('workspaceId
     // 2. Generate voiceover narration audio
     const voiceoverResult = await VoiceoverService.generateVoiceover({
       text: `${scriptData.scriptHook} ${scriptData.scriptBody} ${scriptData.scriptCta}`,
+      workspaceId: req.workspaceId,
+      userId: req.user?._id,
     });
 
-    // 3. Compose 9:16 vertical reel preview
+    // 3. Compose 9:16 vertical reel preview with industry-adaptive b-roll preset
+    const chosenTheme = theme || VideoRenderer.resolvePreset(industry, workspaceName).id;
     const videoComposition = await VideoRenderer.composeReel({
       title: scriptData.title,
       scriptHook: scriptData.scriptHook,
@@ -472,7 +574,7 @@ router.post('/generate-reel', authMiddleware, verifyWorkspaceAccess('workspaceId
       timedCaptions: scriptData.timedCaptions,
       audioUrl: voiceoverResult.audioUrl,
       brandName: workspaceName,
-      theme,
+      theme: chosenTheme,
     });
 
     // 4. Save as Draft SocialPost
@@ -486,7 +588,7 @@ router.post('/generate-reel', authMiddleware, verifyWorkspaceAccess('workspaceId
       scriptCta: scriptData.scriptCta,
       timedCaptions: scriptData.timedCaptions,
       mediaUrl: videoComposition.backgroundVideoUrl,
-      thumbnailUrl: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=600&auto=format&fit=crop',
+      thumbnailUrl: videoComposition.backgroundVideoUrl || videoComposition.bRollPreset?.videoUrl,
       audioUrl: voiceoverResult.audioUrl,
       caption: scriptData.caption,
       hashtags: scriptData.hashtags,
@@ -496,7 +598,7 @@ router.post('/generate-reel', authMiddleware, verifyWorkspaceAccess('workspaceId
       metadata: {
         videoComposition,
         voiceProvider: voiceoverResult.provider,
-        bRollTheme: theme,
+        bRollTheme: chosenTheme,
       },
     });
 
@@ -507,7 +609,7 @@ router.post('/generate-reel', authMiddleware, verifyWorkspaceAccess('workspaceId
 
     return res.status(201).json({
       success: true,
-      post: newPost,
+      post: signPostAudioUrl(newPost, workspaceId),
       videoComposition,
     });
   } catch (error) {
@@ -759,6 +861,7 @@ router.post('/posts/:id/publish-now', authMiddleware, async (req, res) => {
 
     post.status = 'PUBLISHED';
     post.publishedAt = new Date();
+    await AssetDeliveryService.publishPostMedia(post);
     post.metrics = {
       views: Math.floor(Math.random() * 2100) + 540,
       likes: Math.floor(Math.random() * 240) + 65,
@@ -878,8 +981,26 @@ router.post('/voices/preview', authMiddleware, async (req, res) => {
       text: sampleText,
       voiceId,
       tone: 'aggressive_challenger',
+      workspaceId: req.workspaceId,
+      userId: req.user?._id,
       filename: `preview_${voiceId}_${Date.now()}.wav`,
     });
+
+    // Sign audio URL if stored privately for authorized browser playback
+    if (result.audioUrl && result.audioUrl.startsWith('/api/assets/')) {
+      const match = result.audioUrl.match(/\/api\/assets\/([a-f\d]{24})/i);
+      if (match && req.workspaceId) {
+        try {
+          const signedToken = AssetDeliveryService.generateSignedMediaToken({
+            assetId: match[1],
+            workspaceId: req.workspaceId,
+            expiresInSeconds: 3600,
+          });
+          result.audioUrl = `/api/assets/view/${signedToken}`;
+        } catch (_) {}
+      }
+    }
+
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

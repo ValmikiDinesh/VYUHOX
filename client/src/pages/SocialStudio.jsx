@@ -40,6 +40,16 @@ import {
   Mic,
 } from 'lucide-react';
 import { api } from '../services/api';
+import { resolveSafeMediaUrl, getDynamicBrandPlaceholder, isSafeMediaUrl } from '../utils/safeMediaResolver';
+
+// Dynamic, Industry-Aware Brand Placeholder Generator for Organic Social Media
+export const getDynamicSocialPlaceholder = (workspace, isReel = true) => {
+  return getDynamicBrandPlaceholder(workspace, { isReel });
+};
+
+export const resolveSafeSocialMediaUrl = (url, workspace, isReel = true) => {
+  return resolveSafeMediaUrl(url, workspace, { isReel });
+};
 
 export default function SocialStudio({ activeWorkspace, socket }) {
   // Navigation / Tabs
@@ -329,7 +339,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
       if (res.success && res.post) {
         showToast(
           promptPublishMode === 'AUTOMATIC_NOW'
-            ? '🚀 Generated & published immediately across channels!'
+            ? '⚡ Generated & saved to studio (Connect live channels in Settings to broadcast)'
             : '✨ Generated unique post successfully!'
         );
         setIsPromptModalOpen(false);
@@ -469,15 +479,41 @@ export default function SocialStudio({ activeWorkspace, socket }) {
     };
   }, []);
 
+  // Browser Web Speech API synthesizer for real-time localized narration without crypto audio
+  const stopWebSpeech = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  const playWebSpeech = (text) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text) return;
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/[#@*]/g, '').slice(0, 320);
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.05;
+    utterance.pitch = 1.0;
+    utterance.onend = () => {
+      setIsPlayingReel(false);
+    };
+    utterance.onerror = () => {
+      setIsPlayingReel(false);
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+
   // When selectedPost changes, update audio source and stop playback cleanly
   useEffect(() => {
     if (!selectedPost) return;
+    stopWebSpeech();
     const audio = reelAudioRef.current;
     if (audio) {
       audio.pause();
       setIsPlayingReel(false);
       setReelCurrentTime(0);
-      const targetAudio = selectedPost.audioUrl || '/audio/reels/reel_fund_speed.wav';
+      const isCryptoAudio = selectedPost.audioUrl?.includes('reel_fund_speed') || selectedPost.audioUrl?.includes('reel_arbitrage_speed');
+      const isActualCryptoWorkspace = /crypto|quant|hedge|arbitrage/i.test(`${activeWorkspace?.industry || ''} ${activeWorkspace?.name || ''}`);
+      const targetAudio = (selectedPost.audioUrl && (!isCryptoAudio || isActualCryptoWorkspace)) ? selectedPost.audioUrl : '';
       audio.src = targetAudio;
     }
     if (reelVideoRef.current) {
@@ -491,15 +527,26 @@ export default function SocialStudio({ activeWorkspace, socket }) {
     const video = reelVideoRef.current;
 
     if (isPlayingReel) {
-      audio.pause();
+      stopWebSpeech();
+      if (audio) audio.pause();
       if (video) video.pause();
       setIsPlayingReel(false);
     } else {
-      const srcUrl = selectedPost?.audioUrl || '/audio/reels/reel_fund_speed.wav';
-      if (audio.src !== window.location.origin + srcUrl && !audio.src.endsWith(srcUrl)) {
-        audio.src = srcUrl;
+      const isCryptoAudio = selectedPost?.audioUrl?.includes('reel_fund_speed') || selectedPost?.audioUrl?.includes('reel_arbitrage_speed');
+      const isActualCryptoWorkspace = /crypto|quant|hedge|arbitrage/i.test(`${activeWorkspace?.industry || ''} ${activeWorkspace?.name || ''}`);
+      const validAudioUrl = (selectedPost?.audioUrl && (!isCryptoAudio || isActualCryptoWorkspace)) ? selectedPost.audioUrl : null;
+
+      if (validAudioUrl) {
+        if (audio.src !== window.location.origin + validAudioUrl && !audio.src.endsWith(validAudioUrl)) {
+          audio.src = validAudioUrl;
+        }
+        audio.play().catch((e) => console.log('Reel audio play notice:', e));
+      } else {
+        // Fall back to clean Web Speech API speaking the actual reel script (zero crypto voiceover)
+        const scriptToSpeak = selectedPost?.scriptHook || selectedPost?.caption || selectedPost?.title || '';
+        playWebSpeech(scriptToSpeak);
       }
-      audio.play().catch((e) => console.log('Reel audio play notice:', e));
+
       if (video) {
         video.play().catch(() => {});
       }
@@ -1078,11 +1125,15 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}>
-                      {post.thumbnailUrl && (
+                      {(post.thumbnailUrl || post.mediaUrl) && (
                         <img
-                          src={post.thumbnailUrl}
+                          src={resolveSafeSocialMediaUrl(post.thumbnailUrl || post.mediaUrl, activeWorkspace, post.type === 'REEL')}
                           alt={post.title}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = getDynamicSocialPlaceholder(activeWorkspace, post.type === 'REEL');
+                          }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }}
                         />
                       )}
 
@@ -1279,7 +1330,84 @@ export default function SocialStudio({ activeWorkspace, socket }) {
         {/* ========================================================================= */}
         {/* TAB 2: 9:16 VIDEO REEL STUDIO & PLAYER */}
         {/* ========================================================================= */}
-        {activeTab === 'reel_player' && selectedPost && (
+        {activeTab === 'reel_player' && (!selectedPost ? (
+          <div style={{
+            padding: '60px 30px',
+            textAlign: 'center',
+            background: 'rgba(2, 6, 23, 0.65)',
+            borderRadius: '16px',
+            border: '1px dashed rgba(255, 255, 255, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '14px',
+            maxWidth: '600px',
+            margin: '40px auto',
+          }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '14px',
+              background: 'rgba(6, 182, 212, 0.15)',
+              border: '1px solid rgba(6, 182, 212, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#38BDF8',
+            }}>
+              <Sparkles size={26} />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC' }}>
+              No Reel Selected or Generated Yet for {activeWorkspace?.name || 'This Workspace'}
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.84rem', color: '#94A3B8', lineHeight: '1.5' }}>
+              Synthesize a viral 9:16 vertical reel with 4-phase script architecture, word-by-word kinetic subtitles, and tailored B-roll calibrated specifically to {activeWorkspace?.name || 'your business'}.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setIsCreatingReelModalOpen(true)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #06B6D4 0%, #10B981 100%)',
+                  border: 'none',
+                  color: '#040710',
+                  fontWeight: '800',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 0 20px rgba(6, 182, 212, 0.35)',
+                }}
+              >
+                <Plus size={14} />
+                Create Reel / Graphic
+              </button>
+              <button
+                type="button"
+                onClick={() => setIs30DayModalOpen(true)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  fontWeight: '700',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Sparkles size={14} />
+                Generate 30 Days
+              </button>
+            </div>
+          </div>
+        ) : (
           <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
             {/* Left: Smartphone Vertical Mockup Frame (9:16) */}
             <div style={{
@@ -1403,10 +1531,10 @@ export default function SocialStudio({ activeWorkspace, socket }) {
               </div>
 
               {/* Photorealistic 8K Cinematic Backdrop or User Uploaded Video */}
-              {selectedPost.mediaUrl?.match(/\.(mp4|mov|webm)$/i) ? (
+              {selectedPost.mediaUrl?.match(/\.(mp4|mov|webm)$/i) && isSafeMediaUrl(selectedPost.mediaUrl) ? (
                 <video
                   ref={reelVideoRef}
-                  src={selectedPost.mediaUrl}
+                  src={resolveSafeSocialMediaUrl(selectedPost.mediaUrl, activeWorkspace, true)}
                   loop
                   muted
                   playsInline
@@ -1423,16 +1551,10 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                 />
               ) : (
                 <img
-                  src={
-                    selectedPost.mediaUrl && !selectedPost.mediaUrl.includes('hedgex')
-                      ? selectedPost.mediaUrl
-                      : (isWeddingOrLuxury
-                          ? 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85'
-                          : '/media/vyuhox_reel.jpg')
-                  }
+                  src={resolveSafeSocialMediaUrl(selectedPost.mediaUrl || selectedPost.thumbnailUrl, activeWorkspace, true)}
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = '/media/vyuhox_reel.jpg';
+                    e.target.src = getDynamicSocialPlaceholder(activeWorkspace, true);
                   }}
                   alt="Cinematic B-Roll Backdrop"
                   style={{
@@ -1596,7 +1718,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                 }}>
                   <Sparkles size={12} color="#FACC15" />
                   <span>
-                    {selectedPost?.scriptCta
+                    {selectedPost?.scriptCta && !selectedPost.scriptCta.toUpperCase().includes('ALPHA') && !selectedPost.scriptCta.toUpperCase().includes('DOSSIER')
                       ? selectedPost.scriptCta.slice(0, 36).toUpperCase()
                       : (isWeddingOrLuxury ? 'COMMENT "PREVIEW" FOR VIP ACCESS' : 'TAP TO DISCOVER MORE')}
                   </span>
@@ -1612,7 +1734,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                 zIndex: 10,
               }}>
                 <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#F8FAFC', marginBottom: '3px' }}>
-                  @{activeWorkspace?.slug || activeWorkspace?.name?.toLowerCase().replace(/\s+/g, '_') || 'workspace'}
+                  @{activeWorkspace?.name?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'workspace'}
                 </div>
                 <div style={{
                   fontSize: '0.68rem',
@@ -1820,7 +1942,9 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                     Phase 2: Agitation &amp; Autonomous Mechanism (3-25s)
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#CBD5E1', lineHeight: '1.45' }}>
-                    {selectedPost.scriptBody || 'High-frequency arbitrage is about execution velocity...'}
+                    {selectedPost.scriptBody || (isWeddingOrLuxury
+                      ? 'Every invitation should reflect the timeless elegance of your celebration, crafted to leave every guest speechless.'
+                      : 'Discover how our tailored solutions deliver exceptional quality and seamless results for your business.')}
                   </div>
                 </div>
 
@@ -1863,12 +1987,89 @@ export default function SocialStudio({ activeWorkspace, socket }) {
               </div>
             </div>
           </div>
-        )}
+        ))}
 
         {/* ========================================================================= */}
         {/* TAB 3: CAROUSELS & GRAPHIC STUDIO */}
         {/* ========================================================================= */}
-        {activeTab === 'carousels' && selectedPost && (
+        {activeTab === 'carousels' && (!selectedPost ? (
+          <div style={{
+            padding: '60px 30px',
+            textAlign: 'center',
+            background: 'rgba(2, 6, 23, 0.65)',
+            borderRadius: '16px',
+            border: '1px dashed rgba(255, 255, 255, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '14px',
+            maxWidth: '600px',
+            margin: '40px auto',
+          }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '14px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#34D399',
+            }}>
+              <Layers size={26} />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#F8FAFC' }}>
+              No Carousel Deck Selected or Generated Yet for {activeWorkspace?.name || 'This Workspace'}
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.84rem', color: '#94A3B8', lineHeight: '1.5' }}>
+              Generate a multi-slide swipeable educational carousel, institutional infographic deck, or photorealistic brand showcase tailored to {activeWorkspace?.name || 'your business'}.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setIsPromptModalOpen(true)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)',
+                  border: 'none',
+                  color: '#040710',
+                  fontWeight: '800',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 0 20px rgba(16, 185, 129, 0.35)',
+                }}
+              >
+                <Sparkles size={14} />
+                AI Prompt Studio
+              </button>
+              <button
+                type="button"
+                onClick={() => setIs30DayModalOpen(true)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#F8FAFC',
+                  fontWeight: '700',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Plus size={14} />
+                Generate 30 Days
+              </button>
+            </div>
+          </div>
+        ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* View Mode Switcher */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1934,18 +2135,10 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                   flexShrink: 0,
                 }}>
                   <img
-                    src={
-                      selectedPost.mediaUrl && !selectedPost.mediaUrl.includes('hedgex')
-                        ? selectedPost.mediaUrl
-                        : (isWeddingOrLuxury
-                            ? 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85'
-                            : '/media/vyuhox_banner.jpg')
-                    }
+                    src={resolveSafeSocialMediaUrl(selectedPost.mediaUrl || selectedPost.thumbnailUrl, activeWorkspace, false)}
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = isWeddingOrLuxury
-                        ? 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85'
-                        : '/media/vyuhox_banner.jpg';
+                      e.target.src = getDynamicSocialPlaceholder(activeWorkspace, false);
                     }}
                     alt="Brand Visual Asset"
                     style={{
@@ -2223,7 +2416,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
             </div>
           </div>
         </div>
-        )}
+        ))}
 
         {/* ========================================================================= */}
         {/* TAB 4: BRAND VOICE & SOCIAL ACCOUNTS CONFIG */}
@@ -2801,7 +2994,7 @@ export default function SocialStudio({ activeWorkspace, socket }) {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Sub-600ms Arbitrage Execution Demo"
+                  placeholder={isWeddingOrLuxury ? "e.g. Royal Bespoke Invitation Film" : "e.g. Premium Client Transformation Story"}
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
                   style={{
@@ -3169,7 +3362,9 @@ export default function SocialStudio({ activeWorkspace, socket }) {
               </label>
               <textarea
                 rows={3}
-                placeholder="e.g. Break down how our sub-millisecond execution crushes legacy funds during high-volatility spikes, or announce our new verified allocator audit milestone..."
+                placeholder={isWeddingOrLuxury
+                  ? "e.g. Highlight why bespoke personalized digital wedding invitations ensure every family elder feels truly honored, or showcase our latest royal invitation suite..."
+                  : "e.g. Highlight our signature approach, key client outcomes, and what makes our service unforgettable to discerning customers..."}
                 value={promptText}
                 onChange={(e) => setPromptText(e.target.value)}
                 style={{
@@ -3188,12 +3383,17 @@ export default function SocialStudio({ activeWorkspace, socket }) {
               {/* Quick Idea Pills */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                 <span style={{ fontSize: '0.68rem', color: '#64748B', alignSelf: 'center', marginRight: '4px' }}>Ideas:</span>
-                {[
-                  'Sub-second execution vs legacy funds',
-                  'Why AI SDRs dial inbound leads in 42s',
-                  'Institutional capital allocation milestone',
-                  '3-step order flow slippage elimination',
-                ].map((idea) => (
+                {(isWeddingOrLuxury ? [
+                  'Personalized invitations in family dialect',
+                  'Behind the scenes of our royal invitation suite',
+                  'Why traditional paper invites are being replaced',
+                  'Client review: Leaving wedding guests speechless',
+                ] : [
+                  'Signature client transformation story',
+                  'Behind the scenes of our bespoke craftsmanship',
+                  'Why top clients choose our verified service',
+                  'Key lessons from our latest customer milestone',
+                ]).map((idea) => (
                   <button
                     key={idea}
                     type="button"
